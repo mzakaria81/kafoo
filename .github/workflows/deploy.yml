@@ -1,0 +1,71 @@
+name: Deploy
+
+# CD runs only on main (production). Every deploy step is guarded: with no
+# app scaffolded and no deploy secrets configured, this workflow is a safe
+# no-op — it will not fail and it will not deploy anything.
+#
+# To turn on real deploys, add repo secrets and the steps light up:
+#   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID   -> Cloudflare Pages (admin web)
+#   SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF   -> Supabase migrations
+# Deploying migrations to production writes to the live database. Keep that
+# gated behind a human-reviewed merge to main — never let it run unattended
+# from unreviewed branches.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    env:
+      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+      HAS_SUPABASE: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' && secrets.SUPABASE_PROJECT_REF != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight
+        run: |
+          echo "cloudflare secrets present: ${HAS_CLOUDFLARE}"
+          echo "supabase secrets present:   ${HAS_SUPABASE}"
+          [ -d apps/admin ] && echo "admin app present: yes" || echo "admin app present: no"
+          [ -d supabase/migrations ] && echo "migrations present: yes" || echo "migrations present: no"
+
+      - name: Set up Flutter
+        if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build admin web
+        if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
+        working-directory: apps/admin
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - name: Deploy admin web to Cloudflare Pages
+        if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/admin/build/web --project-name=kafoo-admin
+
+      - name: Deploy Supabase migrations
+        if: env.HAS_SUPABASE == 'true' && hashFiles('supabase/migrations/*.sql') != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          npx --yes supabase@latest link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          npx --yes supabase@latest db push
+
+      - name: Nothing to deploy
+        if: env.HAS_CLOUDFLARE != 'true' && env.HAS_SUPABASE != 'true'
+        run: echo "No deploy secrets configured — skipping. This is expected until the app and secrets exist."
