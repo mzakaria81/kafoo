@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Claude Code — personal overrides, never committed
+.claude/settings.local.json
+.claude/agent-memory-local/
+
+# Flutter / Dart
+.dart_tool/
+build/
+*.g.dart
+*.freezed.dart
+pubspec.lock
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
