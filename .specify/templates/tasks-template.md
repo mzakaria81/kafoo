@@ -21,10 +21,39 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+Kafoo repository layout (see `CLAUDE.md`):
+
+- **Mobile app** (Customer + Cook, one binary): `apps/mobile/lib/features/<feature>/` split into
+  `presentation/`, `application/`, `data/`
+- **Web admin**: `apps/admin/`
+- **Shared packages**: `packages/ui/` (design system), `packages/domain/` (entities + pure logic,
+  no Supabase imports), `packages/ai/` (provider abstraction, prompts, conversation engine)
+- **Backend**: `supabase/migrations/` (generated names only), `supabase/functions/`,
+  `supabase/tests/`
+- Adjust to the concrete structure documented in `plan.md`
+
+## Constitution-Driven Task Requirements
+
+Source: `.specify/memory/constitution.md` (v1.0.0). These task types are **mandatory when
+triggered** — they are not optional polish. Include them in the user story phase that
+introduces the trigger, not deferred to the end.
+
+| Trigger in this feature | Required task(s) | Principle |
+|---|---|---|
+| New database table | RLS enabled in the **same** migration + per-operation policies + negative test in `supabase/tests/` proving a non-owner reads zero rows | III |
+| New business invariant | `CHECK` constraint / foreign key in the migration (not app-layer validation alone) | III |
+| Any AI-derived field reaching the DB | Explicit human approval step in the flow + `source` field (`ai` \| `cook`) | II |
+| New or changed AI behaviour | Golden-case test in `packages/ai/test/` with real Egyptian Arabic input, incl. one adversarial case | V |
+| New or changed prompt | Versioned `prompts/*.md` with frontmatter + bumped `version` + recorded eval | V |
+| Any user-facing string | ARB entries in **both** `ar` (Egyptian, written first) and `en` | IV |
+| New screen or widget | RTL correctness (`EdgeInsetsDirectional`, `start`/`end`) + semantic labels + ≥48dp targets | IV |
+| Tracked business action | Emit the PascalCase analytics event (`MealPublished`, `OrderPlaced`, …) | VI |
+| Domain change | Update `docs/product/domain-model.md` **in the same commit** | DoD 6 |
+| Any feature | Final task: `./scripts/verify.sh` passes | DoD 1 |
+
+Naming in every task description MUST use canonical vocabulary (Customer, Cook, Kitchen
+Profile, Meal, Order, Review, Conversation, AI Assistant) — never buyer, vendor, product,
+listing, or chatbot (Principle VI).
 
 <!--
   ============================================================================
@@ -153,10 +182,20 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] TXXX [P] Documentation updates in docs/
 - [ ] TXXX Code cleanup and refactoring
-- [ ] TXXX Performance optimization across all stories
+- [ ] TXXX Verify performance budgets: launch <2s, voice round-trip <2s, meal publish <3s,
+      cached search <1s (call out any breach in the PR rather than shipping silently)
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
+
+**Definition of Done gate** (constitution — all MUST be true before the PR opens):
+
+- [ ] TXXX `./scripts/verify.sh` passes — run it, do not assume
+- [ ] TXXX New tables have RLS policies + a test proving a non-owner cannot read the row
+- [ ] TXXX New user-facing strings exist in both `ar` and `en` ARB files
+- [ ] TXXX New AI behaviour has at least one golden-case test in `packages/ai/test/`
+- [ ] TXXX Analytics event emitted if the change touches a tracked business action
+- [ ] TXXX `docs/product/domain-model.md` updated in the same commit if the domain changed
 
 ---
 

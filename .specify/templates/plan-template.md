@@ -40,7 +40,24 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Source: `.specify/memory/constitution.md` (v1.0.0). Mark each gate PASS / FAIL / N/A with a
+one-line justification. Any FAIL blocks progress until resolved or recorded in Complexity
+Tracking below.
+
+| # | Gate | Status | Notes |
+|---|------|--------|-------|
+| I | **User trust**: no synthetic Reviews/Cooks/Meals, no AI photography as real, all charges visible pre-confirmation, no dark patterns. Conflicts resolved in priority order (trust → simplicity → AI → voice → performance → maintainability). | | |
+| II | **AI suggests, humans approve**: no AI write path to the database without an explicit human approval step. AI never publishes a Meal, modifies an Order, moves money, deletes content, writes a Review, or impersonates a user. AI estimates carry a `source` field. | | |
+| III | **Security by default**: every new table enables RLS in the same migration, per-operation policies, deny-by-default, `USING` + `WITH CHECK` on `UPDATE`, negative test proving a non-owner reads zero rows, invariants as DB constraints. | | |
+| IV | **Conversation first, Arabic first**: no form where a conversation works (4th input field ⇒ stop). One question at a time. All user-facing strings in ARB with an Egyptian Arabic entry. RTL-correct. | | |
+| V | **Provider independence**: all model calls via `packages/ai/` `AiProvider`. No provider SDK in feature or Flutter code. Prompts in versioned `prompts/*.md`. Golden-case tests for new AI behaviour. `packages/domain/` free of `supabase_flutter`. | | |
+| VI | **Canonical vocabulary**: Customer/Cook/Kitchen Profile/Meal/Order/Review/Conversation/AI Assistant used exactly; analytics events PascalCase and emitted for tracked business actions. | | |
+| VII | **Documentation separation**: `spec.md` is technology-agnostic (no frameworks, libraries, or architecture patterns); all HOW lives here in `plan.md`. | | |
+| — | **Performance budgets**: launch <2s, voice round-trip <2s, meal publish <3s, cached search <1s. Streaming for conversational responses. Any breach called out explicitly. | | |
+| — | **Privacy**: no new personal-data field without answering why/how long/who reads/can we avoid. Health-adjacent allergy data consented and scoped. No raw audio persisted without an ADR. | | |
+| — | **Stop-and-ask triggers**: does this add a screen, form field, or settings toggle; touch money/payouts/pricing; collect a new personal-data category; let AI act unapproved; or pull in Phase 2+ scope? If yes, approval is required before implementing. | | |
+
+**Verification**: `./scripts/verify.sh` must pass before this feature's PR opens.
 
 ## Project Structure
 
