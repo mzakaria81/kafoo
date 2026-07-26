@@ -124,3 +124,23 @@ Development speed is last. Do not trade trust or simplicity for it.
 
 App launch <2s · voice response <2s · meal publish <3s · cached search <1s.
 If a change pushes past a budget, say so in the PR rather than shipping it silently.
+
+## Skill activation
+
+At the start of any task-oriented session — any interaction where you will use tools and
+produce deliverables — invoke the `task-observer` skill before beginning work. This ensures
+skill improvement opportunities are captured throughout the session.
+
+When loading any skill, check the observation log for OPEN observations tagged to that skill.
+Apply their insights to the current work, even if the skill file hasn't been updated yet. This
+enables immediate application of observations before they're permanently integrated during the
+weekly review.
+
+**Workspace folder for `task-observer` is pinned to `.claude/skill-observations/` in this
+repository.** Do not use `~/.claude/projects/<id>/`. Kafoo development runs in ephemeral
+containers that are destroyed after each session, so the repository is the only storage that
+outlives a session — and only for work that is committed and pushed. An observation log that
+is written but never committed is lost at teardown. Say so rather than silently losing it.
+
+`using-superpowers` is injected automatically at session start by
+`.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
