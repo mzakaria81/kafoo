@@ -60,6 +60,43 @@ else
   npm install -g opencode-ai
 fi
 
+log "Agent authentication"
+# Both blocks read Codespaces secrets, which arrive as environment variables.
+# Nothing is written to the repository and no value is ever echoed.
+
+# Claude Code: `claude setup-token` (run once, anywhere, on a Pro/Max/Team plan)
+# mints a long-lived OAuth token. Stored as the CLAUDE_CODE_OAUTH_TOKEN
+# Codespaces secret it is picked up automatically — no file to write.
+if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  echo "Claude Code:  CLAUDE_CODE_OAUTH_TOKEN present — no interactive login needed"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+  echo "Claude Code:  WARNING - ANTHROPIC_API_KEY is set. Claude Code will bill the"
+  echo "              Anthropic API per token instead of using the subscription."
+  echo "              Remove it and use CLAUDE_CODE_OAUTH_TOKEN instead."
+else
+  echo "Claude Code:  no token found — run 'claude' then '/login' (see notes below)"
+fi
+
+# OpenCode has no documented env-var login for Zen/Go, so instead of guessing a
+# schema we materialize the credentials file verbatim from a secret holding the
+# contents of a known-good auth.json. An existing file is never overwritten.
+OPENCODE_AUTH_DIR="${HOME}/.local/share/opencode"
+if [ -n "${OPENCODE_AUTH_JSON:-}" ] && [ ! -f "${OPENCODE_AUTH_DIR}/auth.json" ]; then
+  mkdir -p "${OPENCODE_AUTH_DIR}"
+  printf '%s' "${OPENCODE_AUTH_JSON}" > "${OPENCODE_AUTH_DIR}/auth.json"
+  chmod 600 "${OPENCODE_AUTH_DIR}/auth.json"
+  if jq -e . "${OPENCODE_AUTH_DIR}/auth.json" >/dev/null 2>&1; then
+    echo "OpenCode:     credentials restored from OPENCODE_AUTH_JSON"
+  else
+    echo "OpenCode:     WARNING - OPENCODE_AUTH_JSON is not valid JSON; removing it"
+    rm -f "${OPENCODE_AUTH_DIR}/auth.json"
+  fi
+elif [ -f "${OPENCODE_AUTH_DIR}/auth.json" ]; then
+  echo "OpenCode:     existing auth.json left untouched"
+else
+  echo "OpenCode:     no credentials found — run 'opencode auth login'"
+fi
+
 log "Project env file"
 if [ ! -f .env ] && [ -f .env.example ]; then
   cp .env.example .env
@@ -72,18 +109,33 @@ log "Gate check"
 cat <<'EOF'
 
 ============================================================
-Setup complete. Two interactive logins remain — neither can
-be baked into this image, because both are per-user and
-credential-bearing:
+Setup complete.
 
-  claude          then /login   → subscription sign-in
-  opencode auth login           → /connect → OpenCode Go
+Both agent logins can be automated with Codespaces secrets
+(repo Settings > Secrets and variables > Codespaces). Set them
+once and rebuilds need no interactive login:
 
-Do NOT set ANTHROPIC_API_KEY. If it is set, Claude Code bills
-the Anthropic API per token instead of using your subscription.
+  CLAUDE_CODE_OAUTH_TOKEN
+      Generate once on any machine already signed in:
+          claude setup-token
+      Long-lived (about a year), tied to your Claude
+      subscription. Revoke at claude.ai if it leaks.
 
-Supabase credentials come from Codespaces secrets
-(SUPABASE_PROJECT_REF_DEV, SUPABASE_ACCESS_TOKEN), configured
-in repo Settings > Secrets and variables > Codespaces.
+  OPENCODE_AUTH_JSON
+      OpenCode has no documented env-var login, so store the
+      credentials file itself. After one successful
+      `opencode auth login` on any machine:
+          cat ~/.local/share/opencode/auth.json
+      Paste the whole JSON as the secret value.
+
+Without those secrets, log in interactively once per rebuild:
+      claude                then /login
+      opencode auth login   then /connect > OpenCode Go
+
+Do NOT set ANTHROPIC_API_KEY. It takes priority over the
+subscription token and bills the Anthropic API per token.
+
+Supabase credentials also come from Codespaces secrets
+(SUPABASE_PROJECT_REF_DEV, SUPABASE_ACCESS_TOKEN).
 ============================================================
 EOF
