@@ -124,3 +124,59 @@ Development speed is last. Do not trade trust or simplicity for it.
 
 App launch <2s · voice response <2s · meal publish <3s · cached search <1s.
 If a change pushes past a budget, say so in the PR rather than shipping it silently.
+
+## Skill activation
+
+At the start of any task-oriented session — any interaction where you will use tools and
+produce deliverables — invoke the `task-observer` skill before beginning work. This ensures
+skill improvement opportunities are captured throughout the session.
+
+When loading any skill, check the observation log for OPEN observations tagged to that skill.
+Apply their insights to the current work, even if the skill file hasn't been updated yet. This
+enables immediate application of observations before they're permanently integrated during the
+weekly review.
+
+**Workspace folder for `task-observer` is pinned to `.claude/skill-observations/` in this
+repository.** Do not use `~/.claude/projects/<id>/`. Kafoo development runs in ephemeral
+containers that are destroyed after each session, so the repository is the only storage that
+outlives a session — and only for work that is committed and pushed. An observation log that
+is written but never committed is lost at teardown. Say so rather than silently losing it.
+
+`using-superpowers` is injected automatically at session start by
+`.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
+
+## Delegating implementation work
+
+`opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
+edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,
+read the diff against the brief, then commit. Never accept a delegated agent's "gates passed"
+on faith — re-run `./scripts/verify.sh`.
+
+### Allowed OpenCode models — flat-rate only
+
+The OpenCode subscription on this account is **OpenCode Go**. Only models under the
+`opencode-go/` namespace are covered by it.
+
+**MUST NOT** dispatch a model outside `opencode-go/`. `opencode models` lists hundreds of
+entries from metered providers (OpenRouter and similar) that are billed per token; selecting
+one produces a real, unbudgeted charge. If a task seems to need a model outside this namespace,
+say so and let a human decide — never guess from the catalog.
+
+| Task shape | Model |
+|---|---|
+| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
+| Ordinary implementation | `opencode-go/qwen3.7-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
+
+Confirm the current list with `/models` in the TUI or `opencode models` — Go is in beta and its
+lineup changes. Adjust this table rather than improvising per task.
+
+### Delegated work is still Kafoo work
+
+Everything in this file and in `.specify/memory/constitution.md` binds delegated code too. The
+brief MUST carry the constraints the task touches — canonical vocabulary, RLS in the same
+migration, `ar` ARB entries, no AI write path without human approval — because the implementer
+has none of this conversation's context and does not auto-load this file.
+
+Prefer `--read-only` (the `plan` agent) for diagnosis. Note the relay passes the parent
+environment to the child process: do not delegate in a working tree holding a real `.env`.

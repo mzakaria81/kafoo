@@ -8,6 +8,21 @@
 
 **Input**: User description: "$ARGUMENTS"
 
+> **Scope guard — Constitution Principle VII (Documentation Separation of Concerns).**
+> This document is the **product** perspective: WHAT the system does and WHY. It MUST remain
+> technology-agnostic.
+>
+> - NO frameworks, libraries, or architecture patterns. NO implementation details.
+> - NO technical terminology except canonical domain terms (Customer, Cook, Kitchen Profile,
+>   Meal, Order, Review, Conversation, AI Assistant — never buyer, vendor, product, listing,
+>   chatbot). See Principle VI.
+> - All HOW belongs in `plan.md`. **Technical detail found here is a blocker for merge**, and
+>   review MUST explicitly verify technology-agnosticism.
+>
+> Also binding on this document: AI may suggest but never writes without human approval
+> (Principle II); prefer a conversation over a form — a fourth input field means stop and
+> propose a conversational flow (Principle IV).
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
