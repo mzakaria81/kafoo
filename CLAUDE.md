@@ -144,3 +144,39 @@ is written but never committed is lost at teardown. Say so rather than silently 
 
 `using-superpowers` is injected automatically at session start by
 `.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
+
+## Delegating implementation work
+
+`opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
+edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,
+read the diff against the brief, then commit. Never accept a delegated agent's "gates passed"
+on faith — re-run `./scripts/verify.sh`.
+
+### Allowed OpenCode models — flat-rate only
+
+The OpenCode subscription on this account is **OpenCode Go**. Only models under the
+`opencode-go/` namespace are covered by it.
+
+**MUST NOT** dispatch a model outside `opencode-go/`. `opencode models` lists hundreds of
+entries from metered providers (OpenRouter and similar) that are billed per token; selecting
+one produces a real, unbudgeted charge. If a task seems to need a model outside this namespace,
+say so and let a human decide — never guess from the catalog.
+
+| Task shape | Model |
+|---|---|
+| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
+| Ordinary implementation | `opencode-go/qwen3.7-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
+
+Confirm the current list with `/models` in the TUI or `opencode models` — Go is in beta and its
+lineup changes. Adjust this table rather than improvising per task.
+
+### Delegated work is still Kafoo work
+
+Everything in this file and in `.specify/memory/constitution.md` binds delegated code too. The
+brief MUST carry the constraints the task touches — canonical vocabulary, RLS in the same
+migration, `ar` ARB entries, no AI write path without human approval — because the implementer
+has none of this conversation's context and does not auto-load this file.
+
+Prefer `--read-only` (the `plan` agent) for diagnosis. Note the relay passes the parent
+environment to the child process: do not delegate in a working tree holding a real `.env`.
