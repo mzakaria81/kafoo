@@ -68,7 +68,27 @@ log "Agent authentication"
 # mints a long-lived OAuth token. Stored as the CLAUDE_CODE_OAUTH_TOKEN
 # Codespaces secret it is picked up automatically — no file to write.
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-  echo "Claude Code:  CLAUDE_CODE_OAUTH_TOKEN present — no interactive login needed"
+  # Anthropic tokens are a single line. A narrow terminal soft-wraps them on
+  # screen, and copying from that wrap can carry real newlines into the secret
+  # — which GitHub stores happily and Claude Code then rejects. Strip any
+  # whitespace and persist the clean value, since an export here would not
+  # survive into the user's shell.
+  _tok_clean=$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN}" | tr -d '[:space:]')
+  if [ "${_tok_clean}" != "${CLAUDE_CODE_OAUTH_TOKEN}" ]; then
+    echo "Claude Code:  NOTE - CLAUDE_CODE_OAUTH_TOKEN contained whitespace or line"
+    echo "              breaks (usually a wrapped copy/paste). Using a stripped copy."
+    echo "              Fix the secret itself to silence this on the next rebuild."
+    export CLAUDE_CODE_OAUTH_TOKEN="${_tok_clean}"
+    printf 'export CLAUDE_CODE_OAUTH_TOKEN=%q\n' "${_tok_clean}" >> "${HOME}/.bashrc"
+  fi
+  # Length is a shape check only; the value itself is never printed.
+  if [ "${#_tok_clean}" -lt 40 ]; then
+    echo "Claude Code:  WARNING - token looks too short (${#_tok_clean} chars). It may"
+    echo "              have been truncated on paste. Regenerate with 'claude setup-token'."
+  else
+    echo "Claude Code:  CLAUDE_CODE_OAUTH_TOKEN present — no interactive login needed"
+  fi
+  unset _tok_clean
 elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   echo "Claude Code:  WARNING - ANTHROPIC_API_KEY is set. Claude Code will bill the"
   echo "              Anthropic API per token instead of using the subscription."
