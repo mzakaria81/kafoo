@@ -17,3 +17,8 @@ pubspec.lock
 # Supabase
 supabase/.branches/
 supabase/.temp/
+
+# Python bytecode — the vendored ui-ux-pro-max skill ships Python scripts,
+# so running it regenerates these next to the source.
+__pycache__/
+*.py[cod]
