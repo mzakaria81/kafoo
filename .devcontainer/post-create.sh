@@ -97,11 +97,24 @@ else
   echo "Claude Code:  no token found — run 'claude' then '/login' (see notes below)"
 fi
 
-# OpenCode has no documented env-var login for Zen/Go, so instead of guessing a
-# schema we materialize the credentials file verbatim from a secret holding the
-# contents of a known-good auth.json. An existing file is never overwritten.
+# OpenCode reads OPENCODE_AUTH_CONTENT before it reads auth.json, so that
+# secret alone is a complete login — nothing to write. It is undocumented but
+# present in packages/opencode/src/auth/index.ts, hence the file fallback below
+# in case it is ever removed.
+#
+# auth.json is a map of provider ID to credential:
+#   {"<provider>": {"type":"api","key":"..."}}
+#   {"<provider>": {"type":"oauth","refresh":"...","access":"...","expires":0}}
+#   {"<provider>": {"type":"wellknown","key":"...","token":"..."}}
 OPENCODE_AUTH_DIR="${HOME}/.local/share/opencode"
-if [ -n "${OPENCODE_AUTH_JSON:-}" ] && [ ! -f "${OPENCODE_AUTH_DIR}/auth.json" ]; then
+if [ -n "${OPENCODE_AUTH_CONTENT:-}" ]; then
+  if printf '%s' "${OPENCODE_AUTH_CONTENT}" | jq -e . >/dev/null 2>&1; then
+    echo "OpenCode:     OPENCODE_AUTH_CONTENT present — read natively, no file needed"
+  else
+    echo "OpenCode:     WARNING - OPENCODE_AUTH_CONTENT is not valid JSON. OpenCode"
+    echo "              ignores it silently, so this would look like a missing login."
+  fi
+elif [ -n "${OPENCODE_AUTH_JSON:-}" ] && [ ! -f "${OPENCODE_AUTH_DIR}/auth.json" ]; then
   mkdir -p "${OPENCODE_AUTH_DIR}"
   printf '%s' "${OPENCODE_AUTH_JSON}" > "${OPENCODE_AUTH_DIR}/auth.json"
   chmod 600 "${OPENCODE_AUTH_DIR}/auth.json"
@@ -141,12 +154,20 @@ once and rebuilds need no interactive login:
       Long-lived (about a year), tied to your Claude
       subscription. Revoke at claude.ai if it leaks.
 
-  OPENCODE_AUTH_JSON
-      OpenCode has no documented env-var login, so store the
-      credentials file itself. After one successful
-      `opencode auth login` on any machine:
-          cat ~/.local/share/opencode/auth.json
-      Paste the whole JSON as the secret value.
+  OPENCODE_AUTH_CONTENT
+      The whole auth.json as a single-line JSON string.
+      OpenCode reads this before the file, so it is a complete
+      login on its own. After one `opencode auth login` on any
+      machine:
+          jq -c . ~/.local/share/opencode/auth.json
+      Paste that output as the secret value. Shape is
+      provider ID -> credential, e.g.
+          {"<provider>":{"type":"api","key":"..."}}
+
+  OPENCODE_AUTH_JSON  (fallback)
+      Same JSON, but written to disk as auth.json instead.
+      Only needed if OPENCODE_AUTH_CONTENT ever stops working:
+      it is undocumented, so it could change.
 
 Without those secrets, log in interactively once per rebuild:
       claude                then /login
