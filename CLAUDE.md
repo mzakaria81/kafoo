@@ -183,8 +183,16 @@ Each is on the published Go lineup *and* present in this account's catalog. Mode
 
 Go is in beta and its lineup drifts — the published docs already list models this account does
 not have (`kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3`). Re-run
-`opencode models` and update this allowlist rather than improvising per task. A model that no
-longer exists fails loudly, which is safe; a metered one does not.
+`opencode models --refresh` and update this allowlist rather than improvising per task. A model
+that no longer exists fails loudly, which is safe; a metered one does not.
+
+**Do not substitute a same-named model from another provider.** Checked on 2026-07-26 after a
+cache refresh: `kimi-k3` is absent from `opencode/` but present as
+`cloudflare-ai-gateway/moonshotai/kimi-k3`. That is a different provider — billed per token,
+requiring separate credentials, and not covered by this subscription. The same applies to any
+`openrouter/`, `cloudflare-ai-gateway/`, or similar path that happens to carry a model name from
+the Go lineup. If a wanted model is missing from `opencode/`, the subscription cannot reach it
+and no configuration changes that; use the nearest allowlisted model or ask.
 
 ### Delegated work is still Kafoo work
 
