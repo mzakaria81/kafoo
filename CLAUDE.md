@@ -154,37 +154,37 @@ on faith — re-run `./scripts/verify.sh`.
 
 ### Allowed OpenCode models — flat-rate only
 
-The OpenCode subscription on this account is **OpenCode Go**. Only models on that flat-rate plan
-are covered; everything else in the catalog is billed per token.
+The OpenCode subscription on this account is **OpenCode Go**, a flat-rate plan covering a
+specific set of models. The prefix is `opencode/` (verified against this account with
+`opencode models`; the provider ID in `auth.json` is `opencode`).
 
-**MUST NOT** dispatch a model outside the flat-rate namespace. `opencode models` lists hundreds
-of entries from metered providers (OpenRouter and similar); selecting one produces a real,
-unbudgeted charge. If a task seems to need a model outside it, say so and let a human decide —
-never guess from the catalog. This rule holds regardless of what the namespace is called.
+**The `opencode/` prefix is NOT a billing boundary.** That namespace also serves frontier models
+billed per token — `opencode/claude-opus-5`, `opencode/gpt-5.5-pro`, `opencode/gemini-3.1-pro`
+and similar. They share the prefix with the flat-rate models and nothing in the model string
+distinguishes them, so "starts with `opencode/`" is not a safety check.
 
-> **⚠️ The prefix below is UNVERIFIED against this account. Confirm it before the first
-> delegation.** The Go documentation gives model IDs as `opencode-go/<model-id>`, but the
-> account's `auth.json` registers the provider as `opencode`, so the model strings may be
-> `opencode/<model-id>` instead. These are different things — a provider ID and a model
-> namespace — and only the CLI can settle which applies here:
->
-> ```bash
-> opencode models | grep -iE '^(opencode|zen)'
-> ```
->
-> Correct the prefix throughout this section, then delete this warning. Until that is done, do
-> not run a fresh delegation unattended: an unrecognised model errors out harmlessly, but a
-> near-miss that resolves to a metered provider does not.
+**MUST NOT** dispatch a model outside the allowlist below. Selecting a frontier model produces a
+real, unbudgeted charge. If a task seems to need one, say so and let a human decide — never pick
+from `opencode models` output on the assumption that the prefix makes it safe.
 
-| Task shape | Model (verify prefix first) |
+### Allowlist — verified present on this account
+
+`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `grok-4.5` · `kimi-k2.6` ·
+`kimi-k2.7-code` · `minimax-m2.7` · `minimax-m3` · `qwen3.6-plus`
+
+Each is on the published Go lineup *and* present in this account's catalog. Models with a
+`-free` suffix are outside the plan's paid tier and fine to use.
+
+| Task shape | Model |
 |---|---|
-| Mechanical — renames, migrations, removal sweeps, formatting | `deepseek-v4-flash` |
-| Ordinary implementation | `qwen3.7-plus` |
-| Subtle logic, tricky bugs, anything near money, auth, or RLS | `grok-4.5` |
+| Mechanical — renames, migrations, removal sweeps, formatting | `opencode/deepseek-v4-flash` |
+| Ordinary implementation | `opencode/qwen3.6-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode/grok-4.5` |
 
-Model *names* come from the published Go lineup; the *prefix* is what needs confirming. Go is in
-beta and its lineup changes, so re-check with `/models` in the TUI or `opencode models` and adjust
-this table rather than improvising per task.
+Go is in beta and its lineup drifts — the published docs already list models this account does
+not have (`kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3`). Re-run
+`opencode models` and update this allowlist rather than improvising per task. A model that no
+longer exists fails loudly, which is safe; a metered one does not.
 
 ### Delegated work is still Kafoo work
 
