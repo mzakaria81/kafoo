@@ -154,22 +154,37 @@ on faith — re-run `./scripts/verify.sh`.
 
 ### Allowed OpenCode models — flat-rate only
 
-The OpenCode subscription on this account is **OpenCode Go**. Only models under the
-`opencode-go/` namespace are covered by it.
+The OpenCode subscription on this account is **OpenCode Go**. Only models on that flat-rate plan
+are covered; everything else in the catalog is billed per token.
 
-**MUST NOT** dispatch a model outside `opencode-go/`. `opencode models` lists hundreds of
-entries from metered providers (OpenRouter and similar) that are billed per token; selecting
-one produces a real, unbudgeted charge. If a task seems to need a model outside this namespace,
-say so and let a human decide — never guess from the catalog.
+**MUST NOT** dispatch a model outside the flat-rate namespace. `opencode models` lists hundreds
+of entries from metered providers (OpenRouter and similar); selecting one produces a real,
+unbudgeted charge. If a task seems to need a model outside it, say so and let a human decide —
+never guess from the catalog. This rule holds regardless of what the namespace is called.
 
-| Task shape | Model |
+> **⚠️ The prefix below is UNVERIFIED against this account. Confirm it before the first
+> delegation.** The Go documentation gives model IDs as `opencode-go/<model-id>`, but the
+> account's `auth.json` registers the provider as `opencode`, so the model strings may be
+> `opencode/<model-id>` instead. These are different things — a provider ID and a model
+> namespace — and only the CLI can settle which applies here:
+>
+> ```bash
+> opencode models | grep -iE '^(opencode|zen)'
+> ```
+>
+> Correct the prefix throughout this section, then delete this warning. Until that is done, do
+> not run a fresh delegation unattended: an unrecognised model errors out harmlessly, but a
+> near-miss that resolves to a metered provider does not.
+
+| Task shape | Model (verify prefix first) |
 |---|---|
-| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
-| Ordinary implementation | `opencode-go/qwen3.7-plus` |
-| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
+| Mechanical — renames, migrations, removal sweeps, formatting | `deepseek-v4-flash` |
+| Ordinary implementation | `qwen3.7-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `grok-4.5` |
 
-Confirm the current list with `/models` in the TUI or `opencode models` — Go is in beta and its
-lineup changes. Adjust this table rather than improvising per task.
+Model *names* come from the published Go lineup; the *prefix* is what needs confirming. Go is in
+beta and its lineup changes, so re-check with `/models` in the TUI or `opencode models` and adjust
+this table rather than improvising per task.
 
 ### Delegated work is still Kafoo work
 
