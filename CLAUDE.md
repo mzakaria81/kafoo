@@ -154,22 +154,45 @@ on faith — re-run `./scripts/verify.sh`.
 
 ### Allowed OpenCode models — flat-rate only
 
-The OpenCode subscription on this account is **OpenCode Go**. Only models under the
-`opencode-go/` namespace are covered by it.
+The OpenCode subscription on this account is **OpenCode Go**, a flat-rate plan covering a
+specific set of models. The prefix is `opencode/` (verified against this account with
+`opencode models`; the provider ID in `auth.json` is `opencode`).
 
-**MUST NOT** dispatch a model outside `opencode-go/`. `opencode models` lists hundreds of
-entries from metered providers (OpenRouter and similar) that are billed per token; selecting
-one produces a real, unbudgeted charge. If a task seems to need a model outside this namespace,
-say so and let a human decide — never guess from the catalog.
+**The `opencode/` prefix is NOT a billing boundary.** That namespace also serves frontier models
+billed per token — `opencode/claude-opus-5`, `opencode/gpt-5.5-pro`, `opencode/gemini-3.1-pro`
+and similar. They share the prefix with the flat-rate models and nothing in the model string
+distinguishes them, so "starts with `opencode/`" is not a safety check.
+
+**MUST NOT** dispatch a model outside the allowlist below. Selecting a frontier model produces a
+real, unbudgeted charge. If a task seems to need one, say so and let a human decide — never pick
+from `opencode models` output on the assumption that the prefix makes it safe.
+
+### Allowlist — verified present on this account
+
+`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `grok-4.5` · `kimi-k2.6` ·
+`kimi-k2.7-code` · `minimax-m2.7` · `minimax-m3` · `qwen3.6-plus`
+
+Each is on the published Go lineup *and* present in this account's catalog. Models with a
+`-free` suffix are outside the plan's paid tier and fine to use.
 
 | Task shape | Model |
 |---|---|
-| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
-| Ordinary implementation | `opencode-go/qwen3.7-plus` |
-| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
+| Mechanical — renames, migrations, removal sweeps, formatting | `opencode/deepseek-v4-flash` |
+| Ordinary implementation | `opencode/qwen3.6-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode/grok-4.5` |
 
-Confirm the current list with `/models` in the TUI or `opencode models` — Go is in beta and its
-lineup changes. Adjust this table rather than improvising per task.
+Go is in beta and its lineup drifts — the published docs already list models this account does
+not have (`kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3`). Re-run
+`opencode models --refresh` and update this allowlist rather than improvising per task. A model
+that no longer exists fails loudly, which is safe; a metered one does not.
+
+**Do not substitute a same-named model from another provider.** Checked on 2026-07-26 after a
+cache refresh: `kimi-k3` is absent from `opencode/` but present as
+`cloudflare-ai-gateway/moonshotai/kimi-k3`. That is a different provider — billed per token,
+requiring separate credentials, and not covered by this subscription. The same applies to any
+`openrouter/`, `cloudflare-ai-gateway/`, or similar path that happens to carry a model name from
+the Go lineup. If a wanted model is missing from `opencode/`, the subscription cannot reach it
+and no configuration changes that; use the nearest allowlisted model or ask.
 
 ### Delegated work is still Kafoo work
 
