@@ -11,3 +11,10 @@
 # loses the one thing that makes it actionable.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Flutter's deferred-components support references Play Core classes that are
+# absent unless the app actually uses deferred components. Kafoo does not, so
+# R8 must be told these references are expected rather than failing the build.
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
+-keep class com.google.android.play.core.** { *; }

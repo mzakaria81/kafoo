@@ -93,7 +93,9 @@ release is not the place to discover a missing RLS policy.
 ## Kafoo <version> (<build>) — go/no-go
 - [ ] ./scripts/verify.sh passes on the release commit
 - [ ] Version + build number bumped, monotonic, matches store expectation
-- [ ] Signed with the correct distribution identity / upload key (verified, not assumed)
+- [ ] Signed with the upload key — certificate inspected, not inferred. A bundle
+      signed with `CN=Android Debug` still contains a signature block and still
+      looks signed; it cannot be published
 - [ ] Dart symbols (--split-debug-info) + dSYMs / mapping.txt archived and uploaded
 - [ ] Store listing complete in Egyptian Arabic AND English
 - [ ] Every screenshot shows a real Cook, a real Meal, and no fabricated Review
