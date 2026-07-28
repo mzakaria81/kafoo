@@ -58,6 +58,18 @@ run "rls coverage" bash -c '
   done
   exit $bad'
 
+# The constitution forbids synthetic Reviews, Cooks, and Meals — including for
+# seeding. Migrations reach production unattended, so catch DML against those
+# tables here rather than trusting review.
+run "no synthetic content" bash -c '
+  hits=$(grep -rinE "INSERT[[:space:]]+INTO[[:space:]]+(public\.)?(cooks|meals|reviews|kitchen_profiles)" \
+    supabase/ 2>/dev/null || true)
+  if [ -n "$hits" ]; then
+    echo "$hits"
+    echo "   Synthetic Cooks, Meals, or Reviews are product-fatal (Constitution I)."
+    exit 1
+  fi'
+
 # Non-canonical vocabulary leaking into code or SQL.
 run "vocabulary" bash -c '
   hits=$(grep -rinE "\b(vendors?|sellers?|buyers?|listings?|menu_items?|chatbots?)\b" \

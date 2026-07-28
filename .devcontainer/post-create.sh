@@ -38,6 +38,40 @@ flutter --version || true
 log "melos"
 dart pub global activate melos >/dev/null
 
+log "Android SDK"
+# Required to build a release bundle. Without it `flutter build appbundle`
+# stops at "No Android SDK found", so a rebuild would silently lose the
+# ability to produce a release candidate.
+ANDROID_HOME="${HOME}/sdk/android"
+if [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
+  echo "already present at ${ANDROID_HOME}"
+else
+  mkdir -p "${ANDROID_HOME}/cmdline-tools"
+  curl -fsSL -o /tmp/cmdline.zip \
+    https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+  unzip -q /tmp/cmdline.zip -d "${ANDROID_HOME}/cmdline-tools"
+  mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest"
+  rm /tmp/cmdline.zip
+fi
+export ANDROID_HOME
+export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+yes | sdkmanager --licenses >/dev/null 2>&1 || true
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" >/dev/null 2>&1 || \
+  echo "sdkmanager reported errors — run it manually to see them"
+flutter config --android-sdk "${ANDROID_HOME}" >/dev/null 2>&1 || true
+
+log "Persisting toolchain PATH"
+if ! grep -q "sdk/flutter/bin" "${HOME}/.bashrc" 2>/dev/null; then
+  cat >> "${HOME}/.bashrc" <<EOF
+
+# Kafoo development toolchain
+export PATH="\${HOME}/sdk/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
+export FLUTTER_ROOT="\${HOME}/sdk/flutter"
+export ANDROID_HOME="\${HOME}/sdk/android"
+EOF
+  echo "added to ~/.bashrc"
+fi
+
 log "Supabase CLI"
 if command -v supabase >/dev/null; then
   echo "already present: $(supabase --version 2>/dev/null || true)"
