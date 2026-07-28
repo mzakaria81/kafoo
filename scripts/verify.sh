@@ -34,7 +34,11 @@ run "tests"         bash -c '
   melos run test'
 run "codegen drift" bash -c '
   [ -f melos.yaml ] || { echo "   no melos workspace yet — skipping"; exit 0; }
-  dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
+  grep -rqE "^[[:space:]]+build_runner:" --include=pubspec.yaml . || {
+    echo "   no package uses build_runner yet — skipping"; exit 0; }
+  melos exec --depends-on=build_runner -- \
+    dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 \
+    && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
 # Every migration that creates a table must enable RLS in the same file.
 run "rls coverage" bash -c '

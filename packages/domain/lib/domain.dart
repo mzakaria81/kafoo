@@ -1,0 +1,8 @@
+/// Kafoo entities and pure business logic.
+///
+/// This package must not import `supabase_flutter`, Flutter, or any AI SDK.
+/// If one of those seems necessary here, the boundary is wrong — say so
+/// rather than adding the import. See `.claude/rules/dart.md`.
+library;
+
+export 'result.dart';
