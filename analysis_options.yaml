@@ -1,0 +1,47 @@
+# Shared analyzer configuration. Every package includes this file.
+#
+# The rules below are the ones the project's own guidance already implies, made
+# machine-checkable so a reviewer never has to raise them by hand.
+
+linter:
+  rules:
+    # packages/domain uses Result<T, AppError>; exceptions are for programmer
+    # error only. These catch the accidental swallow.
+    - avoid_catches_without_on_clauses
+    - avoid_catching_errors
+    - only_throw_errors
+
+    # Performance budgets are tight enough that const matters.
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+
+    # RTL correctness: every screen must render under both directions.
+    - use_decorated_box
+
+    - always_declare_return_types
+    - avoid_print
+    - avoid_unused_constructor_parameters
+    - cancel_subscriptions
+    - close_sinks
+    - directives_ordering
+    - prefer_final_locals
+    - prefer_single_quotes
+    - sort_pub_dependencies
+    - unawaited_futures
+    - unnecessary_lambdas
+    - unnecessary_parenthesis
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # Missing a required ARB entry must not be downgraded to a warning.
+    missing_required_param: error
+    missing_return: error
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'

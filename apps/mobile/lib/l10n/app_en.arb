@@ -1,0 +1,43 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Kafoo",
+  "@appTitle": {
+    "description": "The application name, shown in the task switcher."
+  },
+
+  "publishMeal": "Publish Meal",
+  "@publishMeal": {
+    "description": "Action a Cook takes to move a Meal from draft to published."
+  },
+
+  "archiveMeal": "Archive Meal",
+  "@archiveMeal": {
+    "description": "Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history."
+  },
+
+  "acceptOrder": "Accept Order",
+  "@acceptOrder": {
+    "description": "Action the owning Cook takes to agree to cook an Order."
+  },
+
+  "rejectOrder": "Reject Order",
+  "@rejectOrder": {
+    "description": "Action the owning Cook takes to decline an Order."
+  },
+
+  "orderRejected": "The Cook could not take this Order right now. Try another Meal, or order from another Cook.",
+  "@orderRejected": {
+    "description": "Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next."
+  },
+
+  "networkUnavailable": "No internet connection. Check that you are online and try again.",
+  "@networkUnavailable": {
+    "description": "Shown when a request fails for connectivity reasons."
+  },
+
+  "aiEstimateNotice": "These are AI Assistant estimates. The Cook has not confirmed them yet.",
+  "@aiEstimateNotice": {
+    "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
+  }
+}

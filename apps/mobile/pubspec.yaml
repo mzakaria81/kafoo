@@ -1,0 +1,25 @@
+name: kafoo_mobile
+description: The Kafoo app. Customer and Cook in one binary.
+version: 0.1.0
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  flutter: '>=3.27.0'
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  kafoo_ai:
+    path: ../../packages/ai
+  kafoo_domain:
+    path: ../../packages/domain
+  kafoo_ui:
+    path: ../../packages/ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

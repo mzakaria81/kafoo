@@ -20,21 +20,30 @@ run() {
 echo "kafoo verify"
 
 # Dart/Flutter steps skip cleanly until the workspace is scaffolded, the same
-# way "localization parity" skips before the ARB files exist. Once melos.yaml
-# lands they run for real — no second definition of "passing".
+# way "localization parity" skips before the ARB files exist. They activate on
+# the `workspace:` key in the root pubspec.yaml, which is what makes this a Dart
+# pub workspace and therefore a Melos workspace — no second definition of
+# "passing".
 run "format"        bash -c '
   command -v dart >/dev/null || { echo "   dart not on PATH — skipping"; exit 0; }
   git ls-files -z "*.dart" | grep -qz . || { echo "   no dart files yet — skipping"; exit 0; }
   dart format --set-exit-if-changed --output=none .'
 run "analyze"       bash -c '
-  [ -f melos.yaml ] || { echo "   no melos workspace yet — skipping"; exit 0; }
+  grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
+    echo "   no melos workspace yet — skipping"; exit 0; }
   melos run analyze'
 run "tests"         bash -c '
-  [ -f melos.yaml ] || { echo "   no melos workspace yet — skipping"; exit 0; }
+  grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
+    echo "   no melos workspace yet — skipping"; exit 0; }
   melos run test'
 run "codegen drift" bash -c '
-  [ -f melos.yaml ] || { echo "   no melos workspace yet — skipping"; exit 0; }
-  dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
+  grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
+    echo "   no melos workspace yet — skipping"; exit 0; }
+  grep -rqE "^[[:space:]]+build_runner:" --include=pubspec.yaml . || {
+    echo "   no package uses build_runner yet — skipping"; exit 0; }
+  melos exec --depends-on=build_runner -- \
+    dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 \
+    && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
 # Every migration that creates a table must enable RLS in the same file.
 run "rls coverage" bash -c '

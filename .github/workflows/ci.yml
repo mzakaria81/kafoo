@@ -32,6 +32,11 @@ jobs:
       - name: Add pub global bin to PATH
         run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
 
+      # Resolve workspace dependencies before the gate. Without this,
+      # `melos run analyze` runs against unresolved packages.
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
       # jq is preinstalled on ubuntu-latest runners; verify.sh needs it.
       - name: Run gate
         run: ./scripts/verify.sh
