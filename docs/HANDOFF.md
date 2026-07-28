@@ -16,9 +16,9 @@ feature code, no database table, and no user-facing flow beyond a placeholder sc
 | Governance | Constitution v1.0.0, glossary, domain model, ADR-0005. All written, all cited by rules that now resolve. |
 | Gate | `./scripts/verify.sh` — 8 checks, all running. Verified locally against the real toolchain, not inferred from CI. |
 | Workspace | Dart pub workspace: `apps/mobile`, `packages/{domain,ai,ui}`. Builds, analyses, tests. |
-| Platform projects | `android/` and `ios/` generated. A release bundle builds end to end (41.9 MB, 3 symbol files). |
+| Platform projects | `android/` and `ios/` generated (ADR-0006: both platforms are in scope). An Android bundle builds end to end (41.9 MB, 3 symbol files); iOS has never been built. |
 | Agents | 7 review agents in `.claude/agents/`. |
-| CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets, Android release candidate builds but never submits. |
+| CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
 | **Database** | **Nothing.** No migrations, no tables, no RLS exercised. |
 | **Features** | **Nothing.** No Meal, no Order, no Conversation, no AI call to a real provider. |
@@ -64,7 +64,11 @@ screens and an AI-derived write path, both stop-and-ask triggers.
   could not verify this** — the API path is blocked through this session's proxy. It may be
   aspirational.
 - **T045** — `apps/admin`, deferred until an administrative surface is needed.
-- **iOS release** — the pipeline builds Android only. iOS needs a macOS runner and certificates.
+- **iOS release credentials** — the pipeline now has an iOS job, but it is gated behind a
+  preflight check and will not start until Apple Developer credentials exist. Needs Apple
+  Developer Program membership, then `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
+  `IOS_PROVISIONING_PROFILE_BASE64`, and `IOS_KEYCHAIN_PASSWORD` as repository secrets. Platform
+  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS.
 
 ## Known-wrong or unverified
 
@@ -79,7 +83,11 @@ Stated plainly, because the expensive failures this session were all of this kin
   the constitution and unexercised. The first release build is when they become real.
 - **`--fatal-infos` is on.** A new lint in a future Dart release can turn a passing build red
   without any change to Kafoo. That is the intended trade; it will still be surprising.
-- **The iOS project is generated but never built.** No macOS machine has touched it.
+- **The iOS project is generated but never built.** No macOS machine has touched it. The iOS
+  release job is written but has never executed, so it is unverified in a way the Android job no
+  longer is — that one was corrected against a real artifact.
+- **Two signing identities now, not one.** ADR-0006 doubles the custody problem: losing either
+  the Android upload key or the Apple certificate is permanent for that platform.
 
 ## Traps this session hit, so the next one does not
 
@@ -97,6 +105,21 @@ Stated plainly, because the expensive failures this session were all of this kin
    fixed here; do not let a regenerate quietly undo it.
 6. **The vocabulary check applies to your own comments.** It caught `vendor` in `packages/ai`
    during E0. The comments were changed, not the check.
+
+## Environment that does not live in the repo
+
+`.devcontainer/post-create.sh` restores the toolchain and the `caveman` Claude Code plugin on
+rebuild. The plugin is a communication-style preference rather than a project requirement — set
+`KAFOO_SKIP_CAVEMAN=1` or delete that block to opt out. Reinstalling by hand:
+
+```
+/plugin marketplace add JuliusBrussee/caveman
+/plugin install caveman@caveman
+```
+
+The statusline badge is separate and is **not** restored: it lives in the container's own
+`~/.claude/settings.json`, which no repository file can reach. Re-add it with the `statusLine`
+entry pointing at the plugin's `src/hooks/caveman-statusline.sh`.
 
 ## Working agreements that are not written elsewhere
 

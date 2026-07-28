@@ -164,6 +164,22 @@ else
   echo "OpenCode:     no credentials found — run 'opencode auth login'"
 fi
 
+log "Claude Code plugins"
+# Communication-style preference, not a project requirement. It is here because
+# plugins install to the container's home directory, which a rebuild destroys —
+# so without this it silently disappears and nobody notices why the output
+# changed. Set KAFOO_SKIP_CAVEMAN=1 to opt out, or delete this block.
+if [ "${KAFOO_SKIP_CAVEMAN:-0}" = "1" ]; then
+  echo "KAFOO_SKIP_CAVEMAN set — skipping"
+elif command -v claude >/dev/null 2>&1; then
+  claude plugin marketplace add JuliusBrussee/caveman >/dev/null 2>&1 \
+    && claude plugin install caveman@caveman >/dev/null 2>&1 \
+    && echo "caveman installed" \
+    || echo "caveman install skipped — run '/plugin marketplace add JuliusBrussee/caveman' manually"
+else
+  echo "claude CLI not on PATH yet — install caveman manually after first login"
+fi
+
 log "Project env file"
 if [ ! -f .env ] && [ -f .env.example ]; then
   cp .env.example .env
