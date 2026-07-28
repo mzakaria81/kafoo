@@ -1,15 +1,25 @@
 name: Deploy
 
-# CD runs only on main (production). Every deploy step is guarded: with no
-# app scaffolded and no deploy secrets configured, this workflow is a safe
-# no-op — it will not fail and it will not deploy anything.
+# CD runs only on main (production). Every step is guarded by secret presence and
+# by whether the thing it deploys exists, so with no secrets configured this
+# workflow is a safe no-op — it neither fails nor deploys.
 #
-# To turn on real deploys, add repo secrets and the steps light up:
+# Secrets that light steps up:
 #   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID   -> Cloudflare Pages (admin web)
 #   SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF   -> Supabase migrations
-# Deploying migrations to production writes to the live database. Keep that
-# gated behind a human-reviewed merge to main — never let it run unattended
-# from unreviewed branches.
+#   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD
+#     + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD   -> a signed Android bundle
+#
+# Deploying migrations to production writes to the live database. That stays
+# gated behind a human-reviewed merge to main — never unattended from an
+# unreviewed branch.
+#
+# NOTE ON STORE SUBMISSION: this workflow deliberately stops at building and
+# archiving a release candidate. It does not upload to App Store Connect or Play.
+# A binary cannot be un-shipped, so submission stays a human decision made with
+# release health in front of them — the same "machines propose, people approve"
+# rule the constitution applies to the AI Assistant.
+# See .claude/agents/release-engineer.md for the pre-submission checklist.
 
 on:
   push:
@@ -20,8 +30,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: deploy
+  backend:
+    name: admin web + migrations
     runs-on: ubuntu-latest
     env:
       HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
@@ -33,8 +43,9 @@ jobs:
         run: |
           echo "cloudflare secrets present: ${HAS_CLOUDFLARE}"
           echo "supabase secrets present:   ${HAS_SUPABASE}"
-          [ -d apps/admin ] && echo "admin app present: yes" || echo "admin app present: no"
-          [ -d supabase/migrations ] && echo "migrations present: yes" || echo "migrations present: no"
+          [ -f apps/admin/pubspec.yaml ] && echo "admin app: yes" || echo "admin app: no"
+          ls supabase/migrations/*.sql >/dev/null 2>&1 \
+            && echo "migrations: yes" || echo "migrations: none"
 
       - name: Set up Flutter
         if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
@@ -62,10 +73,146 @@ jobs:
         if: env.HAS_SUPABASE == 'true' && hashFiles('supabase/migrations/*.sql') != ''
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          # Pinned deliberately. `@latest` would run code that was never
+          # reviewed, holding an account-scoped token, against production, on
+          # every push to main. Bump this on purpose.
+          SUPABASE_CLI_VERSION: '2.66.2'
         run: |
-          npx --yes supabase@latest link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
-          npx --yes supabase@latest db push
+          npx --yes "supabase@${SUPABASE_CLI_VERSION}" link --project-ref "$SUPABASE_PROJECT_REF"
+          npx --yes "supabase@${SUPABASE_CLI_VERSION}" db push
 
       - name: Nothing to deploy
         if: env.HAS_CLOUDFLARE != 'true' && env.HAS_SUPABASE != 'true'
-        run: echo "No deploy secrets configured — skipping. This is expected until the app and secrets exist."
+        run: echo "No backend deploy secrets configured — skipping, as expected."
+
+  android:
+    name: android release candidate
+    runs-on: ubuntu-latest
+    # NOTE: no job-level `if: hashFiles(...)`. hashFiles runs before any
+    # checkout, against an empty workspace, so it always yields '' and would
+    # skip this job on every run. The guards below are step-level, after the
+    # checkout, which is where they can actually see the tree.
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # apps/mobile currently has lib/ and test/ but no android/ or ios/
+      # directories — `flutter create --platforms=...` has never been run — so
+      # there is nothing to build yet. Detect that rather than failing, and say
+      # so plainly in the summary.
+      - name: Detect buildable Android project
+        id: detect
+        run: |
+          if [ -d apps/mobile/android ]; then
+            echo "buildable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "buildable=false" >> "$GITHUB_OUTPUT"
+            echo "apps/mobile/android does not exist — no Android project to build."
+            echo "### Android release candidate: skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`apps/mobile/android/\` does not exist yet. Run" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`flutter create --platforms=android,ios .\` in \`apps/mobile\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "to generate the platform projects, then this job builds." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: subosito/flutter-action@v2
+        if: steps.detect.outputs.buildable == 'true'
+        with:
+          channel: stable
+          cache: true
+
+      - name: Activate melos and bootstrap
+        if: steps.detect.outputs.buildable == 'true'
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Bootstrap workspace
+        if: steps.detect.outputs.buildable == 'true'
+        run: melos bootstrap
+
+      # A release is not the place to discover a missing RLS policy.
+      - name: Run the gate
+        if: steps.detect.outputs.buildable == 'true'
+        run: ./scripts/verify.sh
+
+      # The signing identity is infrastructure. It arrives from secrets and is
+      # written outside the working tree so it can never be committed.
+      - name: Restore signing key
+        if: steps.detect.outputs.buildable == 'true' && env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/signing/upload.jks"
+          # The keystore itself stays outside the working tree. Only
+          # key.properties goes where Gradle reads it — apps/mobile/android/ —
+          # because build.gradle resolves it via rootProject.file(). It is
+          # git-ignored there; an env var is read by nothing.
+          cat > apps/mobile/android/key.properties <<EOF
+          storeFile=$RUNNER_TEMP/signing/upload.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+          echo "keystore staged outside the tree; key.properties placed for Gradle"
+
+      # Build number is github.run_number: monotonic by construction, never
+      # reused, never hand-edited. Both stores key update detection off it.
+      #
+      # --obfuscate with --split-debug-info makes the release AOT build
+      # unreadable without the symbol files, so those files ARE the ability to
+      # debug a production crash. They are archived below.
+      - name: Build app bundle
+        if: steps.detect.outputs.buildable == 'true'
+        run: |
+          flutter build appbundle --release \
+            --build-number="${{ github.run_number }}" \
+            --obfuscate \
+            --split-debug-info=build/symbols
+        working-directory: apps/mobile
+
+      - name: Archive release candidate
+        if: steps.detect.outputs.buildable == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-android-${{ github.run_number }}
+          path: apps/mobile/build/app/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 90
+
+      # Without these, a production crash report is a column of hex addresses.
+      - name: Archive debug symbols
+        if: steps.detect.outputs.buildable == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-android-symbols-${{ github.run_number }}
+          path: apps/mobile/build/symbols
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Release notes
+        working-directory: apps/mobile
+        if: steps.detect.outputs.buildable == 'true'
+        run: |
+          echo "### Android release candidate" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Build number: \`${{ github.run_number }}\`" >> "$GITHUB_STEP_SUMMARY"
+          # Report what the artifact actually is, not what secrets suggest it
+          # should be. Secret presence is not proof of a signed bundle.
+          AAB=$(find build/app/outputs/bundle/release -name '*.aab' | head -1)
+          if unzip -l "$AAB" 2>/dev/null | grep -q 'META-INF/.*\.RSA\|META-INF/.*\.EC'; then
+            echo "Signed: \`verified\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Signed: \`NO — unsigned bundle\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Not submitted. Run the pre-submission checklist in" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`.claude/agents/release-engineer.md\` before uploading." >> "$GITHUB_STEP_SUMMARY"
+          echo "Screenshots and store copy are covered by the trust rules:" >> "$GITHUB_STEP_SUMMARY"
+          echo "no synthetic Cooks, Meals, or Reviews; Arabic listing first." >> "$GITHUB_STEP_SUMMARY"
