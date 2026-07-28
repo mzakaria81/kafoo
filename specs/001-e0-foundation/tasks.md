@@ -6,6 +6,8 @@ description: "Task list for E0 Foundation"
 
 **Input**: Design documents from `specs/001-e0-foundation/`
 
+**Handoff**: [docs/HANDOFF.md](../../docs/HANDOFF.md) — read first in a new session
+
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
 [data-model.md](data-model.md), [quickstart.md](quickstart.md)
 
@@ -125,8 +127,8 @@ deciding it ships.
 **Independent test**: Take a verified commit, produce a release candidate, confirm it is
 reproducible, traceable to that commit, and cannot reach the public without a recorded decision.
 
-**⚠️ Blocked**: T031 blocks every task below it. `apps/mobile` has no platform projects, so
-nothing can be built regardless of pipeline configuration.
+**Unblocked**: T031 is done — `android/` and `ios/` exist and a release bundle builds end to
+end. What remains is custody and configuration, not code.
 
 ### Implementation for User Story 2
 
@@ -136,15 +138,19 @@ nothing can be built regardless of pipeline configuration.
 - [x] T035 [US2] Derive the signed status from the built artifact rather than from secret presence, in `.github/workflows/deploy.yml` — `fcba2cb`
 - [x] T036 [US2] Pin the Supabase CLI version so unreviewed code cannot run against production holding an account-scoped token — `fcba2cb`
 - [x] T037 [US2] Write the release review agent and pre-submission checklist in `.claude/agents/release-engineer.md` — `fcba2cb`
-- [ ] T031 [US2] Generate the platform projects: run `flutter create --platforms=android,ios .` in `apps/mobile`, review the generated files, and commit — **blocks T038–T042**
-- [ ] T038 [US2] Configure release signing in `apps/mobile/android/app/build.gradle.kts` reading `rootProject.file('key.properties')`, and git-ignore `key.properties`
+- [x] T031 [US2] Generate the platform projects with `flutter create --platforms=android,ios --org com.kafoo` in `apps/mobile` — `5f49ce5`
+- [x] T038 [US2] Configure release signing in `apps/mobile/android/app/build.gradle.kts` reading `rootProject.file('key.properties')`; replaced Flutter's debug-key default — `5f49ce5`
+- [x] T048 [US2] Detect debug-signed bundles by certificate owner rather than by the presence of a signature block, in `.github/workflows/deploy.yml` — `3d28f53`
 - [ ] T039 [P] [US2] Store the upload keystore where more than one person can recover it, and record the recovery path — satisfies FR-016, whose loss permanently prevents updating the app
 - [ ] T040 [P] [US2] Add the four Android signing secrets to repository settings, per `.claude/agents/release-engineer.md`
 - [ ] T041 [US2] Verify a real release candidate: confirm the bundle is signed, symbols are archived, and the build number is monotonic across two runs
 - [ ] T042 [P] [US2] Write the store listing in Egyptian Arabic first with English as translation, and confirm no screenshot depicts an invented Cook, Meal, or Review — FR-013, FR-014
 
-**Checkpoint**: US2 not delivered. Pipeline exists and is correct as far as it can be verified
-without a buildable project.
+**Checkpoint**: US2 partially delivered. A release bundle builds end to end (41.9 MB, 3 symbol
+files) and the pipeline was corrected against a real artifact rather than by inspection. What
+remains is keystore custody (T039), which is a decision about where credentials live, and the
+store listing (T042). Until T039/T040, every candidate is debug-signed and unpublishable — the
+pipeline now says so explicitly instead of reporting success.
 
 ---
 
@@ -153,6 +159,7 @@ without a buildable project.
 - [ ] T043 [P] Pin every GitHub Action to a commit SHA rather than a mutable tag in both workflows — a tag repoint runs attacker code in a job holding the signing identity
 - [ ] T044 [P] Confirm branch protection on `main` requires a passing gate, or correct the comment in `.github/workflows/deploy.yml` claiming migrations stay behind human review
 - [ ] T045 [P] Add `apps/admin` as a workspace member once the administrative surface is needed — deliberately deferred, see spec.md Assumptions
+- [x] T047 [P] Add the Android SDK to `.devcontainer/post-create.sh` so a rebuild can still build a release — this commit
 - [ ] T046 Run `/speckit-analyze` across spec, plan, and tasks to check they still agree
 
 ---
@@ -193,8 +200,10 @@ T044  # branch protection             repository settings
 **Delivered**: US1 and US3. The gate enforces seven checks, verified locally against the real
 toolchain rather than inferred from CI.
 
-**Next**: T031 is the single unblocking task for US2 — one command, then several hundred
-generated files to review before committing. Nothing else in Phase 5 can proceed without it.
+**Next**: T039 — decide where the upload keystore lives and how it is recovered. It is the only
+remaining item with permanent consequences: a lost upload key means Kafoo can never update the
+app for anyone who already installed it. Nothing has been generated yet, which is why it is still
+cheap to get right.
 
 **Deliberately deferred**: T045 (`apps/admin`) until an administrative surface is needed, and the
 first migration until E1, because a table created now would have an ownership rule that has never
