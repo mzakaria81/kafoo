@@ -1,0 +1,37 @@
+name: kafoo
+description: Kafoo workspace root. Defines the Dart pub workspace and the melos scripts.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.6.0
+
+# Dart pub workspace. Melos 7+ requires this rather than a melos.yaml — the
+# workspace is resolved once at the root, so every package shares one lockfile.
+workspace:
+  - apps/mobile
+  - packages/ai
+  - packages/domain
+  - packages/ui
+
+dev_dependencies:
+  melos: ^8.0.0
+
+melos:
+  scripts:
+    analyze:
+      description: >-
+        Analyze every package. Infos are fatal — a lint we chose to enable is a
+        lint we mean.
+      run: melos exec -- dart analyze --fatal-infos --fatal-warnings .
+
+    test:
+      description: Run tests in every package that has a test directory.
+      run: |
+        melos exec --no-flutter --dir-exists=test -- dart test
+        melos exec --flutter --dir-exists=test -- flutter test
+
+    format:
+      description: >-
+        Format every package in place. CI checks formatting via
+        scripts/verify.sh rather than running this.
+      run: melos exec -- dart format .

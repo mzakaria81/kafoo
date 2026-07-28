@@ -2,6 +2,7 @@ name: kafoo_ai
 description: Provider abstraction, prompts, and conversation engine. The only package that may import a vendor SDK.
 version: 0.1.0
 publish_to: 'none'
+resolution: workspace
 
 environment:
   sdk: ^3.6.0
