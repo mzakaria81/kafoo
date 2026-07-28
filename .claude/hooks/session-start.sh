@@ -27,33 +27,11 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 FLUTTER_DIR="${HOME}/flutter"
-export PATH="${FLUTTER_DIR}/bin:${HOME}/.pub-cache/bin:${PATH}"
 
-if [ -x "${FLUTTER_DIR}/bin/dart" ]; then
-  log "flutter: already present"
-else
-  log "flutter: cloning stable (a few minutes on a cold container)"
-  git clone --depth 1 -b stable \
-    https://github.com/flutter/flutter.git "${FLUTTER_DIR}" >&2 2>&1
-fi
-
-# Flutter refuses to run from a directory git considers unsafe, which is what
-# a root-owned clone looks like.
-git config --global --add safe.directory "${FLUTTER_DIR}" || true
-
-# First invocation downloads the Dart SDK into the checkout.
-log "dart: $(dart --version 2>&1 | head -1)"
-
-if command -v melos >/dev/null 2>&1; then
-  log "melos: already present"
-else
-  log "melos: activating"
-  dart pub global activate melos >&2 2>&1
-fi
-
-# The gate runs `melos run analyze`, which needs resolved packages.
-log "workspace: bootstrapping"
-melos bootstrap >&2 2>&1
+# Shared with .devcontainer/post-create.sh so the two environments cannot drift.
+# Without --with-android: the SDK is only needed for a release candidate and
+# would add minutes to every session start.
+"${CLAUDE_PROJECT_DIR:-.}/scripts/install-toolchain.sh"
 
 # Persist for every command in this session, not just this hook.
 {

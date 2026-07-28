@@ -68,7 +68,9 @@ screens and an AI-derived write path, both stop-and-ask triggers.
   preflight check and will not start until Apple Developer credentials exist. Needs Apple
   Developer Program membership, then `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
   `IOS_PROVISIONING_PROFILE_BASE64`, and `IOS_KEYCHAIN_PASSWORD` as repository secrets. Platform
-  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS.
+  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS, and iOS reaches users
+  through **TestFlight first** — friends and family, which means external testers and therefore
+  Beta App Review. The same signed archive serves both, so the pipeline is unchanged.
 
 ## Known-wrong or unverified
 
