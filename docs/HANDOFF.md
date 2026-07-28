@@ -106,6 +106,22 @@ Stated plainly, because the expensive failures this session were all of this kin
 6. **The vocabulary check applies to your own comments.** It caught `vendor` in `packages/ai`
    during E0. The comments were changed, not the check.
 
+## Starting a session
+
+**Claude Code on the web**: nothing to run. `.claude/hooks/session-start.sh` installs Flutter,
+Dart, and melos, then bootstraps the workspace — roughly 90 seconds cold, 2 seconds warm. Without
+it the gate skips five of eight checks and still prints `PASS`.
+
+It deliberately does **not** install the Android SDK: that is only needed to build a release
+candidate, and it would add minutes to every session. For the rare session that needs one, run
+`bash .devcontainer/post-create.sh`.
+
+**Codespaces**: nothing to run either. `.devcontainer/post-create.sh` covers everything including
+the Android SDK.
+
+**Anywhere else**: `bash .devcontainer/post-create.sh`, then follow
+`specs/001-e0-foundation/quickstart.md`.
+
 ## Environment that does not live in the repo
 
 `.devcontainer/post-create.sh` restores the toolchain and two Claude Code plugins on rebuild.
