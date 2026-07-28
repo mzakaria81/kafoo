@@ -87,6 +87,51 @@ simulator. A regression past a budget is called out before submission, not after
 **The gate runs first.** `./scripts/verify.sh` passes before a release candidate is built. A
 release is not the place to discover a missing RLS policy.
 
+## TestFlight comes before the App Store
+
+iOS ships to TestFlight first — friends and family, not the public. Treat that as a different
+release with a shorter checklist, not as "the rules do not apply yet".
+
+**What still applies in full.** Everything under the trust rules. Real people install these
+builds and form an opinion of Kafoo from them. A fabricated Cook or an AI-generated Meal photo in
+a TestFlight build is the same violation it would be in the store — arguably worse, because early
+testers are the people most likely to repeat what they saw. Signing, symbols, monotonic build
+numbers, and the gate are unchanged.
+
+**What is genuinely different.**
+
+- **A TestFlight build can be expired.** This is the one place the "you cannot un-ship a binary"
+  rule relaxes: a bad build can be pulled from testers. It still cannot be un-installed from a
+  phone that already has it, so this buys containment, not a reset.
+- **Internal vs external testers.** Internal (up to 100) must hold App Store Connect roles and
+  need no review. Friends and family generally do not, so they are **external** testers — which
+  requires **Beta App Review**, lighter and faster than App Store review but still a review that
+  can reject.
+- **Less metadata, not none.** No screenshots or full store listing, but the "What to Test" notes
+  and the app description are read by testers. Egyptian Arabic first still applies to anything
+  they read.
+- **Export compliance is asked on every build.** Answer it honestly; Kafoo uses HTTPS, which is
+  the standard exemption, but "we always click yes" is how a wrong answer ships.
+- **Builds expire after 90 days.** Testers lose access silently. Plan the cadence rather than
+  discovering it from a confused message.
+
+**Privacy declarations are still required.** Beta App Review checks them. The allergy-data and
+raw-audio rules apply from the first external build, not from the first store submission — which
+matters, because those flows are usually still changing at this stage.
+
+**TestFlight-only checklist** (in addition to the shared items below):
+
+```markdown
+## Kafoo <version> (<build>) — TestFlight
+- [ ] Tester group named, and testers know this is a pre-release build
+- [ ] "What to Test" notes written in Egyptian Arabic, English second
+- [ ] Export compliance answered deliberately, not by reflex
+- [ ] Privacy declarations complete — Beta App Review checks them
+- [ ] No fabricated Cook, Meal, or Review anywhere in the build's seeded state
+- [ ] Expiry date noted; a replacement build is planned before 90 days
+- [ ] A way for testers to report problems that does not require a GitHub account
+```
+
 ## Pre-submission checklist
 
 ```markdown

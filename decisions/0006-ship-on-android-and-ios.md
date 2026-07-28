@@ -67,10 +67,31 @@ from the start, since the voice-first flow depends on it.
    constitutional rule — for example a demand that would require presenting an AI estimate as
    verified fact, or collecting allergy data beyond what a specific Order requires.
 
+## Amendment — 2026-07-28: iOS reaches users through TestFlight first
+
+iOS distribution starts with TestFlight (friends and family), not an App Store submission. This
+does not change the decision above — both platforms remain in scope, and the release pipeline is
+unchanged, since a TestFlight build is the same signed archive.
+
+What it changes is sequencing and reversibility. A TestFlight build **can be expired**, which is
+the one place the "you cannot un-ship a binary" constraint softens. It buys containment rather
+than a reset: an install already on a phone stays there.
+
+Consequences specific to this route: friends and family are **external** testers, so **Beta App
+Review** applies — lighter than App Store review, but still a review that can reject. Privacy
+declarations are checked from the first external build, which lands earlier than the store
+submission would have, and lands while those flows are still changing. Builds expire after 90
+days, so the tester cadence is a real schedule rather than an afterthought.
+
+The trust rules apply unchanged. Early testers are the people most likely to repeat what they
+saw, so a fabricated Cook or an AI-generated Meal photo does more damage here, not less.
+
+Full checklist: `.claude/agents/release-engineer.md`.
+
 ## Notes for Claude Code
 
-Kafoo targets Android and iOS. Do not add a platform-specific dependency without checking it has
-an equivalent on the other platform, and do not design a flow — especially anything touching the
-microphone — that only works on one. The release checklist in
+Kafoo targets Android and iOS. iOS reaches users through TestFlight first. Do not add a
+platform-specific dependency without checking it has an equivalent on the other platform, and do
+not design a flow — especially anything touching the microphone — that only works on one. The release checklist in
 `.claude/agents/release-engineer.md` applies to both; a store listing in Egyptian Arabic is
 required for each.

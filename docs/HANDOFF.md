@@ -68,7 +68,9 @@ screens and an AI-derived write path, both stop-and-ask triggers.
   preflight check and will not start until Apple Developer credentials exist. Needs Apple
   Developer Program membership, then `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
   `IOS_PROVISIONING_PROFILE_BASE64`, and `IOS_KEYCHAIN_PASSWORD` as repository secrets. Platform
-  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS.
+  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS, and iOS reaches users
+  through **TestFlight first** — friends and family, which means external testers and therefore
+  Beta App Review. The same signed archive serves both, so the pipeline is unchanged.
 
 ## Known-wrong or unverified
 
@@ -105,6 +107,22 @@ Stated plainly, because the expensive failures this session were all of this kin
    fixed here; do not let a regenerate quietly undo it.
 6. **The vocabulary check applies to your own comments.** It caught `vendor` in `packages/ai`
    during E0. The comments were changed, not the check.
+
+## Starting a session
+
+**Claude Code on the web**: nothing to run. `.claude/hooks/session-start.sh` installs Flutter,
+Dart, and melos, then bootstraps the workspace — roughly 90 seconds cold, 2 seconds warm. Without
+it the gate skips five of eight checks and still prints `PASS`.
+
+It deliberately does **not** install the Android SDK: that is only needed to build a release
+candidate, and it would add minutes to every session. For the rare session that needs one, run
+`bash .devcontainer/post-create.sh`.
+
+**Codespaces**: nothing to run either. `.devcontainer/post-create.sh` covers everything including
+the Android SDK.
+
+**Anywhere else**: `bash .devcontainer/post-create.sh`, then follow
+`specs/001-e0-foundation/quickstart.md`.
 
 ## Environment that does not live in the repo
 

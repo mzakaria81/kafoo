@@ -13,9 +13,6 @@ set -euo pipefail
 
 log() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 
-FLUTTER_DIR="${HOME}/flutter"
-FLUTTER_CHANNEL="stable"
-
 log "System packages"
 sudo apt-get update -qq
 # jq: required by .claude/hooks/check-rls.sh and scripts/verify.sh
@@ -23,50 +20,21 @@ sudo apt-get update -qq
 # RLS hook expects — no BSD-grep workaround needed here.
 sudo apt-get install -y -qq jq unzip xz-utils >/dev/null
 
-log "Flutter ${FLUTTER_CHANNEL}"
-if [ -x "${FLUTTER_DIR}/bin/flutter" ]; then
-  echo "already present at ${FLUTTER_DIR}"
-else
-  # snap is unavailable in Codespaces containers, so install from git.
-  git clone --depth 1 -b "${FLUTTER_CHANNEL}" \
-    https://github.com/flutter/flutter.git "${FLUTTER_DIR}"
-fi
-export PATH="${FLUTTER_DIR}/bin:${HOME}/.pub-cache/bin:${PATH}"
-git config --global --add safe.directory "${FLUTTER_DIR}" || true
-flutter --version || true
-
-log "melos"
-dart pub global activate melos >/dev/null
-
-log "Android SDK"
-# Required to build a release bundle. Without it `flutter build appbundle`
-# stops at "No Android SDK found", so a rebuild would silently lose the
-# ability to produce a release candidate.
-ANDROID_HOME="${HOME}/sdk/android"
-if [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
-  echo "already present at ${ANDROID_HOME}"
-else
-  mkdir -p "${ANDROID_HOME}/cmdline-tools"
-  curl -fsSL -o /tmp/cmdline.zip \
-    https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-  unzip -q /tmp/cmdline.zip -d "${ANDROID_HOME}/cmdline-tools"
-  mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest"
-  rm /tmp/cmdline.zip
-fi
-export ANDROID_HOME
-export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-yes | sdkmanager --licenses >/dev/null 2>&1 || true
-sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" >/dev/null 2>&1 || \
-  echo "sdkmanager reported errors — run it manually to see them"
-flutter config --android-sdk "${ANDROID_HOME}" >/dev/null 2>&1 || true
+log "Toolchain"
+# Shared with .claude/hooks/session-start.sh so Codespaces and a web session
+# get the same Dart toolchain. --with-android adds the SDK, which Codespaces
+# wants for release builds and a web session skips for speed.
+./scripts/install-toolchain.sh --with-android
+export PATH="${HOME}/flutter/bin:${HOME}/.pub-cache/bin:${PATH}"
+export ANDROID_HOME="${HOME}/sdk/android"
 
 log "Persisting toolchain PATH"
-if ! grep -q "sdk/flutter/bin" "${HOME}/.bashrc" 2>/dev/null; then
+if ! grep -q "Kafoo development toolchain" "${HOME}/.bashrc" 2>/dev/null; then
   cat >> "${HOME}/.bashrc" <<EOF
 
 # Kafoo development toolchain
-export PATH="\${HOME}/sdk/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
-export FLUTTER_ROOT="\${HOME}/sdk/flutter"
+export PATH="\${HOME}/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
+export FLUTTER_ROOT="\${HOME}/flutter"
 export ANDROID_HOME="\${HOME}/sdk/android"
 EOF
   echo "added to ~/.bashrc"
