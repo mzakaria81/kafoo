@@ -108,18 +108,31 @@ Stated plainly, because the expensive failures this session were all of this kin
 
 ## Environment that does not live in the repo
 
-`.devcontainer/post-create.sh` restores the toolchain and the `caveman` Claude Code plugin on
-rebuild. The plugin is a communication-style preference rather than a project requirement — set
-`KAFOO_SKIP_CAVEMAN=1` or delete that block to opt out. Reinstalling by hand:
+`.devcontainer/post-create.sh` restores the toolchain and two Claude Code plugins on rebuild.
+Both are behavioural preferences rather than project requirements — set `KAFOO_SKIP_PLUGINS=1` to
+opt out of both, or remove one line to drop just that one.
+
+| Plugin | Effect |
+|---|---|
+| `caveman` | Compresses output; drops articles and filler |
+| `ponytail` | Biases toward the simplest solution that works: YAGNI, standard library first, no unrequested abstractions |
+
+`ponytail` aligns with Simplicity, which is second in the constitution's priority order. It does
+**not** outrank User trust, which is first. An argument that something is simpler never justifies
+weakening RLS, skipping a negative test, or dropping an Arabic string — if a suggestion trades
+trust for brevity, the constitution wins. Worth watching, since that is exactly the kind of
+pressure a simplicity bias creates.
+
+Reinstalling by hand:
 
 ```
-/plugin marketplace add JuliusBrussee/caveman
-/plugin install caveman@caveman
+/plugin marketplace add JuliusBrussee/caveman   && /plugin install caveman@caveman
+/plugin marketplace add DietrichGebert/ponytail && /plugin install ponytail@ponytail
 ```
 
 The statusline badge is separate and is **not** restored: it lives in the container's own
 `~/.claude/settings.json`, which no repository file can reach. Re-add it with the `statusLine`
-entry pointing at the plugin's `src/hooks/caveman-statusline.sh`.
+entry pointing at the plugin's statusline script. Both plugins ship one; only one can be active.
 
 ## Working agreements that are not written elsewhere
 

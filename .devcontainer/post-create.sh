@@ -165,19 +165,36 @@ else
 fi
 
 log "Claude Code plugins"
-# Communication-style preference, not a project requirement. It is here because
+# Behavioural preferences, not project requirements. They are here because
 # plugins install to the container's home directory, which a rebuild destroys —
-# so without this it silently disappears and nobody notices why the output
-# changed. Set KAFOO_SKIP_CAVEMAN=1 to opt out, or delete this block.
-if [ "${KAFOO_SKIP_CAVEMAN:-0}" = "1" ]; then
-  echo "KAFOO_SKIP_CAVEMAN set — skipping"
+# so without this they silently disappear and nobody notices why the output
+# changed. Set KAFOO_SKIP_PLUGINS=1 to opt out of all of them, or delete the
+# entry from the list below to drop just one.
+#
+#   caveman   — compresses output; drops articles and filler
+#   ponytail  — biases toward the simplest solution that works: YAGNI,
+#               standard library first, no unrequested abstractions
+#
+# ponytail's bias aligns with Simplicity, second in the constitution's priority
+# order. It does NOT outrank User trust, which is first: an argument that
+# something is simpler never justifies weakening RLS, skipping a negative test,
+# or dropping an Arabic string. If a suggestion trades trust for brevity,
+# the constitution wins.
+install_claude_plugin() {
+  local repo="$1" plugin="$2"
+  claude plugin marketplace add "$repo" >/dev/null 2>&1 \
+    && claude plugin install "$plugin" >/dev/null 2>&1 \
+    && echo "  ${plugin} installed" \
+    || echo "  ${plugin} skipped — run '/plugin marketplace add ${repo}' manually"
+}
+
+if [ "${KAFOO_SKIP_PLUGINS:-${KAFOO_SKIP_CAVEMAN:-0}}" = "1" ]; then
+  echo "KAFOO_SKIP_PLUGINS set — skipping all plugins"
 elif command -v claude >/dev/null 2>&1; then
-  claude plugin marketplace add JuliusBrussee/caveman >/dev/null 2>&1 \
-    && claude plugin install caveman@caveman >/dev/null 2>&1 \
-    && echo "caveman installed" \
-    || echo "caveman install skipped — run '/plugin marketplace add JuliusBrussee/caveman' manually"
+  install_claude_plugin JuliusBrussee/caveman   caveman@caveman
+  install_claude_plugin DietrichGebert/ponytail ponytail@ponytail
 else
-  echo "claude CLI not on PATH yet — install caveman manually after first login"
+  echo "claude CLI not on PATH yet — install plugins manually after first login"
 fi
 
 log "Project env file"
