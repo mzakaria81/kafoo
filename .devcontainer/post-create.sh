@@ -61,12 +61,12 @@ sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" >/dev/nu
 flutter config --android-sdk "${ANDROID_HOME}" >/dev/null 2>&1 || true
 
 log "Persisting toolchain PATH"
-if ! grep -q "sdk/flutter/bin" "${HOME}/.bashrc" 2>/dev/null; then
+if ! grep -q "Kafoo development toolchain" "${HOME}/.bashrc" 2>/dev/null; then
   cat >> "${HOME}/.bashrc" <<EOF
 
 # Kafoo development toolchain
-export PATH="\${HOME}/sdk/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
-export FLUTTER_ROOT="\${HOME}/sdk/flutter"
+export PATH="\${HOME}/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
+export FLUTTER_ROOT="\${HOME}/flutter"
 export ANDROID_HOME="\${HOME}/sdk/android"
 EOF
   echo "added to ~/.bashrc"
@@ -202,6 +202,10 @@ if [ ! -f .env ] && [ -f .env.example ]; then
   cp .env.example .env
   echo "created .env from .env.example — fill it in (git-ignored)"
 fi
+
+log "Bootstrap workspace"
+# verify.sh runs `melos run analyze`, which needs resolved packages.
+melos bootstrap
 
 log "Gate check"
 ./scripts/verify.sh || echo "verify.sh reported failures — see output above"

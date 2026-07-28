@@ -12,6 +12,9 @@
     // python3: used by .specify/scripts/bash/common.sh and by the
     // ui-ux-pro-max skill's scripts (standard library only, no pip installs).
     "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
+    // Gradle needs a JDK; the base image has none, so an Android release
+    // build fails without it.
+    "ghcr.io/devcontainers/features/java:1": { "version": "21" },
     // Docker: `supabase start` runs its stack in containers.
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
