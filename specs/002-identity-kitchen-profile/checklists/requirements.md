@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-07-29
+**Last re-validated**: 2026-07-29, after `/speckit-clarify` (5 questions answered)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -58,24 +59,49 @@ because Principle VII makes a technical leak into `spec.md` a merge blocker.
 - [x] **Principle III — ownership provable, not asserted.** User Story 3 is a P1 deliverable, and
       FR-021 plus SC-003 require the proof to be automatic and repeated on every later change,
       not performed once by hand.
-- [x] **Privacy — new personal-data category.** The phone number is new personal data. FR-022
-      states why it is collected and who may read it; FR-020 restricts the reader set to the
-      person themselves. The retention answer is incomplete and is raised as Open Question 3
-      rather than papered over.
+- [x] **Privacy — new personal-data categories.** Two now, not one. The phone number: FR-022 states
+      why it is collected, FR-020 restricts the reader set to the person themselves, and FR-032
+      makes the retention answer real by giving an account a way to stop existing. Behavioural
+      funnel data: FR-036 states the single question it exists to answer, FR-037 and FR-038 bound
+      it to *which step*, never content or audio, and FR-040 fixes its reader set, its prohibited
+      uses and its retention. FR-039 makes removal reach it.
+- [x] **Principle I — no dark patterns.** Two flows in this spec are where dark patterns usually
+      appear, and both are guarded explicitly rather than by good intentions: FR-029 stops the
+      email invitation from becoming a nag, and FR-034 forbids making departure harder than
+      arrival.
+- [x] **Store requirement — App Store Review Guideline 5.1.1.** An app supporting account creation
+      must offer in-app account removal, and deactivation does not satisfy it. FR-032 and FR-033
+      cover it. Relevant early rather than late: ADR-0006 routes iOS through TestFlight with
+      external testers, which means Beta App Review.
 
 ## Notes
 
-**Three Open Questions are recorded in the spec rather than resolved.** They are not
-[NEEDS CLARIFICATION] markers because none of them blocks planning — each has a stated working
-assumption the spec proceeds under — but each changes user-visible behaviour, so they belong to
-the founder rather than to this document:
+### After `/speckit-clarify` — 2026-07-29
 
-1. Whether a Kitchen Profile has a draft state, or becomes visible the moment it is confirmed.
-2. What happens when an Egyptian carrier reassigns a phone number to a different person.
-3. How long a phone number is kept, which cannot be fully answered while removing an account is
-   out of scope.
+Five questions asked and answered. Three of the original Open Questions are now settled; two new
+items were opened by the answers themselves.
 
-Question 2 is the one with trust consequences; it should be settled during `/speckit-clarify`
-before `/speckit-plan` fixes an identity model around it.
+**Settled:** the Kitchen Profile draft question (no state; discoverability derived from published
+Meals), phone-number retention (removal now exists, so the answer is no longer circular), and the
+identity-anchoring half of the recycled-number problem (a person is not their phone number).
+
+**Still open, and each with a stated trigger rather than an open end:**
+
+1. **The dormancy policy for recycled numbers.** Modelling settled; policy deferred. Stops being
+   cheap when Reviews ship and identity starts carrying reputation.
+2. **A person-assisted way back for a Cook who loses their number and never attached an email.**
+   The common case, not the rare one, since most Cooks will decline the invitation. Cannot be
+   improvised when first needed — it is by construction a way to move an identity to a new phone.
+3. **The canonical event names, and the constitutional amendment carrying them.** Principle VI
+   names every analytics event and calls the list stable; `CLAUDE.md` repeats it. A funnel means
+   amending both in the same PR, MINOR bump. Must land before implementation, or this feature
+   emits events no governing document knows about.
+
+Items 1 and 2 both expire at the same moment — when Reviews ship. Item 3 is the only one that
+blocks implementation.
+
+**Two scope changes came out of clarification**, both enlarging the feature deliberately:
+account removal (User Story 7, FR-032 to FR-035) and the measurement funnel (FR-036 to FR-040).
+Neither was in the original spec; both were accepted with their costs named.
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
