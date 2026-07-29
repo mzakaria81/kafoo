@@ -132,3 +132,19 @@ Tracked as T030 in `specs/001-e0-foundation/tasks.md`.
 
 **Principle:** A rule that points at a missing document is worse than no rule: it reads as
 governance and provides none. Check references resolve before trusting the rule that made them.
+
+### Observation 6: Verify a task's stated premise against external authority before designing to it
+
+**Status:** OPEN
+**Date:** 2026-07-29
+**Session context:** Working T039 (release signing custody) in a repo whose spec, handoff doc, and ADR all asserted that losing either the Android upload key or the Apple distribution certificate is permanently unrecoverable.
+
+**Skill:** brainstorming
+**Type:** open-source
+**Phase/Area:** Checklist step 1, "Explore project context"
+
+**Issue:** The project's own documents encoded a factually wrong premise, repeated across three files, and the task was written to solve the problem as those documents framed it. Designing directly against that framing would have produced an elaborate custody scheme for two assets — one of which is routinely resettable by the platform vendor, and one of which is disposable by design — while leaving the single genuinely irreversible asset unnamed anywhere in the repo. Internal consistency across several documents read as corroboration when it was actually one unverified belief copied forward. Two short vendor-documentation checks overturned it.
+
+**Suggested improvement:** In the "Explore project context" step, add: when a task's stated stakes rest on an external system's behaviour — a platform's recovery policy, an API's guarantees, a vendor's limits — verify that behaviour against the vendor's own documentation before designing. Repeated assertions across project files are not independent confirmation; they are usually one source copied. Where verification contradicts the project's documents, surface the correction as the first deliverable, since it may change what the task is.
+
+**Principle:** Agreement among a project's internal documents is not evidence. When a design's stakes depend on an external system's behaviour, the external system is the authority — check it before designing, because a wrong premise produces a well-built solution to a problem that does not exist while hiding the one that does.
