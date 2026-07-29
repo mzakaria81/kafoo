@@ -48,9 +48,10 @@ reasoning is fresh, rather than reconstructed under launch pressure.
 ## Consequences
 
 **Accepted costs.** Apple Developer Program membership, recurring. macOS runner minutes on every
-merge to `main` once signing exists. Two signing identities to store and recover rather than one,
-which doubles the surface of ADR-0006's sibling problem — a lost key on either platform is
-permanent for that platform. Two store review relationships, with iOS review historically
+merge to `main` once signing exists. Two signing identities to store and recover rather than one.
+(This paragraph originally stated that a lost key on either platform is permanent for that
+platform. That was wrong in both halves and is corrected in `docs/ops/release-custody.md` — see
+the amendment below.) Two store review relationships, with iOS review historically
 stricter and slower. Every release checklist item now applies twice.
 
 **What this forecloses.** Android-only shortcuts: platform-specific APIs without an iOS
@@ -87,6 +88,22 @@ The trust rules apply unchanged. Early testers are the people most likely to rep
 saw, so a fabricated Cook or an AI-generated Meal photo does more damage here, not less.
 
 Full checklist: `.claude/agents/release-engineer.md`.
+
+## Amendment — 2026-07-29: the custody claim above was wrong
+
+This ADR asserted that losing either signing identity is permanent for its platform. Checked
+against Google's and Apple's own documentation, neither half holds. An Android **upload** key is
+reset through Play Console whenever Play App Signing is enabled, and Apple documents certificate
+revoke-and-replace as ordinary maintenance.
+
+The correction matters because it relocates the risk rather than removing it. The one genuinely
+irreversible asset is the Android **app signing key**, which this ADR never mentioned, and on
+iOS the single point of failure is **account access** — the Account Holder Apple ID and its
+second factor — not any file.
+
+The decision to ship on both platforms is unaffected. What changes is that the doubled cost is
+two *account* custody problems, not two irreplaceable files. Recorded in
+`docs/ops/release-custody.md`; T039 executes it.
 
 ## Notes for Claude Code
 

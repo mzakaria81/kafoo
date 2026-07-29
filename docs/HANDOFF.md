@@ -88,8 +88,12 @@ Stated plainly, because the expensive failures this session were all of this kin
 - **The iOS project is generated but never built.** No macOS machine has touched it. The iOS
   release job is written but has never executed, so it is unverified in a way the Android job no
   longer is — that one was corrected against a real artifact.
-- **Two signing identities now, not one.** ADR-0006 doubles the custody problem: losing either
-  the Android upload key or the Apple certificate is permanent for that platform.
+- **Two signing identities now, not one** — but the custody problem is not what this file
+  previously said it was. It claimed losing either the Android upload key or the Apple
+  certificate is permanent for that platform. Neither is true: the upload key resets through
+  Play Console under Play App Signing, and Apple treats certificate revoke-and-replace as
+  routine. The genuinely irreversible asset is the Android **app signing key**, which was named
+  nowhere in this repo. See `docs/ops/release-custody.md`.
 
 ## Traps this session hit, so the next one does not
 
