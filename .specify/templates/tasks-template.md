@@ -34,7 +34,7 @@ Kafoo repository layout (see `CLAUDE.md`):
 
 ## Constitution-Driven Task Requirements
 
-Source: `.specify/memory/constitution.md` (v1.0.0). These task types are **mandatory when
+Source: `.specify/memory/constitution.md` (v1.1.0). These task types are **mandatory when
 triggered** — they are not optional polish. Include them in the user story phase that
 introduces the trigger, not deferred to the end.
 
