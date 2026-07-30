@@ -19,6 +19,8 @@ dependencies:
     path: ../../packages/domain
   kafoo_ui:
     path: ../../packages/ui
+  speech_to_text: ^7.0.0
+  supabase_flutter: ^2.9.0
 
 dev_dependencies:
   flutter_test:

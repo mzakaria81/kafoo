@@ -25,3 +25,24 @@ enabled = true
 site_url = "http://127.0.0.1:3000"
 jwt_expiry = 3600
 enable_signup = true
+
+[auth.sms]
+enable_confirmations = true
+
+[[auth.sms.test_otp]]
+phone = "+201000000001"
+otp = "000001"
+
+[[auth.sms.test_otp]]
+phone = "+201000000002"
+otp = "000002"
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[[storage.buckets]]
+name = "kitchen-photos"
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
