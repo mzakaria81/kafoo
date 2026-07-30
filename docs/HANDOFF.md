@@ -16,14 +16,14 @@ see "Known-wrong or unverified".
 | Area | State |
 |---|---|
 | Governance | Constitution v1.0.0, glossary, domain model, ADR-0005. All written, all cited by rules that now resolve. |
-| Gate | `./scripts/verify.sh` — 8 checks, all running. Verified locally against the real toolchain, not inferred from CI. |
+| Gate | `./scripts/verify.sh` — 9 checks, all running. Verified locally against the real toolchain, not inferred from CI. The ninth (`edge functions`) type-checks Deno sources and was confirmed to fail on a deliberately broken function, not just to pass on a good one. |
 | Workspace | Dart pub workspace: `apps/mobile`, `packages/{domain,ai,ui}`. Builds, analyses, tests. |
 | Platform projects | `android/` and `ios/` generated (ADR-0006: both platforms are in scope). An Android bundle builds end to end (41.9 MB, 3 symbol files); iOS has never been built. |
 | Agents | 7 review agents in `.claude/agents/`. |
 | CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
 | Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies. **The pgTAP tests have never been executed** — no Docker in the session that wrote them. |
-| Edge Functions | One: `delete-account`. Takes no arguments and reads identity from the JWT. **Never run** — no Deno in the session that wrote it. |
+| Edge Functions | One: `delete-account`. Takes no arguments and reads identity from the JWT. Type-checks clean under `deno check`, which is part of the gate. **Never executed** — that needs Docker for the local stack. |
 | Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. **No Meal, no Order, no AI call to a real provider.** |
 
 ## What is missing, in the order it probably matters
@@ -53,6 +53,9 @@ deno test --allow-net --allow-env supabase/functions/delete-account/index.test.t
 real tables*, which is further than E0 got. They still have to be seen passing. A negative test
 that has never run has proven nothing, which is the whole reason the constitution wants it
 written first.
+
+The Edge Function and its tests **do** now type-check on every gate run, which is not the same as
+running them but is no longer nothing: it caught three errors that had survived review.
 
 Then walk `specs/002-identity-kitchen-profile/quickstart.md` §6 end to end. The step most likely
 to be quietly broken is the **photo deletion** during account removal: it is the only part of
@@ -162,11 +165,23 @@ Stated plainly, because the expensive failures this session were all of this kin
 
 **Claude Code on the web**: nothing to run. `.claude/hooks/session-start.sh` installs Flutter,
 Dart, and melos, then bootstraps the workspace — roughly 90 seconds cold, 2 seconds warm. Without
-it the gate skips five of eight checks and still prints `PASS`.
+it the gate skips five of nine checks and still prints `PASS`.
+
+Since E1 it also installs **Deno** (Edge Functions are Deno, and without it the function cannot
+even be type-checked) and the **opencode CLI** (the `opencode-delegate` skill). Both add seconds,
+not minutes. A warm re-run of `scripts/install-toolchain.sh` takes about 3 seconds.
 
 It deliberately does **not** install the Android SDK: that is only needed to build a release
 candidate, and it would add minutes to every session. For the rare session that needs one, run
 `bash .devcontainer/post-create.sh`.
+
+**Installing opencode does not sign it in.** Credentials live in
+`~/.local/share/opencode/auth.json`, outside the repository, so every fresh container starts with
+**zero** credentials and no file here can change that — the same limitation as the statusline
+badge below. Run `opencode auth login` once per container before delegating. Until you do,
+`opencode models` lists only the anonymous free tier, and **none of the models in `CLAUDE.md`'s
+allowlist appear in it**. Do not treat that list as evidence the allowlist has drifted; check it
+again after signing in.
 
 **Codespaces**: nothing to run either. `.devcontainer/post-create.sh` covers everything including
 the Android SDK.

@@ -24,7 +24,7 @@ const admin = () => createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 async function makePersonWithKitchen(phone: string, otp: string) {
   const client = createClient(SUPABASE_URL, ANON_KEY);
   await client.auth.signInWithOtp({ phone });
-  const { data: session } = await client.auth.verifyOTP({
+  const { data: session } = await client.auth.verifyOtp({
     phone,
     token: otp,
     type: 'sms',
@@ -41,7 +41,7 @@ async function makePersonWithKitchen(phone: string, otp: string) {
 
   await client.storage
     .from('kitchen-photos')
-    .uploadBinary(`${user.id}/kitchen.jpg`, new Uint8Array([1, 2, 3]), {
+    .upload(`${user.id}/kitchen.jpg`, new Uint8Array([1, 2, 3]), {
       contentType: 'image/jpeg',
       upsert: true,
     });
@@ -173,7 +173,7 @@ Deno.test('the same phone number afterwards is a new person', async () => {
 
   const second = createClient(SUPABASE_URL, ANON_KEY);
   await second.auth.signInWithOtp({ phone: '+201000000001' });
-  const { data: session } = await second.auth.verifyOTP({
+  const { data: session } = await second.auth.verifyOtp({
     phone: '+201000000001',
     token: '000001',
     type: 'sms',

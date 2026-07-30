@@ -6,6 +6,7 @@ Voice-first, Egyptian Arabic default. Flutter (mobile) + Supabase (backend) + Cl
 ## Commands
 
 ```bash
+./scripts/install-toolchain.sh   # Flutter, melos, Deno, opencode (idempotent, ~3s warm)
 melos bootstrap              # install deps across all packages
 melos run analyze            # dart analyze, all packages
 melos run test               # unit + widget tests
@@ -14,6 +15,7 @@ supabase start               # local stack (Docker required)
 supabase db reset            # rebuild local DB from migrations + seed
 supabase migration new NAME  # NEVER hand-write migration filenames
 supabase functions serve     # local Edge Functions
+deno check supabase/functions/**/*.ts   # type-check Edge Functions (also in verify.sh)
 ./scripts/verify.sh          # full gate — must pass before any PR
 ```
 
@@ -148,6 +150,12 @@ is written but never committed is lost at teardown. Say so rather than silently 
 `.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
 
 ## Delegating implementation work
+
+The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
+session. **It is not signed in**: `auth.json` lives outside the repository, so a fresh container
+has zero credentials and `opencode auth login` must be run once before delegating. An
+unauthenticated `opencode models` lists only the anonymous free tier and shows none of the
+allowlist below — that is a missing login, not a drifted plan.
 
 `opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
 edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,
