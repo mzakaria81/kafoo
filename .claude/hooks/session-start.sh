@@ -2,7 +2,7 @@
 # SessionStart hook for Claude Code on the web.
 #
 # Installs what ./scripts/verify.sh needs. Without Dart and melos the gate
-# skips five of its nine checks and still prints PASS — the exact failure E0
+# skips five of its ten checks and still prints PASS — the exact failure E0
 # existed to end, so a session that cannot run the gate properly is a session
 # that will merge unverified work.
 #
@@ -41,10 +41,12 @@ DENO_INSTALL="${HOME}/.deno"
   echo "export FLUTTER_ROOT=\"${FLUTTER_DIR}\""
 } >> "${CLAUDE_ENV_FILE}"
 
-log "ready — ./scripts/verify.sh will run all nine checks"
+log "ready — ./scripts/verify.sh will run all ten checks"
 
-# Installing opencode does not sign it in: auth.json lives outside the repo, so
-# every fresh container starts with no credentials.
-if command -v opencode >/dev/null 2>&1 && ! opencode auth list 2>/dev/null | grep -q 'credential'; then
-  log "opencode: installed but signed out — run 'opencode auth login' before delegating"
+# Installing opencode does not sign it in. OPENCODE_API_KEY is the only form of
+# credential that survives a fresh container, because auth.json does not.
+# Presence only — the value is never printed.
+if command -v opencode >/dev/null 2>&1 && [ -z "${OPENCODE_API_KEY:-}" ]; then
+  log "opencode: signed out — add OPENCODE_API_KEY to this cloud environment's"
+  log "          variables to be signed in automatically every session"
 fi

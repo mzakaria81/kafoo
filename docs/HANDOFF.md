@@ -16,7 +16,7 @@ see "Known-wrong or unverified".
 | Area | State |
 |---|---|
 | Governance | Constitution v1.0.0, glossary, domain model, ADR-0005. All written, all cited by rules that now resolve. |
-| Gate | `./scripts/verify.sh` — 9 checks, all running. Verified locally against the real toolchain, not inferred from CI. The ninth (`edge functions`) type-checks Deno sources and was confirmed to fail on a deliberately broken function, not just to pass on a good one. |
+| Gate | `./scripts/verify.sh` — 10 checks, all running. Verified locally against the real toolchain, not inferred from CI. `edge functions` type-checks Deno sources; `no committed credentials` blocks a tracked API key. Both were confirmed to FAIL on a deliberately planted defect, not merely to pass on a clean tree. |
 | Workspace | Dart pub workspace: `apps/mobile`, `packages/{domain,ai,ui}`. Builds, analyses, tests. |
 | Platform projects | `android/` and `ios/` generated (ADR-0006: both platforms are in scope). An Android bundle builds end to end (41.9 MB, 3 symbol files); iOS has never been built. |
 | Agents | 7 review agents in `.claude/agents/`. |
@@ -165,7 +165,7 @@ Stated plainly, because the expensive failures this session were all of this kin
 
 **Claude Code on the web**: nothing to run. `.claude/hooks/session-start.sh` installs Flutter,
 Dart, and melos, then bootstraps the workspace — roughly 90 seconds cold, 2 seconds warm. Without
-it the gate skips five of nine checks and still prints `PASS`.
+it the gate skips five of ten checks and still prints `PASS`.
 
 Since E1 it also installs **Deno** (Edge Functions are Deno, and without it the function cannot
 even be type-checked) and the **opencode CLI** (the `opencode-delegate` skill). Both add seconds,
@@ -175,13 +175,28 @@ It deliberately does **not** install the Android SDK: that is only needed to bui
 candidate, and it would add minutes to every session. For the rare session that needs one, run
 `bash .devcontainer/post-create.sh`.
 
-**Installing opencode does not sign it in.** Credentials live in
-`~/.local/share/opencode/auth.json`, outside the repository, so every fresh container starts with
-**zero** credentials and no file here can change that — the same limitation as the statusline
-badge below. Run `opencode auth login` once per container before delegating. Until you do,
-`opencode models` lists only the anonymous free tier, and **none of the models in `CLAUDE.md`'s
-allowlist appear in it**. Do not treat that list as evidence the allowlist has drifted; check it
-again after signing in.
+**Installing opencode does not sign it in**, and `opencode auth login` does not survive the
+container: it writes `~/.local/share/opencode/auth.json`, which is outside the repository and gone
+at teardown — the same limitation as the statusline badge below.
+
+The fix is `OPENCODE_API_KEY` as a **cloud-environment variable** (claude.ai/code → cloud icon →
+gear → Environment variables). opencode reads it directly, so every session starts signed in with
+nothing to re-run. Verified here: with the variable set, `opencode auth list` reports OpenCode Go
+and Zen, `opencode/` goes from 7 models to 60, and all ten models in `CLAUDE.md`'s allowlist are
+present — so that allowlist is accurate, and an empty-looking list means a missing key rather than
+a changed plan.
+
+Two caveats, both from the cloud-environments documentation and both real:
+
+- **There is no secrets store.** Environment variables are readable by anyone who can use the
+  environment. Keep the key in a *personal* environment, not an organization-shared one, and treat
+  it as rotatable. `./scripts/verify.sh` now fails if a real-looking `OPENCODE_API_KEY` or
+  `SUPABASE_SERVICE_ROLE_KEY` is tracked by git, so the repository is guarded; the environment
+  configuration is not.
+- **`opencode.ai` is not on the default Trusted network allowlist.** The endpoint
+  `https://opencode.ai/zen/v1` answered 200 from the environment this was set up in, so it is
+  reachable here. An environment locked to **Trusted** may need `opencode.ai` added under
+  **Custom** before delegation works.
 
 **Codespaces**: nothing to run either. `.devcontainer/post-create.sh` covers everything including
 the Android SDK.

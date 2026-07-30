@@ -67,6 +67,22 @@ run "edge functions" bash -c '
   }
   exit 0'
 
+# Credentials belong in the environment, never in the repository. Two are live
+# in this project and both are rotate-everything incidents if committed:
+# OPENCODE_API_KEY (delegation) and SUPABASE_SERVICE_ROLE_KEY (bypasses RLS
+# entirely, so a leak defeats every policy in supabase/migrations at once).
+#
+# Placeholder-looking values are allowed so documentation can show the shape.
+run "no committed credentials" bash -c '
+  hits=$(git ls-files -z | xargs -0 grep -nIE \
+    "(OPENCODE_API_KEY|SUPABASE_SERVICE_ROLE_KEY)[[:space:]]*[=:][[:space:]]*.?[A-Za-z0-9_.-]{16,}" \
+    2>/dev/null \
+    | grep -viE "your|example|placeholder|dummy|redacted|xxxx|<|\\$\\{|\\$[A-Z]" || true)
+  [ -z "${hits}" ] || { echo "   a real-looking credential is tracked by git:" >&2
+                        printf "%s\n" "${hits}" >&2
+                        echo "   move it to the environment and rotate it" >&2
+                        exit 1; }'
+
 # Every migration that creates a table must enable RLS in the same file.
 run "rls coverage" bash -c '
   bad=0

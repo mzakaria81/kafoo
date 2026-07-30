@@ -152,10 +152,25 @@ is written but never committed is lost at teardown. Say so rather than silently 
 ## Delegating implementation work
 
 The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
-session. **It is not signed in**: `auth.json` lives outside the repository, so a fresh container
-has zero credentials and `opencode auth login` must be run once before delegating. An
-unauthenticated `opencode models` lists only the anonymous free tier and shows none of the
-allowlist below — that is a missing login, not a drifted plan.
+session.
+
+**Signing in: set `OPENCODE_API_KEY` as a cloud-environment variable.** opencode reads it directly
+for the OpenCode Go and Zen providers, so a session starts already signed in. `opencode auth login`
+also works but writes `~/.local/share/opencode/auth.json`, which is destroyed with the container —
+it signs in this session only. Set the variable at claude.ai/code → the cloud icon above the
+message box → the gear on your environment → **Environment variables**, one `KEY=value` per line.
+**Never put the key in this repository**; `./scripts/verify.sh` fails if a real-looking one is
+tracked by git.
+
+Two things to know about that variable. Cloud environments have **no secrets store**: anyone who
+can use the environment can read the value, so keep the key in a personal environment rather than
+an organization-shared one, and treat it as rotatable. And the API host `opencode.ai` is **not** on
+the default **Trusted** network allowlist — it is reachable from the environment this was set up in,
+but an environment restricted to Trusted may need `opencode.ai` added under **Custom**.
+
+Without a credential, `opencode models` lists only the anonymous free tier and shows none of the
+allowlist below. That is a missing key, not a drifted plan — the ten models below were all
+confirmed present once a key was supplied.
 
 `opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
 edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,

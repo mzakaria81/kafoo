@@ -86,6 +86,21 @@ else
   npm install -g opencode-ai >&2 2>&1 || log "opencode: install failed — delegation unavailable this session"
 fi
 
+# Signing in. `opencode auth login` is interactive and writes auth.json, which
+# does not survive an ephemeral container. OPENCODE_API_KEY does the same job
+# with no interaction: opencode reads it directly for the OpenCode Go and Zen
+# providers, so a session with it set is signed in before it starts.
+#
+# Set it in the cloud environment's Environment variables (claude.ai/code →
+# the cloud icon above the message box → the gear on your environment), NOT in
+# this repository. Never echoed here — only its presence is reported.
+if [ -n "${OPENCODE_API_KEY:-}" ]; then
+  log "opencode: signed in via OPENCODE_API_KEY"
+else
+  log "opencode: NO credentials — set OPENCODE_API_KEY in the environment, or"
+  log "          run 'opencode auth login' for this container only"
+fi
+
 # --- Android SDK (opt-in) ---------------------------------------------------
 if [ "${WITH_ANDROID}" = "1" ]; then
   if [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
