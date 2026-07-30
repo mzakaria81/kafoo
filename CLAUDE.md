@@ -59,8 +59,10 @@ style nit — it propagates into schema, prompts, and UI. Full glossary: `docs/v
 | Publish / Archive | upload / delete |
 | Accept Order / Reject Order | approve / decline |
 
-Analytics events are PascalCase and stable: `MealPublished`, `OrderPlaced`, `OrderAccepted`,
-`ReviewSubmitted`, `SearchPerformed`, `SearchFailed`, `RecommendationAccepted`.
+Analytics events are PascalCase, past-tense, and never renamed. The core list is constitutional
+(Principle VI); everything else — funnels, naming rules, attributes, statuses, measurement privacy
+— lives in `docs/product/event-model.md`. Check that file before adding or emitting any event; do
+not copy event lists into other documents.
 
 ## Repo map
 

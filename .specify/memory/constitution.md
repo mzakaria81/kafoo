@@ -1,5 +1,38 @@
 <!--
-SYNC IMPACT REPORT
+SYNC IMPACT REPORT — 1.1.0 (2026-07-29)
+==================
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR — Principle VI's analytics-event guidance materially expanded and
+restructured. No principle removed or redefined; previously compliant work remains compliant.
+
+Modified principles:
+  VI. Canonical Vocabulary — the event list is now split by governance weight. The
+  constitution keeps ONLY core events (domain entities changing state); everything else
+  moved to docs/product/event-model.md, the new single source of truth for naming rules,
+  attributes, statuses, and measurement privacy.
+
+Core list changes:
+  Added:   AccountCreated, AccountRemoved, KitchenProfileCreated (E1);
+           MealArchived (lifecycle completeness);
+           OrderRejected, OrderCancelled, OrderCompleted — closes a defect: the Order
+           lifecycle's terminal states were unmeasurable, leaving cancellations uncountable
+           and the review funnel unmeasurable (a Review requires a completed Order)
+  Moved to event-model.md (names unchanged, historical comparison intact):
+           SearchPerformed, SearchFailed, RecommendationAccepted — they record
+           interactions, not entity state changes, so they fail the Level 1 test
+  Renamed: none (renames are forbidden; none occurred)
+
+Templates and dependent artifacts updated in the same commit:
+  ✅ docs/product/event-model.md — created
+  ✅ CLAUDE.md — event list replaced with a pointer to event-model.md
+  ✅ docs/vision/glossary.md — event list replaced with a pointer to event-model.md
+  ✅ .specify/templates/tasks-template.md — example updated to reference event-model.md
+
+Follow-up TODOs: none.
+-->
+
+<!--
+SYNC IMPACT REPORT — 1.0.0
 ==================
 Version change: TEMPLATE (unversioned placeholders) → 1.0.0
 Bump rationale: MAJOR — initial ratification. All placeholder tokens replaced with
@@ -163,10 +196,20 @@ string is a **bug, not a style nit** — it propagates into schema, prompts, and
 | Publish / Archive | upload / delete |
 | Accept Order / Reject Order | approve / decline |
 
-Analytics events are PascalCase and stable: `MealPublished`, `OrderPlaced`, `OrderAccepted`,
-`ReviewSubmitted`, `SearchPerformed`, `SearchFailed`, `RecommendationAccepted`. Any change
-touching a tracked business action MUST emit its event. Full glossary:
-`docs/vision/glossary.md`.
+**Core analytics events** are PascalCase, past-tense, and stable — each records a domain entity
+changing state in a way the business is answerable for:
+
+`AccountCreated` · `AccountRemoved` · `KitchenProfileCreated` · `MealPublished` · `MealArchived` ·
+`OrderPlaced` · `OrderAccepted` · `OrderRejected` · `OrderCancelled` · `OrderCompleted` ·
+`ReviewSubmitted`
+
+A core event MUST never be renamed — retire and add instead. Adding or retiring one is a
+constitutional amendment. Any change touching a tracked business action MUST emit its event.
+
+Product-analytics events (funnels, drop-off, search), naming conventions, attributes, statuses,
+and the privacy rules binding all measurement live in `docs/product/event-model.md`, which this
+principle defers to. Operational telemetry is not analytics and appears in neither list. Full
+glossary: `docs/vision/glossary.md`.
 
 **Rationale**: Names in a schema are permanent in practice. A `vendors` table written today is
 a migration, a prompt rewrite, and an analytics break tomorrow.
@@ -309,4 +352,4 @@ last in the priority order.
 **Runtime guidance.** `CLAUDE.md` and the path-scoped rules in `.claude/rules/` provide
 day-to-day development guidance and are subordinate to this constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-25 | **Last Amended**: 2026-07-25
+**Version**: 1.1.0 | **Ratified**: 2026-07-25 | **Last Amended**: 2026-07-29

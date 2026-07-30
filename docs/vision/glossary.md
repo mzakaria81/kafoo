@@ -99,13 +99,14 @@ entity.
 
 ## Analytics events
 
-PascalCase and stable. Renaming one breaks historical comparison, so treat these as an API:
+PascalCase, past-tense, and never renamed — renaming breaks historical comparison invisibly, so
+retire and add instead. Event subjects use the canonical terms above: `KitchenProfileCreated`,
+never `StoreCreated`.
 
-`MealPublished` · `OrderPlaced` · `OrderAccepted` · `ReviewSubmitted` · `SearchPerformed` ·
-`SearchFailed` · `RecommendationAccepted`
-
-Adding an event is cheap; renaming one is not. Any change touching a tracked business action
-must emit its event.
+The full registry — core events, product-analytics events, naming rules, attributes, statuses, and
+the privacy rules binding all measurement — lives in `docs/product/event-model.md`. The core list
+itself is constitutional (Principle VI). This glossary deliberately does not repeat either list;
+copies drift.
 
 ## Arabic terms
 

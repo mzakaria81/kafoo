@@ -600,13 +600,11 @@ person's identity starts carrying reputation rather than just a Kitchen Profile.
    support process as much as a feature, and because at friends-and-family scale the answer may
    legitimately be "a person handles it case by case" — but that must be a decision, not a gap.
 
-5. **Which event names enter the canonical list, and the amendment that carries them.** The
-   constitution names every analytics event and calls the list stable; `CLAUDE.md` repeats it.
-   Adding a funnel therefore amends the constitution rather than merely extending a spec, and the
-   constitution's own amendment procedure requires every dependent artifact to change in the same
-   PR. The names themselves are a naming decision that belongs with that amendment, not here — but
-   it MUST happen before implementation, or this feature ships events that no governing document
-   knows about. A MINOR version bump, by the constitution's own versioning policy.
+5. **Settled: the event names and their amendment.** Constitution v1.1.0, 2026-07-29. The core
+   list (constitutional) gains `AccountCreated`, `AccountRemoved` and `KitchenProfileCreated` for
+   this feature, and the full registry — including this feature's sign-in, conversation, and
+   recovery-email funnels — lives in `docs/product/event-model.md`, which `plan.md` MUST take
+   event names from rather than inventing any. Nothing blocks implementation any more.
 
 ## Dependencies
 
