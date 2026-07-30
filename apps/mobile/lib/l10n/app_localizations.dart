@@ -421,6 +421,114 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.'**
   String get removeAccountError;
+
+  /// Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحب تضيف إيميل؟'**
+  String get recoveryEmailTitle;
+
+  /// The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath.
+  ///
+  /// In ar, this message translates to:
+  /// **'لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.'**
+  String get recoveryEmailBody;
+
+  /// Label for the email input on the invitation.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإيميل بتاعك'**
+  String get recoveryEmailLabel;
+
+  /// Button attaching the address to the existing account.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضيف الإيميل'**
+  String get recoveryEmailAttach;
+
+  /// Button declining the invitation. Declining withholds nothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش دلوقتي'**
+  String get recoveryEmailDecline;
+
+  /// Shown after the address is attached and a confirmation message is sent.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، ابعتنا لك رسالة تأكيد على الإيميل.'**
+  String get recoveryEmailAttached;
+
+  /// Shown when attaching the address fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نضيف الإيميل. جرب تاني.'**
+  String get recoveryEmailError;
+
+  /// Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009).
+  ///
+  /// In ar, this message translates to:
+  /// **'مش قادر توصل لرقمك؟'**
+  String get signInLostNumber;
+
+  /// Heading on the email sign-in screen, reached only from the lost-number route.
+  ///
+  /// In ar, this message translates to:
+  /// **'ادخل بالإيميل'**
+  String get emailSignInTitle;
+
+  /// Explains that this route works only for an address already attached from inside the account (FR-007).
+  ///
+  /// In ar, this message translates to:
+  /// **'لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.'**
+  String get emailSignInBody;
+
+  /// Label for the email field on the email sign-in screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإيميل'**
+  String get emailSignInLabel;
+
+  /// Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.'**
+  String get emailSignInUnknown;
+
+  /// Heading on the change-of-number screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّر رقم الموبايل'**
+  String get changePhoneTitle;
+
+  /// States that the old number stops reaching the identity immediately once confirmed (FR-026).
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.'**
+  String get changePhoneBody;
+
+  /// Label for the new phone number field.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم الجديد'**
+  String get changePhoneLabel;
+
+  /// Entry point to the change-of-number flow.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّر رقم الموبايل'**
+  String get changePhoneEntry;
+
+  /// Confirmation shown after the new number is verified.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم اتغيّر. الرقم القديم مبقاش يوصل لحسابك.'**
+  String get changePhoneDone;
+
+  /// Shown when the change fails, stating the old number still works.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.'**
+  String get changePhoneError;
 }
 
 class _AppLocalizationsDelegate

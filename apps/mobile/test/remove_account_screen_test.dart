@@ -1,26 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kafoo_domain/domain.dart';
-import 'package:kafoo_mobile/features/identity/data/account_repository.dart';
 import 'package:kafoo_mobile/features/identity/presentation/remove_account_screen.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
-class _FakeAccountRepository implements AccountRepository {
-  _FakeAccountRepository({this.fails = false});
-
-  final bool fails;
-  int removeCalls = 0;
-
-  @override
-  Future<Result<void, AppError>> removeAccount() async {
-    removeCalls++;
-    if (fails) {
-      return const Failure(AppError(messageKey: 'removeAccountError'));
-    }
-    return const Success(null);
-  }
-}
+import 'support/fake_account_repository.dart';
 
 Widget _testApp(Widget child) {
   return MaterialApp(
@@ -42,7 +26,7 @@ void main() {
   // cancellation flow — product-fatal under the trust rules, not a UX nit.
   testWidgets('asks once, with no reason field and no retention offer',
       (tester) async {
-    final repo = _FakeAccountRepository();
+    final repo = FakeAccountRepository();
     await tester.pumpWidget(_testApp(RemoveAccountScreen(repository: repo)));
     await tester.pumpAndSettle();
 
@@ -56,7 +40,7 @@ void main() {
 
   // FR-035: abandonable part-way, with nothing changed.
   testWidgets('backing out removes nothing', (tester) async {
-    final repo = _FakeAccountRepository();
+    final repo = FakeAccountRepository();
     await tester.pumpWidget(_testApp(
       Builder(
         builder: (context) => ElevatedButton(
@@ -81,7 +65,7 @@ void main() {
 
   // A failure must never leave someone unsure whether they are half-erased.
   testWidgets('a failed removal says the account is unchanged', (tester) async {
-    final repo = _FakeAccountRepository(fails: true);
+    final repo = FakeAccountRepository(fails: true);
     await tester.pumpWidget(_testApp(RemoveAccountScreen(repository: repo)));
     await tester.pumpAndSettle();
 

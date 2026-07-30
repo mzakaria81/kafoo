@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'features/identity/presentation/change_phone_screen.dart';
 import 'features/identity/presentation/remove_account_screen.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
 import 'features/kitchen_profile/presentation/conversation.dart';
@@ -101,6 +102,20 @@ class _SignedInHome extends StatelessWidget {
                   ),
                 ),
                 child: Text(l10n.kitchenViewTitle),
+              ),
+              const SizedBox(height: KafooSpacing.sm),
+              // FR-026: a lost or recycled number is recoverable rather than
+              // terminal, because a Person is not their phone number.
+              TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ChangePhoneScreen(),
+                  ),
+                ),
+                child: Text(l10n.changePhoneEntry),
               ),
               const Spacer(),
               // SC-011: leaving is reachable in one step from the first screen

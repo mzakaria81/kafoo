@@ -187,4 +187,66 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get removeAccountError =>
       'We could not delete your account. It is unchanged — please try again.';
+
+  @override
+  String get recoveryEmailTitle => 'Add an email address?';
+
+  @override
+  String get recoveryEmailBody =>
+      'If you lose your number, an email address is how you get back into your account. It is not required, and you can skip it.';
+
+  @override
+  String get recoveryEmailLabel => 'Your email address';
+
+  @override
+  String get recoveryEmailAttach => 'Add email';
+
+  @override
+  String get recoveryEmailDecline => 'Not now';
+
+  @override
+  String get recoveryEmailAttached =>
+      'Done. We have sent a confirmation message to that address.';
+
+  @override
+  String get recoveryEmailError =>
+      'We could not add that address. Please try again.';
+
+  @override
+  String get signInLostNumber => 'Can\'t reach your number?';
+
+  @override
+  String get emailSignInTitle => 'Sign in by email';
+
+  @override
+  String get emailSignInBody =>
+      'If you added an email address to your account before, enter it here and we will send you a code.';
+
+  @override
+  String get emailSignInLabel => 'Email address';
+
+  @override
+  String get emailSignInUnknown =>
+      'That address is not linked to any account. Try signing in with your phone number.';
+
+  @override
+  String get changePhoneTitle => 'Change phone number';
+
+  @override
+  String get changePhoneBody =>
+      'Enter your new number. We will send a code to it, and once you confirm, the old number will stop reaching your account.';
+
+  @override
+  String get changePhoneLabel => 'New number';
+
+  @override
+  String get changePhoneEntry => 'Change phone number';
+
+  @override
+  String get changePhoneDone =>
+      'Your number has changed. The old one no longer reaches your account.';
+
+  @override
+  String get changePhoneError =>
+      'We could not change your number. Your old number still works — please try again.';
 }

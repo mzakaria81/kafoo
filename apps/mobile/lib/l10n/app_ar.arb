@@ -275,5 +275,95 @@
   "removeAccountError": "مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.",
   "@removeAccountError": {
     "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
+  },
+
+  "recoveryEmailTitle": "تحب تضيف إيميل؟",
+  "@recoveryEmailTitle": {
+    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed."
+  },
+
+  "recoveryEmailBody": "لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.",
+  "@recoveryEmailBody": {
+    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath."
+  },
+
+  "recoveryEmailLabel": "الإيميل بتاعك",
+  "@recoveryEmailLabel": {
+    "description": "Label for the email input on the invitation."
+  },
+
+  "recoveryEmailAttach": "ضيف الإيميل",
+  "@recoveryEmailAttach": {
+    "description": "Button attaching the address to the existing account."
+  },
+
+  "recoveryEmailDecline": "مش دلوقتي",
+  "@recoveryEmailDecline": {
+    "description": "Button declining the invitation. Declining withholds nothing."
+  },
+
+  "recoveryEmailAttached": "تمام، ابعتنا لك رسالة تأكيد على الإيميل.",
+  "@recoveryEmailAttached": {
+    "description": "Shown after the address is attached and a confirmation message is sent."
+  },
+
+  "recoveryEmailError": "مقدرناش نضيف الإيميل. جرب تاني.",
+  "@recoveryEmailError": {
+    "description": "Shown when attaching the address fails."
+  },
+
+  "signInLostNumber": "مش قادر توصل لرقمك؟",
+  "@signInLostNumber": {
+    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009)."
+  },
+
+  "emailSignInTitle": "ادخل بالإيميل",
+  "@emailSignInTitle": {
+    "description": "Heading on the email sign-in screen, reached only from the lost-number route."
+  },
+
+  "emailSignInBody": "لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.",
+  "@emailSignInBody": {
+    "description": "Explains that this route works only for an address already attached from inside the account (FR-007)."
+  },
+
+  "emailSignInLabel": "الإيميل",
+  "@emailSignInLabel": {
+    "description": "Label for the email field on the email sign-in screen."
+  },
+
+  "emailSignInUnknown": "الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.",
+  "@emailSignInUnknown": {
+    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within."
+  },
+
+  "changePhoneTitle": "غيّر رقم الموبايل",
+  "@changePhoneTitle": {
+    "description": "Heading on the change-of-number screen."
+  },
+
+  "changePhoneBody": "اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.",
+  "@changePhoneBody": {
+    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026)."
+  },
+
+  "changePhoneLabel": "الرقم الجديد",
+  "@changePhoneLabel": {
+    "description": "Label for the new phone number field."
+  },
+
+  "changePhoneEntry": "غيّر رقم الموبايل",
+  "@changePhoneEntry": {
+    "description": "Entry point to the change-of-number flow."
+  },
+
+  "changePhoneDone": "الرقم اتغيّر. الرقم القديم مبقاش يوصل لحسابك.",
+  "@changePhoneDone": {
+    "description": "Confirmation shown after the new number is verified."
+  },
+
+  "changePhoneError": "مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.",
+  "@changePhoneError": {
+    "description": "Shown when the change fails, stating the old number still works."
   }
 }

@@ -183,4 +183,64 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get removeAccountError =>
       'مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.';
+
+  @override
+  String get recoveryEmailTitle => 'تحب تضيف إيميل؟';
+
+  @override
+  String get recoveryEmailBody =>
+      'لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.';
+
+  @override
+  String get recoveryEmailLabel => 'الإيميل بتاعك';
+
+  @override
+  String get recoveryEmailAttach => 'ضيف الإيميل';
+
+  @override
+  String get recoveryEmailDecline => 'مش دلوقتي';
+
+  @override
+  String get recoveryEmailAttached =>
+      'تمام، ابعتنا لك رسالة تأكيد على الإيميل.';
+
+  @override
+  String get recoveryEmailError => 'مقدرناش نضيف الإيميل. جرب تاني.';
+
+  @override
+  String get signInLostNumber => 'مش قادر توصل لرقمك؟';
+
+  @override
+  String get emailSignInTitle => 'ادخل بالإيميل';
+
+  @override
+  String get emailSignInBody =>
+      'لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.';
+
+  @override
+  String get emailSignInLabel => 'الإيميل';
+
+  @override
+  String get emailSignInUnknown =>
+      'الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.';
+
+  @override
+  String get changePhoneTitle => 'غيّر رقم الموبايل';
+
+  @override
+  String get changePhoneBody =>
+      'اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.';
+
+  @override
+  String get changePhoneLabel => 'الرقم الجديد';
+
+  @override
+  String get changePhoneEntry => 'غيّر رقم الموبايل';
+
+  @override
+  String get changePhoneDone => 'الرقم اتغيّر. الرقم القديم مبقاش يوصل لحسابك.';
+
+  @override
+  String get changePhoneError =>
+      'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.';
 }

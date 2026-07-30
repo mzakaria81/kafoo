@@ -7,6 +7,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../identity/presentation/recovery_email_prompt.dart';
 import '../application/photo_picker.dart';
 import '../application/voice_input.dart';
 import '../data/kitchen_profile_repository.dart';
@@ -220,6 +221,10 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
     );
     if (!mounted) return;
     if (saved != null) {
+      // FR-028: the invitation belongs here, after a Kitchen Profile exists,
+      // and never during registration.
+      await RecoveryEmailPrompt.maybeShow(context);
+      if (!mounted) return;
       Navigator.of(context).pop(saved);
     } else {
       // They came back to change something — re-render the last question.

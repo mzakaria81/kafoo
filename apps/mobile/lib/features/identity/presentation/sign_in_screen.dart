@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
 import 'code_screen.dart';
+import 'email_sign_in_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -98,6 +99,19 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(l10n.signInContinue),
+              ),
+              const SizedBox(height: KafooSpacing.sm),
+              // The second way in, for someone who has lost their number. It
+              // names the problem rather than the mechanism: a person new to
+              // Kafoo is asked for an email address zero times (SC-009), and
+              // the word only appears once they have said they need it.
+              TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const EmailSignInScreen(),
+                  ),
+                ),
+                child: Text(l10n.signInLostNumber),
               ),
             ],
           ),

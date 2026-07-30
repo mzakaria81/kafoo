@@ -275,5 +275,95 @@
   "removeAccountError": "We could not delete your account. It is unchanged — please try again.",
   "@removeAccountError": {
     "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
+  },
+
+  "recoveryEmailTitle": "Add an email address?",
+  "@recoveryEmailTitle": {
+    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed."
+  },
+
+  "recoveryEmailBody": "If you lose your number, an email address is how you get back into your account. It is not required, and you can skip it.",
+  "@recoveryEmailBody": {
+    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath."
+  },
+
+  "recoveryEmailLabel": "Your email address",
+  "@recoveryEmailLabel": {
+    "description": "Label for the email input on the invitation."
+  },
+
+  "recoveryEmailAttach": "Add email",
+  "@recoveryEmailAttach": {
+    "description": "Button attaching the address to the existing account."
+  },
+
+  "recoveryEmailDecline": "Not now",
+  "@recoveryEmailDecline": {
+    "description": "Button declining the invitation. Declining withholds nothing."
+  },
+
+  "recoveryEmailAttached": "Done. We have sent a confirmation message to that address.",
+  "@recoveryEmailAttached": {
+    "description": "Shown after the address is attached and a confirmation message is sent."
+  },
+
+  "recoveryEmailError": "We could not add that address. Please try again.",
+  "@recoveryEmailError": {
+    "description": "Shown when attaching the address fails."
+  },
+
+  "signInLostNumber": "Can't reach your number?",
+  "@signInLostNumber": {
+    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009)."
+  },
+
+  "emailSignInTitle": "Sign in by email",
+  "@emailSignInTitle": {
+    "description": "Heading on the email sign-in screen, reached only from the lost-number route."
+  },
+
+  "emailSignInBody": "If you added an email address to your account before, enter it here and we will send you a code.",
+  "@emailSignInBody": {
+    "description": "Explains that this route works only for an address already attached from inside the account (FR-007)."
+  },
+
+  "emailSignInLabel": "Email address",
+  "@emailSignInLabel": {
+    "description": "Label for the email field on the email sign-in screen."
+  },
+
+  "emailSignInUnknown": "That address is not linked to any account. Try signing in with your phone number.",
+  "@emailSignInUnknown": {
+    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within."
+  },
+
+  "changePhoneTitle": "Change phone number",
+  "@changePhoneTitle": {
+    "description": "Heading on the change-of-number screen."
+  },
+
+  "changePhoneBody": "Enter your new number. We will send a code to it, and once you confirm, the old number will stop reaching your account.",
+  "@changePhoneBody": {
+    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026)."
+  },
+
+  "changePhoneLabel": "New number",
+  "@changePhoneLabel": {
+    "description": "Label for the new phone number field."
+  },
+
+  "changePhoneEntry": "Change phone number",
+  "@changePhoneEntry": {
+    "description": "Entry point to the change-of-number flow."
+  },
+
+  "changePhoneDone": "Your number has changed. The old one no longer reaches your account.",
+  "@changePhoneDone": {
+    "description": "Confirmation shown after the new number is verified."
+  },
+
+  "changePhoneError": "We could not change your number. Your old number still works — please try again.",
+  "@changePhoneError": {
+    "description": "Shown when the change fails, stating the old number still works."
   }
 }
