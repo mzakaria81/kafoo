@@ -89,7 +89,7 @@ saw, so a fabricated Cook or an AI-generated Meal photo does more damage here, n
 
 Full checklist: `.claude/agents/release-engineer.md`.
 
-## Amendment — 2026-07-29: the custody claim above was wrong
+## Amendment — 2026-07-30: the custody claim above was wrong
 
 This ADR asserted that losing either signing identity is permanent for its platform. Checked
 against Google's and Apple's own documentation, neither half holds. An Android **upload** key is

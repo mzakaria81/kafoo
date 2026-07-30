@@ -1,7 +1,7 @@
 # Release signing custody
 
 **Status: decided, not executed.** T039 remains open. This file records what was decided on
-2026-07-29 and why, so the reasoning is not reconstructed under launch pressure. Nothing here has
+2026-07-30 and why, so the reasoning is not reconstructed under launch pressure. Nothing here has
 been carried out — no account is registered, no key exists.
 
 This file never contains a secret. It contains the path to one.

@@ -136,7 +136,7 @@ governance and provides none. Check references resolve before trusting the rule 
 ### Observation 6: Verify a task's stated premise against external authority before designing to it
 
 **Status:** OPEN
-**Date:** 2026-07-29
+**Date:** 2026-07-30
 **Session context:** Working T039 (release signing custody) in a repo whose spec, handoff doc, and ADR all asserted that losing either the Android upload key or the Apple distribution certificate is permanently unrecoverable.
 
 **Skill:** brainstorming
@@ -152,7 +152,7 @@ governance and provides none. Check references resolve before trusting the rule 
 ### Observation 7: Persistent session state must commit independently of a deliverable approval gate
 
 **Status:** OPEN
-**Date:** 2026-07-29
+**Date:** 2026-07-30
 **Session context:** Designing release signing custody (T039). The brainstorming skill's HARD-GATE forbids writing the design document until the user approves the design, while the repository's stop hook requires a clean working tree and CLAUDE.md requires the observation log to be committed and pushed or it is lost when the ephemeral container is destroyed.
 
 **Skill:** task-observer
@@ -168,7 +168,7 @@ governance and provides none. Check references resolve before trusting the rule 
 ### Observation 8: A numeric threshold in a project rule fires where a stylistic preference does not
 
 **Status:** OPEN
-**Date:** 2026-07-29
+**Date:** 2026-07-30
 **Session context:** Writing the first feature specification for a project whose constitution states "never build a form where a conversation would work" and then adds a concrete trigger: "on reaching a fourth input field, STOP and propose a conversational flow."
 
 **Skill:** speckit-specify
@@ -184,7 +184,7 @@ governance and provides none. Check references resolve before trusting the rule 
 ### Observation 9: When a user proposes copying a known product, separate its mechanism from its risk posture
 
 **Status:** OPEN
-**Date:** 2026-07-29
+**Date:** 2026-07-30
 **Session context:** Clarifying an identity model. Offered a choice between treating a phone number as the identity or as a credential attached to a separate identity; the user replied "what about doing it like whatsapp".
 
 **Skill:** speckit-clarify
@@ -200,7 +200,7 @@ governance and provides none. Check references resolve before trusting the rule 
 ### Observation 10: Check a proposal against the proposer's own goals stated elsewhere in it
 
 **Status:** OPEN
-**Date:** 2026-07-29
+**Date:** 2026-07-30
 **Session context:** A user sent two proposals in one message. The first asked to move a governed list out of a high-ceremony document into an ordinary one, so a governing document would "simply reference it". The second, several hundred words later, recommended keeping that same list in the high-ceremony document precisely so it would stay hard to change.
 
 **Skill:** brainstorming

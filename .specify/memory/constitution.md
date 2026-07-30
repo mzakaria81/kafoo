@@ -1,5 +1,5 @@
 <!--
-SYNC IMPACT REPORT — 1.1.0 (2026-07-29)
+SYNC IMPACT REPORT — 1.1.0 (2026-07-30)
 ==================
 Version change: 1.0.0 → 1.1.0
 Bump rationale: MINOR — Principle VI's analytics-event guidance materially expanded and
@@ -352,4 +352,4 @@ last in the priority order.
 **Runtime guidance.** `CLAUDE.md` and the path-scoped rules in `.claude/rules/` provide
 day-to-day development guidance and are subordinate to this constitution.
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-25 | **Last Amended**: 2026-07-29
+**Version**: 1.1.0 | **Ratified**: 2026-07-25 | **Last Amended**: 2026-07-30

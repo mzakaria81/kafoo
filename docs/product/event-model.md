@@ -221,4 +221,4 @@ is what this file was created to end.
 
 | Date | Change |
 |---|---|
-| 2026-07-29 | Created. Consolidates event rules previously duplicated across the constitution, `CLAUDE.md`, `glossary.md` and `tasks-template.md`. Completes the Order lifecycle, adds the E1 funnel, introduces levels, status, and the operational-telemetry boundary. |
+| 2026-07-30 | Created. Consolidates event rules previously duplicated across the constitution, `CLAUDE.md`, `glossary.md` and `tasks-template.md`. Completes the Order lifecycle, adds the E1 funnel, introduces levels, status, and the operational-telemetry boundary. |

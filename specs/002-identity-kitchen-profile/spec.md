@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-identity-kitchen-profile`
 
-**Created**: 2026-07-29
+**Created**: 2026-07-30
 
 **Status**: Draft
 
@@ -41,7 +41,7 @@ here will be repeated everywhere afterwards. Getting it wrong once is a cost pai
 
 ## Clarifications
 
-### Session 2026-07-29
+### Session 2026-07-30
 
 - Q: How should identity relate to the phone number? → A: A Person is the identity; the phone
   number is a credential attached to it, as WhatsApp does it. This enables a change-of-number
@@ -518,13 +518,13 @@ people. Everything below serves that and stops there.
 Reasonable defaults chosen where the description did not specify. Each is a decision that can be
 revisited, not an oversight.
 
-- **One account holds both roles.** Decided on 2026-07-29, not assumed. A person becomes a Cook by
+- **One account holds both roles.** Decided on 2026-07-30, not assumed. A person becomes a Cook by
   owning a Kitchen Profile; there is no role chosen at signup and no second account. A Cook can
   order Meals from other Cooks. The rule that a Cook cannot review their own Meal therefore
   becomes a comparison between the reviewer and the Meal's Cook, rather than a property of the
   account.
 - **Phone number is the only route in, and email is an optional second one.** Decided on
-  2026-07-29, not assumed. Most Cooks are not technical and will not have an email address, so
+  2026-07-30, not assumed. Most Cooks are not technical and will not have an email address, so
   requiring one — or asking for one during registration — would cost more people than it protects.
   It is offered later, once, to those who have something to lose.
 - **The invitation to attach an email is triggered by a Cook confirming a Kitchen Profile**, rather
@@ -541,13 +541,13 @@ revisited, not an oversight.
   constitution requires a recorded architectural decision before any raw audio is stored, and this
   feature does not propose one. Measurement does not change this — FR-038 exists so that wanting
   funnel data never becomes the reason audio is retained.
-- **Measurement is a full funnel, and it is bounded.** Decided on 2026-07-29, not assumed. It exists
+- **Measurement is a full funnel, and it is bounded.** Decided on 2026-07-30, not assumed. It exists
   to answer where Cooks give up, which is the number a supply-constrained marketplace most needs.
   It records that a step happened and which one, never what was said (FR-037). It is the largest
   new collection of behavioural data in this feature, which is why FR-039 and FR-040 bound who can
   read it, how long it is kept, what it may not be used for, and that removal reaches it.
 - **A one-time code expires after 5 minutes** and may be used once.
-- **Removing an account is in scope.** Decided on 2026-07-29, not assumed. Required by App Store
+- **Removing an account is in scope.** Decided on 2026-07-30, not assumed. Required by App Store
   Review Guideline 5.1.1 for any app supporting account creation, which ADR-0006's TestFlight-first
   route brings forward to Beta App Review. Built now because a person currently owns nothing but a
   Kitchen Profile; after Orders and Reviews exist, removal has to reconcile records a Cook needs to
@@ -568,7 +568,7 @@ specification does not have the standing to settle. They are listed rather than 
 Two of them — items 2 and 4 — stop being cheap at the same moment: when Reviews ship and a
 person's identity starts carrying reputation rather than just a Kitchen Profile.
 
-1. **Settled: a Kitchen Profile has no state of its own.** Decided on 2026-07-29. Discoverability
+1. **Settled: a Kitchen Profile has no state of its own.** Decided on 2026-07-30. Discoverability
    is derived from whether the Cook has a published Meal (FR-030), and readability is separate
    (FR-031). The domain model keeps its property that only Meals, Orders and Reviews have
    lifecycles.
@@ -587,7 +587,7 @@ person's identity starts carrying reputation rather than just a Kitchen Profile.
    person, which is a worse failure than the synthetic Reviews the constitution already forbids.
    **This MUST be settled before Reviews ship, and the decision is cheap only while it is.**
 
-3. **Settled: how long is a phone number kept?** Decided on 2026-07-29. It is kept while the
+3. **Settled: how long is a phone number kept?** Decided on 2026-07-30. It is kept while the
    account exists and removed when the person removes the account (FR-022, FR-032), which is now
    something they can actually do. The retention answer is no longer circular.
 
@@ -600,7 +600,7 @@ person's identity starts carrying reputation rather than just a Kitchen Profile.
    support process as much as a feature, and because at friends-and-family scale the answer may
    legitimately be "a person handles it case by case" — but that must be a decision, not a gap.
 
-5. **Settled: the event names and their amendment.** Constitution v1.1.0, 2026-07-29. The core
+5. **Settled: the event names and their amendment.** Constitution v1.1.0, 2026-07-30. The core
    list (constitutional) gains `AccountCreated`, `AccountRemoved` and `KitchenProfileCreated` for
    this feature, and the full registry — including this feature's sign-in, conversation, and
    recovery-email funnels — lives in `docs/product/event-model.md`, which `plan.md` MUST take
