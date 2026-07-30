@@ -163,4 +163,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get kitchenEditSaved => 'اتغيّر';
+
+  @override
+  String get removeAccountEntry => 'امسح حسابي';
+
+  @override
+  String get removeAccountTitle => 'مسح الحساب';
+
+  @override
+  String get removeAccountBody =>
+      'هيتمسح حسابك وكل حاجة فيه: مطبخك وصورته. مش هينفع نرجّعهم بعد كده.';
+
+  @override
+  String get removeAccountConfirm => 'امسح حسابي';
+
+  @override
+  String get removeAccountCancel => 'رجوع';
+
+  @override
+  String get removeAccountError =>
+      'مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.';
 }

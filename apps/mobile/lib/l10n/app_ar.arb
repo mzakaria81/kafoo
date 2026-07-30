@@ -245,5 +245,35 @@
   "kitchenEditSaved": "اتغيّر",
   "@kitchenEditSaved": {
     "description": "Brief confirmation shown after one detail changes."
+  },
+
+  "removeAccountEntry": "امسح حسابي",
+  "@removeAccountEntry": {
+    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was."
+  },
+
+  "removeAccountTitle": "مسح الحساب",
+  "@removeAccountTitle": {
+    "description": "Heading on the removal screen."
+  },
+
+  "removeAccountBody": "هيتمسح حسابك وكل حاجة فيه: مطبخك وصورته. مش هينفع نرجّعهم بعد كده.",
+  "@removeAccountBody": {
+    "description": "States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034)."
+  },
+
+  "removeAccountConfirm": "امسح حسابي",
+  "@removeAccountConfirm": {
+    "description": "The single confirmation button. There is no second are-you-sure."
+  },
+
+  "removeAccountCancel": "رجوع",
+  "@removeAccountCancel": {
+    "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."
+  },
+
+  "removeAccountError": "مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.",
+  "@removeAccountError": {
+    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
   }
 }

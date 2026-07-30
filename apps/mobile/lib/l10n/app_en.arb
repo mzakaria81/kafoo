@@ -245,5 +245,35 @@
   "kitchenEditSaved": "Changed",
   "@kitchenEditSaved": {
     "description": "Brief confirmation shown after one detail changes."
+  },
+
+  "removeAccountEntry": "Delete my account",
+  "@removeAccountEntry": {
+    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was."
+  },
+
+  "removeAccountTitle": "Delete account",
+  "@removeAccountTitle": {
+    "description": "Heading on the removal screen."
+  },
+
+  "removeAccountBody": "Your account and everything in it will be deleted: your kitchen and its photo. This cannot be undone.",
+  "@removeAccountBody": {
+    "description": "States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034)."
+  },
+
+  "removeAccountConfirm": "Delete my account",
+  "@removeAccountConfirm": {
+    "description": "The single confirmation button. There is no second are-you-sure."
+  },
+
+  "removeAccountCancel": "Back",
+  "@removeAccountCancel": {
+    "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."
+  },
+
+  "removeAccountError": "We could not delete your account. It is unchanged — please try again.",
+  "@removeAccountError": {
+    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
   }
 }

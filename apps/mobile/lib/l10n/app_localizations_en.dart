@@ -167,4 +167,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get kitchenEditSaved => 'Changed';
+
+  @override
+  String get removeAccountEntry => 'Delete my account';
+
+  @override
+  String get removeAccountTitle => 'Delete account';
+
+  @override
+  String get removeAccountBody =>
+      'Your account and everything in it will be deleted: your kitchen and its photo. This cannot be undone.';
+
+  @override
+  String get removeAccountConfirm => 'Delete my account';
+
+  @override
+  String get removeAccountCancel => 'Back';
+
+  @override
+  String get removeAccountError =>
+      'We could not delete your account. It is unchanged — please try again.';
 }

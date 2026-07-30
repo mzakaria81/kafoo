@@ -3,7 +3,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'features/identity/presentation/remove_account_screen.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
+import 'features/kitchen_profile/presentation/conversation.dart';
 import 'l10n/app_localizations.dart';
 
 // URL and key come from --dart-define at build time. They must never be
@@ -63,7 +65,7 @@ class _AuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         final session = snapshot.data?.session;
         if (session != null) {
-          return const _SignedInPlaceholder();
+          return const _SignedInHome();
         }
         return const SignInScreen();
       },
@@ -71,17 +73,54 @@ class _AuthGate extends StatelessWidget {
   }
 }
 
-/// Placeholder for the signed-in surface until Kitchen Profile screens land.
-class _SignedInPlaceholder extends StatelessWidget {
-  const _SignedInPlaceholder();
+/// The signed-in surface.
+///
+/// Deliberately thin — browsing and Meals arrive in later epics. What it must
+/// carry now is the two things E1 delivers: becoming a Cook, and leaving.
+class _SignedInHome extends StatelessWidget {
+  const _SignedInHome();
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.appTitle)),
+      body: SafeArea(
         child: Padding(
-          padding: EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Text('كفو — مسجّل الدخول'),
+          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const KitchenConversationScreen(),
+                  ),
+                ),
+                child: Text(l10n.kitchenViewTitle),
+              ),
+              const Spacer(),
+              // SC-011: leaving is reachable in one step from the first screen
+              // after signing in — no deeper than joining was. It is not buried
+              // under a settings tree, because burying it is the dark pattern
+              // this requirement exists to prevent.
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: KafooColors.danger,
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const RemoveAccountScreen(),
+                  ),
+                ),
+                child: Text(l10n.removeAccountEntry),
+              ),
+            ],
+          ),
         ),
       ),
     );

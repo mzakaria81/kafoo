@@ -385,6 +385,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اتغيّر'**
   String get kitchenEditSaved;
+
+  /// Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was.
+  ///
+  /// In ar, this message translates to:
+  /// **'امسح حسابي'**
+  String get removeAccountEntry;
+
+  /// Heading on the removal screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح الحساب'**
+  String get removeAccountTitle;
+
+  /// States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034).
+  ///
+  /// In ar, this message translates to:
+  /// **'هيتمسح حسابك وكل حاجة فيه: مطبخك وصورته. مش هينفع نرجّعهم بعد كده.'**
+  String get removeAccountBody;
+
+  /// The single confirmation button. There is no second are-you-sure.
+  ///
+  /// In ar, this message translates to:
+  /// **'امسح حسابي'**
+  String get removeAccountConfirm;
+
+  /// Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035).
+  ///
+  /// In ar, this message translates to:
+  /// **'رجوع'**
+  String get removeAccountCancel;
+
+  /// Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.'**
+  String get removeAccountError;
 }
 
 class _AppLocalizationsDelegate
