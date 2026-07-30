@@ -39,5 +39,61 @@
   "aiEstimateNotice": "دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من الطباخ.",
   "@aiEstimateNotice": {
     "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
+  },
+
+  "signInTitle": "أهلاً بيك في كفو",
+  "@signInTitle": {
+    "description": "Heading on the phone-number sign-in screen."
+  },
+
+  "signInPhoneLabel": "رقم موبايلك",
+  "@signInPhoneLabel": {
+    "description": "Label for the phone number input field."
+  },
+
+  "signInContinue": "كمّل",
+  "@signInContinue": {
+    "description": "Button to submit the phone number and request an OTP."
+  },
+
+  "signInRateLimited": "جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.",
+  "@signInRateLimited": {
+    "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+
+  "codeTitle": "ادخل الكود",
+  "@codeTitle": {
+    "description": "Heading on the OTP code entry screen."
+  },
+
+  "codeSubtitle": "اتبعتلك كود على رقم {phone}",
+  "@codeSubtitle": {
+    "description": "Tells the person which number the OTP was sent to.",
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+
+  "codeWrongCode": "الكود غلط. جرب تاني.",
+  "@codeWrongCode": {
+    "description": "Shown when the OTP is incorrect."
+  },
+
+  "codeExpired": "الكود انتهى. اطلب كود جديد.",
+  "@codeExpired": {
+    "description": "Shown when the OTP has expired (distinct from wrong code)."
+  },
+
+  "codeResend": "ابعت كود جديد",
+  "@codeResend": {
+    "description": "Button to request a new OTP without restarting sign-in."
+  },
+
+  "signInNetworkError": "مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.",
+  "@signInNetworkError": {
+    "description": "Shown when sign-in fails due to connectivity, not a wrong code."
   }
 }

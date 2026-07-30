@@ -39,5 +39,61 @@
   "aiEstimateNotice": "These are AI Assistant estimates. The Cook has not confirmed them yet.",
   "@aiEstimateNotice": {
     "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
+  },
+
+  "signInTitle": "Welcome to Kafoo",
+  "@signInTitle": {
+    "description": "Heading on the phone-number sign-in screen."
+  },
+
+  "signInPhoneLabel": "Your phone number",
+  "@signInPhoneLabel": {
+    "description": "Label for the phone number input field."
+  },
+
+  "signInContinue": "Continue",
+  "@signInContinue": {
+    "description": "Button to submit the phone number and request an OTP."
+  },
+
+  "signInRateLimited": "Too many attempts. Wait {minutes} minutes and try again.",
+  "@signInRateLimited": {
+    "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+
+  "codeTitle": "Enter the code",
+  "@codeTitle": {
+    "description": "Heading on the OTP code entry screen."
+  },
+
+  "codeSubtitle": "We sent a code to {phone}",
+  "@codeSubtitle": {
+    "description": "Tells the person which number the OTP was sent to.",
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+
+  "codeWrongCode": "Wrong code. Try again.",
+  "@codeWrongCode": {
+    "description": "Shown when the OTP is incorrect."
+  },
+
+  "codeExpired": "Code has expired. Request a new one.",
+  "@codeExpired": {
+    "description": "Shown when the OTP has expired (distinct from wrong code)."
+  },
+
+  "codeResend": "Send a new code",
+  "@codeResend": {
+    "description": "Button to request a new OTP without restarting sign-in."
+  },
+
+  "signInNetworkError": "No internet connection. Check that you are online and try again.",
+  "@signInNetworkError": {
+    "description": "Shown when sign-in fails due to connectivity, not a wrong code."
   }
 }
