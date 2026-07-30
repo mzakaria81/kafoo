@@ -228,3 +228,19 @@ governance and provides none. Check references resolve before trusting the rule 
 **Suggested improvement:** In Phase 1, flag any requirement whose enforcement depends on an artifact a later phase creates. Where the current correct behaviour coincides with the currently achievable behaviour, say so explicitly in the design artifact the later phase will read, and write out the enforcement it must add — not as prose, but as the concrete thing to paste in. A deliberate absence and an oversight look identical in a codebase; only the record distinguishes them.
 
 **Principle:** An absence that is correct today and wrong tomorrow is indistinguishable from an omission, because nothing in the artifact records intent. When a rule cannot yet be expressed and doing nothing happens to be right, the deliverable is not the silence — it is the note that says why the silence is there and what must replace it.
+
+### Observation 12: A pipeline's exit status is the last command's, so piping a check into a pager silently disarms it
+
+**Status:** OPEN
+**Date:** 2026-07-30
+**Session context:** Running a project's mandatory verification gate before committing, written as `./scripts/verify.sh 2>&1 | tail -5 && git add -A && git commit`. An earlier `cd` in the same persistent shell meant the script path no longer resolved.
+
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Running verification commands before claiming completion
+
+**Issue:** The gate never ran — the shell reported "No such file or directory" — but the commit and push proceeded anyway and reported success. A pipeline's exit status is that of its *last* command, so `tail` exited 0 and the `&&` chain continued as though the check had passed. The "No such file" line was one line inside a wall of expected output and read as noise. The commit was later verified sound, but that was luck: the process had produced a confident success claim backed by nothing, which is precisely the failure the gate exists to prevent. Two ordinary conveniences combined to cause it — piping long output through `tail` to save context, and a working directory persisting across calls in a way a single command does not reveal.
+
+**Suggested improvement:** When running a verification command whose result gates a subsequent action, never let it be the non-final element of a pipeline. Either run it bare, or capture and assert its status explicitly (`set -o pipefail`, or check `${PIPESTATUS[0]}`) and print that status alongside the output. Where the shell's working directory persists between calls, use an absolute path or an explicit `cd` to the repository root in the same command rather than relying on where the previous one left off. Treat "the check produced output I recognise" as insufficient evidence that the check ran at all.
+
+**Principle:** A verification step that cannot fail loudly is not a verification step. Truncating or paging a gate's output discards the one thing that makes it a gate — its exit status — and leaves a success claim resting on the appearance of having checked. Assert the status explicitly, or do not claim the check ran.
