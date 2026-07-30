@@ -26,6 +26,17 @@ abstract interface class KitchenProfileRepository {
     String? photoPath,
   });
 
+  /// Changes one detail of an existing Kitchen Profile.
+  ///
+  /// One field at a time, in keeping with the conversation that created it —
+  /// the caller never submits the whole profile back, so a change to one
+  /// detail cannot silently overwrite another.
+  Future<Result<KitchenProfile, AppError>> updateField({
+    required String id,
+    required ConversationStepId field,
+    required String value,
+  });
+
   /// Uploads a kitchen photo and returns its storage path.
   Future<Result<String, AppError>> uploadPhoto(Uint8List bytes);
 }
@@ -90,6 +101,35 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
       return Failure(AppError(messageKey: 'kitchenConvSaveError', cause: e));
     }
   }
+
+  @override
+  Future<Result<KitchenProfile, AppError>> updateField({
+    required String id,
+    required ConversationStepId field,
+    required String value,
+  }) async {
+    try {
+      final row = await _client
+          .from(_table)
+          .update({
+            _columnFor(field): value,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', id)
+          .select()
+          .single();
+      return Success(_fromRow(row));
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'kitchenConvSaveError', cause: e));
+    }
+  }
+
+  static String _columnFor(ConversationStepId field) => switch (field) {
+        ConversationStepId.displayName => 'display_name',
+        ConversationStepId.story => 'story',
+        ConversationStepId.area => 'area',
+        ConversationStepId.deliveryTerms => 'delivery_terms',
+      };
 
   /// Uploads to `kitchen-photos/{uid}/kitchen.jpg`.
   ///

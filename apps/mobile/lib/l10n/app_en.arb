@@ -215,5 +215,35 @@
   "kitchenExistsBody": "You already have a Kitchen Profile on this account. Taking you there now.",
   "@kitchenExistsBody": {
     "description": "Body text shown when redirecting an existing Cook to their own Kitchen Profile."
+  },
+
+  "kitchenViewTitle": "Your kitchen",
+  "@kitchenViewTitle": {
+    "description": "Heading on the Cook's own Kitchen Profile screen."
+  },
+
+  "kitchenEditCurrentValue": "Current",
+  "@kitchenEditCurrentValue": {
+    "description": "Labels the value as it stands now, kept visible while a change is being made (US5 scenario 2)."
+  },
+
+  "kitchenEditNewValue": "New",
+  "@kitchenEditNewValue": {
+    "description": "Labels the field holding the replacement value."
+  },
+
+  "kitchenEditSave": "Save change",
+  "@kitchenEditSave": {
+    "description": "Button confirming a single-detail change."
+  },
+
+  "kitchenEditCancel": "Cancel",
+  "@kitchenEditCancel": {
+    "description": "Button abandoning a single-detail change, leaving the previous value in place."
+  },
+
+  "kitchenEditSaved": "Changed",
+  "@kitchenEditSaved": {
+    "description": "Brief confirmation shown after one detail changes."
   }
 }

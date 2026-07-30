@@ -349,6 +349,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'عندك مطبخ مسجّل على حسابك. هنروحله دلوقتي.'**
   String get kitchenExistsBody;
+
+  /// Heading on the Cook's own Kitchen Profile screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'مطبخك'**
+  String get kitchenViewTitle;
+
+  /// Labels the value as it stands now, kept visible while a change is being made (US5 scenario 2).
+  ///
+  /// In ar, this message translates to:
+  /// **'الحالي'**
+  String get kitchenEditCurrentValue;
+
+  /// Labels the field holding the replacement value.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجديد'**
+  String get kitchenEditNewValue;
+
+  /// Button confirming a single-detail change.
+  ///
+  /// In ar, this message translates to:
+  /// **'احفظ التغيير'**
+  String get kitchenEditSave;
+
+  /// Button abandoning a single-detail change, leaving the previous value in place.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get kitchenEditCancel;
+
+  /// Brief confirmation shown after one detail changes.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتغيّر'**
+  String get kitchenEditSaved;
 }
 
 class _AppLocalizationsDelegate

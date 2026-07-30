@@ -145,4 +145,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get kitchenExistsBody => 'عندك مطبخ مسجّل على حسابك. هنروحله دلوقتي.';
+
+  @override
+  String get kitchenViewTitle => 'مطبخك';
+
+  @override
+  String get kitchenEditCurrentValue => 'الحالي';
+
+  @override
+  String get kitchenEditNewValue => 'الجديد';
+
+  @override
+  String get kitchenEditSave => 'احفظ التغيير';
+
+  @override
+  String get kitchenEditCancel => 'إلغاء';
+
+  @override
+  String get kitchenEditSaved => 'اتغيّر';
 }

@@ -149,4 +149,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get kitchenExistsBody =>
       'You already have a Kitchen Profile on this account. Taking you there now.';
+
+  @override
+  String get kitchenViewTitle => 'Your kitchen';
+
+  @override
+  String get kitchenEditCurrentValue => 'Current';
+
+  @override
+  String get kitchenEditNewValue => 'New';
+
+  @override
+  String get kitchenEditSave => 'Save change';
+
+  @override
+  String get kitchenEditCancel => 'Cancel';
+
+  @override
+  String get kitchenEditSaved => 'Changed';
 }
