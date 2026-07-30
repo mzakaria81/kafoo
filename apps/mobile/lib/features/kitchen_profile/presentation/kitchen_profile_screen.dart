@@ -144,6 +144,12 @@ class _DetailRow extends StatelessWidget {
               Expanded(child: Text(value, style: theme.textTheme.bodyLarge)),
               TextButton(
                 onPressed: onEdit,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(
+                    KafooSpacing.minTapTarget,
+                    KafooSpacing.minTapTarget,
+                  ),
+                ),
                 child: Text(editLabel),
               ),
             ],
@@ -225,6 +231,10 @@ class _EditOneDetailState extends State<_EditOneDetail> {
               Expanded(
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    minimumSize:
+                        const Size.fromHeight(KafooSpacing.minTapTarget),
+                  ),
                   child: Text(widget.cancelLabel),
                 ),
               ),

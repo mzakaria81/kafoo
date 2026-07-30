@@ -1,6 +1,7 @@
 # Handoff — state of the project
 
 **Written**: 2026-07-28, at the end of the session that built E0.
+**Updated**: 2026-07-30, at the end of the session that built E1.
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
@@ -8,8 +9,9 @@ that does not fit in a checkbox.
 
 ## Where things stand
 
-E0 (foundation) is delivered except for the release story. Nothing else has started — there is no
-feature code, no database table, and no user-facing flow beyond a placeholder screen.
+E0 (foundation) is delivered except for the release story. **E1 (identity and Kitchen Profile) is
+now written and passing the gate**, but has never run against a live database or a real handset —
+see "Known-wrong or unverified".
 
 | Area | State |
 |---|---|
@@ -20,8 +22,9 @@ feature code, no database table, and no user-facing flow beyond a placeholder sc
 | Agents | 7 review agents in `.claude/agents/`. |
 | CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
-| **Database** | **Nothing.** No migrations, no tables, no RLS exercised. |
-| **Features** | **Nothing.** No Meal, no Order, no Conversation, no AI call to a real provider. |
+| Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies. **The pgTAP tests have never been executed** — no Docker in the session that wrote them. |
+| Edge Functions | One: `delete-account`. Takes no arguments and reads identity from the JWT. **Never run** — no Deno in the session that wrote it. |
+| Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. **No Meal, no Order, no AI call to a real provider.** |
 
 ## What is missing, in the order it probably matters
 
@@ -35,22 +38,38 @@ is why this is still cheap.
 Then T040 (four signing secrets into repository settings) and T041 (verify a genuinely signed
 candidate in CI — the current pipeline has only ever produced a debug-signed one).
 
-### 2. The first migration, and with it the first real proof of RLS
+### 2. Run E1's tests against a real stack — they exist and have never executed
 
-`FR-008` — that a person's data is unreadable by anyone else — is **machinery without evidence**.
-The hook blocks a table created without RLS, the gate fails on it, and `rls-reviewer` carries the
-checklist. None of it has ever run against a real table.
+This is now the largest gap, and it is a **verification** gap rather than a writing one.
 
-Whoever writes the first migration is also writing the first negative test. Write the test first;
-`.claude/rules/supabase.md` has the policy shape and the `USING` + `WITH CHECK` pair that a
-missing `WITH CHECK` would let a Cook use to reassign a Meal to someone else.
+```
+supabase start
+supabase test db                     # 3 pgTAP files, 18 assertions
+supabase functions serve delete-account
+deno test --allow-net --allow-env supabase/functions/delete-account/index.test.ts
+```
 
-### 3. E1 and E2
+`FR-008` — that a person's data is unreadable by anyone else — now has tests written *against
+real tables*, which is further than E0 got. They still have to be seen passing. A negative test
+that has never run has proven nothing, which is the whole reason the constitution wants it
+written first.
 
-E1 (identity and Kitchen Profile) establishes the ownership pattern every later table copies.
-E2 (voice-first, AI-assisted Meal publishing) is the product thesis and the reason the
-constitution has the shape it does. Neither has a spec yet. E2 needs `/speckit-specify` — it adds
-screens and an AI-derived write path, both stop-and-ask triggers.
+Then walk `specs/002-identity-kitchen-profile/quickstart.md` §6 end to end. The step most likely
+to be quietly broken is the **photo deletion** during account removal: it is the only part of
+removal no foreign key enforces.
+
+### 3. E2
+
+E1 established the ownership pattern every later table copies; E2 (voice-first, AI-assisted Meal
+publishing) is the product thesis and the reason the constitution has the shape it does. It has
+no spec yet and needs `/speckit-specify` — it adds screens and an AI-derived write path, both
+stop-and-ask triggers.
+
+E2 also carries an **inherited obligation**: the migration that creates `meals` must add the
+widening `SELECT` policy on `kitchen_profiles` that `data-model.md` has already written out.
+Without it Kafoo will have Meals whose kitchens nobody can find, and the failure is silent —
+queries return zero rows rather than erroring. `supabase/tests/kitchen_discoverability_test.sql`
+is the test that will start failing when that day comes, and its header says so.
 
 ### 4. Smaller, real
 
@@ -82,7 +101,21 @@ Stated plainly, because the expensive failures this session were all of this kin
   production, `.mcp.json` uses the latter for development. That reads as deliberate, but nobody
   has confirmed the production ref exists as a secret.
 - **The performance budgets have never been measured.** Launch <2s and the rest are asserted in
-  the constitution and unexercised. The first release build is when they become real.
+  the constitution and unexercised. T068 asked for a launch baseline this session and it could
+  not be taken — no device, no emulator, no Android SDK in the container. The first release build
+  is still when these become real.
+- **Nothing in E1 has touched a live Supabase.** Every Dart test runs against an in-memory fake.
+  The repositories, the RLS policies and the Edge Function are correct by construction and by
+  review, which is not the same as correct.
+- **`ar-EG` speech recognition is unverified on real hardware** (spike T071). The conversation
+  degrades to typing when recognition is unavailable and that path *is* tested, which is
+  deliberate: research.md expects unavailability to be the common case on Egyptian mid-range
+  handsets.
+- **SMS delivery to Egyptian numbers is unverified** (spike T072). An unregistered A2P sender ID
+  is filtered *silently* — nothing errors, the code simply never arrives. Local sign-in works
+  today only because `supabase/config.toml` carries test numbers.
+- **Per-verification cost is unmeasured** (spike T073). Every sign-in on a new device costs
+  money, which makes the sign-in rate limit a spending control as much as a security one.
 - **`--fatal-infos` is on.** A new lint in a future Dart release can turn a passing build red
   without any change to Kafoo. That is the intended trade; it will still be surprising.
 - **The iOS project is generated but never built.** No macOS machine has touched it. The iOS
@@ -111,6 +144,19 @@ Stated plainly, because the expensive failures this session were all of this kin
    fixed here; do not let a regenerate quietly undo it.
 6. **The vocabulary check applies to your own comments.** It caught `vendor` in `packages/ai`
    during E0. The comments were changed, not the check.
+7. **The synthetic-content check reads test fixtures as seed data.** It scanned all of
+   `supabase/` and failed on pgTAP files that legitimately `INSERT`. Now scoped to
+   `migrations/` and `functions/`. If you add a directory of SQL, decide which side it is on.
+8. **A lazy `ListView` may silently not build its first child.** The public kitchen view lost its
+   photo this way — no error, no ErrorWidget, just an absent subtree. For a handful of fixed
+   children use a `Column` in a `SingleChildScrollView`; the laziness buys nothing and costs a
+   test you cannot write.
+9. **`Image.network` cannot resolve under the test binding** and takes its subtree with it. Wrap
+   it in a named widget and assert on that, or you end up testing the network.
+10. **`on Exception` does not catch `Error`.** An uninitialised Supabase client throws
+    `StateError`; a missing plugin throws `TypeError`. Analytics and voice initialisation both
+    caught only `Exception` and stranded a loading spinner forever. Where the rule is "this must
+    never break the flow", catch `Object` and say why.
 
 ## Starting a session
 

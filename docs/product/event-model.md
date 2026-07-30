@@ -111,9 +111,9 @@ Binding, and not negotiable against a product insight:
 
 | Event | Status | Meaning |
 |---|---|---|
-| `AccountCreated` | planned (E1) | A person became known to Kafoo |
-| `AccountRemoved` | planned (E1) | A person removed their account and everything attached |
-| `KitchenProfileCreated` | planned (E1) | A person became a Cook |
+| `AccountCreated` | active (E1) | A person became known to Kafoo |
+| `AccountRemoved` | active (E1) | A person removed their account and everything attached |
+| `KitchenProfileCreated` | active (E1) | A person became a Cook |
 | `MealPublished` | planned (E2) | A Meal became available to order |
 | `MealArchived` | planned (E2) | A Meal was withdrawn permanently |
 | `OrderPlaced` | planned (E4) | A Customer placed an Order |
@@ -123,7 +123,8 @@ Binding, and not negotiable against a product insight:
 | `OrderCompleted` | planned (E4) | The Order finished — the precondition for a Review |
 | `ReviewSubmitted` | planned (E5) | A Customer reviewed a completed Order |
 
-Every one is currently `planned`: Kafoo has no feature code yet. The Order lifecycle is complete
+The three E1 events are `active` as of E1. The rest are `planned`: the features that would emit
+them do not exist yet. The Order lifecycle is complete
 here for the first time — `OrderRejected`, `OrderCancelled` and `OrderCompleted` were missing from
 the constitution until v1.1.0, which left cancellations uncountable and the entire review funnel
 unmeasurable, since a Review requires a completed Order.
@@ -132,16 +133,16 @@ unmeasurable, since a Review requires a completed Order.
 
 | Event | Status | Attributes | Meaning |
 |---|---|---|---|
-| `SignInStarted` | planned (E1) | `route` | A code was requested |
-| `SignInCompleted` | planned (E1) | `route`, `first_time` | The person got in |
-| `SignInFailed` | planned (E1) | `route`, `reason` | Wrong code, expired, or rate-limited |
-| `ConversationStarted` | planned (E1) | `kind`, `input` | A conversation began |
-| `ConversationStepCompleted` | planned (E1) | `kind`, `step`, `input` | One question answered — **this is the drop-off signal** |
-| `ConversationCompleted` | planned (E1) | `kind`, `input` | The person confirmed and finished |
-| `RecoveryEmailOffered` | planned (E1) | — | Kafoo offered a second way in |
-| `RecoveryEmailDeclined` | planned (E1) | `times_declined` | They said no |
-| `RecoveryEmailAttached` | planned (E1) | — | They added one |
-| `PhoneNumberChanged` | planned (E1) | — | A person moved their identity to a new number. Also a takeover signal |
+| `SignInStarted` | active (E1) | `route` | A code was requested |
+| `SignInCompleted` | active (E1) | `route`, `first_time` | The person got in |
+| `SignInFailed` | active (E1) | `route`, `reason` | Wrong code, expired, or rate-limited |
+| `ConversationStarted` | active (E1) | `kind`, `input` | A conversation began |
+| `ConversationStepCompleted` | active (E1) | `kind`, `step`, `input` | One question answered — **this is the drop-off signal** |
+| `ConversationCompleted` | active (E1) | `kind`, `input` | The person confirmed and finished |
+| `RecoveryEmailOffered` | active (E1) | — | Kafoo offered a second way in |
+| `RecoveryEmailDeclined` | active (E1) | `times_declined` | They said no |
+| `RecoveryEmailAttached` | active (E1) | — | They added one |
+| `PhoneNumberChanged` | active (E1) | — | A person moved their identity to a new number. Also a takeover signal |
 | `MealDrafted` | planned (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
 | `MealUpdated` | planned (E2) | `changed` | A published Meal was edited. `changed` distinguishes a price change from a typo |
 | `SearchPerformed` | planned (E3) | `result_count` | A search ran |
@@ -222,3 +223,4 @@ is what this file was created to end.
 | Date | Change |
 |---|---|
 | 2026-07-30 | Created. Consolidates event rules previously duplicated across the constitution, `CLAUDE.md`, `glossary.md` and `tasks-template.md`. Completes the Order lifecycle, adds the E1 funnel, introduces levels, status, and the operational-telemetry boundary. |
+| 2026-07-30 | E1 shipped: all thirteen E1 events moved from `planned` to `active`. A `planned` event that is emitted misleads exactly as much as an `active` one that is not. |

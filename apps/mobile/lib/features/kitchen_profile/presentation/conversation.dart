@@ -297,6 +297,9 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
               const Spacer(),
               FilledButton(
                 onPressed: _acceptAnswer,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
                 child: Text(l10n.kitchenConvContinue),
               ),
             ],

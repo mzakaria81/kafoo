@@ -50,7 +50,7 @@ class _CodeScreenState extends State<CodeScreen> {
 
       unawaited(emitEvent(
         EventNames.signInCompleted,
-        attributes: {'first_time': isNew},
+        attributes: {'route': 'phone', 'first_time': isNew},
       ));
 
       if (isNew) {
@@ -70,7 +70,8 @@ class _CodeScreenState extends State<CodeScreen> {
       unawaited(emitEvent(
         EventNames.signInFailed,
         attributes: {
-          'reason': msg.contains('expired') ? 'expired' : 'wrong_code'
+          'route': 'phone',
+          'reason': msg.contains('expired') ? 'expired' : 'wrong_code',
         },
       ));
       if (mounted) setState(() => _error = errorText);
@@ -81,7 +82,7 @@ class _CodeScreenState extends State<CodeScreen> {
       }
       unawaited(emitEvent(
         EventNames.signInFailed,
-        attributes: {'reason': 'network'},
+        attributes: {'route': 'phone', 'reason': 'network'},
       ));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -130,6 +131,9 @@ class _CodeScreenState extends State<CodeScreen> {
               const SizedBox(height: KafooSpacing.lg),
               FilledButton(
                 onPressed: _loading ? null : _verify,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
                 child: _loading
                     ? const SizedBox(
                         height: 20,
@@ -141,6 +145,9 @@ class _CodeScreenState extends State<CodeScreen> {
               const SizedBox(height: KafooSpacing.sm),
               TextButton(
                 onPressed: _resending ? null : _resend,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
                 child: Text(l10n.codeResend),
               ),
             ],

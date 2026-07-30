@@ -266,6 +266,10 @@ class _SummaryRow extends StatelessWidget {
                   onPressed: onCommit,
                   icon: const Icon(Icons.check),
                   tooltip: editLabel,
+                  constraints: const BoxConstraints(
+                    minWidth: KafooSpacing.minTapTarget,
+                    minHeight: KafooSpacing.minTapTarget,
+                  ),
                 ),
               ],
             )
@@ -273,7 +277,16 @@ class _SummaryRow extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(value, style: theme.textTheme.bodyLarge)),
-                TextButton(onPressed: onEdit, child: Text(editLabel)),
+                TextButton(
+                  onPressed: onEdit,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(
+                      KafooSpacing.minTapTarget,
+                      KafooSpacing.minTapTarget,
+                    ),
+                  ),
+                  child: Text(editLabel),
+                ),
               ],
             ),
         ],

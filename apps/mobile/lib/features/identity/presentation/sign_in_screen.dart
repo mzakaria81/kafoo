@@ -37,7 +37,10 @@ class _SignInScreenState extends State<SignInScreen> {
       _error = null;
     });
 
-    unawaited(emitEvent(EventNames.signInStarted));
+    unawaited(emitEvent(
+      EventNames.signInStarted,
+      attributes: {'route': 'phone'},
+    ));
 
     try {
       await Supabase.instance.client.auth.signInWithOtp(phone: phone);
@@ -92,6 +95,9 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: KafooSpacing.lg),
               FilledButton(
                 onPressed: _loading ? null : _submit,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
                 child: _loading
                     ? const SizedBox(
                         height: 20,
@@ -106,6 +112,9 @@ class _SignInScreenState extends State<SignInScreen> {
               // Kafoo is asked for an email address zero times (SC-009), and
               // the word only appears once they have said they need it.
               TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const EmailSignInScreen(),
