@@ -69,4 +69,84 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signInNetworkError =>
       'No internet connection. Check that you are online and try again.';
+
+  @override
+  String get kitchenConvPromptDisplayName => 'What is your kitchen called?';
+
+  @override
+  String get kitchenConvPromptStory =>
+      'Tell me about your cooking. What do you make and how?';
+
+  @override
+  String get kitchenConvPromptArea => 'Which area do you cook in?';
+
+  @override
+  String get kitchenConvPromptDeliveryTerms =>
+      'How do people receive their food from you?';
+
+  @override
+  String get kitchenConvHintDisplayName => 'e.g. Om Ali\'s Kitchen';
+
+  @override
+  String get kitchenConvHintStory =>
+      'e.g. Home-cooked food the old-fashioned way';
+
+  @override
+  String get kitchenConvHintArea => 'e.g. Maadi, Heliopolis';
+
+  @override
+  String get kitchenConvHintDeliveryTerms =>
+      'e.g. Delivery within an hour, or pick up yourself';
+
+  @override
+  String get kitchenConvContinue => 'Continue';
+
+  @override
+  String get kitchenConvVoiceHint => 'Say your answer out loud';
+
+  @override
+  String get kitchenConvVoiceUnavailable =>
+      'Voice recognition is not available. You can type your answer instead.';
+
+  @override
+  String get kitchenConvSummaryTitle => 'Here is what you told us';
+
+  @override
+  String get kitchenConvSummaryConfirm => 'Looks good, save';
+
+  @override
+  String get kitchenConvSummaryEdit => 'Change';
+
+  @override
+  String get kitchenConvLabelDisplayName => 'Kitchen name';
+
+  @override
+  String get kitchenConvLabelStory => 'Your story';
+
+  @override
+  String get kitchenConvLabelArea => 'Area';
+
+  @override
+  String get kitchenConvLabelDeliveryTerms => 'How food reaches people';
+
+  @override
+  String get kitchenConvLabelPhoto => 'Kitchen photo';
+
+  @override
+  String get kitchenConvPhotoAdd => 'Add a photo';
+
+  @override
+  String get kitchenConvSaveError =>
+      'Something went wrong saving. Please try again.';
+
+  @override
+  String get kitchenConvPhotoError =>
+      'The photo could not be uploaded. You can continue without one.';
+
+  @override
+  String get kitchenExistsTitle => 'You already have a kitchen';
+
+  @override
+  String get kitchenExistsBody =>
+      'You already have a Kitchen Profile on this account. Taking you there now.';
 }

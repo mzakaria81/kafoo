@@ -5,4 +5,6 @@
 /// rather than adding the import. See `.claude/rules/dart.md`.
 library;
 
+export 'conversation_step.dart';
+export 'kitchen_profile.dart';
 export 'result.dart';

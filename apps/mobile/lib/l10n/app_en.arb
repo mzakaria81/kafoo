@@ -95,5 +95,125 @@
   "signInNetworkError": "No internet connection. Check that you are online and try again.",
   "@signInNetworkError": {
     "description": "Shown when sign-in fails due to connectivity, not a wrong code."
+  },
+
+  "kitchenConvPromptDisplayName": "What is your kitchen called?",
+  "@kitchenConvPromptDisplayName": {
+    "description": "First question in the Kitchen Profile conversation."
+  },
+
+  "kitchenConvPromptStory": "Tell me about your cooking. What do you make and how?",
+  "@kitchenConvPromptStory": {
+    "description": "Second question: the Cook's story."
+  },
+
+  "kitchenConvPromptArea": "Which area do you cook in?",
+  "@kitchenConvPromptArea": {
+    "description": "Third question: the Cook's area."
+  },
+
+  "kitchenConvPromptDeliveryTerms": "How do people receive their food from you?",
+  "@kitchenConvPromptDeliveryTerms": {
+    "description": "Fourth question: delivery or pickup terms."
+  },
+
+  "kitchenConvHintDisplayName": "e.g. Om Ali's Kitchen",
+  "@kitchenConvHintDisplayName": {
+    "description": "Hint text below the display name question."
+  },
+
+  "kitchenConvHintStory": "e.g. Home-cooked food the old-fashioned way",
+  "@kitchenConvHintStory": {
+    "description": "Hint text below the story question."
+  },
+
+  "kitchenConvHintArea": "e.g. Maadi, Heliopolis",
+  "@kitchenConvHintArea": {
+    "description": "Hint text below the area question."
+  },
+
+  "kitchenConvHintDeliveryTerms": "e.g. Delivery within an hour, or pick up yourself",
+  "@kitchenConvHintDeliveryTerms": {
+    "description": "Hint text below the delivery terms question."
+  },
+
+  "kitchenConvContinue": "Continue",
+  "@kitchenConvContinue": {
+    "description": "Button to confirm the current answer and move to the next step."
+  },
+
+  "kitchenConvVoiceHint": "Say your answer out loud",
+  "@kitchenConvVoiceHint": {
+    "description": "Shown next to the microphone button."
+  },
+
+  "kitchenConvVoiceUnavailable": "Voice recognition is not available. You can type your answer instead.",
+  "@kitchenConvVoiceUnavailable": {
+    "description": "Shown when on-device speech recognition is not available."
+  },
+
+  "kitchenConvSummaryTitle": "Here is what you told us",
+  "@kitchenConvSummaryTitle": {
+    "description": "Heading on the summary screen."
+  },
+
+  "kitchenConvSummaryConfirm": "Looks good, save",
+  "@kitchenConvSummaryConfirm": {
+    "description": "Button to confirm the summary and write the Kitchen Profile."
+  },
+
+  "kitchenConvSummaryEdit": "Change",
+  "@kitchenConvSummaryEdit": {
+    "description": "Button to edit a single answer on the summary screen."
+  },
+
+  "kitchenConvLabelDisplayName": "Kitchen name",
+  "@kitchenConvLabelDisplayName": {
+    "description": "Label for the display name field on the summary screen."
+  },
+
+  "kitchenConvLabelStory": "Your story",
+  "@kitchenConvLabelStory": {
+    "description": "Label for the story field on the summary screen."
+  },
+
+  "kitchenConvLabelArea": "Area",
+  "@kitchenConvLabelArea": {
+    "description": "Label for the area field on the summary screen."
+  },
+
+  "kitchenConvLabelDeliveryTerms": "How food reaches people",
+  "@kitchenConvLabelDeliveryTerms": {
+    "description": "Label for the delivery terms field on the summary screen."
+  },
+
+  "kitchenConvLabelPhoto": "Kitchen photo",
+  "@kitchenConvLabelPhoto": {
+    "description": "Label for the optional photo on the summary screen."
+  },
+
+  "kitchenConvPhotoAdd": "Add a photo",
+  "@kitchenConvPhotoAdd": {
+    "description": "Button to add a kitchen photo on the summary screen."
+  },
+
+  "kitchenConvSaveError": "Something went wrong saving. Please try again.",
+  "@kitchenConvSaveError": {
+    "description": "Shown if writing the Kitchen Profile to Supabase fails."
+  },
+
+  "kitchenConvPhotoError": "The photo could not be uploaded. You can continue without one.",
+  "@kitchenConvPhotoError": {
+    "description": "Shown if photo upload fails. The Cook can proceed without a photo."
+  },
+
+  "kitchenExistsTitle": "You already have a kitchen",
+  "@kitchenExistsTitle": {
+    "description": "Heading shown when a person who already has a Kitchen Profile tries to create another."
+  },
+
+  "kitchenExistsBody": "You already have a Kitchen Profile on this account. Taking you there now.",
+  "@kitchenExistsBody": {
+    "description": "Body text shown when redirecting an existing Cook to their own Kitchen Profile."
   }
 }

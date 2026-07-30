@@ -205,6 +205,150 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.'**
   String get signInNetworkError;
+
+  /// First question in the Kitchen Profile conversation: the kitchen's display name.
+  ///
+  /// In ar, this message translates to:
+  /// **'مطبخك اسمه إيه؟'**
+  String get kitchenConvPromptDisplayName;
+
+  /// Second question: the Cook's story — what they cook and how.
+  ///
+  /// In ar, this message translates to:
+  /// **'قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟'**
+  String get kitchenConvPromptStory;
+
+  /// Third question: which area the Cook operates in.
+  ///
+  /// In ar, this message translates to:
+  /// **'في أنهي منطقة بتشتغل؟'**
+  String get kitchenConvPromptArea;
+
+  /// Fourth question: delivery or pickup terms.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزاي الناس بتاخد أكلها منك؟'**
+  String get kitchenConvPromptDeliveryTerms;
+
+  /// Hint text shown below the display name question.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثلاً: مطبخ أم علي'**
+  String get kitchenConvHintDisplayName;
+
+  /// Hint text shown below the story question.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثلاً: بنطبخ أكل بيتي على الطريقة القديمة'**
+  String get kitchenConvHintStory;
+
+  /// Hint text shown below the area question.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثلاً: المعادي، مصر الجديدة'**
+  String get kitchenConvHintArea;
+
+  /// Hint text shown below the delivery terms question.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك'**
+  String get kitchenConvHintDeliveryTerms;
+
+  /// Button to confirm the current answer and proceed to the next step.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمّل'**
+  String get kitchenConvContinue;
+
+  /// Shown next to the microphone button — prompts the Cook to speak.
+  ///
+  /// In ar, this message translates to:
+  /// **'قول إجابتك بصوتك'**
+  String get kitchenConvVoiceHint;
+
+  /// Shown when on-device speech recognition is not available. Offers typing as a fallback.
+  ///
+  /// In ar, this message translates to:
+  /// **'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.'**
+  String get kitchenConvVoiceUnavailable;
+
+  /// Heading on the summary screen shown after all questions are answered.
+  ///
+  /// In ar, this message translates to:
+  /// **'ده اللي قلته'**
+  String get kitchenConvSummaryTitle;
+
+  /// Button to confirm the summary and write the Kitchen Profile.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، احفظ'**
+  String get kitchenConvSummaryConfirm;
+
+  /// Button to edit a single answer on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّر'**
+  String get kitchenConvSummaryEdit;
+
+  /// Label for the display name field on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المطبخ'**
+  String get kitchenConvLabelDisplayName;
+
+  /// Label for the story field on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'قصتك'**
+  String get kitchenConvLabelStory;
+
+  /// Label for the area field on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنطقة'**
+  String get kitchenConvLabelArea;
+
+  /// Label for the delivery terms field on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'طريقة الاستلام'**
+  String get kitchenConvLabelDeliveryTerms;
+
+  /// Label for the optional photo on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'صورة المطبخ'**
+  String get kitchenConvLabelPhoto;
+
+  /// Button to add a kitchen photo on the summary screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضيف صورة'**
+  String get kitchenConvPhotoAdd;
+
+  /// Shown if writing the Kitchen Profile to Supabase fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'حصل مشكلة أثناء الحفظ. جرب تاني.'**
+  String get kitchenConvSaveError;
+
+  /// Shown if photo upload fails. The Cook can proceed without a photo (T038 requirement).
+  ///
+  /// In ar, this message translates to:
+  /// **'الصورة ما اتحملتش. ممكن تكمل من غير صورة.'**
+  String get kitchenConvPhotoError;
+
+  /// Heading shown when a person who already has a Kitchen Profile tries to create another.
+  ///
+  /// In ar, this message translates to:
+  /// **'عندك مطبخ بالفعل'**
+  String get kitchenExistsTitle;
+
+  /// Body text shown when redirecting an existing Cook to their own Kitchen Profile (T039, FR-009).
+  ///
+  /// In ar, this message translates to:
+  /// **'عندك مطبخ مسجّل على حسابك. هنروحله دلوقتي.'**
+  String get kitchenExistsBody;
 }
 
 class _AppLocalizationsDelegate

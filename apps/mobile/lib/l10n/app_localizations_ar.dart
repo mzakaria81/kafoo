@@ -69,4 +69,80 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get signInNetworkError =>
       'مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.';
+
+  @override
+  String get kitchenConvPromptDisplayName => 'مطبخك اسمه إيه؟';
+
+  @override
+  String get kitchenConvPromptStory => 'قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟';
+
+  @override
+  String get kitchenConvPromptArea => 'في أنهي منطقة بتشتغل؟';
+
+  @override
+  String get kitchenConvPromptDeliveryTerms => 'إزاي الناس بتاخد أكلها منك؟';
+
+  @override
+  String get kitchenConvHintDisplayName => 'مثلاً: مطبخ أم علي';
+
+  @override
+  String get kitchenConvHintStory =>
+      'مثلاً: بنطبخ أكل بيتي على الطريقة القديمة';
+
+  @override
+  String get kitchenConvHintArea => 'مثلاً: المعادي، مصر الجديدة';
+
+  @override
+  String get kitchenConvHintDeliveryTerms =>
+      'مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك';
+
+  @override
+  String get kitchenConvContinue => 'كمّل';
+
+  @override
+  String get kitchenConvVoiceHint => 'قول إجابتك بصوتك';
+
+  @override
+  String get kitchenConvVoiceUnavailable =>
+      'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.';
+
+  @override
+  String get kitchenConvSummaryTitle => 'ده اللي قلته';
+
+  @override
+  String get kitchenConvSummaryConfirm => 'تمام، احفظ';
+
+  @override
+  String get kitchenConvSummaryEdit => 'غيّر';
+
+  @override
+  String get kitchenConvLabelDisplayName => 'اسم المطبخ';
+
+  @override
+  String get kitchenConvLabelStory => 'قصتك';
+
+  @override
+  String get kitchenConvLabelArea => 'المنطقة';
+
+  @override
+  String get kitchenConvLabelDeliveryTerms => 'طريقة الاستلام';
+
+  @override
+  String get kitchenConvLabelPhoto => 'صورة المطبخ';
+
+  @override
+  String get kitchenConvPhotoAdd => 'ضيف صورة';
+
+  @override
+  String get kitchenConvSaveError => 'حصل مشكلة أثناء الحفظ. جرب تاني.';
+
+  @override
+  String get kitchenConvPhotoError =>
+      'الصورة ما اتحملتش. ممكن تكمل من غير صورة.';
+
+  @override
+  String get kitchenExistsTitle => 'عندك مطبخ بالفعل';
+
+  @override
+  String get kitchenExistsBody => 'عندك مطبخ مسجّل على حسابك. هنروحله دلوقتي.';
 }

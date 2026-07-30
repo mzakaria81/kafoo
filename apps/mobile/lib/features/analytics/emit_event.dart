@@ -30,7 +30,9 @@ Future<void> emitEvent(
       'person_id': Supabase.instance.client.auth.currentUser?.id,
       'attributes': attributes,
     });
-  } on Exception catch (_) {
-    // Measurement outage must never break a Cook's flow.
+  } on Object catch (_) {
+    // Measurement outage must never break a Cook's flow. This catches Error as
+    // well as Exception deliberately: an uninitialised client throws a
+    // StateError, and losing an event is always preferable to losing the Cook.
   }
 }

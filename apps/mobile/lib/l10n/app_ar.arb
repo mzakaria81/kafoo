@@ -95,5 +95,125 @@
   "signInNetworkError": "مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.",
   "@signInNetworkError": {
     "description": "Shown when sign-in fails due to connectivity, not a wrong code."
+  },
+
+  "kitchenConvPromptDisplayName": "مطبخك اسمه إيه؟",
+  "@kitchenConvPromptDisplayName": {
+    "description": "First question in the Kitchen Profile conversation: the kitchen's display name."
+  },
+
+  "kitchenConvPromptStory": "قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟",
+  "@kitchenConvPromptStory": {
+    "description": "Second question: the Cook's story — what they cook and how."
+  },
+
+  "kitchenConvPromptArea": "في أنهي منطقة بتشتغل؟",
+  "@kitchenConvPromptArea": {
+    "description": "Third question: which area the Cook operates in."
+  },
+
+  "kitchenConvPromptDeliveryTerms": "إزاي الناس بتاخد أكلها منك؟",
+  "@kitchenConvPromptDeliveryTerms": {
+    "description": "Fourth question: delivery or pickup terms."
+  },
+
+  "kitchenConvHintDisplayName": "مثلاً: مطبخ أم علي",
+  "@kitchenConvHintDisplayName": {
+    "description": "Hint text shown below the display name question."
+  },
+
+  "kitchenConvHintStory": "مثلاً: بنطبخ أكل بيتي على الطريقة القديمة",
+  "@kitchenConvHintStory": {
+    "description": "Hint text shown below the story question."
+  },
+
+  "kitchenConvHintArea": "مثلاً: المعادي، مصر الجديدة",
+  "@kitchenConvHintArea": {
+    "description": "Hint text shown below the area question."
+  },
+
+  "kitchenConvHintDeliveryTerms": "مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك",
+  "@kitchenConvHintDeliveryTerms": {
+    "description": "Hint text shown below the delivery terms question."
+  },
+
+  "kitchenConvContinue": "كمّل",
+  "@kitchenConvContinue": {
+    "description": "Button to confirm the current answer and proceed to the next step."
+  },
+
+  "kitchenConvVoiceHint": "قول إجابتك بصوتك",
+  "@kitchenConvVoiceHint": {
+    "description": "Shown next to the microphone button — prompts the Cook to speak."
+  },
+
+  "kitchenConvVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
+  "@kitchenConvVoiceUnavailable": {
+    "description": "Shown when on-device speech recognition is not available. Offers typing as a fallback."
+  },
+
+  "kitchenConvSummaryTitle": "ده اللي قلته",
+  "@kitchenConvSummaryTitle": {
+    "description": "Heading on the summary screen shown after all questions are answered."
+  },
+
+  "kitchenConvSummaryConfirm": "تمام، احفظ",
+  "@kitchenConvSummaryConfirm": {
+    "description": "Button to confirm the summary and write the Kitchen Profile."
+  },
+
+  "kitchenConvSummaryEdit": "غيّر",
+  "@kitchenConvSummaryEdit": {
+    "description": "Button to edit a single answer on the summary screen."
+  },
+
+  "kitchenConvLabelDisplayName": "اسم المطبخ",
+  "@kitchenConvLabelDisplayName": {
+    "description": "Label for the display name field on the summary screen."
+  },
+
+  "kitchenConvLabelStory": "قصتك",
+  "@kitchenConvLabelStory": {
+    "description": "Label for the story field on the summary screen."
+  },
+
+  "kitchenConvLabelArea": "المنطقة",
+  "@kitchenConvLabelArea": {
+    "description": "Label for the area field on the summary screen."
+  },
+
+  "kitchenConvLabelDeliveryTerms": "طريقة الاستلام",
+  "@kitchenConvLabelDeliveryTerms": {
+    "description": "Label for the delivery terms field on the summary screen."
+  },
+
+  "kitchenConvLabelPhoto": "صورة المطبخ",
+  "@kitchenConvLabelPhoto": {
+    "description": "Label for the optional photo on the summary screen."
+  },
+
+  "kitchenConvPhotoAdd": "ضيف صورة",
+  "@kitchenConvPhotoAdd": {
+    "description": "Button to add a kitchen photo on the summary screen."
+  },
+
+  "kitchenConvSaveError": "حصل مشكلة أثناء الحفظ. جرب تاني.",
+  "@kitchenConvSaveError": {
+    "description": "Shown if writing the Kitchen Profile to Supabase fails."
+  },
+
+  "kitchenConvPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
+  "@kitchenConvPhotoError": {
+    "description": "Shown if photo upload fails. The Cook can proceed without a photo (T038 requirement)."
+  },
+
+  "kitchenExistsTitle": "عندك مطبخ بالفعل",
+  "@kitchenExistsTitle": {
+    "description": "Heading shown when a person who already has a Kitchen Profile tries to create another."
+  },
+
+  "kitchenExistsBody": "عندك مطبخ مسجّل على حسابك. هنروحله دلوقتي.",
+  "@kitchenExistsBody": {
+    "description": "Body text shown when redirecting an existing Cook to their own Kitchen Profile (T039, FR-009)."
   }
 }
