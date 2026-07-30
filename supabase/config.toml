@@ -29,20 +29,10 @@ enable_signup = true
 [auth.sms]
 enable_confirmations = true
 
-[[auth.sms.test_otp]]
-phone = "+201000000001"
-otp = "000001"
-
-[[auth.sms.test_otp]]
-phone = "+201000000002"
-otp = "000002"
+[auth.sms.test_otp]
+"+201000000001" = "000001"
+"+201000000002" = "000002"
 
 [storage]
 enabled = true
 file_size_limit = "50MiB"
-
-[[storage.buckets]]
-name = "kitchen-photos"
-public = true
-file_size_limit = "50MiB"
-allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]

@@ -61,9 +61,11 @@ run "rls coverage" bash -c '
 # The constitution forbids synthetic Reviews, Cooks, and Meals — including for
 # seeding. Migrations reach production unattended, so catch DML against those
 # tables here rather than trusting review.
+# supabase/tests/ is excluded: RLS tests legitimately insert fixtures to prove
+# policies work. The ban targets migrations and functions, not test files.
 run "no synthetic content" bash -c '
   hits=$(grep -rinE "INSERT[[:space:]]+INTO[[:space:]]+(public\.)?(cooks|meals|reviews|kitchen_profiles)" \
-    supabase/ 2>/dev/null || true)
+    supabase/migrations/ supabase/functions/ 2>/dev/null || true)
   if [ -n "$hits" ]; then
     echo "$hits"
     echo "   Synthetic Cooks, Meals, or Reviews are product-fatal (Constitution I)."
