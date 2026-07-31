@@ -244,3 +244,19 @@ governance and provides none. Check references resolve before trusting the rule 
 **Suggested improvement:** When running a verification command whose result gates a subsequent action, never let it be the non-final element of a pipeline. Either run it bare, or capture and assert its status explicitly (`set -o pipefail`, or check `${PIPESTATUS[0]}`) and print that status alongside the output. Where the shell's working directory persists between calls, use an absolute path or an explicit `cd` to the repository root in the same command rather than relying on where the previous one left off. Treat "the check produced output I recognise" as insufficient evidence that the check ran at all.
 
 **Principle:** A verification step that cannot fail loudly is not a verification step. Truncating or paging a gate's output discards the one thing that makes it a gate — its exit status — and leaves a success claim resting on the appearance of having checked. Assert the status explicitly, or do not claim the check ran.
+
+### Observation 13: Per-feature task IDs collide across features, so a cross-feature status document points at two different tasks
+
+**Status:** OPEN
+**Date:** 2026-07-31
+**Session context:** Answering "what is still missing from Epic E1" by reading the feature's `tasks.md` alongside the project-wide handoff document.
+
+**Skill:** speckit-tasks
+**Type:** open-source
+**Phase/Area:** Task ID assignment and cross-document referencing
+
+**Issue:** Task IDs restart at T001 for every feature, so the second feature's list reuses every ID the first one used. The project-wide handoff document cites bare IDs ("T039 — decide where the upload keystore lives", "T030", "T043", "T044") that belong to the *earlier* feature's list, while the current feature's list has its own T039, T030 and T043 with entirely unrelated content. Nothing in either document marks which list a cited ID belongs to. A reader tracking open work resolves the reference against whichever list is open, and both resolutions look correct — the IDs exist in both, with plausible-sounding descriptions. The failure is silent and gets worse with every feature added.
+
+**Suggested improvement:** Require any reference to a task from outside its own `tasks.md` to be qualified with its feature — `001-e0-foundation/T039`, or at minimum "E0 T039" — and say so in the tasks template so the convention exists before the second feature makes it necessary. Where a status document lists open work spanning features, group by feature rather than presenting one flat list of bare IDs.
+
+**Principle:** An identifier that is only unique within its own document becomes ambiguous the moment anything else cites it, and ambiguity between two documents that both contain the ID resolves silently rather than erroring. Namespace the reference at the point of citation, not at the point of definition — the definition never sees the collision.
