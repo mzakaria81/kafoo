@@ -147,7 +147,8 @@ identity, not the UI:
 | An event for the sever — `PhoneNumberDetached`, attribute `days_dormant` | `docs/product/event-model.md` | Written, status `planned` |
 | Open Question 2 marked settled | `specs/002-identity-kitchen-profile/spec.md` | Written |
 | Confirm 90/105/180/195 against NTRA's published terms | Before `D` is fixed in code | **Open** |
-| Confirm the Supabase interception point | Before an implementation plan | **Open** |
+| Confirm the Supabase interception point | — | Closed 2026-07-31: no auth hook reaches it; an Edge Function wrapping the OTP exchange is the only full shape |
+| Read the admin-API calls that shape needs | Before an implementation plan | **Open** |
 
 ## What this deliberately does not settle
 
@@ -166,9 +167,28 @@ absorbed as fact:
 1. **The carrier windows are founder-supplied.** ADR-0006 asserted a signing failure model on
    exactly this footing across three documents and was wrong in both halves. Three documents
    agreeing was one unverified belief copied forward.
-2. **The Supabase interception point is unknown.** Phone OTP resolves a verified number to its
-   existing user automatically, and that is what this design must interrupt. Whether an auth hook
-   reaches it or the OTP exchange needs wrapping in an Edge Function has to be read out of
-   Supabase's documentation, not recalled.
+2. ~~**The Supabase interception point is unknown.**~~ **Resolved 2026-07-31** — see below. Left
+   listed because the guess that preceded the check was wrong in a useful way: the assumption was
+   that a hook probably existed.
 
-Neither changes the decision. The first changes a number; the second changes the implementation.
+The first still changes a number. The second turned out to change the implementation shape.
+
+## The interception point — checked, not assumed
+
+Read out of Supabase's auth-hooks documentation on 2026-07-31. The complete hook list is **Custom
+Access Token**, **Send SMS**, **Send Email**, **MFA Verification Attempt**, **Password Verification
+Attempt**, and **Before User Created**.
+
+**No hook fires on a successful phone-OTP verification of an existing user.** Before User Created
+is documented as running "before a **new** user is created" — the one case this design does not
+need to touch, since a recycled number resolving to nobody already behaves correctly.
+
+Two shapes remain. Choosing between them belongs in the implementation plan:
+
+| Shape | What it delivers | What it costs |
+|---|---|---|
+| **Block via the Custom Access Token hook** | The hook fires at token issuance and can return an `error` with an `http_code`, which Auth propagates to the client. A dormant identity is refused a session. | Half the behaviour. The number stays attached to the dormant Person, so the caller cannot become a new Person either — they are simply locked out with no route forward. The `sub` claim is already fixed when the hook runs, so no hook can reroute an identity mid-issuance. |
+| **Wrap the OTP exchange in an Edge Function** | The decided behaviour in full: check last activity, detach the number from the dormant Person, issue a session for a new one. | Kafoo owns a step of the sign-in path it currently gets for free, including its failure modes and its rate limiting. |
+
+The second is the only shape that implements the decision. The admin-API calls it needs have not
+been read out of the documentation yet — that is the next thing to check, before planning.

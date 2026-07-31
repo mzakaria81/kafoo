@@ -86,10 +86,28 @@ implementation or the numbers.
 1. **The carrier windows above are founder-supplied and unverified against NTRA's own published
    terms.** ADR-0006 asserted a signing failure model on the same footing and was wrong. Confirm
    before `D` is fixed in code.
-2. **The interception point in Supabase is unknown.** Phone OTP resolves a verified number to its
-   existing user automatically, and that is the behaviour this design must interrupt. Whether an
-   auth hook reaches it, or the OTP exchange must be wrapped in an Edge Function, has to be checked
-   against Supabase's auth-hooks documentation rather than assumed.
+2. **~~The interception point in Supabase is unknown.~~ Checked 2026-07-31 against Supabase's
+   auth-hooks documentation: no hook reaches it.** The complete hook list is Custom Access Token,
+   Send SMS, Send Email, MFA Verification Attempt, Password Verification Attempt, and Before User
+   Created. None fires on a successful phone-OTP verification of an *existing* user — Before User
+   Created is documented as running "before a **new** user is created", which is the one case this
+   design does not need to touch.
+
+   What remains open is which of two shapes to build, and that belongs in the plan rather than
+   here:
+
+   - **Block, don't reroute.** The Custom Access Token hook fires when a token is issued and can
+     return an `error` object with an `http_code`, which Supabase Auth propagates to the client. A
+     dormant identity could therefore be refused a session. That is half the behaviour: it stops
+     the stranger getting in, but the number stays attached to the dormant Person, so the caller
+     cannot become a new Person either. The `sub` claim is fixed by the time the hook runs, so no
+     hook can reroute an identity mid-issuance.
+   - **Wrap the OTP exchange in an Edge Function.** Kafoo owns the verification call: check last
+     activity, detach the number from the dormant Person, then issue a session for a new one. This
+     is the only shape that delivers the decided behaviour in full, and its cost is that Kafoo owns
+     a step of the sign-in path it currently gets for free.
+
+   The admin-API calls the second shape needs have not been read out of the documentation yet.
 
 Open Question 4 — whether Kafoo offers a person-assisted way back — stays open. This design works
 either way, and only the severity of the no-email case depends on it.
