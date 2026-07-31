@@ -40,6 +40,14 @@ to be approved, and no second account. A Cook can order from other Cooks, becaus
 Customer. A person who never creates a Kitchen Profile stays a Customer and is not asked again
 after declining once.
 
+**A credential has an expiry; the Person does not.** A phone number proves a Person only while that
+Person is in use. After 90 days with no Kafoo activity the number is detached, and whoever next
+presents it is a new Person with nothing attached — never the old one. The dormant Person survives
+without its phone credential, reachable through an attached recovery email, and is removed after a
+further 365 days through the same path as ordinary account removal. Egyptian numbers are recycled,
+so a number that is not being used is not evidence of who is holding it. ADR-0007 carries the
+reasoning and the thresholds.
+
 ## Ownership
 
 Every row has exactly one owner. RLS enforces it; application code must never be the only guard.
@@ -177,6 +185,8 @@ alone:
 10. Every Meal status and Order status is a member of its lifecycle enum.
 11. A Person has at most one Kitchen Profile, and it cannot be transferred to another Person.
 12. A Kitchen Profile's discoverability is derived from its Cook's published Meals, never stored.
+13. A phone number resolves to a Person only while that Person has been active within the dormancy
+    window. Past it, the number is detached and resolves to nobody (ADR-0007).
 
 ## Privacy
 
@@ -194,3 +204,4 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
 |---|---|
 | 2026-07-26 | Initial model, extracted from `.claude/rules/business-rules.md` and the constitution. |
 | 2026-07-30 | E1: added the Person shape (identity vs credential, one account holds both roles) and the derived-discoverability rule for Kitchen Profile. Invariants 11 and 12 added. |
+| 2026-07-31 | Settled E1's Open Question 2: a phone credential expires with dormancy while the Person does not. Invariant 13 added. ADR-0007. |

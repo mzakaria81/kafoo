@@ -143,6 +143,7 @@ unmeasurable, since a Review requires a completed Order.
 | `RecoveryEmailDeclined` | active (E1) | `times_declined` | They said no |
 | `RecoveryEmailAttached` | active (E1) | — | They added one |
 | `PhoneNumberChanged` | active (E1) | — | A person moved their identity to a new number. Also a takeover signal |
+| `PhoneNumberDetached` | planned (E2) | `days_dormant` | A dormant Person lost its phone credential, so the number resolves to nobody (ADR-0007) |
 | `MealDrafted` | planned (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
 | `MealUpdated` | planned (E2) | `changed` | A published Meal was edited. `changed` distinguishes a price change from a typo |
 | `SearchPerformed` | planned (E3) | `result_count` | A search ran |
@@ -155,6 +156,13 @@ someone gives up is the moment they close Kafoo — exactly when nothing can be 
 conversation with a `ConversationStarted` and no `ConversationCompleted` is abandoned, and the last
 `ConversationStepCompleted` says where. Defining an event that cannot be emitted reliably produces
 a number that is quietly wrong, which is worse than no number.
+
+**`PhoneNumberDetached` carries `days_dormant` because the threshold is a guess that needs
+correcting.** ADR-0007 sets the dormancy window at 90 days from a carrier constraint, not from
+evidence about how Cooks actually behave. The distribution of `days_dormant` at the moment of
+severing is the only thing that will show whether 90 is stranding ordinary Cooks. The event is
+keyed to the Person being severed — the one losing the credential, never the caller who triggered
+the check, who at that moment is an unrelated stranger.
 
 **`ConversationStepCompleted` covers the whole product**, not just the Kitchen Profile flow: Meal
 publishing in E2 and conversational search reuse it. That is why it is a family with a `kind`

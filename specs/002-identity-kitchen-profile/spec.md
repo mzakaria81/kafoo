@@ -333,8 +333,10 @@ produces a new person with nothing attached.
 
 - **A carrier reassigns a phone number to a different person.** Egyptian numbers are recycled. The
   new holder must not inherit the previous holder's Kitchen Profile, Orders, or Reviews. This is
-  the sharpest risk in a phone-anchored identity and is raised in Open Questions rather than
-  assumed away.
+  the sharpest risk in a phone-anchored identity. **Settled 2026-07-31 (ADR-0007)**: after 90 days
+  with no Kafoo activity the number is detached from the person it proved, so the next holder
+  becomes a new person with nothing attached. The sever is silent, because telling the caller the
+  number was known would be the disclosure the next edge case forbids.
 - **Someone enters a phone number that is not theirs.** Kafoo must not disclose whether that
   number is already known to it, since that alone reveals who uses Kafoo.
 - **A photo fails to arrive** part-way through the conversation. The conversation must not be
@@ -565,8 +567,8 @@ revisited, not an oversight.
 Decisions that materially affect scope, privacy, or user-visible behaviour, and that this
 specification does not have the standing to settle. They are listed rather than guessed at.
 
-Two of them — items 2 and 4 — stop being cheap at the same moment: when Reviews ship and a
-person's identity starts carrying reputation rather than just a Kitchen Profile.
+Item 2 was settled on 2026-07-31. Item 4 is the one that remains, and it stops being cheap when
+Reviews ship and a person's identity starts carrying reputation rather than just a Kitchen Profile.
 
 1. **Settled: a Kitchen Profile has no state of its own.** Decided on 2026-07-30. Discoverability
    is derived from whether the Cook has a published Meal (FR-030), and readability is separate
@@ -578,14 +580,31 @@ person's identity starts carrying reputation rather than just a Kitchen Profile.
    of Done item 6. It is a domain rule even though it adds no field, and a rule that lives only in
    a feature specification is a rule the next feature will not know about.
 
-2. **Deferred, not open: what happens when a carrier reassigns a phone number?** The modelling half
-   of this is settled (FR-025, FR-026) — a person is not their phone number, so a recycled number
-   is a credential question rather than an identity question. The *policy* half is deliberately
-   deferred: whether a dormant identity expires, and whether restoring one should need more than a
-   one-time code. It is deferred rather than answered because the stakes rise sharply once Reviews
-   exist — a recycled number inheriting a Cook's Reviews would attach real reputation to the wrong
-   person, which is a worse failure than the synthetic Reviews the constitution already forbids.
-   **This MUST be settled before Reviews ship, and the decision is cheap only while it is.**
+2. **Settled: what happens when a carrier reassigns a phone number?** Decided on 2026-07-31,
+   recorded in `decisions/0007-dormancy-severs-a-phone-credential-not-a-person.md`. The modelling
+   half was already settled (FR-025, FR-026) — a person is not their phone number. The policy half
+   is now answered: **a phone number proves an identity only while that identity is in use.** After
+   90 days with no Kafoo activity the number is detached, and whoever next presents it is a new
+   person with nothing attached. The dormant person survives without its phone credential,
+   reachable through an attached recovery email, and is removed after a further 365 days through
+   the same path as FR-032 removal.
+
+   Kafoo chose lockout over inheritance because the failures are not symmetric: lockout harms one
+   person, is visible to them, and has an existing mitigation in the recovery email invitation
+   (FR-028); inheritance harms the Cook whose reputation is taken, every Customer trusting it, and
+   FR-008 itself, invisibly and unwindably once an Order is placed. Requiring more than a code at
+   re-entry was rejected — the challenge question itself discloses that the number is known, which
+   FR-006 forbids.
+
+   **E1 does not implement this** — E1 is merged and still resolves a number to the same person
+   indefinitely. What is settled is the policy; the code lands in its own slice once the two open
+   dependencies below are closed.
+
+   The sever is silent and the dormancy clock runs on **any activity on a valid session**, not on
+   sign-ins. Full reasoning, thresholds and testing:
+   `docs/superpowers/specs/2026-07-31-recycled-phone-number-design.md`. Two premises are recorded
+   as unverified rather than absorbed as fact — the carrier windows, and the interception point in
+   Supabase's phone OTP flow.
 
 3. **Settled: how long is a phone number kept?** Decided on 2026-07-30. It is kept while the
    account exists and removed when the person removes the account (FR-022, FR-032), which is now

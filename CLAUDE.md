@@ -81,6 +81,48 @@ decisions/           ADRs. Read before proposing architecture changes.
 
 `packages/domain/` must not import `supabase_flutter`. If you need it there, the boundary is wrong.
 
+## Building a feature
+
+The order below is the path; "Definition of done" is the check at the end of it. Do not reorder
+steps 5–7 — the constitution requires an authorization test to be written, and seen to fail, before
+the policy it tests exists.
+
+**Step 0 — check the stop-and-ask triggers before starting.** This sequence looks complete enough
+to follow to the end without noticing that the feature needed approval three steps in. See "When to
+stop and ask".
+
+1. Understand the requirement. Ambiguity is a reason to ask one specific question, not to pick a
+   reading.
+2. Review the existing architecture against it — `decisions/`, `docs/product/domain-model.md`, and
+   the code that already does something similar.
+3. **Define the interfaces and data models first**, in `packages/domain/`. No Flutter imports, no
+   `supabase_flutter`. Entities before behaviour.
+4. **Isolate infrastructure behind a repository interface**, and inject a fake in tests. Business
+   logic never depends on Supabase directly. This is already the pattern — see
+   `features/identity/data/account_repository.dart` and the `Fake*Repository` classes in
+   `apps/mobile/test/`. Follow it rather than inventing a second approach.
+5. **Write the authorization tests, run them, and confirm they FAIL.** A negative test that passes
+   on its first run is testing nothing and must be fixed before you continue.
+6. Write the migration — table, `ENABLE ROW LEVEL SECURITY`, and every policy in the **same file**.
+   Then re-run the tests from step 5 and watch them pass.
+7. Implement the business logic.
+8. Unit tests for the domain logic, widget tests for the screens — loading, data, and error states.
+   Add integration tests when a feature spans several screens or services.
+9. Strings into both ARB files, Arabic written first. Analytics event if the change touches a
+   tracked business action. Golden-case test if it adds AI behaviour.
+10. Run `./scripts/verify.sh`. This is the gate — not `flutter test`, which misses the pure-Dart
+    packages, and not `flutter analyze`, which misses RLS coverage, credentials, vocabulary, ARB
+    parity and the Edge Function type-check.
+11. On failure: diagnose, fix, re-run, repeat until green — **except** a failing RLS or
+    committed-credentials check, which is a stop-and-report, never something to iterate against.
+    The quickest way to turn a red authorization test green is to weaken the policy, which is the
+    one outcome the test exists to prevent.
+12. Verify every `SC-###` acceptance criterion in the spec, by name.
+13. Update whatever the change made stale — `domain-model.md`, `event-model.md`, an ADR, this file.
+    Documentation drift is part of the change, not follow-up work.
+14. Extend the feature's `quickstart.md` so someone with none of your context can verify it by hand.
+15. Run `/ship-check`, then it is done.
+
 ## Definition of done
 
 A change is done when all of these are true:
