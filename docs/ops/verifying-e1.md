@@ -18,6 +18,16 @@ red-then-green, just never observed. Step 5 is what recovers the guarantee.
 
 Everything below is local. Nothing touches staging or production.
 
+> **The suites could not have run before 2026-07-31.** They call pgTAP and four `tests.*` helpers,
+> and nothing in the repository installed either — `supabase/seed.sql` now does. So "never
+> executed" was not only a missing opportunity; the harness was missing too. If you tried these
+> steps before that date, this is why they failed.
+
+> **Check which project your environment points at.** `SUPABASE_PROJECT_REF` and `SUPABASE_URL` in
+> a session are not guaranteed to be Kafoo's. On 2026-07-31 they pointed at an unrelated project.
+> Confirm with `curl -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" https://api.supabase.com/v1/projects`
+> before pointing any command at a deployed database.
+
 ---
 
 ## Prerequisites
@@ -74,8 +84,12 @@ Studio at <http://127.0.0.1:54323> is worth opening; it is how you look at rows 
 supabase db reset
 ```
 
-Applies all three migrations from scratch. **Safe locally, forbidden against staging or
-production** — it drops everything first.
+Applies all three migrations from scratch, then runs `supabase/seed.sql`, which installs pgTAP and
+the `tests` helper schema the suites depend on. **Skipping this step means step 4 fails on its first
+statement** with "schema tests does not exist" — the harness is not part of the migrations, by
+design.
+
+**Safe locally, forbidden against staging or production** — it drops everything first.
 
 If this errors, stop. Nothing below is meaningful against a database that did not build, and a
 migration that fails here would have failed in production.
@@ -245,6 +259,24 @@ never been measured.
 | The gate inspects real schema | Step 9 |
 
 Step 5 is the one that converts the rest from "it passed" into "it would have caught it".
+
+## What was already checked against the deployed project
+
+Read-only, on 2026-07-31, against the project actually named `kafoo`. No writes, no test run.
+
+| Check | Result |
+|---|---|
+| Migrations applied | All three — the deploy pipeline works |
+| `kitchen_profiles` and `analytics_events` exist with RLS enabled | Yes |
+| `kitchen_profiles` UPDATE policy has **both** `USING` and `WITH CHECK` | Yes — the reassignment hole is not present |
+| `analytics_events` has any SELECT policy | No — so nobody reads their own events, as specified |
+| Anonymous insert policy scope | Restricted to `person_id IS NULL` and only `SignInStarted` / `SignInFailed` |
+| pgTAP installed | **No** — available but not created |
+| `tests` schema present | **No** — zero functions |
+
+The policy *definitions* on the deployed project are correct. That is worth having and is not the
+same as proving they *behave* — only a run of the suites does that, and the last two rows are why
+it cannot happen there.
 
 ## What this still cannot tell you
 

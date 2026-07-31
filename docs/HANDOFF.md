@@ -22,7 +22,7 @@ see "Known-wrong or unverified".
 | Agents | 7 review agents in `.claude/agents/`. |
 | CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
-| Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies. **The pgTAP tests have never been executed** — no Docker in the session that wrote them. |
+| Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies, **confirmed applied and correctly shaped on the deployed project** (read-only check, 2026-07-31 — the `UPDATE` policy carries both `USING` and `WITH CHECK`). **The pgTAP tests have still never been executed**: the harness they need did not exist until `supabase/seed.sql`, and seeds do not run against a deployed project. Run them locally. |
 | Edge Functions | One: `delete-account`. Takes no arguments and reads identity from the JWT. Type-checks clean under `deno check`, which is part of the gate. **Never executed** — that needs Docker for the local stack. |
 | Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. **No Meal, no Order, no AI call to a real provider.** |
 
@@ -100,9 +100,19 @@ Stated plainly, because the expensive failures this session were all of this kin
 
 - **Branch protection is unverified** (above). If it is not enabled, a direct push to `main`
   deploys migrations to production with nobody in the loop.
-- **`SUPABASE_PROJECT_REF` vs `SUPABASE_PROJECT_REF_DEV`** — `deploy.yml` uses the former for
-  production, `.mcp.json` uses the latter for development. That reads as deliberate, but nobody
-  has confirmed the production ref exists as a secret.
+- **`SUPABASE_PROJECT_REF` pointed at the wrong project entirely.** Checked 2026-07-31 against the
+  Supabase account: the variable held the ref for `bank-whisperer-lite-dev`, an unrelated household
+  finance application with 20 tables. Kafoo's project is a different ref, the one the
+  `Supabase Preview` check on pull requests already uses. `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` matched the same wrong project — the service-role key gave this
+  repository's sessions RLS-bypassing access to an unrelated application's database.
+  `SUPABASE_PROJECT_REF_DEV`, which `.mcp.json` reads, was unset, which is why the Supabase MCP
+  server never stayed connected. **Set `SUPABASE_PROJECT_REF_DEV` to Kafoo's ref and remove the
+  other project's credentials from this environment.**
+- **A green `verify.sh` never proved the authorization suites could run.** They call pgTAP and four
+  `tests.*` helpers, and nothing in the repository installed either, so `supabase test db` would
+  have failed on its first statement on any machine. `supabase/seed.sql` now installs both. This is
+  the sharpest example of the gate's own warning: the check that would have caught it did not exist.
 - **The performance budgets have never been measured.** Launch <2s and the rest are asserted in
   the constitution and unexercised. T068 asked for a launch baseline this session and it could
   not be taken — no device, no emulator, no Android SDK in the container. The first release build
