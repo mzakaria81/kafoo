@@ -52,8 +52,27 @@ standing in a kitchen with flour on their hands.
 
 ## Clarifications
 
-None yet. Three questions are open under "Open Questions" and MUST be answered before
-`/speckit-plan`.
+### Session 2026-07-31
+
+- Q: What does a Meal's price cover — a portion, or the whole dish? → A: **The whole Meal.** A
+  Customer buys the thing the Cook made, not a serving of it. There is no portion count, which
+  removes a field rather than adding one.
+- Q: Does the AI Assistant see the Meal's photo when estimating? → A: **Yes.** The photo is part of
+  what the estimate is based on, which makes the estimate better and means a Cook's photograph
+  leaves Kafoo. That has to be visible to the Cook rather than implied.
+- Q: How long does an unpublished draft live? → A: **Until the Cook deletes it.** A Meal begun and
+  abandoned stays as a draft indefinitely, visible only to its Cook, and goes when the Cook removes
+  it or removes their account.
+
+Two consequences follow from these answers rather than from the questions, and are recorded here
+because they change what gets built:
+
+- **Calories are estimated for the whole Meal**, the same unit the price covers. Estimating per
+  portion while pricing per dish would invite a Customer to compare two numbers that do not
+  describe the same thing.
+- **A Cook needs somewhere to see and delete drafts.** "Until the Cook deletes it" is not a rule a
+  Cook can act on unless drafts are reachable. This is a new surface and is called out in the
+  requirements below.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -81,7 +100,11 @@ exactly as confirmed. Separately, abandon halfway and confirm nothing is on offe
 2. **Given** a Cook at the summary, **When** they confirm, **Then** the Meal is on offer and their
    kitchen becomes findable.
 3. **Given** a Cook part-way through, **When** they close Kafoo without confirming, **Then** no Meal
-   is on offer to anyone.
+   is on offer to anyone, and what they had done is kept as a draft only they can see.
+7. **Given** a Cook with a draft, **When** they come back, **Then** they can carry on from where
+   they stopped rather than starting again, or delete it.
+8. **Given** a Cook about to have a photo looked at by the AI Assistant, **When** they reach that
+   point, **Then** they are told plainly that the photo is sent away to be looked at, before it is.
 4. **Given** a Cook answering by voice, **When** a spoken answer is understood wrongly, **Then** they
    see what was understood and can correct it before it is kept.
 5. **Given** a Cook who does not own a Kitchen Profile, **When** they try to offer a Meal, **Then**
@@ -263,7 +286,14 @@ changes.
 - **A Cook publishes the same dish twice.** Allowed. Two Meals may be genuinely similar and Kafoo is
   not the judge of that. Nothing deduplicates them silently.
 - **A photo fails to arrive** part-way through. The Cook carries on and adds one later rather than
-  losing the conversation, exactly as when creating a Kitchen Profile.
+  losing the conversation, exactly as when creating a Kitchen Profile — and the AI Assistant
+  estimates from what was said alone, which is worse but still useful.
+- **A Cook declines to have their photo looked at.** They must still be able to publish, with
+  estimates made from their words or left to them entirely. A disclosure that cannot be refused is
+  not a disclosure.
+- **Drafts accumulate.** A Cook who starts many Meals and finishes none has a growing pile only they
+  can see. Nothing deletes them on Kafoo's initiative, which is the decision taken — but it means
+  the Cook needs a way to find and clear them.
 - **A Cook offers a Meal, then removes their account.** Everything they offered goes with them.
 - **The same Cook edits one Meal on two devices.** The later confirmed change wins, and neither
   device shows a version that was silently discarded.
@@ -286,7 +316,7 @@ changes.
   every detail and confirmed it.
 - **FR-005**: Every detail in the summary MUST be correctable in a single action.
 - **FR-006**: A Cook MUST be able to abandon the conversation at any point and MUST NOT have
-  anything on offer as a result.
+  anything on offer as a result. What they had done is kept as a draft (FR-032).
 - **FR-007**: The conversation MUST be in Egyptian Arabic by default, in the register a person
   actually speaks, and MUST be usable end to end without any other language.
 
@@ -303,8 +333,15 @@ changes.
   Cook and to anyone else reading the Meal. They MUST NOT be presented as verified.
 - **FR-013**: When the AI Assistant fills a value, Kafoo MUST show what it was based on.
 - **FR-014**: A Cook MUST be able to complete and publish a Meal when the AI Assistant is
-  unavailable.
+  unavailable, and when no photo has been taken.
 - **FR-015**: Kafoo MUST NOT present an AI-generated image as a photograph of a Meal.
+- **FR-029**: The AI Assistant MUST base its estimates on the Meal's photo as well as on what the
+  Cook said, and MUST tell the Cook plainly, before the photo is used, that it is sent away to be
+  looked at. A Cook MUST be able to refuse and still publish. The photo MUST be used for estimating
+  this Meal and for nothing else.
+- **FR-030**: Estimating MUST happen during the conversation, not at the moment the Cook confirms,
+  so that confirming stays immediate.
+- **FR-031**: Calories MUST be estimated for the whole Meal — the same thing the price covers.
 
 **The Meal**
 
@@ -315,8 +352,15 @@ changes.
 - **FR-019**: A Meal MUST NOT be treated as inventory. Offering it does not consume it and it has no
   count.
 - **FR-020**: A retired Meal MUST remain readable to its Cook.
-- **FR-021**: A Meal's price MUST be visible to anyone who can read the Meal and MUST be the whole of
-  what the Meal costs. No charge may be added later that was not visible.
+- **FR-021**: A Meal's price MUST cover the whole Meal, not a portion of it. It MUST be visible to
+  anyone who can read the Meal and MUST be the whole of what the Meal costs. No charge may be added
+  later that was not visible.
+- **FR-032**: A Meal begun and not confirmed MUST be kept as a draft until its Cook deletes it. A
+  draft MUST NOT be on offer, MUST NOT be readable by anyone but its Cook, and MUST NOT make its
+  Cook's kitchen findable.
+- **FR-033**: A Cook MUST be able to see every draft they have and delete any of them. A Cook MUST
+  be able to resume a draft rather than starting again.
+- **FR-034**: Removing an account MUST remove that Cook's drafts along with everything else.
 
 **Who can see and change what**
 
@@ -339,8 +383,11 @@ changes.
 ### Key Entities
 
 - **Meal**: An offer to cook a specific dish. Belongs permanently to one Cook. Carries what it is,
-  what is in it, what it costs, what kind of food it is, an estimate of its calories and allergens,
-  and where each estimate came from. Not a recipe, not inventory.
+  what is in it, what the whole of it costs, what kind of food it is, an estimate of its calories
+  and allergens, and where each estimate came from. Not a recipe, not inventory.
+- **Draft Meal**: A Meal begun and not confirmed. Visible only to its Cook, on offer to nobody, and
+  kept until the Cook deletes it. Not a separate thing from a Meal — the same Meal before anyone
+  else can see it.
 - **Cook**: An existing person who owns a Kitchen Profile. Unchanged here, except that they now have
   something to offer.
 - **Kitchen Profile**: Unchanged, except that it becomes findable through the Meals its Cook offers.
@@ -366,6 +413,10 @@ changes.
 - **SC-009**: Every screen reads right to left and every string appears in Egyptian Arabic.
 - **SC-010**: A retired Meal is returned to offer in zero cases, by any route.
 - **SC-011**: A Cook takes a Meal off the menu and puts it back in under 15 seconds.
+- **SC-012**: A draft is read by zero people other than its Cook, and makes zero kitchens findable.
+- **SC-013**: A Cook resumes an abandoned draft without re-answering a question they already
+  answered.
+- **SC-014**: 100% of Cooks are told the photo is sent away to be looked at, before it is.
 
 ## Assumptions
 
@@ -375,6 +426,9 @@ changes.
   matches Kafoo's scale today; moderation is a decision for when strangers outnumber friends.
 - **Allergen data about a Meal is not personal data.** It describes food, not a person. A Customer's
   own allergies are a separate matter, not in scope here.
+- **A Meal photo is the Cook's content, not personal data about them** — but it still leaves Kafoo
+  when the AI Assistant looks at it, which is why FR-029 tells the Cook rather than assuming
+  consent.
 - **No fees exist.** Nothing is charged in this feature, so a Meal's price is the whole of its cost
   and there is nothing to disclose beyond it.
 - **Cuisines and categories come from a fixed set** the AI Assistant chooses from rather than
@@ -384,27 +438,30 @@ changes.
 
 ## Open Questions
 
-Decisions that materially affect scope, privacy, or user-visible behaviour, and that this
-specification does not have the standing to settle. **All three MUST be answered before
-`/speckit-plan`.**
+All three questions this specification opened were settled on 2026-07-31 and are recorded under
+"Clarifications". They are kept here rather than deleted, because what was decided matters less than
+what it cost.
 
-1. **What does a Meal's price cover?** A portion, or the whole dish the Cook made? The answer changes
-   what the Cook is asked, what a Customer believes they are buying, and every later conversation
-   about Orders. Money is a stop-and-ask under `CLAUDE.md`, so this is not something to default.
-   [NEEDS CLARIFICATION: is the price per portion or for the whole dish, and does the Cook state how
-   many portions exist?]
+1. **Settled: a Meal's price covers the whole Meal.** No portion count, which removes a field. Two
+   consequences: calories are estimated for the whole Meal so the two numbers describe the same
+   thing (FR-031), and an Order in E4 is for a whole Meal rather than a quantity of servings.
 
-2. **Does the AI Assistant see the Meal's photo?** Estimating calories and allergens from a
-   photograph is materially better than from a spoken description, and materially more expensive and
-   slower. It also sends a Cook's photograph to a model provider, which is a privacy question as
-   much as a cost one. [NEEDS CLARIFICATION: does the AI Assistant receive the photo, or only what
-   the Cook says?]
+2. **Settled: the AI Assistant sees the photo.** Better estimates, at the cost of a Cook's
+   photograph leaving Kafoo. FR-029 makes that visible to the Cook before it happens rather than
+   disclosed in a policy nobody reads, and FR-030 keeps estimating inside the conversation so
+   confirming stays immediate.
 
-3. **How long does an unpublished draft live?** A Meal has a draft state, so an abandoned
-   conversation may leave something behind — unlike the Kitchen Profile conversation in E1, which
-   deliberately kept nothing until confirmation. If drafts persist they need a lifetime; if they do
-   not, the draft state exists for something else. [NEEDS CLARIFICATION: does an abandoned
-   conversation leave a draft, and if so for how long?]
+3. **Settled: a draft lives until its Cook deletes it.** This is a deliberate divergence from E1,
+   where the Kitchen Profile conversation kept nothing before confirmation. A Meal has more in it
+   and is more expensive to abandon, so the work is kept. It comes with a surface E1 did not need
+   (FR-033) and a retention answer (FR-032, FR-034).
+
+### Newly open
+
+4. **Does a Cook see how many drafts they have piling up?** Drafts that live forever accumulate
+   silently, and a Cook with fourteen abandoned Meals has a mess Kafoo made. Not a blocker — the
+   answer changes a surface, not a rule — but it should be settled before drafts have been shipping
+   for long.
 
 ## Dependencies
 
