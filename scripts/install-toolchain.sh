@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Single source of truth for the Dart toolchain.
+# Single source of truth for the toolchain.
 #
 # Called by BOTH environment setups so they cannot drift apart:
 #   .devcontainer/post-create.sh   (Codespaces)  — with --with-android
@@ -8,6 +8,11 @@
 # The only intended difference between the two environments is the Android SDK:
 # it is needed to build a release candidate but adds minutes to a session start,
 # so the web session skips it and installs it on demand.
+#
+# Installs: Flutter/Dart, melos, Deno, the opencode CLI, and optionally the
+# Android SDK. Deno and opencode are cheap (seconds) and both were missing in
+# the session that built E1, which cost that session the ability to run the
+# Edge Function tests at all — see docs/HANDOFF.md.
 #
 # Idempotent. Progress goes to stderr so a caller can keep stdout clean for a
 # hook's JSON output.
@@ -19,11 +24,12 @@ WITH_ANDROID=0
 
 FLUTTER_DIR="${HOME}/flutter"
 ANDROID_HOME="${ANDROID_HOME:-${HOME}/sdk/android}"
+DENO_INSTALL="${DENO_INSTALL:-${HOME}/.deno}"
 FLUTTER_CHANNEL="stable"
 
 log() { printf '  %s\n' "$1" >&2; }
 
-export PATH="${FLUTTER_DIR}/bin:${HOME}/.pub-cache/bin:${PATH}"
+export PATH="${FLUTTER_DIR}/bin:${HOME}/.pub-cache/bin:${DENO_INSTALL}/bin:${PATH}"
 
 # --- Flutter (brings Dart) --------------------------------------------------
 if [ -x "${FLUTTER_DIR}/bin/dart" ]; then
@@ -45,6 +51,54 @@ if command -v melos >/dev/null 2>&1; then
 else
   log "melos: activating"
   dart pub global activate melos >&2 2>&1
+fi
+
+# --- Deno -------------------------------------------------------------------
+# Edge Functions are Deno (.claude/rules/supabase.md). Without it the function
+# and its contract tests cannot even be type-checked, which is how three
+# TypeScript errors survived review in E1: the tests had been written with Dart
+# method names (verifyOTP, uploadBinary) and nothing had ever parsed the file.
+if command -v deno >/dev/null 2>&1; then
+  log "deno: already present"
+else
+  log "deno: installing"
+  # -y so it never waits for input; the installer edits shell rc files, and the
+  # PATH that matters is exported above and persisted by the caller.
+  curl -fsSL https://deno.land/install.sh \
+    | DENO_INSTALL="${DENO_INSTALL}" sh -s -- -y >&2 2>&1
+fi
+log "deno: $(deno --version 2>&1 | head -1)"
+
+# --- opencode CLI -----------------------------------------------------------
+# Required by the `opencode-delegate` skill (CLAUDE.md, "Delegating
+# implementation work"). Installed from npm rather than opencode.ai/install:
+# the agent proxy resolves registry.npmjs.org directly, while the vendor
+# installer's version lookup fails behind it.
+#
+# INSTALLING IS NOT AUTHENTICATING. Credentials live in
+# ~/.local/share/opencode/auth.json, outside the repository, so an ephemeral
+# container starts with none and no file here can change that. Run
+# `opencode auth login` once per container before delegating.
+if command -v opencode >/dev/null 2>&1; then
+  log "opencode: already present ($(opencode --version 2>&1 | tail -1))"
+else
+  log "opencode: installing"
+  npm install -g opencode-ai >&2 2>&1 || log "opencode: install failed — delegation unavailable this session"
+fi
+
+# Signing in. `opencode auth login` is interactive and writes auth.json, which
+# does not survive an ephemeral container. OPENCODE_API_KEY does the same job
+# with no interaction: opencode reads it directly for the OpenCode Go and Zen
+# providers, so a session with it set is signed in before it starts.
+#
+# Set it in the cloud environment's Environment variables (claude.ai/code →
+# the cloud icon above the message box → the gear on your environment), NOT in
+# this repository. Never echoed here — only its presence is reported.
+if [ -n "${OPENCODE_API_KEY:-}" ]; then
+  log "opencode: signed in via OPENCODE_API_KEY"
+else
+  log "opencode: NO credentials — set OPENCODE_API_KEY in the environment, or"
+  log "          run 'opencode auth login' for this container only"
 fi
 
 # --- Android SDK (opt-in) ---------------------------------------------------

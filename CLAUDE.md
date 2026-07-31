@@ -6,6 +6,7 @@ Voice-first, Egyptian Arabic default. Flutter (mobile) + Supabase (backend) + Cl
 ## Commands
 
 ```bash
+./scripts/install-toolchain.sh   # Flutter, melos, Deno, opencode (idempotent, ~3s warm)
 melos bootstrap              # install deps across all packages
 melos run analyze            # dart analyze, all packages
 melos run test               # unit + widget tests
@@ -14,6 +15,7 @@ supabase start               # local stack (Docker required)
 supabase db reset            # rebuild local DB from migrations + seed
 supabase migration new NAME  # NEVER hand-write migration filenames
 supabase functions serve     # local Edge Functions
+deno check supabase/functions/**/*.ts   # type-check Edge Functions (also in verify.sh)
 ./scripts/verify.sh          # full gate — must pass before any PR
 ```
 
@@ -59,8 +61,10 @@ style nit — it propagates into schema, prompts, and UI. Full glossary: `docs/v
 | Publish / Archive | upload / delete |
 | Accept Order / Reject Order | approve / decline |
 
-Analytics events are PascalCase and stable: `MealPublished`, `OrderPlaced`, `OrderAccepted`,
-`ReviewSubmitted`, `SearchPerformed`, `SearchFailed`, `RecommendationAccepted`.
+Analytics events are PascalCase, past-tense, and never renamed. The core list is constitutional
+(Principle VI); everything else — funnels, naming rules, attributes, statuses, measurement privacy
+— lives in `docs/product/event-model.md`. Check that file before adding or emitting any event; do
+not copy event lists into other documents.
 
 ## Repo map
 
@@ -146,6 +150,27 @@ is written but never committed is lost at teardown. Say so rather than silently 
 `.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
 
 ## Delegating implementation work
+
+The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
+session.
+
+**Signing in: set `OPENCODE_API_KEY` as a cloud-environment variable.** opencode reads it directly
+for the OpenCode Go and Zen providers, so a session starts already signed in. `opencode auth login`
+also works but writes `~/.local/share/opencode/auth.json`, which is destroyed with the container —
+it signs in this session only. Set the variable at claude.ai/code → the cloud icon above the
+message box → the gear on your environment → **Environment variables**, one `KEY=value` per line.
+**Never put the key in this repository**; `./scripts/verify.sh` fails if a real-looking one is
+tracked by git.
+
+Two things to know about that variable. Cloud environments have **no secrets store**: anyone who
+can use the environment can read the value, so keep the key in a personal environment rather than
+an organization-shared one, and treat it as rotatable. And the API host `opencode.ai` is **not** on
+the default **Trusted** network allowlist — it is reachable from the environment this was set up in,
+but an environment restricted to Trusted may need `opencode.ai` added under **Custom**.
+
+Without a credential, `opencode models` lists only the anonymous free tier and shows none of the
+allowlist below. That is a missing key, not a drifted plan — the ten models below were all
+confirmed present once a key was supplied.
 
 `opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
 edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,

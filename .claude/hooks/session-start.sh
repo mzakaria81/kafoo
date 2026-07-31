@@ -2,12 +2,13 @@
 # SessionStart hook for Claude Code on the web.
 #
 # Installs what ./scripts/verify.sh needs. Without Dart and melos the gate
-# skips five of its eight checks and still prints PASS — the exact failure E0
+# skips five of its ten checks and still prints PASS — the exact failure E0
 # existed to end, so a session that cannot run the gate properly is a session
 # that will merge unverified work.
 #
 # The base image already provides jq, python3, node, java, git, and GNU grep
-# (the RLS checks use `grep -P`), so this only installs the Dart toolchain.
+# (the RLS checks use `grep -P`), so this installs the Dart toolchain, Deno
+# (Edge Functions) and the opencode CLI (the delegate skill).
 #
 # NOT installed: the Android SDK. It is only needed to build a release
 # candidate, which is rare, and it adds several minutes to every session
@@ -27,6 +28,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 FLUTTER_DIR="${HOME}/flutter"
+DENO_INSTALL="${HOME}/.deno"
 
 # Shared with .devcontainer/post-create.sh so the two environments cannot drift.
 # Without --with-android: the SDK is only needed for a release candidate and
@@ -35,8 +37,16 @@ FLUTTER_DIR="${HOME}/flutter"
 
 # Persist for every command in this session, not just this hook.
 {
-  echo "export PATH=\"${FLUTTER_DIR}/bin:\${HOME}/.pub-cache/bin:\${PATH}\""
+  echo "export PATH=\"${FLUTTER_DIR}/bin:\${HOME}/.pub-cache/bin:${DENO_INSTALL}/bin:\${PATH}\""
   echo "export FLUTTER_ROOT=\"${FLUTTER_DIR}\""
 } >> "${CLAUDE_ENV_FILE}"
 
-log "ready — ./scripts/verify.sh will run all eight checks"
+log "ready — ./scripts/verify.sh will run all ten checks"
+
+# Installing opencode does not sign it in. OPENCODE_API_KEY is the only form of
+# credential that survives a fresh container, because auth.json does not.
+# Presence only — the value is never printed.
+if command -v opencode >/dev/null 2>&1 && [ -z "${OPENCODE_API_KEY:-}" ]; then
+  log "opencode: signed out — add OPENCODE_API_KEY to this cloud environment's"
+  log "          variables to be signed in automatically every session"
+fi

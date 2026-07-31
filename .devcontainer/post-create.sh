@@ -25,7 +25,7 @@ log "Toolchain"
 # get the same Dart toolchain. --with-android adds the SDK, which Codespaces
 # wants for release builds and a web session skips for speed.
 ./scripts/install-toolchain.sh --with-android
-export PATH="${HOME}/flutter/bin:${HOME}/.pub-cache/bin:${PATH}"
+export PATH="${HOME}/flutter/bin:${HOME}/.pub-cache/bin:${HOME}/.deno/bin:${PATH}"
 export ANDROID_HOME="${HOME}/sdk/android"
 
 log "Persisting toolchain PATH"
@@ -33,7 +33,7 @@ if ! grep -q "Kafoo development toolchain" "${HOME}/.bashrc" 2>/dev/null; then
   cat >> "${HOME}/.bashrc" <<EOF
 
 # Kafoo development toolchain
-export PATH="\${HOME}/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
+export PATH="\${HOME}/flutter/bin:\${HOME}/.pub-cache/bin:\${HOME}/.deno/bin:\${HOME}/sdk/android/cmdline-tools/latest/bin:\${HOME}/sdk/android/platform-tools:\${PATH}"
 export FLUTTER_ROOT="\${HOME}/flutter"
 export ANDROID_HOME="\${HOME}/sdk/android"
 EOF

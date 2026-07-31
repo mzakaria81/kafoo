@@ -13,12 +13,18 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  image_picker: ^1.1.0
   kafoo_ai:
     path: ../../packages/ai
   kafoo_domain:
     path: ../../packages/domain
   kafoo_ui:
     path: ../../packages/ui
+  speech_to_text: ^7.0.0
+  supabase_flutter: ^2.9.0
+
+flutter:
+  generate: true
 
 dev_dependencies:
   flutter_test:

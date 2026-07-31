@@ -34,7 +34,7 @@ Kafoo repository layout (see `CLAUDE.md`):
 
 ## Constitution-Driven Task Requirements
 
-Source: `.specify/memory/constitution.md` (v1.0.0). These task types are **mandatory when
+Source: `.specify/memory/constitution.md` (v1.1.0). These task types are **mandatory when
 triggered** — they are not optional polish. Include them in the user story phase that
 introduces the trigger, not deferred to the end.
 
@@ -47,7 +47,7 @@ introduces the trigger, not deferred to the end.
 | New or changed prompt | Versioned `prompts/*.md` with frontmatter + bumped `version` + recorded eval | V |
 | Any user-facing string | ARB entries in **both** `ar` (Egyptian, written first) and `en` | IV |
 | New screen or widget | RTL correctness (`EdgeInsetsDirectional`, `start`/`end`) + semantic labels + ≥48dp targets | IV |
-| Tracked business action | Emit the PascalCase analytics event (`MealPublished`, `OrderPlaced`, …) | VI |
+| Tracked business action | Emit the PascalCase analytics event named in `docs/product/event-model.md` | VI |
 | Domain change | Update `docs/product/domain-model.md` **in the same commit** | DoD 6 |
 | Any feature | Final task: `./scripts/verify.sh` passes | DoD 1 |
 

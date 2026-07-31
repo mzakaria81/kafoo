@@ -45,6 +45,44 @@ run "codegen drift" bash -c '
     dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 \
     && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
+# Edge Functions are Deno and are never compiled by the Dart toolchain, so
+# nothing else in this gate would ever read them. Type-checking is the cheapest
+# real check available without Docker: it catches a function that would fail on
+# its first invocation in production. It caught three in E1 — contract tests
+# written with Dart method names on a JS client, in a file nothing had parsed.
+#
+# `deno check` reaches the network for remote imports; a sandbox without one
+# skips rather than fails, since an offline machine is not a broken change.
+run "edge functions" bash -c '
+  git ls-files -z "supabase/functions/*.ts" | grep -qz . || {
+    echo "   no edge functions yet — skipping"; exit 0; }
+  command -v deno >/dev/null || {
+    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+  out=$(git ls-files -z "supabase/functions/*.ts" | xargs -0 deno check 2>&1) || {
+    case "${out}" in
+      *"error sending request"*|*"Import .* failed"*|*"connection"*|*"dns error"*)
+        echo "   no network for remote imports — skipping"; exit 0 ;;
+      *) printf "%s\n" "${out}" >&2; exit 1 ;;
+    esac
+  }
+  exit 0'
+
+# Credentials belong in the environment, never in the repository. Two are live
+# in this project and both are rotate-everything incidents if committed:
+# OPENCODE_API_KEY (delegation) and SUPABASE_SERVICE_ROLE_KEY (bypasses RLS
+# entirely, so a leak defeats every policy in supabase/migrations at once).
+#
+# Placeholder-looking values are allowed so documentation can show the shape.
+run "no committed credentials" bash -c '
+  hits=$(git ls-files -z | xargs -0 grep -nIE \
+    "(OPENCODE_API_KEY|SUPABASE_SERVICE_ROLE_KEY)[[:space:]]*[=:][[:space:]]*.?[A-Za-z0-9_.-]{16,}" \
+    2>/dev/null \
+    | grep -viE "your|example|placeholder|dummy|redacted|xxxx|<|\\$\\{|\\$[A-Z]" || true)
+  [ -z "${hits}" ] || { echo "   a real-looking credential is tracked by git:" >&2
+                        printf "%s\n" "${hits}" >&2
+                        echo "   move it to the environment and rotate it" >&2
+                        exit 1; }'
+
 # Every migration that creates a table must enable RLS in the same file.
 run "rls coverage" bash -c '
   bad=0
@@ -61,9 +99,11 @@ run "rls coverage" bash -c '
 # The constitution forbids synthetic Reviews, Cooks, and Meals — including for
 # seeding. Migrations reach production unattended, so catch DML against those
 # tables here rather than trusting review.
+# supabase/tests/ is excluded: RLS tests legitimately insert fixtures to prove
+# policies work. The ban targets migrations and functions, not test files.
 run "no synthetic content" bash -c '
   hits=$(grep -rinE "INSERT[[:space:]]+INTO[[:space:]]+(public\.)?(cooks|meals|reviews|kitchen_profiles)" \
-    supabase/ 2>/dev/null || true)
+    supabase/migrations/ supabase/functions/ 2>/dev/null || true)
   if [ -n "$hits" ]; then
     echo "$hits"
     echo "   Synthetic Cooks, Meals, or Reviews are product-fatal (Constitution I)."

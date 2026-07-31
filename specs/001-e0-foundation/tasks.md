@@ -141,7 +141,7 @@ end. What remains is custody and configuration, not code.
 - [x] T031 [US2] Generate the platform projects with `flutter create --platforms=android,ios --org com.kafoo` in `apps/mobile` — `5f49ce5`
 - [x] T038 [US2] Configure release signing in `apps/mobile/android/app/build.gradle.kts` reading `rootProject.file('key.properties')`; replaced Flutter's debug-key default — `5f49ce5`
 - [x] T048 [US2] Detect debug-signed bundles by certificate owner rather than by the presence of a signature block, in `.github/workflows/deploy.yml` — `3d28f53`
-- [ ] T039 [P] [US2] Store the upload keystore where more than one person can recover it, and record the recovery path — satisfies FR-016, whose loss permanently prevents updating the app
+- [ ] T039 [P] [US2] Execute the custody plan in `docs/ops/release-custody.md` — register the two dedicated accounts, seal the trustee's recovery path, generate the upload key, then run the drill that actually closes FR-016. Decided 2026-07-30; nothing executed yet. The premise this task was written against was wrong: the upload key is resettable and the Apple certificate is regenerable — see the ADR-0006 amendment
 - [ ] T040 [P] [US2] Add the four Android signing secrets to repository settings, per `.claude/agents/release-engineer.md`
 - [ ] T041 [US2] Verify a real release candidate: confirm the bundle is signed, symbols are archived, and the build number is monotonic across two runs
 - [ ] T042 [P] [US2] Write the store listing in Egyptian Arabic first with English as translation, and confirm no screenshot depicts an invented Cook, Meal, or Review — FR-013, FR-014

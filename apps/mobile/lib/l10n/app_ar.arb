@@ -39,5 +39,331 @@
   "aiEstimateNotice": "دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من الطباخ.",
   "@aiEstimateNotice": {
     "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
+  },
+
+  "signInTitle": "أهلاً بيك في كفو",
+  "@signInTitle": {
+    "description": "Heading on the phone-number sign-in screen."
+  },
+
+  "signInPhoneLabel": "رقم موبايلك",
+  "@signInPhoneLabel": {
+    "description": "Label for the phone number input field."
+  },
+
+  "signInContinue": "كمّل",
+  "@signInContinue": {
+    "description": "Button to submit the phone number and request an OTP."
+  },
+
+  "signInRateLimited": "جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.",
+  "@signInRateLimited": {
+    "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+
+  "codeTitle": "ادخل الكود",
+  "@codeTitle": {
+    "description": "Heading on the OTP code entry screen."
+  },
+
+  "codeSubtitle": "اتبعتلك كود على رقم {phone}",
+  "@codeSubtitle": {
+    "description": "Tells the person which number the OTP was sent to.",
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+
+  "codeWrongCode": "الكود غلط. جرب تاني.",
+  "@codeWrongCode": {
+    "description": "Shown when the OTP is incorrect."
+  },
+
+  "codeExpired": "الكود انتهى. اطلب كود جديد.",
+  "@codeExpired": {
+    "description": "Shown when the OTP has expired (distinct from wrong code)."
+  },
+
+  "codeResend": "ابعت كود جديد",
+  "@codeResend": {
+    "description": "Button to request a new OTP without restarting sign-in."
+  },
+
+  "signInNetworkError": "مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.",
+  "@signInNetworkError": {
+    "description": "Shown when sign-in fails due to connectivity, not a wrong code."
+  },
+
+  "kitchenConvPromptDisplayName": "مطبخك اسمه إيه؟",
+  "@kitchenConvPromptDisplayName": {
+    "description": "First question in the Kitchen Profile conversation: the kitchen's display name."
+  },
+
+  "kitchenConvPromptStory": "قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟",
+  "@kitchenConvPromptStory": {
+    "description": "Second question: the Cook's story — what they cook and how."
+  },
+
+  "kitchenConvPromptArea": "في أنهي منطقة بتشتغل؟",
+  "@kitchenConvPromptArea": {
+    "description": "Third question: which area the Cook operates in."
+  },
+
+  "kitchenConvPromptDeliveryTerms": "إزاي الناس بتاخد أكلها منك؟",
+  "@kitchenConvPromptDeliveryTerms": {
+    "description": "Fourth question: delivery or pickup terms."
+  },
+
+  "kitchenConvHintDisplayName": "مثلاً: مطبخ أم علي",
+  "@kitchenConvHintDisplayName": {
+    "description": "Hint text shown below the display name question."
+  },
+
+  "kitchenConvHintStory": "مثلاً: بنطبخ أكل بيتي على الطريقة القديمة",
+  "@kitchenConvHintStory": {
+    "description": "Hint text shown below the story question."
+  },
+
+  "kitchenConvHintArea": "مثلاً: المعادي، مصر الجديدة",
+  "@kitchenConvHintArea": {
+    "description": "Hint text shown below the area question."
+  },
+
+  "kitchenConvHintDeliveryTerms": "مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك",
+  "@kitchenConvHintDeliveryTerms": {
+    "description": "Hint text shown below the delivery terms question."
+  },
+
+  "kitchenConvContinue": "كمّل",
+  "@kitchenConvContinue": {
+    "description": "Button to confirm the current answer and proceed to the next step."
+  },
+
+  "kitchenConvVoiceHint": "قول إجابتك بصوتك",
+  "@kitchenConvVoiceHint": {
+    "description": "Shown next to the microphone button — prompts the Cook to speak."
+  },
+
+  "kitchenConvVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
+  "@kitchenConvVoiceUnavailable": {
+    "description": "Shown when on-device speech recognition is not available. Offers typing as a fallback."
+  },
+
+  "kitchenConvSummaryTitle": "ده اللي قلته",
+  "@kitchenConvSummaryTitle": {
+    "description": "Heading on the summary screen shown after all questions are answered."
+  },
+
+  "kitchenConvSummaryConfirm": "تمام، احفظ",
+  "@kitchenConvSummaryConfirm": {
+    "description": "Button to confirm the summary and write the Kitchen Profile."
+  },
+
+  "kitchenConvSummaryEdit": "غيّر",
+  "@kitchenConvSummaryEdit": {
+    "description": "Button to edit a single answer on the summary screen."
+  },
+
+  "kitchenConvLabelDisplayName": "اسم المطبخ",
+  "@kitchenConvLabelDisplayName": {
+    "description": "Label for the display name field on the summary screen."
+  },
+
+  "kitchenConvLabelStory": "قصتك",
+  "@kitchenConvLabelStory": {
+    "description": "Label for the story field on the summary screen."
+  },
+
+  "kitchenConvLabelArea": "المنطقة",
+  "@kitchenConvLabelArea": {
+    "description": "Label for the area field on the summary screen."
+  },
+
+  "kitchenConvLabelDeliveryTerms": "طريقة الاستلام",
+  "@kitchenConvLabelDeliveryTerms": {
+    "description": "Label for the delivery terms field on the summary screen."
+  },
+
+  "kitchenConvLabelPhoto": "صورة المطبخ",
+  "@kitchenConvLabelPhoto": {
+    "description": "Label for the optional photo on the summary screen."
+  },
+
+  "kitchenConvPhotoAdd": "ضيف صورة",
+  "@kitchenConvPhotoAdd": {
+    "description": "Button to add a kitchen photo on the summary screen."
+  },
+
+  "kitchenConvSaveError": "حصل مشكلة أثناء الحفظ. جرب تاني.",
+  "@kitchenConvSaveError": {
+    "description": "Shown if writing the Kitchen Profile to Supabase fails."
+  },
+
+  "kitchenConvPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
+  "@kitchenConvPhotoError": {
+    "description": "Shown if photo upload fails. The Cook can proceed without a photo (T038 requirement)."
+  },
+
+  "kitchenExistsTitle": "عندك مطبخ بالفعل",
+  "@kitchenExistsTitle": {
+    "description": "Heading shown when a person who already has a Kitchen Profile tries to create another."
+  },
+
+  "kitchenExistsBody": "عندك مطبخ مسجّل على حسابك. هنروحله دلوقتي.",
+  "@kitchenExistsBody": {
+    "description": "Body text shown when redirecting an existing Cook to their own Kitchen Profile (T039, FR-009)."
+  },
+
+  "kitchenViewTitle": "مطبخك",
+  "@kitchenViewTitle": {
+    "description": "Heading on the Cook's own Kitchen Profile screen."
+  },
+
+  "kitchenEditCurrentValue": "الحالي",
+  "@kitchenEditCurrentValue": {
+    "description": "Labels the value as it stands now, kept visible while a change is being made (US5 scenario 2)."
+  },
+
+  "kitchenEditNewValue": "الجديد",
+  "@kitchenEditNewValue": {
+    "description": "Labels the field holding the replacement value."
+  },
+
+  "kitchenEditSave": "احفظ التغيير",
+  "@kitchenEditSave": {
+    "description": "Button confirming a single-detail change."
+  },
+
+  "kitchenEditCancel": "إلغاء",
+  "@kitchenEditCancel": {
+    "description": "Button abandoning a single-detail change, leaving the previous value in place."
+  },
+
+  "kitchenEditSaved": "اتغيّر",
+  "@kitchenEditSaved": {
+    "description": "Brief confirmation shown after one detail changes."
+  },
+
+  "removeAccountEntry": "امسح حسابي",
+  "@removeAccountEntry": {
+    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was."
+  },
+
+  "removeAccountTitle": "مسح الحساب",
+  "@removeAccountTitle": {
+    "description": "Heading on the removal screen."
+  },
+
+  "removeAccountBody": "هيتمسح حسابك وكل حاجة فيه: مطبخك وصورته. مش هينفع نرجّعهم بعد كده.",
+  "@removeAccountBody": {
+    "description": "States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034)."
+  },
+
+  "removeAccountConfirm": "امسح حسابي",
+  "@removeAccountConfirm": {
+    "description": "The single confirmation button. There is no second are-you-sure."
+  },
+
+  "removeAccountCancel": "رجوع",
+  "@removeAccountCancel": {
+    "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."
+  },
+
+  "removeAccountError": "مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.",
+  "@removeAccountError": {
+    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
+  },
+
+  "recoveryEmailTitle": "تحب تضيف إيميل؟",
+  "@recoveryEmailTitle": {
+    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed."
+  },
+
+  "recoveryEmailBody": "لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.",
+  "@recoveryEmailBody": {
+    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath."
+  },
+
+  "recoveryEmailLabel": "الإيميل بتاعك",
+  "@recoveryEmailLabel": {
+    "description": "Label for the email input on the invitation."
+  },
+
+  "recoveryEmailAttach": "ضيف الإيميل",
+  "@recoveryEmailAttach": {
+    "description": "Button attaching the address to the existing account."
+  },
+
+  "recoveryEmailDecline": "مش دلوقتي",
+  "@recoveryEmailDecline": {
+    "description": "Button declining the invitation. Declining withholds nothing."
+  },
+
+  "recoveryEmailAttached": "تمام، ابعتنا لك رسالة تأكيد على الإيميل.",
+  "@recoveryEmailAttached": {
+    "description": "Shown after the address is attached and a confirmation message is sent."
+  },
+
+  "recoveryEmailError": "مقدرناش نضيف الإيميل. جرب تاني.",
+  "@recoveryEmailError": {
+    "description": "Shown when attaching the address fails."
+  },
+
+  "signInLostNumber": "مش قادر توصل لرقمك؟",
+  "@signInLostNumber": {
+    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009)."
+  },
+
+  "emailSignInTitle": "ادخل بالإيميل",
+  "@emailSignInTitle": {
+    "description": "Heading on the email sign-in screen, reached only from the lost-number route."
+  },
+
+  "emailSignInBody": "لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.",
+  "@emailSignInBody": {
+    "description": "Explains that this route works only for an address already attached from inside the account (FR-007)."
+  },
+
+  "emailSignInLabel": "الإيميل",
+  "@emailSignInLabel": {
+    "description": "Label for the email field on the email sign-in screen."
+  },
+
+  "emailSignInUnknown": "الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.",
+  "@emailSignInUnknown": {
+    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within."
+  },
+
+  "changePhoneTitle": "غيّر رقم الموبايل",
+  "@changePhoneTitle": {
+    "description": "Heading on the change-of-number screen."
+  },
+
+  "changePhoneBody": "اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.",
+  "@changePhoneBody": {
+    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026)."
+  },
+
+  "changePhoneLabel": "الرقم الجديد",
+  "@changePhoneLabel": {
+    "description": "Label for the new phone number field."
+  },
+
+  "changePhoneEntry": "غيّر رقم الموبايل",
+  "@changePhoneEntry": {
+    "description": "Entry point to the change-of-number flow."
+  },
+
+  "changePhoneDone": "الرقم اتغيّر. الرقم القديم مبقاش يوصل لحسابك.",
+  "@changePhoneDone": {
+    "description": "Confirmation shown after the new number is verified."
+  },
+
+  "changePhoneError": "مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.",
+  "@changePhoneError": {
+    "description": "Shown when the change fails, stating the old number still works."
   }
 }

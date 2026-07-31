@@ -27,6 +27,19 @@ Conversation ──N:1── initiating participant (Customer or Cook)
 Recommendation ── ephemeral, never persisted as truth
 ```
 
+## Person
+
+Identity is independent of the credential that proves it. A **Person** is the identity; a phone
+number is a credential attached to it, the way a messaging app treats it. A number can therefore
+change hands without the Person changing, and a Person can gain a second way in without becoming
+two accounts.
+
+One account holds both roles. Everyone begins able to browse and order as a Customer. **Owning a
+Kitchen Profile is what makes someone a Cook** — there is no role chosen at signup, no application
+to be approved, and no second account. A Cook can order from other Cooks, because they are still a
+Customer. A person who never creates a Kitchen Profile stays a Customer and is not asked again
+after declining once.
+
 ## Ownership
 
 Every row has exactly one owner. RLS enforces it; application code must never be the only guard.
@@ -80,6 +93,31 @@ pending ──► accepted ──► preparing ──► ready ──► complet
 - Cannot exist without a `completed` Order. Enforced by SQL, not UI.
 - Editable for a configurable window after submission, then frozen permanently.
 - A Cook cannot review themselves, directly or through a second account they control.
+
+## Discoverability
+
+A Kitchen Profile has **no state of its own**. It is not draft, published, hidden, or archived,
+and it carries no `visible` column. There is nothing to forget to set, and nothing to get out of
+step with reality.
+
+**Discoverable** — reachable by browsing or searching — is derived: a Kitchen Profile is
+discoverable exactly while its Cook has at least one published Meal, and stops being discoverable
+when they have none. Kafoo never shows a Customer a kitchen they cannot order from; an empty
+shopfront is a small betrayal repeated at scale.
+
+**Readable** is a different question, and the two must not be collapsed. A Kitchen Profile stays
+readable to anyone holding a legitimate reference to it — an Order above all — whether or not it
+is currently discoverable. Otherwise a Cook taking a week off would erase themselves from their
+Customers' order history, which is the same reason archived Meals stay readable.
+
+The deliberately public face is **exactly** five details: display name, story, area, delivery
+terms, and photo. Nothing else about the Cook is reachable through it, signed in or not — in
+particular the phone number, which Kafoo never copies out of the authentication record. Adding a
+sixth detail is a change to this rule, not a layout decision.
+
+Consequence, stated because it looks like a bug and is not: **no Kitchen Profile is discoverable
+until Meals exist.** Every discovery query correctly returns zero rows today. The fix is to create
+Meals and widen the read policy then — never to make Kitchen Profiles publicly readable now.
 
 ## Entity fields
 
@@ -137,6 +175,8 @@ alone:
 8. A Cook cannot review their own Meal.
 9. Archived Meals accept no new Orders.
 10. Every Meal status and Order status is a member of its lifecycle enum.
+11. A Person has at most one Kitchen Profile, and it cannot be transferred to another Person.
+12. A Kitchen Profile's discoverability is derived from its Cook's published Meals, never stored.
 
 ## Privacy
 
@@ -153,3 +193,4 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
 | Date | Change |
 |---|---|
 | 2026-07-26 | Initial model, extracted from `.claude/rules/business-rules.md` and the constitution. |
+| 2026-07-30 | E1: added the Person shape (identity vs credential, one account holds both roles) and the derived-discoverability rule for Kitchen Profile. Invariants 11 and 12 added. |
