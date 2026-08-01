@@ -428,3 +428,59 @@ exposure with no compensating benefit. Recommend removal or rotation rather than
 **Principle:** In an environment with no secrets store, a credential's blast radius is set by who
 can open a shell, not by what the code uses. Unreferenced credentials are therefore pure liability
 — enumerate them deliberately, because nothing else will ever surface them.
+
+### Observation 22: A pinned dependency version inside a conditionally-skipped step is never validated by anything
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Installing the Supabase CLI into the shared toolchain script and pinning it to
+the version CI uses.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Trusting configuration that has never executed
+
+**Issue:** The deploy workflow pinned a CLI version that was never published — only `.0` and `.1` of
+that minor exist, and the pin named `.2`. The step could only ever have failed. It survived review
+and months of green builds because its `if:` guard skips the whole step when the deployment secrets
+are absent, and they always were. So the pin looked like the *most* carefully considered line in the
+file — it even carried a comment explaining why pinning mattered — while being the one line nothing
+had ever executed. It was caught only because a separate task needed the same tool locally and tried
+to install that exact version.
+
+**Suggested improvement:** Add to `verification-before-completion` a rule for conditionally-executed
+configuration: a guarded step's contents are unverified until the guard has actually opened.
+Reviewing such a step means asking "has this ever run?" — and where the answer is no, resolving the
+pin out-of-band (a registry query, a dry-run install) rather than reading it for plausibility. A
+version string is a claim about an external registry; only the registry can confirm it.
+
+**Principle:** Green CI proves the steps that ran. A conditionally-skipped step accumulates the
+appearance of validation without any, and the more deliberate its comments look, the more trust it
+attracts. Ask of any guarded step: has the guard ever been true?
+
+### Observation 23: A comment asserting an invariant is not the invariant, and reads as evidence that it holds
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Discovering the Supabase CLI was installed by only one of two environment
+setup scripts.
+**Skill:** New skill candidate: environment-contract-check
+**Type:** open-source
+**Phase/Area:** Shared setup across multiple environments
+
+**Issue:** A toolchain script opened with "Single source of truth for the toolchain — called by BOTH
+environment setups so they cannot drift apart," and listed what it installs. One tool was missing
+from it and was installed separately by only one of the two callers, so one environment silently
+lacked it. The header made the drift harder to see, not easier: anyone checking whether the two
+environments agreed would read that paragraph and conclude the question was already settled. A
+runbook compounded it by telling the reader to run the *other* script, so the gap only surfaced for
+someone who ran neither and looked for the tool directly.
+
+**Suggested improvement:** When a file claims to be the single source of truth for a set, the claim
+should be checkable rather than asserted — enumerate the set in one place and have the consumers
+read it, or add an assertion that fails when a consumer installs something the shared script does
+not. Where that is too heavy, at minimum treat "this comment says it cannot drift" as an unverified
+claim during review, and check the callers.
+
+**Principle:** Documentation of an invariant is not enforcement of it, and it is worse than silence
+when wrong — it converts the reader's question into a false answer. Prefer invariants that fail
+loudly over invariants that are described accurately.
