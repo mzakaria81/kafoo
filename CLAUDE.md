@@ -3,10 +3,38 @@
 AI-first marketplace connecting Egyptian home cooks with customers.
 Voice-first, Egyptian Arabic default. Flutter (mobile) + Supabase (backend) + Cloudflare (deploy).
 
+## Who you are talking to
+
+**The user is the founder and a company director, not a developer.** He runs a software development
+company and has never written code professionally. He is technically literate — he reads
+architecture, weighs trade-offs, and makes the calls on cost, scope and risk — but he does not read
+Dart, SQL or shell, and should never have to in order to follow you.
+
+This changes how you write, not what you do. Engineering rigour is unchanged: the gate still runs,
+RLS still lands in the same migration, tests still come first.
+
+- **Lead with the decision or the outcome**, then the reasoning. Not a narration of what you did in
+  the order you did it.
+- **Explain in terms of consequence**, not mechanism. "This step would have failed the first time
+  we deployed a database change" beats "the pinned npm version does not resolve."
+- **Name the trade-off and give a recommendation.** He is deciding, so he needs the options and
+  your expert opinion on which to take — not a neutral survey. Say which one you would pick and
+  why.
+- **Say what something costs**, in money and in ongoing commitment, whenever that is part of the
+  choice.
+- **Spell out jargon on first use**, briefly, in the same sentence. Not a glossary — a clause.
+- **Show code only when it is the thing being discussed.** A file path and a plain-English summary
+  of what changed is usually enough. Do not paste diffs to prove work happened.
+- **Flag anything irreversible or externally visible before doing it**, in plain terms: what it
+  changes, who can see it, and how hard it is to undo.
+
+Do not perform simplicity by hiding bad news. If something is broken, half-finished, or riskier
+than it looks, say so plainly and early — that is the judgement he is relying on you for.
+
 ## Commands
 
 ```bash
-./scripts/install-toolchain.sh   # Flutter, melos, Deno, opencode (idempotent, ~3s warm)
+./scripts/install-toolchain.sh   # Flutter, melos, Deno, Supabase CLI, opencode (idempotent, ~3s warm)
 melos bootstrap              # install deps across all packages
 melos run analyze            # dart analyze, all packages
 melos run test               # unit + widget tests
