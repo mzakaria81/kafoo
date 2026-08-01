@@ -43,10 +43,15 @@ Nothing else — step 1 installs the rest.
 ## Step 1 — Install the toolchain
 
 ```bash
-bash .devcontainer/post-create.sh
+./scripts/install-toolchain.sh
 ```
 
-Installs Flutter, melos, Deno, the Supabase CLI and the Android SDK. Idempotent; safe to re-run.
+Installs Flutter, melos, Deno and the Supabase CLI — everything this walkthrough needs. Idempotent;
+safe to re-run. A Claude Code web session already ran it at session start, so there it is a no-op.
+
+Add `--with-android` only if you also need a release build; it adds several minutes and nothing
+below uses it. In Codespaces, `bash .devcontainer/post-create.sh` calls this script with that flag
+and then does the Codespaces-specific setup on top.
 
 Confirm:
 
@@ -54,12 +59,10 @@ Confirm:
 flutter --version && supabase --version && deno --version
 ```
 
-If `supabase` is missing, install it alone:
-
-```bash
-curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
-  | sudo tar -xz -C /usr/local/bin supabase
-```
+If `supabase` is missing, the toolchain script failed rather than skipped — re-run it and read its
+output. Do not install the CLI by hand: it is pinned to the version
+`.github/workflows/deploy.yml` uses so that a migration which applies locally also applies in CI,
+and a hand-installed `latest` breaks that guarantee silently.
 
 ---
 

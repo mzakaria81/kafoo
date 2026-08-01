@@ -100,7 +100,13 @@ jobs:
           # Pinned deliberately. `@latest` would run code that was never
           # reviewed, holding an account-scoped token, against production, on
           # every push to main. Bump this on purpose.
-          SUPABASE_CLI_VERSION: '2.66.2'
+          #
+          # Keep equal to SUPABASE_CLI_VERSION in scripts/install-toolchain.sh,
+          # so a migration that applies locally applies here. The previous value,
+          # 2.66.2, was never published to npm — only 2.66.0 and 2.66.1 exist —
+          # so this step could only ever have failed. It went unseen because the
+          # `if:` above skips the whole step when the Supabase secrets are absent.
+          SUPABASE_CLI_VERSION: '2.111.0'
         run: |
           npx --yes "supabase@${SUPABASE_CLI_VERSION}" link --project-ref "$SUPABASE_PROJECT_REF"
           npx --yes "supabase@${SUPABASE_CLI_VERSION}" db push

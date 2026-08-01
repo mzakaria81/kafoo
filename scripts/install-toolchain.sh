@@ -9,10 +9,10 @@
 # it is needed to build a release candidate but adds minutes to a session start,
 # so the web session skips it and installs it on demand.
 #
-# Installs: Flutter/Dart, melos, Deno, the opencode CLI, and optionally the
-# Android SDK. Deno and opencode are cheap (seconds) and both were missing in
-# the session that built E1, which cost that session the ability to run the
-# Edge Function tests at all — see docs/HANDOFF.md.
+# Installs: Flutter/Dart, melos, Deno, the Supabase CLI, the opencode CLI, and
+# optionally the Android SDK. Deno and opencode are cheap (seconds) and both
+# were missing in the session that built E1, which cost that session the ability
+# to run the Edge Function tests at all — see docs/HANDOFF.md.
 #
 # Idempotent. Progress goes to stderr so a caller can keep stdout clean for a
 # hook's JSON output.
@@ -68,6 +68,33 @@ else
     | DENO_INSTALL="${DENO_INSTALL}" sh -s -- -y >&2 2>&1
 fi
 log "deno: $(deno --version 2>&1 | head -1)"
+
+# --- Supabase CLI -----------------------------------------------------------
+# `supabase start`, `supabase db reset`, `supabase migration new` and the E1
+# authorization suites in docs/ops/verifying-e1.md all shell out to this.
+#
+# It used to be installed only by .devcontainer/post-create.sh, so a web session
+# got every other tool and not this one — precisely the drift this file exists
+# to prevent, and it went unnoticed because verifying-e1.md tells the reader to
+# run post-create.sh, which is not what a web session runs.
+#
+# Pinned to the version .github/workflows/deploy.yml resolves, so a migration
+# that applies locally applies in CI. Installed from npm rather than the release
+# tarball: no sudo and no /usr/local/bin, which a web session may not be able to
+# write to, and it is the same source CI already uses.
+#
+# Keep this equal to SUPABASE_CLI_VERSION in .github/workflows/deploy.yml. The
+# previous value there, 2.66.2, was never published to npm — only 2.66.0 and
+# 2.66.1 exist — so `npx supabase@2.66.2` could only ever fail. Nobody saw it
+# because that job is gated on the Supabase secrets being present.
+SUPABASE_CLI_VERSION="2.111.0"
+if [ "$(supabase --version 2>/dev/null || true)" = "${SUPABASE_CLI_VERSION}" ]; then
+  log "supabase cli: already present (${SUPABASE_CLI_VERSION})"
+else
+  log "supabase cli: installing ${SUPABASE_CLI_VERSION}"
+  npm install -g "supabase@${SUPABASE_CLI_VERSION}" >&2 2>&1 \
+    || log "supabase cli: install failed — migrations and 'supabase start' unavailable"
+fi
 
 # --- opencode CLI -----------------------------------------------------------
 # Required by the `opencode-delegate` skill (CLAUDE.md, "Delegating

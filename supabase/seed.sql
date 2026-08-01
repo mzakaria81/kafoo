@@ -7,8 +7,12 @@
 -- The helpers are vendored rather than pulled from database.dev on purpose: a test harness that
 -- needs the network to start is a test harness that fails in CI for reasons unrelated to the code.
 --
--- Nothing here reaches a deployed project. Seed files are local-only, and installing user-creating
--- helpers into production would be a footgun left lying around.
+-- WHERE THIS RUNS. Locally, and on every preview branch — a preview branch is built by applying
+-- migrations and then running this file. It does NOT run on production: `supabase db push` applies
+-- migrations only. An earlier version of this comment claimed seeds never reach a deployed project,
+-- which was wrong the moment preview branches were switched on: a preview branch is a real,
+-- internet-facing Supabase project with its own URL and anon key. See the REVOKE at the foot of
+-- this file for what follows from that.
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
@@ -90,3 +94,20 @@ BEGIN
   PERFORM set_config('request.jwt.claims', null, true);
 END;
 $$;
+
+-- Lock down the one helper that writes.
+--
+-- This file now runs on preview branches, which are reachable from the internet with a published
+-- anon key, so "only a test harness would call this" stops being an argument. tests.create_supabase_user
+-- inserts straight into auth.users, bypassing sign-up, rate limiting and phone verification.
+--
+-- Three things already stop an end user reaching it: the `tests` schema is absent from
+-- `api.schemas`, so PostgREST does not expose it; the function is SECURITY INVOKER; and neither
+-- anon nor authenticated holds INSERT on auth.users. None of those was chosen to defend this
+-- function, and any of them could change without anyone connecting the change to this file. Say it
+-- directly instead of relying on three accidents.
+--
+-- Scoped to create_supabase_user ONLY. The other three helpers must stay callable by anon and
+-- authenticated: every suite calls tests.clear_authentication() *while* acting as one of those
+-- roles, so revoking them here would fail every authorization test in supabase/tests/.
+REVOKE ALL ON FUNCTION tests.create_supabase_user(text) FROM PUBLIC, anon, authenticated;

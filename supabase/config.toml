@@ -10,11 +10,19 @@ max_rows = 1000
 
 [db]
 port = 54322
-major_version = 15
+# Match the deployed project, which runs Postgres 17. This said 15 until 2026-08-01, so every
+# migration was authored and tested against a different major version than the one it would be
+# applied to — the classic source of "it worked locally". Check with:
+#   curl -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+#     https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF
+# Changing this invalidates an existing local volume; `supabase db reset` rebuilds it.
+major_version = 17
 
 # seed.sql installs pgTAP and the `tests` helper schema the authorization suites need.
-# Local only — seeds never run against a deployed project, which is deliberate: helpers that
-# create auth users have no business in production.
+#
+# This runs locally AND on every preview branch. It does NOT run on production: `supabase db push`
+# applies migrations only. That split is the point — a preview branch is disposable and wants the
+# test harness; production is neither.
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]

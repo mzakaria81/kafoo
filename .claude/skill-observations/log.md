@@ -342,3 +342,201 @@ governance and provides none. Check references resolve before trusting the rule 
 **Suggested improvement:** When tests are written before the thing they test, the deliverable is not the test file — it is a test file plus a demonstration that the harness starts. If the environment cannot run them yet, record specifically what was never verified: not "these have not run" but "these have never been observed to start, and their dependencies are uninstalled". Where a project has an automated gate, add the cheapest possible check that each suite can be invoked at all, separately from whether it passes. A suite that cannot start is a stronger failure than a suite that fails, and it is the one no gate reports.
 
 **Principle:** "Not yet run" describes a schedule; "cannot run" describes a defect. They are recorded with the same words and carry opposite weight, so the gap between writing a test and first executing it must be closed by observing the harness start — otherwise a suite that was never viable accumulates the credibility of one that simply awaited its turn.
+
+### Observation 19: A verification step that lives only in prose is re-done by hand or not at all
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Checking environment variables and Supabase branching capability for Kafoo,
+after a prior session had run against an unrelated project's credentials.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Turning a one-off verification into a repeatable gate
+
+**Issue:** `docs/HANDOFF.md` and `docs/ops/verifying-e1.md` both instruct the reader to curl the
+provider's project list and confirm the configured ref names the right project. The check is
+correct and it caught a real error. But it is prose in two documents, so it runs only when a human
+or agent happens to read that paragraph before touching a deployed resource. The project's actual
+gate (`scripts/verify.sh`) checks committed credentials, RLS coverage and ARB parity — it does not
+check that the credentials in the environment point at this project. The identity of the target
+system is exactly the class of error the gate exists to catch, and it is the one thing left to
+memory.
+
+**Suggested improvement:** In `verification-before-completion`, add a rule: when a session
+discovers a verification worth writing down, ask whether it can be expressed as an assertion in
+the project's existing gate rather than a paragraph in a document. Prose verification steps decay
+into optional reading; an assertion in the gate runs whether or not anyone remembers it. A useful
+discriminator: if the check is a single command with a deterministic pass/fail, it belongs in the
+gate, not in a runbook.
+
+**Principle:** A verification recorded as prose is a suggestion; the same verification expressed as
+an assertion in the build gate is a guarantee. When documenting a check, ask what it would take to
+execute it automatically — and prefer that, even if the prose stays as explanation.
+
+### Observation 20: Renaming environment variables degrades silently, because an unset credential reads as empty rather than as an error
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Auditing which environment variables this session actually has against the
+names the repository and its documentation reference.
+**Skill:** New skill candidate: environment-contract-check
+**Type:** open-source
+**Phase/Area:** Session start / environment readiness
+
+**Issue:** The environment supplies suffixed names (`SUPABASE_PROJECT_REF_DEV`, `SUPABASE_URL_DEV`,
+`SUPABASE_SERVICE_ROLE_KEY_DEV`, `SUPABASE_DB_PASSWORD_DEV`). Scripts, runbooks and test files
+across the repository reference the unsuffixed names (`SUPABASE_PROJECT_REF`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_PASSWORD`). Only `.mcp.json` was updated to the suffixed
+form. Nothing fails loudly: shell parameter expansion of an unset variable yields an empty string,
+so a script does not stop — it runs against an empty ref or an empty URL and produces a confusing
+downstream failure, or worse, silently no-ops. The same shape produced the previous session's
+wrong-project incident from the other direction: the variables were set, just set to another
+product's values.
+
+**Suggested improvement:** A small skill (or a section in an existing environment skill) that, at
+session start, derives the set of environment variable names the repository actually references
+(grep the tracked files), compares it against what is set, and reports three buckets: referenced
+and set; referenced but unset; set but referenced nowhere. Each bucket is actionable and none of
+them is visible today without deliberately going looking.
+
+**Principle:** An environment variable has no schema, so a rename is not a breaking change — it is
+a silent one. Any project that depends on named credentials needs an explicit contract between the
+names the code reads and the names the environment provides, checked at start rather than
+discovered at failure.
+
+### Observation 21: Credentials outlive the task that needed them, and a shared environment has nowhere to put them but plain sight
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Enumerating environment variables while checking Supabase access.
+**Skill:** New skill candidate: environment-contract-check
+**Type:** open-source
+**Phase/Area:** Credential hygiene in ephemeral/shared environments
+
+**Issue:** The environment carries a live third-party API key for a service the repository does not
+reference anywhere — a leftover from unrelated work in the same account. Its variable name is also
+inconsistently cased against the vendor's convention, which means even code that wanted it would
+likely miss it. The project's own documentation already records that this class of environment has
+no secrets store and that anyone who can use it can read the values, and already carries an
+outstanding instruction to rotate a different key for exactly this reason. So the risk is
+understood; what is missing is the sweep that finds the next one.
+
+**Suggested improvement:** Pair the "set but referenced nowhere" bucket from Observation 20 with an
+explicit recommendation: an unreferenced credential in a shared environment is not inert, it is
+exposure with no compensating benefit. Recommend removal or rotation rather than merely listing it.
+
+**Principle:** In an environment with no secrets store, a credential's blast radius is set by who
+can open a shell, not by what the code uses. Unreferenced credentials are therefore pure liability
+— enumerate them deliberately, because nothing else will ever surface them.
+
+### Observation 22: A pinned dependency version inside a conditionally-skipped step is never validated by anything
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Installing the Supabase CLI into the shared toolchain script and pinning it to
+the version CI uses.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Trusting configuration that has never executed
+
+**Issue:** The deploy workflow pinned a CLI version that was never published — only `.0` and `.1` of
+that minor exist, and the pin named `.2`. The step could only ever have failed. It survived review
+and months of green builds because its `if:` guard skips the whole step when the deployment secrets
+are absent, and they always were. So the pin looked like the *most* carefully considered line in the
+file — it even carried a comment explaining why pinning mattered — while being the one line nothing
+had ever executed. It was caught only because a separate task needed the same tool locally and tried
+to install that exact version.
+
+**Suggested improvement:** Add to `verification-before-completion` a rule for conditionally-executed
+configuration: a guarded step's contents are unverified until the guard has actually opened.
+Reviewing such a step means asking "has this ever run?" — and where the answer is no, resolving the
+pin out-of-band (a registry query, a dry-run install) rather than reading it for plausibility. A
+version string is a claim about an external registry; only the registry can confirm it.
+
+**Principle:** Green CI proves the steps that ran. A conditionally-skipped step accumulates the
+appearance of validation without any, and the more deliberate its comments look, the more trust it
+attracts. Ask of any guarded step: has the guard ever been true?
+
+### Observation 23: A comment asserting an invariant is not the invariant, and reads as evidence that it holds
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Discovering the Supabase CLI was installed by only one of two environment
+setup scripts.
+**Skill:** New skill candidate: environment-contract-check
+**Type:** open-source
+**Phase/Area:** Shared setup across multiple environments
+
+**Issue:** A toolchain script opened with "Single source of truth for the toolchain — called by BOTH
+environment setups so they cannot drift apart," and listed what it installs. One tool was missing
+from it and was installed separately by only one of the two callers, so one environment silently
+lacked it. The header made the drift harder to see, not easier: anyone checking whether the two
+environments agreed would read that paragraph and conclude the question was already settled. A
+runbook compounded it by telling the reader to run the *other* script, so the gap only surfaced for
+someone who ran neither and looked for the tool directly.
+
+**Suggested improvement:** When a file claims to be the single source of truth for a set, the claim
+should be checkable rather than asserted — enumerate the set in one place and have the consumers
+read it, or add an assertion that fails when a consumer installs something the shared script does
+not. Where that is too heavy, at minimum treat "this comment says it cannot drift" as an unverified
+claim during review, and check the callers.
+
+**Principle:** Documentation of an invariant is not enforcement of it, and it is worse than silence
+when wrong — it converts the reader's question into a false answer. Prefer invariants that fail
+loudly over invariants that are described accurately.
+
+### Observation 24: A safety hardening can break the thing it protects, so check the callers before revoking
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Restricting a test-harness helper before it began running on internet-facing
+ephemeral databases.
+**Skill:** rls-reviewer
+**Type:** open-source
+**Phase/Area:** Privilege tightening on test/support code
+
+**Issue:** A test harness installed four helper functions, one of which wrote directly to the auth
+table. Once that harness started being installed on deployed-but-disposable environments, the
+obvious move was to revoke access to the whole helper schema from the untrusted roles. That would
+have broken every authorization suite in the project. The suites deliberately *become* the
+untrusted role and then call a helper to switch back — so the role-switching helpers must remain
+callable by exactly the roles the revoke was aimed at. Only the writing helper is called while
+still privileged, and only it can be locked down. The correct hardening was one function, not the
+schema, and the difference was visible only by reading the call ordering in the suites.
+
+**Suggested improvement:** In `rls-reviewer`, add a check for privilege-tightening changes: before
+revoking on a schema or a group of objects, enumerate the callers and the *role each caller holds at
+the moment of the call*. Test and support code routinely runs as the low-privilege role on purpose,
+so it is the most likely thing a broad revoke breaks — and the breakage lands on the tests, which is
+the worst place for it, because a suite that cannot run looks like a suite that has nothing to say.
+
+**Principle:** A revoke is only as good as the caller inventory behind it. Tightening privileges is a
+change to an interface, and the callers to check are not the ones the object was written for but the
+ones that reach it while deliberately holding reduced privilege.
+
+### Observation 25: Configuration that mirrors an external system drifts silently, because only the external system knows the truth
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Preparing ephemeral database branches; comparing local stack configuration
+against the deployed project.
+**Skill:** New skill candidate: environment-contract-check
+**Type:** open-source
+**Phase/Area:** Local/deployed parity
+
+**Issue:** The local stack pinned a major version of the database engine two releases behind what
+the deployed project actually ran. Every migration in the repository had therefore been authored and
+tested against one engine and was destined to be applied to another. Nothing reported this: the
+local stack starts happily on the pinned version, the deployed project runs whatever it runs, and no
+check compares them because the authoritative value lives outside the repository. It surfaced only
+because an unrelated task queried the provider's API for something else and the two numbers happened
+to be visible side by side.
+
+**Suggested improvement:** Extend the environment-contract idea beyond credentials to *versions*:
+any value in local configuration that names a version, region or tier of a hosted dependency is a
+mirror of a remote fact and should be verified against the remote, not read for plausibility. Where
+the provider has an API, the check is one request and belongs in the gate.
+
+**Principle:** A configuration value that duplicates a fact owned by an external system is stale by
+default — it can only be confirmed by asking that system. Treat every such value as a cached copy
+with no invalidation, and check it on a schedule rather than trusting the copy.
