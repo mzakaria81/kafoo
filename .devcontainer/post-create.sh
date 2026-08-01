@@ -40,13 +40,11 @@ EOF
   echo "added to ~/.bashrc"
 fi
 
-log "Supabase CLI"
-if command -v supabase >/dev/null; then
-  echo "already present: $(supabase --version 2>/dev/null || true)"
-else
-  curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
-    | sudo tar -xz -C /usr/local/bin supabase
-fi
+# The Supabase CLI used to be installed here, from the release tarball at
+# whatever `latest` happened to be. It now comes from scripts/install-toolchain.sh
+# above, pinned to the version CI uses — so Codespaces, a web session and the
+# deploy workflow all run the same CLI. Installing it here as well would
+# reintroduce exactly the drift that script exists to prevent.
 
 log "Claude Code"
 if command -v claude >/dev/null; then
@@ -212,6 +210,9 @@ Do NOT set ANTHROPIC_API_KEY. It takes priority over the
 subscription token and bills the Anthropic API per token.
 
 Supabase credentials also come from Codespaces secrets
-(SUPABASE_PROJECT_REF_DEV, SUPABASE_ACCESS_TOKEN).
+(SUPABASE_PROJECT_REF, SUPABASE_ACCESS_TOKEN). .mcp.json reads
+SUPABASE_PROJECT_REF; if it is unset the MCP server starts
+and immediately exits, which looks like a broken server
+rather than a missing variable.
 ============================================================
 EOF

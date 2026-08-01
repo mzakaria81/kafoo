@@ -23,7 +23,7 @@ There are two Claude Code cloud environments on this account:
 The whole of 2026-07-31 ran in `Default` by accident. The repository was Kafoo; the credentials
 were the finance app's. That is how `SUPABASE_PROJECT_REF`, `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY` came to name another product's database, and why the Supabase MCP
-server never stayed connected (`.mcp.json` reads `SUPABASE_PROJECT_REF_DEV`, which was unset).
+server never stayed connected (`.mcp.json` read a `_DEV`-suffixed name that was unset).
 
 **Nothing was written to either database.** A read-only check caught it before any test ran.
 
@@ -37,14 +37,33 @@ Kafoo's project is named `kafoo`, region `eu-central-1`. Its ref is the one the 
 check on pull requests already links to. **If `$SUPABASE_PROJECT_REF` is not that project, stop and
 switch environments** — do not work around it by overriding the variable.
 
+Verified in `Kafoo_Dev` on 2026-08-01: the configured ref, the project URL and the `ref` claim
+decoded from the service-role key itself all name `kafoo` / `cshrkpvljknxsdzwhhle` / `eu-central-1`.
+Check the key's own claim, not just that it works — a working key only proves it belongs to *some*
+project:
+
+```bash
+echo "$SUPABASE_SERVICE_ROLE_KEY" | cut -d. -f2 | tr '_-' '/+' | base64 -d | jq .ref
+```
+
 Still to do in `Kafoo_Dev`, by hand:
 
-1. Set `SUPABASE_PROJECT_REF_DEV` to Kafoo's ref, so `.mcp.json` resolves and the MCP server stays
-   up.
-2. Confirm `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
-   `SUPABASE_DB_PASSWORD` name **Kafoo**, not the finance app.
-3. **Rotate the finance app's service-role key.** It sat in a session for an unrelated repository,
+1. **Rotate the finance app's service-role key.** It sat in a session for an unrelated repository,
    and cloud environments have no secrets store — anyone who can use the environment can read it.
+2. **Remove `RESEND_API_Key`.** Live third-party credential; nothing in this repository references
+   Resend. Same reasoning as above — an unused credential in a shared environment is exposure with
+   no offsetting benefit.
+
+### Environment variable names
+
+**Unsuffixed names only.** `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`.
+
+The environment briefly used `_DEV`-suffixed variants while the repository read the unsuffixed
+ones. Nothing failed loudly: an unset variable expands to an empty string, so scripts ran against
+an empty ref instead of stopping. Settled 2026-08-01 in favour of the unsuffixed names, which is
+what the code, the workflows and the runbooks already used. If a second environment is ever added,
+give it its own Claude Code environment rather than a second set of variable names in this one.
 
 ## Where things stand
 
@@ -166,9 +185,10 @@ Stated plainly, because the expensive failures this session were all of this kin
   `Supabase Preview` check on pull requests already uses. `SUPABASE_URL` and
   `SUPABASE_SERVICE_ROLE_KEY` matched the same wrong project — the service-role key gave this
   repository's sessions RLS-bypassing access to an unrelated application's database.
-  `SUPABASE_PROJECT_REF_DEV`, which `.mcp.json` reads, was unset, which is why the Supabase MCP
-  server never stayed connected. **Set `SUPABASE_PROJECT_REF_DEV` to Kafoo's ref and remove the
-  other project's credentials from this environment.**
+  `.mcp.json` read a `_DEV`-suffixed variable that was unset, which is why the Supabase MCP server
+  never stayed connected. **Resolved 2026-08-01** — see "Environment variable names" below. The
+  outstanding half is the cleanup: **remove the other project's credentials from this environment
+  and rotate them.**
 - **A green `verify.sh` never proved the authorization suites could run.** They call pgTAP and four
   `tests.*` helpers, and nothing in the repository installed either, so `supabase test db` would
   have failed on its first statement on any machine. `supabase/seed.sql` now installs both. This is

@@ -8,7 +8,8 @@
 #
 # The base image already provides jq, python3, node, java, git, and GNU grep
 # (the RLS checks use `grep -P`), so this installs the Dart toolchain, Deno
-# (Edge Functions) and the opencode CLI (the delegate skill).
+# (Edge Functions), the Supabase CLI (migrations, local stack) and the opencode
+# CLI (the delegate skill).
 #
 # NOT installed: the Android SDK. It is only needed to build a release
 # candidate, which is rare, and it adds several minutes to every session
@@ -50,3 +51,15 @@ if command -v opencode >/dev/null 2>&1 && [ -z "${OPENCODE_API_KEY:-}" ]; then
   log "opencode: signed out — add OPENCODE_API_KEY to this cloud environment's"
   log "          variables to be signed in automatically every session"
 fi
+
+# An unset variable is not an error in shell — it expands to nothing. So an
+# absent SUPABASE_PROJECT_REF does not fail here or in .mcp.json; the MCP server
+# just starts with an empty --project-ref and exits, which reads as a broken
+# server rather than a missing variable. That misdiagnosis cost a full day once
+# (docs/HANDOFF.md). Presence only — no value is ever printed.
+for _v in SUPABASE_PROJECT_REF SUPABASE_ACCESS_TOKEN; do
+  if [ -z "$(eval "printf '%s' \"\${${_v}:-}\"")" ]; then
+    log "supabase: ${_v} is unset — the Supabase MCP server will not stay up"
+  fi
+done
+unset _v
