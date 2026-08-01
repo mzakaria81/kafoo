@@ -310,3 +310,35 @@ governance and provides none. Check references resolve before trusting the rule 
 **Suggested improvement:** Before building an isolation shim for a platform-gap risk, check the resolved dependency version's declared platforms and read its platform implementation. Conditional-import isolation is only warranted when the build or runtime actually breaks; a well-implemented plugin can be a non-event, and the existing fallback may already handle the gap.
 
 **Principle:** Verify the real obstacle before building the workaround. A dependency that "may not support" a platform often does — the declared platform map and the runtime behaviour of the actual resolved version are the ground truth.
+
+### Observation 17: A credential that works is not evidence you are pointed at the right system
+
+**Status:** OPEN
+**Date:** 2026-07-31
+**Session context:** About to run a project's authorization test suite against its deployed database, using credentials already present in the session environment.
+
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Verifying preconditions before acting on an external system
+
+**Issue:** The environment held a complete, valid set of credentials for a deployed database — project reference, URL, database password, and a service-role key. Every one of them worked. They belonged to an entirely different application: a household-finance product sharing the same account, with twenty populated tables. The repository was correct, the branch was correct, the credentials authenticated successfully, and the target was wrong. The human had approved the action while believing the target was their own empty database, so the approval was real but rested on a false premise neither party had checked. A read-only listing of table names caught it in one query; the next command in the sequence would have created users in a live unrelated system, and an earlier step in the same plan — a database reset — would have dropped twenty tables. Authentication succeeding felt like confirmation of identity, and it is only confirmation of access.
+
+**Suggested improvement:** Before the first state-changing call against any external system, make one read-only call that returns something a human would recognise — resource names, a project title, a row count — and compare it against what the task expects. Prefer an identifying query over a connectivity check: "can I connect" and "am I connected to the right thing" are different questions, and only the second one catches this. Where the environment supplies credentials rather than the task naming a target, treat the target as unverified by default.
+
+**Principle:** Credentials answer "may I", never "should this". A successful authentication against the wrong system is indistinguishable from success against the right one, so identity of the target must be established by observation rather than inferred from the fact that access worked.
+
+### Observation 18: A test that has never run may be unrunnable, not merely unexecuted
+
+**Status:** OPEN
+**Date:** 2026-07-31
+**Session context:** Writing instructions for a human to execute a database authorization suite that had been written, reviewed and merged months earlier but never once executed.
+
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Tests written ahead of the code they test
+
+**Issue:** The suite was written before the policies it tests, which is correct discipline, and then never run because the session that wrote it lacked the container runtime. It was documented as "never executed", and everyone — including me, when I wrote a step-by-step guide around running it — read that as "the tests are fine, nobody has pressed the button". They were not fine. They called four helper functions from a test-support library and a testing extension, and nothing in the repository installed either. The first statement would have failed on any machine. The project's own quality gate passed throughout, because no check covers whether a test suite can start. So an unrun suite had been sitting in the repository being counted as evidence, and the distance between "unexecuted" and "unrunnable" was never noticed because both look identical from the outside.
+
+**Suggested improvement:** When tests are written before the thing they test, the deliverable is not the test file — it is a test file plus a demonstration that the harness starts. If the environment cannot run them yet, record specifically what was never verified: not "these have not run" but "these have never been observed to start, and their dependencies are uninstalled". Where a project has an automated gate, add the cheapest possible check that each suite can be invoked at all, separately from whether it passes. A suite that cannot start is a stronger failure than a suite that fails, and it is the one no gate reports.
+
+**Principle:** "Not yet run" describes a schedule; "cannot run" describes a defect. They are recorded with the same words and carry opposite weight, so the gap between writing a test and first executing it must be closed by observing the harness start — otherwise a suite that was never viable accumulates the credibility of one that simply awaited its turn.

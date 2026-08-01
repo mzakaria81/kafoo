@@ -2,16 +2,73 @@
 
 **Written**: 2026-07-28, at the end of the session that built E0.
 **Updated**: 2026-07-30, at the end of the session that built E1.
+**Updated**: 2026-07-31 — E1 follow-ups, E2 specified/planned/tasked, and the environment mix-up
+below.
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
 that does not fit in a checkbox.
 
+---
+
+## Before anything else — check which cloud environment you are in
+
+There are two Claude Code cloud environments on this account:
+
+| Environment | Belongs to |
+|---|---|
+| **`Default`** | `bank-whisperer-lite-dev` — an unrelated household-finance application |
+| **`Kafoo_Dev`** | **This repository.** Use this one. |
+
+The whole of 2026-07-31 ran in `Default` by accident. The repository was Kafoo; the credentials
+were the finance app's. That is how `SUPABASE_PROJECT_REF`, `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` came to name another product's database, and why the Supabase MCP
+server never stayed connected (`.mcp.json` reads `SUPABASE_PROJECT_REF_DEV`, which was unset).
+
+**Nothing was written to either database.** A read-only check caught it before any test ran.
+
+**Verify before touching any deployed resource:**
+
+```bash
+curl -sS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" https://api.supabase.com/v1/projects
+```
+
+Kafoo's project is named `kafoo`, region `eu-central-1`. Its ref is the one the `Supabase Preview`
+check on pull requests already links to. **If `$SUPABASE_PROJECT_REF` is not that project, stop and
+switch environments** — do not work around it by overriding the variable.
+
+Still to do in `Kafoo_Dev`, by hand:
+
+1. Set `SUPABASE_PROJECT_REF_DEV` to Kafoo's ref, so `.mcp.json` resolves and the MCP server stays
+   up.
+2. Confirm `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
+   `SUPABASE_DB_PASSWORD` name **Kafoo**, not the finance app.
+3. **Rotate the finance app's service-role key.** It sat in a session for an unrelated repository,
+   and cloud environments have no secrets store — anyone who can use the environment can read it.
+
 ## Where things stand
 
 E0 (foundation) is delivered except for the release story. **E1 (identity and Kitchen Profile) is
-now written and passing the gate**, but has never run against a live database or a real handset —
-see "Known-wrong or unverified".
+written and passing the gate**, but has never run against a live database or a real handset — see
+"Known-wrong or unverified". **E2 (Meal publishing) is fully specified, planned and broken into 80
+tasks; not one line of it is implemented.**
+
+### Where to pick up
+
+In rough order of value:
+
+1. **Run E1's authorization suites.** They have never executed, and until 2026-07-31 they were
+   *unrunnable* — the pgTAP extension and the `tests` helper schema they call existed nowhere.
+   `supabase/seed.sql` fixes that. Walk `docs/ops/verifying-e1.md`; §5 is the step that converts
+   "they passed" into "they would have caught it".
+2. **Answer E2's blocking decision — choose a model provider** (`specs/003-meal-publishing/tasks.md`
+   T080). Recurring spend, so it is a founder call. Requirements are in that feature's
+   `research.md` §1. Nothing in E2's AI path can be honestly evaluated until it is answered.
+3. **Start E2 at Phase 1.** Tasks are ordered so US3 (ownership) comes first, because it creates
+   the table every other story writes into.
+4. **The three E1 spikes are still untouched** — `ar-EG` recognition on real handsets, SMS delivery
+   to a real Egyptian number, and per-verification cost. Each can invalidate a decision cheaply now
+   and expensively later.
 
 | Area | State |
 |---|---|
@@ -22,9 +79,12 @@ see "Known-wrong or unverified".
 | Agents | 7 review agents in `.claude/agents/`. |
 | CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
-| Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies. **The pgTAP tests have never been executed** — no Docker in the session that wrote them. |
+| Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies, **confirmed applied and correctly shaped on the deployed project** (read-only check, 2026-07-31 — the `UPDATE` policy carries both `USING` and `WITH CHECK`). **The pgTAP tests have still never been executed**: the harness they need did not exist until `supabase/seed.sql`, and seeds do not run against a deployed project. Run them locally. |
 | Edge Functions | One: `delete-account`. Takes no arguments and reads identity from the JWT. Type-checks clean under `deno check`, which is part of the gate. **Never executed** — that needs Docker for the local stack. |
 | Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. **No Meal, no Order, no AI call to a real provider.** |
+| E2 | Specified, planned, tasked — `specs/003-meal-publishing/`: spec, plan, research, data-model, two contracts, quickstart, 80 tasks. **Zero implementation.** Blocked on a model-provider decision (T080). |
+| Decisions | ADR-0007 (dormancy severs a phone credential — policy only, no code), ADR-0008 (a Customer web surface is in scope; technology deliberately undecided). **ADR-0005 needs amending** — E2's plan found that the model seam and the provider credential cannot live in the same place. |
+| Web | `apps/mobile/web/` builds (`flutter build web --release`, 42 MB CanvasKit, `lang="ar" dir="rtl"`). Development and demo target **only** — it is not the Customer web surface of ADR-0008, and must not become one by default. |
 
 ## What is missing, in the order it probably matters
 
@@ -100,9 +160,19 @@ Stated plainly, because the expensive failures this session were all of this kin
 
 - **Branch protection is unverified** (above). If it is not enabled, a direct push to `main`
   deploys migrations to production with nobody in the loop.
-- **`SUPABASE_PROJECT_REF` vs `SUPABASE_PROJECT_REF_DEV`** — `deploy.yml` uses the former for
-  production, `.mcp.json` uses the latter for development. That reads as deliberate, but nobody
-  has confirmed the production ref exists as a secret.
+- **`SUPABASE_PROJECT_REF` pointed at the wrong project entirely.** Checked 2026-07-31 against the
+  Supabase account: the variable held the ref for `bank-whisperer-lite-dev`, an unrelated household
+  finance application with 20 tables. Kafoo's project is a different ref, the one the
+  `Supabase Preview` check on pull requests already uses. `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` matched the same wrong project — the service-role key gave this
+  repository's sessions RLS-bypassing access to an unrelated application's database.
+  `SUPABASE_PROJECT_REF_DEV`, which `.mcp.json` reads, was unset, which is why the Supabase MCP
+  server never stayed connected. **Set `SUPABASE_PROJECT_REF_DEV` to Kafoo's ref and remove the
+  other project's credentials from this environment.**
+- **A green `verify.sh` never proved the authorization suites could run.** They call pgTAP and four
+  `tests.*` helpers, and nothing in the repository installed either, so `supabase test db` would
+  have failed on its first statement on any machine. `supabase/seed.sql` now installs both. This is
+  the sharpest example of the gate's own warning: the check that would have caught it did not exist.
 - **The performance budgets have never been measured.** Launch <2s and the rest are asserted in
   the constitution and unexercised. T068 asked for a launch baseline this session and it could
   not be taken — no device, no emulator, no Android SDK in the container. The first release build
