@@ -199,7 +199,12 @@ Stated plainly, because the expensive failures this session were all of this kin
   is still when these become real.
 - **Nothing in E1 has touched a live Supabase.** Every Dart test runs against an in-memory fake.
   The repositories, the RLS policies and the Edge Function are correct by construction and by
-  review, which is not the same as correct.
+  review, which is not the same as correct. Preview branches are the intended fix and are prepared
+  but not yet firing — `docs/ops/preview-branches.md` has the state and the one dashboard setting
+  still outstanding.
+- **Migrations were authored against Postgres 15 and would deploy to Postgres 17.** `config.toml`
+  pinned the local stack to 15 while the project runs 17.6. Corrected 2026-08-01; no migration is
+  known to depend on the difference, but none was written with it in mind either.
 - **`ar-EG` speech recognition is unverified on real hardware** (spike T071). The conversation
   degrades to typing when recognition is unavailable and that path *is* tested, which is
   deliberate: research.md expects unavailability to be the common case on Egyptian mid-range

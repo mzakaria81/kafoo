@@ -484,3 +484,59 @@ claim during review, and check the callers.
 **Principle:** Documentation of an invariant is not enforcement of it, and it is worse than silence
 when wrong — it converts the reader's question into a false answer. Prefer invariants that fail
 loudly over invariants that are described accurately.
+
+### Observation 24: A safety hardening can break the thing it protects, so check the callers before revoking
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Restricting a test-harness helper before it began running on internet-facing
+ephemeral databases.
+**Skill:** rls-reviewer
+**Type:** open-source
+**Phase/Area:** Privilege tightening on test/support code
+
+**Issue:** A test harness installed four helper functions, one of which wrote directly to the auth
+table. Once that harness started being installed on deployed-but-disposable environments, the
+obvious move was to revoke access to the whole helper schema from the untrusted roles. That would
+have broken every authorization suite in the project. The suites deliberately *become* the
+untrusted role and then call a helper to switch back — so the role-switching helpers must remain
+callable by exactly the roles the revoke was aimed at. Only the writing helper is called while
+still privileged, and only it can be locked down. The correct hardening was one function, not the
+schema, and the difference was visible only by reading the call ordering in the suites.
+
+**Suggested improvement:** In `rls-reviewer`, add a check for privilege-tightening changes: before
+revoking on a schema or a group of objects, enumerate the callers and the *role each caller holds at
+the moment of the call*. Test and support code routinely runs as the low-privilege role on purpose,
+so it is the most likely thing a broad revoke breaks — and the breakage lands on the tests, which is
+the worst place for it, because a suite that cannot run looks like a suite that has nothing to say.
+
+**Principle:** A revoke is only as good as the caller inventory behind it. Tightening privileges is a
+change to an interface, and the callers to check are not the ones the object was written for but the
+ones that reach it while deliberately holding reduced privilege.
+
+### Observation 25: Configuration that mirrors an external system drifts silently, because only the external system knows the truth
+
+**Status:** OPEN
+**Date:** 2026-08-01
+**Session context:** Preparing ephemeral database branches; comparing local stack configuration
+against the deployed project.
+**Skill:** New skill candidate: environment-contract-check
+**Type:** open-source
+**Phase/Area:** Local/deployed parity
+
+**Issue:** The local stack pinned a major version of the database engine two releases behind what
+the deployed project actually ran. Every migration in the repository had therefore been authored and
+tested against one engine and was destined to be applied to another. Nothing reported this: the
+local stack starts happily on the pinned version, the deployed project runs whatever it runs, and no
+check compares them because the authoritative value lives outside the repository. It surfaced only
+because an unrelated task queried the provider's API for something else and the two numbers happened
+to be visible side by side.
+
+**Suggested improvement:** Extend the environment-contract idea beyond credentials to *versions*:
+any value in local configuration that names a version, region or tier of a hosted dependency is a
+mirror of a remote fact and should be verified against the remote, not read for plausibility. Where
+the provider has an API, the check is one request and belongs in the gate.
+
+**Principle:** A configuration value that duplicates a fact owned by an external system is stale by
+default — it can only be confirmed by asking that system. Treat every such value as a cached copy
+with no invalidation, and check it on a schedule rather than trusting the copy.
