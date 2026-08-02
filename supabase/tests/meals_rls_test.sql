@@ -37,7 +37,7 @@
 -- ────────────────────────────────────────────────────────────────────────────────────────────────
 
 BEGIN;
-SELECT plan(18);
+SELECT plan(19);
 
 SELECT tests.create_supabase_user('owner@test.kafoo');
 SELECT tests.create_supabase_user('other@test.kafoo');
@@ -345,6 +345,48 @@ SELECT is(
   (SELECT COUNT(*)::int FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000020'),
   1,
   'another signed-in person cannot delete a Cook''s draft'
+);
+
+-- ── Is case 8b capable of failing? ───────────────────────────────────────────────────────────────
+
+-- The mutation check, run on every commit rather than by hand once.
+--
+-- docs/ops/verifying-e1.md §5 describes doing this manually: weaken the policy, watch the assertion
+-- go red, put it back. That is the right idea and a bad place to keep it, for two reasons. It is
+-- only true on the day somebody does it — a policy rewritten six months from now is covered by
+-- nobody's memory of an exercise. And on this project it is not even reachable by hand: Supabase
+-- pushes only NEW migration files to a preview branch, so editing the migration that created the
+-- policy changes nothing on the database the suites run against.
+--
+-- So the weakening happens here, inside the transaction that rolls back. It weakens WITH CHECK to
+-- `true`, disables the trigger that would otherwise answer first, and asserts the reassign now
+-- SUCCEEDS. That is the proof that case 8b is load-bearing: the two guards are off and the thing
+-- they prevent happens. If this assertion ever fails, something else is refusing the reassign, case
+-- 8b is measuring that other thing instead, and both assertions need rethinking.
+--
+-- LAST IN THE FILE ON PURPOSE. Everything above runs against the real policy; nothing after this
+-- point could be trusted. The DDL is transactional and the outer ROLLBACK restores it.
+DROP POLICY "cook updates own meals" ON public.meals;
+
+CREATE POLICY "cook updates own meals"
+  ON public.meals FOR UPDATE TO authenticated
+  USING (cook_id = auth.uid())
+  WITH CHECK (true);
+
+ALTER TABLE public.meals DISABLE TRIGGER enforce_meal_lifecycle_trigger;
+
+SELECT tests.authenticate_as('owner@test.kafoo');
+
+UPDATE public.meals
+  SET cook_id = tests.user_id('other@test.kafoo')
+  WHERE id = 'aaaaaaaa-0000-4000-8000-000000000012';
+
+SELECT tests.clear_authentication();
+
+SELECT is(
+  (SELECT cook_id FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000012'),
+  tests.user_id('other@test.kafoo'),
+  'with WITH CHECK weakened to true, the reassign succeeds — so case 8b can fail, and is worth trusting'
 );
 
 SELECT finish();

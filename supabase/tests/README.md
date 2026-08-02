@@ -30,6 +30,21 @@ Same suites, second transport, not a second definition of passing.
 execute them — deliberate, since helpers that create auth users have no business in a live database.
 To check production, read `pg_policies` and compare against the contract.
 
+## The mutation check runs itself now
+
+`meals_rls_test.sql` ends with an assertion that weakens the `UPDATE` policy to `WITH CHECK (true)`,
+disables the trigger that would otherwise answer first, and proves the reassign then **succeeds**.
+That is case 8b's sensitivity, measured on every commit instead of remembered from an exercise
+somebody did once.
+
+Two reasons it lives in the suite rather than in a runbook. A manual mutation is only true on the
+day it is performed, and a policy rewritten later is covered by nobody's memory of it. And on this
+project the manual version is not reachable anyway: **Supabase pushes only new migration files to a
+preview branch**, so editing the migration that created a policy changes nothing on the database
+the suites actually run against.
+
+Copy the shape when you add an assertion whose failure mode is "quietly stops testing anything".
+
 ## Confirm they can fail
 
 These suites passed for the first time on 2026-08-02, and a suite that has only ever been green may
