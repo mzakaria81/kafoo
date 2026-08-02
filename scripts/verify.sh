@@ -56,12 +56,20 @@ run "codegen drift" bash -c '
 #
 # `deno check` reaches the network for remote imports; a sandbox without one
 # skips rather than fails, since an offline machine is not a broken change.
+#
+# READS THE FILESYSTEM, NOT `git ls-files`. It listed tracked files until 2026-08-02, which meant a
+# function written but not yet staged was invisible: the gate printed ok and the author reasonably
+# concluded their new code type-checked. That is the identical defect fixed in the check immediately
+# below, diagnosed correctly and written up at length there — and this one, six lines away, was left
+# alone for another day. A lesson applied at one call site and not its neighbours reads as fixed
+# while still failing, so when the next such bug is found, sweep for siblings before calling it done.
 run "edge functions" bash -c '
-  git ls-files -z "supabase/functions/*.ts" | grep -qz . || {
-    echo "   no edge functions yet — skipping"; exit 0; }
+  files=$(find supabase/functions -name "*.ts" -type f 2>/dev/null | sort)
+  [ -n "${files}" ] || { echo "   no edge functions yet — skipping"; exit 0; }
   command -v deno >/dev/null || {
     echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
-  out=$(git ls-files -z "supabase/functions/*.ts" | xargs -0 deno check 2>&1) || {
+  # shellcheck disable=SC2086
+  out=$(deno check ${files} 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"Import .* failed"*|*"connection"*|*"dns error"*)
         echo "   no network for remote imports — skipping"; exit 0 ;;
