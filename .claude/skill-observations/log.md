@@ -769,3 +769,62 @@ help an attacker.
 **Principle:** A linter reports that a rule matched, not that a vulnerability exists. Confirmation
 and dismissal both require attempting the thing described; whichever way the evidence falls, the
 finding should carry the response that settled it.
+
+### Observation 34: A privilege check that reads the grant but not the path to it reports access that does not exist
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Verifying that a deliberately narrow permission change had taken effect, then
+discovering the verification itself was incomplete.
+**Skill:** rls-reviewer
+**Type:** open-source
+**Phase/Area:** Verifying privilege changes
+
+**Issue:** A change revoked one function's permissions while leaving three sibling functions
+callable. Verification queried the per-function execute privilege, got exactly the intended pattern
+— one denied, three granted — and the result was reported as confirmation. It was not: reaching a
+function also requires usage on its containing namespace, and a freshly created namespace grants
+that to nobody. Every one of the three "granted" functions raised permission denied on the first
+real call. The per-object privilege was necessary and not sufficient, and the check that looked
+most like proof examined only the half that was already true.
+
+**Suggested improvement:** In `rls-reviewer`, require that a privilege claim be verified by
+performing the operation as the role in question, not by querying the privilege catalogue. Access in
+Postgres is a conjunction — schema usage, object privilege, row policy, and column grants must all
+hold — and a catalogue query answers about one conjunct. Where an actual call is impractical, at
+minimum enumerate the conjuncts and check each; a single `has_*_privilege` result is not an answer.
+
+**Principle:** Permission is a path, not a property. Confirming one link and reporting the path as
+open is the same error whichever link you happened to check — and it is most dangerous when the link
+you checked returns exactly the answer you expected.
+
+### Observation 35: When the tests cannot run, re-express their intent rather than editing them to pass
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** The project's authorization suites turned out to be unrunnable for two
+independent environmental reasons, in the middle of a request to run them.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Blocked test suites
+
+**Issue:** Suites written to prove that a non-owner is refused could not execute: the roles they
+switch into lacked namespace access to the helpers, and could not read the identity table the suites
+use to resolve fixtures. Both were fixable in ways that would have made the suites run — one by
+granting a role read access to the identity table. That fix would have loosened the very database
+the suites exist to check, producing green tests that proved less than nothing. The alternative
+taken was to re-express the suites' intent as independent probes, executed as the same real roles,
+leaving the suites untouched and the blocker documented with the pattern that would resolve it
+properly.
+
+**Suggested improvement:** Add to `test-driven-development` a rule for the blocked-suite case: when a
+test cannot run, enumerate the candidate unblocking changes and reject any that alter the behaviour
+under test. Loosening a permission, relaxing a constraint, or stubbing the boundary being verified
+converts an unrunnable test into a misleading one, which is strictly worse. Prefer changing how the
+test obtains its fixtures over changing what the system allows — and where the right fix is larger
+than the current task, verify the behaviour by another route and record the blocker rather than
+reaching for the change that makes red go away.
+
+**Principle:** An unrunnable test is honest; a test made runnable by weakening its subject is not.
+When those are the two options on offer, the correct move is a third one — verify the behaviour
+independently and leave the blocker visible.

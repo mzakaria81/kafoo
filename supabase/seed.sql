@@ -130,3 +130,22 @@ $$;
 --   clear_authentication   anon=true  authenticated=true
 -- and a PostgREST call to the tests schema returns 404.
 REVOKE ALL ON FUNCTION tests.create_supabase_user(text) FROM PUBLIC, anon, authenticated;
+
+-- EXECUTE alone is not enough, and reading it as though it were produced a wrong conclusion once.
+-- Calling tests.foo() needs USAGE on the schema as well; a new schema grants USAGE to nobody. So
+-- the three privileges above read as granted while every call raised "permission denied for schema
+-- tests" — which is one of two reasons the suites in supabase/tests/ have never run.
+--
+-- Safe to grant: the `tests` schema is absent from api.schemas, so PostgREST does not expose it
+-- (checked — an RPC call returns 404), and create_supabase_user stays revoked above.
+GRANT USAGE ON SCHEMA tests TO anon, authenticated;
+
+-- The other reason: every suite looks a user id up with
+--   (SELECT id FROM auth.users WHERE email = '...')
+-- while acting as anon or authenticated, and neither role holds SELECT on auth.users — in a
+-- deployed project or a local stack. Measured 2026-08-02: authenticated=false, anon=false.
+--
+-- That is NOT fixed here, deliberately. Granting either role read access to auth.users to make a
+-- test pass would weaken the very database the test exists to check. The fix belongs in the suites:
+-- capture the ids returned by tests.create_supabase_user into a temp table granted to those roles,
+-- and read them from there. See docs/ops/preview-branches.md.
