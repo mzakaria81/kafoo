@@ -119,6 +119,10 @@ the policy it tests exists.
 to follow to the end without noticing that the feature needed approval three steps in. See "When to
 stop and ask".
 
+**Steps 3–9 are delegated work.** Understanding the requirement, reviewing the architecture, and
+the whole of step 10 onward are yours. See "Delegating implementation work" — the brief must carry
+every constraint the task touches, because the implementer has none of this file's context.
+
 1. Understand the requirement. Ambiguity is a reason to ask one specific question, not to pick a
    reading.
 2. Review the existing architecture against it — `decisions/`, `docs/product/domain-model.md`, and
@@ -220,6 +224,37 @@ is written but never committed is lost at teardown. Say so rather than silently 
 `.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
 
 ## Delegating implementation work
+
+**YOU MUST delegate implementation.** Writing production code directly is the exception, not the
+default. Use `opencode-delegate` (or `claude-delegate`) to hand a bounded task to a separate agent,
+then review its diff, re-run the gates yourself, and commit. Founder's decision, 2026-08-02.
+
+The reason is not cost. It is that **the author of a change is the worst available reviewer of it**,
+and this repository's whole safety model — RLS negative tests seen to fail, mutation checks, a gate
+that must go red before it goes green — depends on somebody actually reading the code with fresh
+eyes. Delegating creates that separation structurally instead of asking one agent to pretend.
+
+**Delegate, always:** feature code, migrations, Edge Functions, tests, refactors, renames, sweeps.
+
+**Do it yourself, and say why:**
+
+- **Architecture and decisions.** ADRs, spec and plan documents, choosing between approaches, and
+  anything in `decisions/` or `.claude/`. A brief cannot carry the conversation that produced the
+  judgement.
+- **Diagnosis.** Use `--read-only` (the `plan` agent) to investigate; do not delegate a fix for a
+  bug nobody has understood yet.
+- **A change smaller than its brief.** A one-line fix costs more to describe than to make.
+- **Anything the founder asked you specifically to do.** He asked you, not a subagent.
+
+**Reviewing is not optional and not a formality.** Never accept "gates passed" on faith — run
+`./scripts/verify.sh` yourself, read the diff against the brief, and check the things a delegated
+agent has no way to know: canonical vocabulary, Egyptian Arabic register, whether a negative test
+was actually seen to fail, whether an RLS policy is as narrow as it looks. **You are accountable for
+what you commit, whoever typed it.**
+
+Model choice comes from the table below. Verified against this account on 2026-08-02: all ten
+allowlisted models are present. Re-verify rather than trusting this sentence — model lineups go
+stale silently, which this project learned the expensive way the same day.
 
 The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
 session.
