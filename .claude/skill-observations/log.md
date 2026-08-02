@@ -1003,3 +1003,36 @@ differentiates the options. Escalate the real decision, not the category it fell
 alone spends the decision-maker's attention on the label rather than the substance — and worse, it
 can hide the real trade-off underneath a cost framing that turns out to be noise. Quantify before
 escalating; the estimate is usually cheap and it decides whether the question is even worth asking.
+
+### Observation 42: A gate that enumerates tracked files silently ignores uncommitted work — and still answers
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Adding an Edge Function unit-test step to the project's verification gate
+**Skill:** verification-before-completion, and ship-check
+**Type:** open-source
+**Phase/Area:** Verification tooling, pre-commit gates
+
+**Issue:** The project's gate script discovers what to check with the version-control tool's
+"list tracked files" command, which every existing check used and which I copied. Ten new unit
+tests were sitting on disk, unstaged. The gate printed "no unit tests yet — skipping" and then
+"ok", and the overall result was a pass. Nothing was wrong and nothing was verified. The failure
+is not that the check was skipped — it is that the gate *answered*, in the affirmative, about work
+it had not looked at. Had I trusted it, I would have committed ten tests that had never run inside
+the gate, and reported the gate as green with a straight face.
+
+Noticed only because the count looked wrong. A skip line is easy to read past when nine other
+lines say ok.
+
+**Suggested improvement:** In verification guidance, add a specific check: after adding a step to
+a gate, confirm it actually examined the new files rather than skipping them — the skip path and
+the pass path print differently, and the difference must be read. More generally, prefer
+filesystem discovery over version-control discovery for anything meant to validate work in
+progress, and reserve tracked-file enumeration for checks about the repository's committed state
+(such as scanning for committed credentials, where "untracked" genuinely means "not a problem").
+
+**Principle:** A verification step that cannot find its subject should be loud, not silent. Any
+gate whose discovery mechanism can return an empty set needs to distinguish "checked, found
+nothing wrong" from "found nothing to check" — and the second must never be reported as success.
+Skip-on-empty is the default shape of these scripts and it converts a missing check into a green
+tick.

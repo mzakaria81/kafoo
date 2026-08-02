@@ -70,6 +70,43 @@ run "edge functions" bash -c '
   }
   exit 0'
 
+# Edge Function unit tests. `deno check` proves a function would parse; these prove it behaves.
+#
+# The registry suite in particular is what keeps ADR-0005 Amendment 1 honest — a half-added
+# provider or a silent fallback to the wrong one would pass every other check in this gate.
+#
+# NAMING IS LOAD-BEARING HERE, and this is where the convention is written down:
+#
+#   *_test.ts   unit. No network, no database, no local stack. Runs in this gate on every commit.
+#   *.test.ts   integration. Needs `supabase start`. Runs by hand, and never here.
+#
+# delete-account/index.test.ts is the second kind — it creates real auth users against a local
+# stack and cannot pass without Docker. Sweeping both kinds into the gate makes it fail on every
+# machine that has no Docker, which is every CI runner we use and the session container too.
+#
+# Network-dependent for the same reason as the check above (jsr imports), and skipped rather than
+# failed for the same reason.
+#
+# Reads the filesystem, not `git ls-files`. The other checks here list tracked files, which means a
+# test written but not yet staged is invisible to them — the gate says "skipping", prints ok, and
+# the author reasonably concludes their new suite passed. Caught exactly that way on 2026-08-02
+# with ten registry tests sitting unstaged on disk. A gate that silently ignores uncommitted work
+# is worse than one that has not been written, because it answers.
+run "edge function tests" bash -c '
+  files=$(find supabase/functions -name "*_test.ts" -type f 2>/dev/null | sort)
+  [ -n "${files}" ] || { echo "   no edge function unit tests yet — skipping"; exit 0; }
+  command -v deno >/dev/null || {
+    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+  # shellcheck disable=SC2086
+  out=$(deno test --quiet --allow-env ${files} 2>&1) || {
+    case "${out}" in
+      *"error sending request"*|*"connection"*|*"dns error"*)
+        echo "   no network for remote imports — skipping"; exit 0 ;;
+      *) printf "%s\n" "${out}" >&2; exit 1 ;;
+    esac
+  }
+  exit 0'
+
 # Credentials belong in the environment, never in the repository. Two are live
 # in this project and both are rotate-everything incidents if committed:
 # OPENCODE_API_KEY (delegation) and SUPABASE_SERVICE_ROLE_KEY (bypasses RLS
