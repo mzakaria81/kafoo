@@ -252,9 +252,9 @@ agent has no way to know: canonical vocabulary, Egyptian Arabic register, whethe
 was actually seen to fail, whether an RLS policy is as narrow as it looks. **You are accountable for
 what you commit, whoever typed it.**
 
-Model choice comes from the table below. Verified against this account on 2026-08-02: all ten
-allowlisted models are present. Re-verify rather than trusting this sentence — model lineups go
-stale silently, which this project learned the expensive way the same day.
+Model choice comes from the table below. **Read the prefix carefully** — `opencode-go/` is the
+flat-rate subscription and `opencode/` is a metered product sharing the same credential. Re-verify
+rather than trusting this sentence; both the lineup and the prefix have been wrong here before.
 
 The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
 session.
@@ -274,55 +274,73 @@ the default **Trusted** network allowlist — it is reachable from the environme
 but an environment restricted to Trusted may need `opencode.ai` added under **Custom**.
 
 Without a credential, `opencode models` lists only the anonymous free tier and shows none of the
-allowlist below. That is a missing key, not a drifted plan — the ten models below were all
-confirmed present once a key was supplied.
+allowlist below. That is a missing key, not a drifted plan — every model below was confirmed
+present once a key was supplied.
 
 `opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
 edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,
 read the diff against the brief, then commit. Never accept a delegated agent's "gates passed"
 on faith — re-run `./scripts/verify.sh`.
 
-### Allowed OpenCode models — flat-rate only
+### Allowed OpenCode models — the prefix IS the billing boundary, and it is `opencode-go/`
 
-The OpenCode subscription on this account is **OpenCode Go**, a flat-rate plan covering a
-specific set of models. The prefix is `opencode/` (verified against this account with
-`opencode models`; the provider ID in `auth.json` is `opencode`).
+The OpenCode subscription on this account is **OpenCode Go**, a flat-rate plan. Its namespace is
+**`opencode-go/`**. Everything dispatched for Kafoo uses that prefix.
 
-**The `opencode/` prefix is NOT a billing boundary.** That namespace also serves frontier models
-billed per token — `opencode/claude-opus-5`, `opencode/gpt-5.5-pro`, `opencode/gemini-3.1-pro`
-and similar. They share the prefix with the flat-rate models and nothing in the model string
-distinguishes them, so "starts with `opencode/`" is not a safety check.
+**`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
+two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every
+agent to use the metered one:
 
-**MUST NOT** dispatch a model outside the allowlist below. Selecting a frontier model produces a
-real, unbudgeted charge. If a task seems to need one, say so and let a human decide — never pick
-from `opencode models` output on the assumption that the prefix makes it safe.
+| Prefix | Provider | Billing | Models |
+|---|---|---|---|
+| `opencode-go/` | OpenCode Go | flat-rate subscription | 17 — the published Go lineup |
+| `opencode/` | OpenCode Zen | **metered, per token** | 60 — includes frontier models |
 
-### Allowlist — verified present on this account
+Corrected on 2026-08-02, and not by reading anything. A dispatch to `opencode/grok-4.5` failed with
+HTTP 401 `CreditsError: Insufficient balance`, against `https://opencode.ai/zen/v1/responses` — the
+model string named a Go-lineup model and the request still went to Zen. `opencode auth list` then
+showed `OPENCODE_API_KEY` listed twice, once under "OpenCode Go" and once under "OpenCode Zen".
 
-`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `grok-4.5` · `kimi-k2.6` ·
-`kimi-k2.7-code` · `minimax-m2.7` · `minimax-m3` · `qwen3.6-plus`
+The earlier text said the provider id was `opencode` "verified with `opencode models`". Both
+providers appear in that output, both carry Go-lineup model names, and the flat-rate one sorts
+lower. Verifying that a model *exists* is not verifying which account pays for it.
 
-Each is on the published Go lineup *and* present in this account's catalog. Models with a
-`-free` suffix are outside the plan's paid tier and fine to use.
+**MUST NOT** dispatch anything outside `opencode-go/`. A metered model produces a real, unbudgeted
+charge. If a task seems to need one, say so and let a human decide.
+
+The zero balance that produced the error above is not a safety net to rely on. It made this
+particular mistake free; a topped-up balance would have made the same mistake silent.
+
+### Allowlist — verified present on this account, 2026-08-02
+
+The full published Go lineup is available. Listing `opencode-go/` returns all seventeen:
+
+`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `gpt-5.6-luna` · `grok-4.5` ·
+`hy3` · `kimi-k2.6` · `kimi-k2.7-code` · `kimi-k3` · `mimo-v2.5` · `mimo-v2.5-pro` ·
+`minimax-m2.7` · `minimax-m3` · `qwen3.6-plus` · `qwen3.7-max` · `qwen3.7-plus`
+
+Six of these — `kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3` — were
+previously recorded here as "on the published docs but not on this account", and a note warned that
+Go's lineup drifts. They were never missing. They were under the prefix nobody had looked at, and
+the drift the note described was a measurement error. Delete a warning when its cause turns out to
+be something else; a plausible explanation left standing is how the real one stays hidden.
 
 | Task shape | Model |
 |---|---|
-| Mechanical — renames, migrations, removal sweeps, formatting | `opencode/deepseek-v4-flash` |
-| Ordinary implementation | `opencode/qwen3.6-plus` |
-| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode/grok-4.5` |
+| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
+| Ordinary implementation | `opencode-go/qwen3.6-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
 
-Go is in beta and its lineup drifts — the published docs already list models this account does
-not have (`kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3`). Re-run
-`opencode models --refresh` and update this allowlist rather than improvising per task. A model
-that no longer exists fails loudly, which is safe; a metered one does not.
+Re-run `opencode models --refresh` and update this allowlist rather than improvising per task. A
+model that no longer exists fails loudly, which is safe; a metered one does not.
 
-**Do not substitute a same-named model from another provider.** Checked on 2026-07-26 after a
-cache refresh: `kimi-k3` is absent from `opencode/` but present as
-`cloudflare-ai-gateway/moonshotai/kimi-k3`. That is a different provider — billed per token,
-requiring separate credentials, and not covered by this subscription. The same applies to any
-`openrouter/`, `cloudflare-ai-gateway/`, or similar path that happens to carry a model name from
-the Go lineup. If a wanted model is missing from `opencode/`, the subscription cannot reach it
-and no configuration changes that; use the nearest allowlisted model or ask.
+**Do not substitute a same-named model from another provider.** `cloudflare-ai-gateway/`,
+`amazon-bedrock/`, `github-models/` and `openrouter/` all carry names from the Go lineup and none
+of them are covered by this subscription — they bill separately and need their own credentials.
+This is the same trap as `opencode/` versus `opencode-go/`, one level out: a familiar model name is
+not evidence of who pays for the call. If a wanted model is missing from `opencode-go/`, the
+subscription cannot reach it and no configuration changes that; use the nearest allowlisted model
+or ask.
 
 ### Delegated work is still Kafoo work
 
