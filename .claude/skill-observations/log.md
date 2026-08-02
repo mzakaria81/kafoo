@@ -828,3 +828,59 @@ reaching for the change that makes red go away.
 **Principle:** An unrunnable test is honest; a test made runnable by weakening its subject is not.
 When those are the two options on offer, the correct move is a third one — verify the behaviour
 independently and leave the blocker visible.
+
+### Observation 36: Mutation-test a green suite, because passing does not establish that it could fail
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Repairing authorization suites that had never executed, then deciding whether
+to trust them once they went green.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Establishing that a passing test is load-bearing
+
+**Issue:** A set of authorization suites was repaired until every assertion passed. Passing was not
+evidence of much: these suites had never run, so no assertion had been observed distinguishing a
+protected system from an unprotected one. Deliberately reintroducing the vulnerability each
+assertion described settled it. Most turned red, which is what made the greens meaningful. One did
+not: the assertion carrying a comment identifying it as *the critical one* stayed green with its
+protection removed, because a second, unrelated rule happened to refuse the same operation. The
+protection it advertised was redundant today and would become load-bearing under a planned change,
+at which point the test guarding it would have gone on passing regardless.
+
+**Suggested improvement:** Extend `test-driven-development` beyond red-before-green for new tests to
+a mutation step for any suite that has never been observed failing — including inherited or repaired
+suites, where the original red was never seen. For each assertion, remove the specific protection it
+names and confirm that assertion turns red. Assertions that stay green are not necessarily wrong,
+but they do not test what their name claims, and the discrepancy belongs next to them in a comment.
+
+**Principle:** A test earns trust by discriminating, not by passing. Until you have seen an
+assertion fail for the reason it exists, you know it runs — not that it guards anything.
+
+### Observation 37: Validate the artefact you are shipping, not the equivalent one you developed with
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Promoting a working scratch script into a committed one used by continuous
+integration.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Promoting prototypes to production
+
+**Issue:** A helper was developed and proven against a live system, then rewritten into the
+repository for automation to run. The rewrite was faithful in logic but changed one incidental
+detail: the prototype shelled out to a common HTTP client, the committed version used the language's
+standard library. The remote service's firewall rejects the standard library's default user agent
+with a status that reads like an authentication failure. Every call failed. Nothing in the logic
+differed, the prototype's evidence was real, and it transferred nothing — the difference lived
+entirely in a default neither version stated. Running the committed file once caught it in seconds.
+
+**Suggested improvement:** Add to `verification-before-completion` a promotion rule: evidence
+attaches to the exact artefact that produced it, so a rewrite invalidates it. Before shipping a
+reimplementation of something already proven, execute the shipped file itself against the same
+target. Pay particular attention to details neither version names — default headers, timeouts,
+encodings, working directory — because those are precisely what a faithful logical port silently
+changes.
+
+**Principle:** Proof does not survive a rewrite. When the thing you validated and the thing you ship
+are two different files, only one of them has been tested, and it is not the one that matters.

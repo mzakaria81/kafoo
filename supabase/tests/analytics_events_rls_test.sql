@@ -3,7 +3,7 @@
 -- Run with: supabase test db
 
 BEGIN;
-SELECT plan(6);
+SELECT plan(7);
 
 -- Create two test users.
 SELECT tests.create_supabase_user('person@test.kafoo');
@@ -15,7 +15,7 @@ SELECT tests.authenticate_as('person@test.kafoo');
 INSERT INTO public.analytics_events (name, person_id)
 VALUES (
   'SignInCompleted',
-  (SELECT id FROM auth.users WHERE email = 'person@test.kafoo')
+  tests.user_id('person@test.kafoo')
 );
 
 SELECT tests.clear_authentication();
@@ -38,8 +38,10 @@ SELECT throws_ok(
   $$ INSERT INTO public.analytics_events (name, person_id)
      VALUES (
        'SignInCompleted',
-       (SELECT id FROM auth.users WHERE email = 'other@test.kafoo')
+       tests.user_id('other@test.kafoo')
      ) $$,
+  '42501',
+  NULL,
   'person cannot attribute an event to someone else'
 );
 
@@ -51,6 +53,8 @@ SELECT tests.authenticate_as_anon();
 SELECT throws_ok(
   $$ INSERT INTO public.analytics_events (name, person_id)
      VALUES ('KitchenProfileCreated', NULL) $$,
+  '42501',
+  NULL,
   'anonymous cannot insert non-funnel events'
 );
 
@@ -63,8 +67,10 @@ SELECT throws_ok(
   $$ INSERT INTO public.analytics_events (name, person_id)
      VALUES (
        'SignInStarted',
-       (SELECT id FROM auth.users WHERE email = 'person@test.kafoo')
+       tests.user_id('person@test.kafoo')
      ) $$,
+  '42501',
+  NULL,
   'anonymous cannot insert a funnel event attributed to a person'
 );
 
@@ -86,15 +92,22 @@ SELECT is(
   'person_id is null after person deletion'
 );
 
--- 6. Anyone updates an existing event → rejected (events are write-once).
+-- 6. Anyone updates an existing event → nothing changes (events are write-once).
+--
+-- Asserted as the row being unchanged, not as an exception. With no UPDATE policy the statement
+-- matches zero rows and raises nothing; RLS makes the row invisible rather than making the write an
+-- error. Write-once still holds — it is enforced by absence, and absence is silent.
 SELECT tests.authenticate_as('other@test.kafoo');
 
-SELECT throws_ok(
-  $$ UPDATE public.analytics_events SET name = 'hacked' WHERE name = 'SignInCompleted' $$,
-  'no one can update an existing event'
-);
+UPDATE public.analytics_events SET name = 'hacked' WHERE name = 'SignInCompleted';
 
 SELECT tests.clear_authentication();
+
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.analytics_events WHERE name = 'hacked'),
+  0,
+  'no one can update an existing event'
+);
 
 SELECT finish();
 ROLLBACK;

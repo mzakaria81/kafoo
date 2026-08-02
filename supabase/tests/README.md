@@ -16,11 +16,30 @@ and the `tests` schema these files depend on: `create_supabase_user`, `authentic
 `authenticate_as_anon`, `clear_authentication`. Running `supabase test db` against a database that
 has not been reset fails on the first statement with "schema tests does not exist".
 
-**These suites only run locally.** Seeds do not run against a deployed project, so a deployed
-database has no `tests` schema and cannot execute them. That is deliberate — helpers that create
-auth users have no business in production. To check a deployed project, read `pg_policies` and
-compare the definitions against the contract; to check that the policies *behave*, use a local
-database or a Supabase preview branch.
+`tests.user_id('someone@test.kafoo')` resolves a fixture's id. Do **not** replace it with
+`SELECT id FROM auth.users WHERE email = …`: no Supabase project grants `anon` or `authenticated`
+any access to `auth.users`, so that read fails the moment a suite is acting as one of them. It is how
+these suites were originally written and one of the reasons they had never run.
+
+**Where they run.** Locally, and on the preview branch built for each pull request — the
+`Authorization` workflow runs them there via `scripts/run-authorization-suites.py`, which uses the
+Management API because `supabase test db` needs a direct Postgres port that CI networks often block.
+Same suites, second transport, not a second definition of passing.
+
+**Never against production.** Seeds do not run there, so production has no `tests` schema and cannot
+execute them — deliberate, since helpers that create auth users have no business in a live database.
+To check production, read `pg_policies` and compare against the contract.
+
+## Confirm they can fail
+
+These suites passed for the first time on 2026-08-02, and a suite that has only ever been green may
+be incapable of red. They were mutation-tested: adding
+`CREATE POLICY … ON kitchen_profiles FOR SELECT TO authenticated USING (true)` — a real data breach —
+turns `kitchen_profiles_rls_test.sql` red. Do the same before trusting any assertion you add here.
+
+That exercise also found that test 3 does not detect what its name suggested; see the comment above
+it. Weakening `WITH CHECK` alone leaves the suite green, because the SELECT policy independently
+refuses the reassign today. It will stop doing so when FR-030 makes kitchens publicly discoverable.
 
 ## How they prove anything
 

@@ -21,7 +21,7 @@ SELECT tests.authenticate_as('cook@test.kafoo');
 INSERT INTO public.kitchen_profiles
   (cook_id, display_name, story, area, delivery_terms)
 VALUES (
-  (SELECT id FROM auth.users WHERE email = 'cook@test.kafoo'),
+  tests.user_id('cook@test.kafoo'),
   'مطبخ الأم',
   'بنعمل أكل بيتي بحب',
   'مدينة نصر',
@@ -83,10 +83,16 @@ SELECT tests.clear_authentication();
 --    that route is closed.
 SELECT tests.authenticate_as('customer@test.kafoo');
 
-SELECT is(
-  (SELECT COUNT(*)::int FROM auth.users
-   WHERE email = 'cook@test.kafoo'),
-  0,
+-- Asserted as a refusal, not as an empty result. This read used to expect zero rows, which assumed
+-- a row-level filter; the actual mechanism is a table-level privilege denial (42501), because no
+-- Supabase project grants authenticated any access to auth.users at all. The guarantee is therefore
+-- stronger than the original assertion claimed — the Customer is refused at the door rather than
+-- shown an empty room — and the old form could never have passed, since a hard error aborts the
+-- statement instead of returning 0.
+SELECT throws_ok(
+  $$ SELECT COUNT(*)::int FROM auth.users WHERE email = 'cook@test.kafoo' $$,
+  '42501',
+  NULL,
   'a Customer cannot reach another person''s auth record, and so cannot reach their phone number'
 );
 

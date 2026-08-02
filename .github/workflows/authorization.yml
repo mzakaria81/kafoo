@@ -1,0 +1,63 @@
+name: Authorization
+
+# Runs supabase/tests/*.sql — the RLS suites — against the preview branch Supabase
+# builds for this pull request. That branch is a real Postgres with the migrations
+# and the seed applied, so this is the only place the policies are exercised rather
+# than reviewed.
+#
+# Pull requests only, and never against production. The suites create auth users
+# and write rows; a preview branch is disposable and production is not.
+#
+# WHAT MAKES THIS MEANINGFUL. These suites were mutation-tested on 2026-08-02:
+# broadening the kitchen_profiles SELECT policy to `USING (true)` turns them red.
+# A suite that has only ever been green may be incapable of red, so if you add
+# assertions here, break the policy on purpose once and watch this job fail before
+# you trust it.
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: authorization-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suites:
+    name: authorization suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Guarded like deploy.yml: with no secrets this is a visible no-op rather
+      # than a red cross on every pull request. It says so loudly, because a
+      # skipped check is easy to mistake for a passing one — the deploy workflow
+      # carried a CLI version that had never existed for exactly that reason.
+      - name: Preflight
+        id: pre
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Authorization suites did not run::SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are not set as repository secrets, so the RLS suites were skipped. The policies in this pull request are UNVERIFIED. Add both secrets to turn this check on."
+            echo "SKIPPED — the RLS suites did not run."
+            echo "Add SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF under"
+            echo "Settings > Secrets and variables > Actions to enable them."
+          fi
+
+      # The preview branch is built by Supabase's GitHub integration when the pull
+      # request opens, not by this workflow, so it may not be ready yet. The script
+      # waits for it and fails loudly rather than passing on a branch that never
+      # appeared.
+      - name: Run the authorization suites
+        if: steps.pre.outputs.ready == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 scripts/run-authorization-suites.py \
+            --parent "${{ secrets.SUPABASE_PROJECT_REF }}" \
+            --git-branch "${{ github.head_ref }}"
