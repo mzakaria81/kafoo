@@ -652,3 +652,60 @@ technically authorised is still a disclosure.
 **Principle:** Verification is not automatically side-effect-free. A read that returns secrets has
 published them; the question is not whether the call was permitted but where the response now lives
 and who can reach it.
+
+### Observation 30: A local emulator that accepts what the real service rejects turns local testing into a source of false confidence
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** The first ephemeral environment ever built for this project failed immediately
+on a configuration file that had passed every local run.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** The limits of local verification
+
+**Issue:** A configuration value had been written in a format the vendor's hosted API rejects
+outright. The local emulator of that same service accepted it silently, so the error survived
+authoring, code review, a full verification gate and three merged changes. The first deployed
+environment to read the identical file failed on it within seconds. The failure was not subtle or
+probabilistic — it was a flat 400 with a message naming the exact field and the exact rule — and it
+was undetectable locally by construction, because the component that would have complained was the
+one being emulated.
+
+**Suggested improvement:** Add to `test-driven-development` a note on the boundary of local testing:
+a local emulator verifies your code against *its* implementation of a service, not against the
+service. Configuration and schema that the hosted product validates on ingest are the highest-risk
+category, because the emulator is usually more permissive than the product. The remedy is not more
+local tests; it is one cheap disposable instance of the real thing in the pipeline. Where that
+exists, treat the first run of it as a review step in its own right.
+
+**Principle:** An emulator's silence is evidence about the emulator. Anything the real service
+validates and the emulator does not is invisible to every local test you will ever write, and no
+amount of local rigour converts into confidence about it.
+
+### Observation 31: When an experiment finally becomes possible, run it and record the result in the artefact that carried the guess
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** A hypothesis written into three files became testable the moment the first
+working ephemeral environment appeared.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Closing out explicitly-unverified claims
+
+**Issue:** Work had shipped with two claims explicitly marked unverified — a behaviour assumed from
+vendor documentation, and a safety statement that had never executed anywhere. Both were labelled
+honestly, which was necessary but not sufficient: a labelled uncertainty still ages into apparent
+fact once the label scrolls out of view. When the environment that could settle both finally
+existed, deliberately holding it open long enough to measure — rather than merging on green — turned
+both into observations, and revealed that the scoping decision behind the safety statement was
+correct in a way that could not have been argued from the code alone.
+
+**Suggested improvement:** In `verification-before-completion`, pair the practice of labelling
+unverified claims with a closing step: keep a short list of what is outstanding, and when the
+blocking condition clears, measure and write the result back into the same files that carried the
+guess. Where the verification window is transient — an ephemeral environment, a live incident, a
+one-off migration — protect it deliberately rather than letting the default workflow close it.
+
+**Principle:** Marking a claim unverified is a debt, not a discharge. The debt is paid by measuring
+and amending the original artefact, and the opportunity to do it is often a narrow window that the
+normal workflow will destroy by default.

@@ -20,11 +20,9 @@ major_version = 17
 
 # seed.sql installs pgTAP and the `tests` helper schema the authorization suites need.
 #
-# This setting governs the LOCAL stack, where the seed definitely runs. Where it runs once deployed
-# is not decided here and is not what the obvious reading suggests: a hand-created branch was
-# measured on 2026-08-02 getting all three migrations and NOT this file. The header of seed.sql
-# records what has actually been observed — read it before assuming the test harness exists anywhere
-# but your own machine.
+# Runs locally and on git-linked preview branches; not on production, and not on a branch created by
+# hand. All four cases were measured on 2026-08-02 and are listed in the header of seed.sql — read
+# that before assuming the test harness exists in any particular environment.
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]

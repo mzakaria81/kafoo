@@ -7,24 +7,24 @@
 -- The helpers are vendored rather than pulled from database.dev on purpose: a test harness that
 -- needs the network to start is a test harness that fails in CI for reasons unrelated to the code.
 --
--- WHERE THIS RUNS. Locally, for certain. Everywhere else, read this carefully — the comment here
--- has now been wrong twice in opposite directions, so it records what was observed rather than what
--- the documentation promises.
+-- WHERE THIS RUNS. All three cases measured on 2026-08-02, after this comment had been wrong twice
+-- in opposite directions:
 --
--- Not on production: `supabase db push` applies migrations only.
+--   Locally                    — yes, on `supabase db reset`.
+--   Git-linked preview branch  — yes. Confirmed on branch coamyiukxwrsnvyyextf (pull request #16):
+--                                `tests` schema present, pgTAP installed, all four helpers created.
+--   Hand-created branch        — no. The `staging` branch got all three migrations and not this
+--                                file, because a branch with no repository behind it has nothing to
+--                                read the seed from.
+--   Production                 — no. `supabase db push` applies migrations only.
 --
--- Not on a branch created by hand. Measured 2026-08-02 against the `staging` branch, which is not
--- linked to a git branch: all three migrations applied, and this file did not run. No `tests`
--- schema, no pgTAP, so the REVOKE at the foot of this file has still never executed anywhere.
+-- Why it matters: a preview branch is a real, internet-facing Supabase project with its own URL and
+-- anon key. This file installs a user-creating helper there, which is what the REVOKE at the foot of
+-- the file is for.
 --
--- Probably on a git-linked preview branch, which is what Supabase documents — such a branch is
--- built from the repository, where this file exists, while a hand-made branch has no repository to
--- read it from. That explanation fits the evidence and has NOT been tested; no git-linked branch has
--- ever been built here. Treat it as the reason to check rather than as a fact.
---
--- The reason any of this matters: a branch is a real, internet-facing Supabase project with its own
--- URL and anon key, so wherever this file does run, it is installing a user-creating helper on a
--- reachable database.
+-- Note for editing this file: Supabase pushes only *new* migration files on each commit to an open
+-- pull request. Changing this seed and pushing does not re-run it — close and reopen the pull
+-- request, or the branch keeps the previous version.
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
@@ -122,4 +122,11 @@ $$;
 -- Scoped to create_supabase_user ONLY. The other three helpers must stay callable by anon and
 -- authenticated: every suite calls tests.clear_authentication() *while* acting as one of those
 -- roles, so revoking them here would fail every authorization test in supabase/tests/.
+--
+-- Verified on branch coamyiukxwrsnvyyextf, 2026-08-02 — its first execution anywhere:
+--   create_supabase_user   anon=false authenticated=false
+--   authenticate_as        anon=true  authenticated=true
+--   authenticate_as_anon   anon=true  authenticated=true
+--   clear_authentication   anon=true  authenticated=true
+-- and a PostgREST call to the tests schema returns 404.
 REVOKE ALL ON FUNCTION tests.create_supabase_user(text) FROM PUBLIC, anon, authenticated;
