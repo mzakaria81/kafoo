@@ -214,7 +214,7 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 ## Phase 10: Polish & Cross-Cutting
 
-- [ ] T070 **Amend ADR-0005.** It assumes the model seam and the credential live in the same place. They cannot — the key would ship in the Flutter binary. Record that the seam stays `AiProvider` while the vendor swap moves inside the Edge Function
+- [x] T070 **Amend ADR-0005 — DONE, and moved to the front of the epic rather than the end.** Building the Edge Function on an architecture document known to be wrong is how a decision record becomes fiction. Amendment 1 covers the moved seam, the one-variable switch, and the chosen provider. ~~**Amend ADR-0005.**~~ It assumes the model seam and the credential live in the same place. They cannot — the key would ship in the Flutter binary. Record that the seam stays `AiProvider` while the vendor swap moves inside the Edge Function
 - [ ] T071 [P] Add the Meal shape and the `nutrition_source` rule to `docs/product/domain-model.md`, and record that `meals.cook_id` uses `ON DELETE CASCADE` today and **must become `RESTRICT` in the migration that creates `orders`** (Definition of Done item 6)
 - [ ] T072 [P] Move every E2 event in `docs/product/event-model.md` from `planned` to `active`
 - [ ] T073 [P] Confirm every new screen renders under RTL with `EdgeInsetsDirectional` and `start`/`end`, never `left`/`right` (SC-009)
@@ -229,7 +229,9 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 ## Blocked on a decision
 
-- [ ] T080 **Choose a model provider.** Requirements are in research.md §1: vision, Egyptian Arabic, strict JSON, streaming, known cost per published Meal. This is recurring spend and a stop-and-ask — the founder decides, and nothing in Phase 4 can be evaluated against a real model until they do
+- [x] T080 **Choose a model provider — DECIDED 2026-08-02: Anthropic Claude Haiku 4.5, fast tier.** Recorded in ADR-0005 Amendment 1, with switching made a one-variable configuration change and enforced by a `verify.sh` check. Original framing kept below.
+
+  ~~**Choose a model provider.**~~ Requirements are in research.md §1: vision, Egyptian Arabic, strict JSON, streaming, known cost per published Meal. This is recurring spend and a stop-and-ask — the founder decides, and nothing in Phase 4 can be evaluated against a real model until they do
 
   **Priced on 2026-08-02, and the cost turns out not to decide it.** One published Meal is roughly
   4,600 input and 600 output tokens across two calls (analysis with photo, then description). Every

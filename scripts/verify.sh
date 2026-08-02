@@ -120,6 +120,28 @@ run "vocabulary" bash -c '
     apps packages supabase 2>/dev/null || true)
   if [ -n "$hits" ]; then echo "$hits"; exit 1; fi'
 
+# ADR-0005 Amendment 1: switching model providers must be a configuration change with no code
+# diff at all. That claim is only true while a model name lives in exactly two places — the Edge
+# Function's provider registry, and an environment variable.
+#
+# A hardcoded model id anywhere else is the whole mechanism quietly failing: the code still works,
+# the switch still looks like config, and one call site keeps talking to the old vendor. Cheaper to
+# catch here than to discover during a dialect bake-off.
+#
+# decisions/, docs/ and specs/ are excluded — naming a model is what those files are for.
+run "model config seam" bash -c '
+  registry=supabase/functions/_shared/ai/registry.ts
+  hits=$(grep -rinE "(claude-[a-z0-9]+-[0-9]|gpt-[0-9]+(\.[0-9]+)?(-[a-z]+)?|gemini-[0-9]+(\.[0-9]+)?-[a-z]+)" \
+    --include="*.dart" --include="*.ts" --include="*.md" \
+    apps packages prompts supabase/functions 2>/dev/null \
+    | grep -v "^${registry}:" || true)
+  if [ -n "$hits" ]; then
+    echo "$hits"
+    echo "   A model name belongs in ${registry} or an environment variable, nowhere else."
+    echo "   See decisions/0005-... Amendment 1."
+    exit 1
+  fi'
+
 # Every user-facing string must exist in the Egyptian Arabic ARB, not just English.
 run "localization parity" bash -c '
   ar=apps/mobile/lib/l10n/app_ar.arb
