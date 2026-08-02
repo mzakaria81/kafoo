@@ -227,6 +227,43 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 ---
 
+## Added after the provider seam was measured (2026-08-02)
+
+These are not in the original plan. They come from calling a real model and finding out what the
+design documents could not have known.
+
+- [ ] T081 **Put a response schema in the adapter interface.** Measured: asking a model for clean
+  JSON in the prompt does not work — it wrapped the reply in a Markdown code fence *despite the
+  prompt forbidding one*. Setting `responseMimeType: application/json` plus a schema returns bare
+  JSON every time. A prompt instruction is a request; an API parameter is a constraint, and
+  `.claude/rules/ai.md` demands strict JSON validated against a schema.
+
+  Real work, not a tweak: `ModelRequest` gains an optional schema, and each provider expresses it
+  differently — Gemini takes an OpenAPI-ish `responseSchema`, OpenAI takes JSON Schema under
+  structured outputs, Anthropic does it through tool use. That divergence is exactly the quirk the
+  adapter layer exists to absorb. **Do this before `analyze-meal` is written**, so the function is
+  not built on the weaker approach and then retrofitted.
+
+- [ ] T082 **Declare functions in `supabase/config.toml`.** Every preview build warns that only
+  declared functions deploy to branches, and none are declared — so E1's `delete-account` is not
+  exercised on preview branches either, and `analyze-meal` would silently not be. Pre-existing gap,
+  cheap to close, and it invalidates any "tested on the preview branch" claim about a function
+  until it is.
+
+- [ ] T083 **Measure on-device Egyptian Arabic transcription.** Before E3. The weakest link in a
+  voice-first feature is probably not the model — it is whether the phone hears `بانيه` correctly
+  in the first place, and nobody has checked. If it is bad, no downstream model quality rescues it,
+  and the fix (server-side transcription) is a smaller change than it sounds.
+
+- [ ] T084 **Throwaway spike: the Gemini Live API for Customer discovery.** Before E3, and
+  explicitly not for E2 — E2's model call is a single structured extraction, and the Live API's
+  advantages are latency (already met at 645 ms) and open-ended dialogue (Kafoo asks the questions
+  here, not the model). Adopting it in E2 would also put the API key back on the handset and end
+  one-variable provider switching. It is a genuine candidate for E3, where a Customer talks to
+  Kafoo to find food and the model does lead. Spike to answer that, and throw the code away.
+
+---
+
 ## Blocked on a decision
 
 - [x] T080 **Choose a model provider — DECIDED 2026-08-02: Anthropic Claude Haiku 4.5, fast tier.** Recorded in ADR-0005 Amendment 1, with switching made a one-variable configuration change and enforced by a `verify.sh` check. Original framing kept below.
