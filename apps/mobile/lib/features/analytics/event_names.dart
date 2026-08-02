@@ -26,4 +26,9 @@ abstract final class EventNames {
   static const String recoveryEmailDeclined = 'RecoveryEmailDeclined';
   static const String recoveryEmailAttached = 'RecoveryEmailAttached';
   static const String phoneNumberChanged = 'PhoneNumberChanged';
+
+  // Level 2 — product analytics events added in E2.
+  // MealPublished and MealArchived are above, with the core events.
+  static const String mealDrafted = 'MealDrafted';
+  static const String mealUpdated = 'MealUpdated';
 }

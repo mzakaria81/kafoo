@@ -7,4 +7,7 @@ library;
 
 export 'conversation_step.dart';
 export 'kitchen_profile.dart';
+export 'meal.dart';
+export 'meal_analysis.dart';
+export 'meal_step.dart';
 export 'result.dart';
