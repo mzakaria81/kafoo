@@ -41,8 +41,11 @@ run "codegen drift" bash -c '
     echo "   no melos workspace yet — skipping"; exit 0; }
   grep -rqE "^[[:space:]]+build_runner:" --include=pubspec.yaml . || {
     echo "   no package uses build_runner yet — skipping"; exit 0; }
+  # No --delete-conflicting-outputs: build_runner removed the flag and now only
+  # warns that it was ignored. Kept working by accident, which is how a dead
+  # flag survives long enough for someone to copy it somewhere it does matter.
   melos exec --depends-on=build_runner -- \
-    dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 \
+    dart run build_runner build >/dev/null 2>&1 \
     && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
 # Edge Functions are Deno and are never compiled by the Dart toolchain, so
