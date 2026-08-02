@@ -914,3 +914,64 @@ the redundant one will otherwise look like prudent belt-and-braces to whoever ne
 **Principle:** A platform feature is adopted for one capability and arrives with several. The ones
 nobody asked for are the dangerous ones, because nothing in the change request names them and no
 review covers them — they are discovered by their side effects, usually later than you would like.
+
+### Observation 39: A "watch the test fail first" rule needs a stated fallback when the environment cannot run the test
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Readiness assessment for E2 (Meal Publishing) before implementation starts
+**Skill:** ship-check (and the Kafoo build-a-feature sequence in CLAUDE.md steps 5–6)
+**Type:** open-source
+**Phase/Area:** Authorization-test ordering / red-then-green verification
+
+**Issue:** The workflow mandates writing an authorization test, running it, and confirming it FAILS
+before the policy exists. The task list encodes this as local commands (`supabase test db`, then
+`supabase db reset && supabase test db`). The session container has the Supabase CLI but no Docker
+daemon, so neither command can run locally. The rule is unsatisfiable as written, and the two
+failure modes are both bad: silently skip the red step and claim the ordering was honoured, or
+stall. Neither is what the rule intends. A workable third path exists — push the tests alone,
+watch the CI authorization job go red against a disposable preview database, then push the policy
+and watch it go green — but it is not written down anywhere, and it changes commit sequencing
+(two pushes on the PR, not one squashed commit).
+
+**Suggested improvement:** In the ordering rule, state the environment it assumes and name the
+remote fallback explicitly: if the local database cannot run, the red observation is made on the
+pull request by pushing the failing tests in their own commit before the migration. Add the
+sequencing consequence, because it contradicts the usual "one logical change per commit" habit.
+
+**Principle:** A verification rule that names specific local commands silently assumes an
+environment. When it can be satisfied remotely instead, write the fallback into the rule — an
+unsatisfiable rule is not obeyed, it is skipped, and the skip is invisible in the artefact.
+
+### Observation 40: A rule enforced at two layers needs one assertion per layer, or neither can be mutation-tested
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Writing the E2 authorization suites for the `meals` table
+**Skill:** ship-check (definition-of-done / RLS verification), and the RLS review checklist
+**Type:** open-source
+**Phase/Area:** Authorization test design, mutation testing
+
+**Issue:** The design deliberately enforced one invariant ("a row cannot change owner") twice — in
+a row-level security policy and in a database trigger — with the rationale that policies defend
+against a hostile client and constraints defend against the project's own code. Both layers are
+correct. But the combination made either layer individually untestable: the trigger runs before
+the policy is evaluated, so it answers first, and the single test asserting "the reassign is
+refused" stays green when the policy is deliberately broken. The previous feature hit the same
+shape from the other direction and left a written warning that its test did not detect what its
+name claimed. Defence in depth silently converts into a test that cannot fail for the reason it
+says it can.
+
+**Suggested improvement:** Where a rule is deliberately enforced at more than one layer, require
+an assertion per layer, each distinguished by the *mechanism* that answers (distinct error codes,
+or temporarily disabling one layer inside the test transaction to isolate the other). Name the
+mutation target explicitly in a comment on the isolating assertion — "break X and THIS assertion
+must go red" — so a later reader can verify the suite rather than trusting it. Add a review
+question: for each new invariant, how many layers enforce it, and is there an assertion that fails
+when each one alone is removed?
+
+**Principle:** Redundant enforcement is good for safety and bad for evidence. Layers mask each
+other in a fixed order, so a single "the bad thing is refused" assertion measures only the
+outermost layer and silently stops measuring the rest. Coverage must be counted per enforcement
+layer, not per rule — and the mutation that should redden each assertion belongs in a comment next
+to it, because a suite that has only ever been green looks identical to one that cannot fail.
