@@ -1187,3 +1187,72 @@ evidence that one instance was.
 solving an instance, and the better the write-up the stronger the impression. Treat "we already
 learned this" as a prompt to sweep for siblings rather than as an assurance, and make the sweep —
 not the fix — the thing you record as done.
+
+### Observation 47: A gate check modelled on a neighbouring check inherits its unstated preconditions
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Reviewing a delegated implementation that added a drift check for a generated
+file, written in the style of the project's existing generated-code drift check.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** what evidence is required before a newly written check is trusted
+
+**Issue:** The new check regenerated the artefact and asked `git diff` whether anything had changed
+— exactly how the project's existing codegen drift check works, in the same file, a few lines away.
+It was reviewed as correct by shape: it matched a known-good pattern. It was vacuous. The existing
+check operates on a file that has been tracked by git for months; the new one operated on a file
+created minutes earlier and not yet staged, and git reports no diff for a file it is not tracking.
+The check printed ok while the source was edited and the generated artefact was stale.
+
+It was caught by editing the source, running the gate, and expecting red. Nothing else in the
+review would have caught it — the code was reasonable, the comment was accurate, the pattern was
+house style, and the gate was green.
+
+**Suggested improvement:** Add a rule: a newly written verification check is not evidence until it
+has been observed failing. Break the thing it guards, run it, see red, restore. This is cheap
+(under a minute) and is the only way to distinguish a check that works from one that merely looks
+like one that works. Extend it explicitly to checks copied or adapted from an existing check —
+proximity to a working example is the strongest available source of false confidence, because the
+reviewer's pattern-match succeeds and the preconditions differ.
+
+**Principle:** Copying the shape of a working check copies its unstated preconditions, which are
+invisible precisely because nobody wrote them down — they were true by accident of context. A check
+is verified by watching it fail on purpose, never by recognising its pattern. Where the source of
+confidence is resemblance to something that works, the confidence is unearned.
+
+### Observation 48: A test that needs a new permission is usually an assertion in the wrong layer
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Reviewing a delegated implementation that asserted a security property by
+reading its own source file inside a unit test, and widened the whole test suite's sandbox to allow
+it.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** where a structural assertion belongs
+
+**Issue:** The property was worth asserting: a component that talks to an external model must not
+also hold credentials that can write. It was expressed as a unit test reading its own source text
+and asserting the credential name is absent. To make that run, the test command gained filesystem
+read access for every test in the suite. The trade was one file's worth of coverage in exchange for
+permanently loosening the sandbox that keeps those tests hermetic — and it was reported as a minor
+deviation rather than as a design question.
+
+Moved to the build gate as a search over the source tree, the same assertion needed no permission
+at all, and covered every component that would ever exist rather than the one file the test could
+reach. The narrower version was also the weaker one, which is what made the trade easy to miss:
+the permission bought less than it cost.
+
+**Suggested improvement:** Add a heuristic: when a test requires a capability the suite does not
+already have — filesystem, network, clock, environment — treat it as a signal that the assertion is
+in the wrong layer, and check whether a static check over the source tree expresses it better,
+before granting the capability. Structural properties ("this component never references X",
+"nothing outside this module imports Y") are usually build-gate assertions wearing a test's
+clothing: at the gate they need no runtime access and generalise to every file at once.
+
+**Principle:** A permission a test asks for is a design signal, not a configuration detail. Runtime
+tests answer "does this behave correctly when run"; questions of the form "does this code ever
+mention X" are static and belong where static questions are cheap. Granting the capability answers
+the immediate need while making every future test more powerful than it should be — and the
+narrower placement is frequently the weaker assertion too, so the cost buys less than it appears to.
