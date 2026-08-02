@@ -20,9 +20,11 @@ major_version = 17
 
 # seed.sql installs pgTAP and the `tests` helper schema the authorization suites need.
 #
-# This runs locally AND on every preview branch. It does NOT run on production: `supabase db push`
-# applies migrations only. That split is the point — a preview branch is disposable and wants the
-# test harness; production is neither.
+# This setting governs the LOCAL stack, where the seed definitely runs. Where it runs once deployed
+# is not decided here and is not what the obvious reading suggests: a hand-created branch was
+# measured on 2026-08-02 getting all three migrations and NOT this file. The header of seed.sql
+# records what has actually been observed — read it before assuming the test harness exists anywhere
+# but your own machine.
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]

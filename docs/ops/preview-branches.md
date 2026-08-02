@@ -44,13 +44,22 @@ is not that purpose. Realistic *shapes* of data, yes. Real people's records, no.
 Connecting Supabase to GitHub is an authorization step. It cannot be done through the API or the
 CLI, so no session can do it.
 
-**Current state, checked 2026-08-01:**
+**Current state, checked 2026-08-02:**
 
 - Branching is **enabled** on the project — the API reports a default branch for `main`.
 - The GitHub integration is **connected enough to post a check**: every pull request gets a
   `Supabase Preview` entry.
-- That check has come back **`skipped` on every pull request so far** — #12, #13 and #14 — including
-  #12, which added all three migrations. So no preview branch has ever actually been built.
+- That check has come back **`skipped` on every pull request so far** — #12, #13, #14 and #15 —
+  including #12, which added all three migrations, and #15, which changed two files inside
+  `supabase/`. So the "the pull request had nothing database-related in it" explanation is ruled
+  out.
+- A branch named **`staging` exists**, created by hand on 2026-08-02. It is healthy and correctly
+  migrated, but it is **not** a preview branch: it has no `git_branch`, so no pull request creates
+  or destroys it, and it does not make the check above pass. Creating a branch by hand and fixing
+  the GitHub integration are separate jobs; only the second produces per-pull-request previews.
+- `staging` is also flagged `persistent: false` while having no pull request to be torn down with —
+  the running cost of a permanent branch with the lifetime guarantee of a temporary one. Decide
+  which it is meant to be rather than leaving it in between.
 
 Whatever is switched off is visible only in the dashboard:
 
@@ -64,24 +73,38 @@ Whatever is switched off is visible only in the dashboard:
 `Supabase Preview` turning from `skipped` to a real result on the next pull request that touches
 `supabase/` is how you know it worked. If it still skips, the settings above are the place to look.
 
-## What a preview branch will contain
+## What a branch actually contains — measured, not assumed
 
-Applied in this order:
+An earlier version of this document asserted that a branch gets the migrations and then the seed
+file. That was written from the documented behaviour, before any branch existed to check. Half of it
+is wrong.
 
-1. Every migration in `supabase/migrations/`, oldest first.
-2. `supabase/seed.sql` — pgTAP and the `tests` helper schema.
+Measured on 2026-08-02 against the `staging` branch (`jxujlmhfaxlngrjeuvhb`), by querying it
+directly:
 
-Two consequences worth holding on to:
+| | Result |
+|---|---|
+| Migrations applied | **Yes** — all three, and `supabase_migrations` records them |
+| Row Level Security on both tables | **Yes** |
+| Postgres version | 17.6, matching production |
+| `supabase/seed.sql` run | **No** — no `tests` schema, no pgTAP |
 
-**The seed file reaches a deployed project.** A preview branch is a real Supabase project with its
-own URL and anon key. `supabase/seed.sql` said in a comment that seeds never reach a deployed
-project; that stopped being true here. The one helper that writes — `tests.create_supabase_user`,
-which inserts directly into `auth.users` — now has its privileges revoked from `PUBLIC`, `anon` and
-`authenticated` at the foot of that file. The other three helpers are deliberately left callable,
-because the suites call them while acting as `anon` or `authenticated`.
+So the security rules do reach a branch, which is the main thing. The test harness does not.
 
-**Production is not seeded.** `supabase db push` applies migrations only. The test harness exists on
-disposable databases and not on the real one, which is the right way round.
+**Why, most likely — and this is a hypothesis, not a finding.** `staging` was created by hand and
+carries no `git_branch`. A git-linked branch is built from the repository, where `seed.sql` lives; a
+hand-made branch has no repository to read it from. That fits the evidence and nothing here has
+tested it, because no git-linked branch has ever been built. Verify it rather than repeating it.
+
+**Consequence worth tracking:** the `REVOKE` at the foot of `seed.sql` has still never executed
+anywhere. It is written for the case where the seed *does* reach a deployed branch, and that case
+has not happened yet.
+
+**Consequence for the follow-up below:** the pgTAP suites need the `tests` schema, so they cannot
+run on a branch that never got the seed. Whatever makes the seed run is a prerequisite for the CI
+job, not a detail to sort out afterwards.
+
+**Production is not seeded** — `supabase db push` applies migrations only. That part holds.
 
 ## The follow-up worth doing next
 

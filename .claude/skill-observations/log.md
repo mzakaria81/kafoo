@@ -540,3 +540,58 @@ the provider has an API, the check is one request and belongs in the gate.
 **Principle:** A configuration value that duplicates a fact owned by an external system is stale by
 default — it can only be confirmed by asking that system. Treat every such value as a cached copy
 with no invalidation, and check it on a schedule rather than trusting the copy.
+
+### Observation 26: Documenting an external system's behaviour from its documentation produces a confident claim with no evidence behind it
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Preparing ephemeral database branches, then measuring the first branch that
+actually existed.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Writing documentation ahead of the thing it documents
+
+**Issue:** A change was prepared for a hosted feature that could not be exercised yet — the feature
+was configured but never firing. The accompanying documentation stated what the platform would do,
+in the platform's own terms, and a safety measure was added on the strength of it. When an instance
+finally existed and was queried directly, half the claim was false: one of the two documented steps
+had not happened, and the safety measure had therefore never executed. The claim had been repeated
+across three files by then, each repetition making it look better established. Nothing had made the
+uncertainty visible, because the sentence describing a vendor's documented behaviour and the
+sentence describing an observed behaviour are written identically.
+
+**Suggested improvement:** In `verification-before-completion`, distinguish *documented* from
+*observed* when writing about an external system, and make the distinction survive into the
+artefact — a dated measurement line, or an explicit "documented, not yet observed here" marker.
+The failure is not believing the vendor; it is that the reader cannot tell which kind of statement
+they are reading, so nobody knows which claims still need checking once the system is live.
+
+**Principle:** A vendor's documentation describes the general case; your configuration is a specific
+case, and only the running system knows which one you got. Write down which claims are measured and
+when, so the unmeasured ones stay visibly unmeasured instead of aging into apparent fact.
+
+### Observation 27: An artefact created with the right name can be the wrong thing, and the name suppresses the check
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Confirming that a requested piece of infrastructure had been created.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Confirming someone else's completed action
+
+**Issue:** A user reported creating the agreed resource, and one had indeed appeared with the
+expected name and a healthy status. Two attributes settled it as a different kind of object than the
+one designed: it was not linked to the source-control branch that would create and destroy it, and
+it was flagged short-lived while having nothing to be torn down with — so it carried the running
+cost of a permanent resource and the lifetime guarantee of a temporary one. The surrounding
+integration it was meant to activate was untouched and still inert. Confirming "it exists and is
+healthy" would have been true and would have missed all of it.
+
+**Suggested improvement:** When confirming that a requested resource exists, check the attributes
+that define its *kind* and its *lifecycle*, not just its presence and health. Specifically: what
+creates it, what destroys it, and what it costs while it exists. A resource matching the requested
+name is the beginning of the check, not the end of it.
+
+**Principle:** Existence, health and name are the cheapest properties to satisfy and the least
+informative. The properties that determine whether a thing does its job are the ones describing how
+it is created, how it ends, and what it costs in between.

@@ -7,12 +7,24 @@
 -- The helpers are vendored rather than pulled from database.dev on purpose: a test harness that
 -- needs the network to start is a test harness that fails in CI for reasons unrelated to the code.
 --
--- WHERE THIS RUNS. Locally, and on every preview branch — a preview branch is built by applying
--- migrations and then running this file. It does NOT run on production: `supabase db push` applies
--- migrations only. An earlier version of this comment claimed seeds never reach a deployed project,
--- which was wrong the moment preview branches were switched on: a preview branch is a real,
--- internet-facing Supabase project with its own URL and anon key. See the REVOKE at the foot of
--- this file for what follows from that.
+-- WHERE THIS RUNS. Locally, for certain. Everywhere else, read this carefully — the comment here
+-- has now been wrong twice in opposite directions, so it records what was observed rather than what
+-- the documentation promises.
+--
+-- Not on production: `supabase db push` applies migrations only.
+--
+-- Not on a branch created by hand. Measured 2026-08-02 against the `staging` branch, which is not
+-- linked to a git branch: all three migrations applied, and this file did not run. No `tests`
+-- schema, no pgTAP, so the REVOKE at the foot of this file has still never executed anywhere.
+--
+-- Probably on a git-linked preview branch, which is what Supabase documents — such a branch is
+-- built from the repository, where this file exists, while a hand-made branch has no repository to
+-- read it from. That explanation fits the evidence and has NOT been tested; no git-linked branch has
+-- ever been built here. Treat it as the reason to check rather than as a fact.
+--
+-- The reason any of this matters: a branch is a real, internet-facing Supabase project with its own
+-- URL and anon key, so wherever this file does run, it is installing a user-creating helper on a
+-- reachable database.
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
