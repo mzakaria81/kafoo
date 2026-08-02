@@ -975,3 +975,31 @@ other in a fixed order, so a single "the bad thing is refused" assertion measure
 outermost layer and silently stops measuring the rest. Coverage must be counted per enforcement
 layer, not per rule — and the mutation that should redden each assertion belongs in a comment next
 to it, because a suite that has only ever been green looks identical to one that cannot fail.
+
+### Observation 41: Quantify a deferred cost decision before deferring it to a human
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Pricing model providers for E2's blocked-on-a-decision task
+**Skill:** ship-check / the stop-and-ask trigger list in the project instructions
+**Type:** open-source
+**Phase/Area:** Stop-and-ask triggers, decision deferral
+
+**Issue:** A planning document correctly identified a choice as recurring spend and therefore a
+human decision, and deferred it as a hard blocker on a whole phase of work. When the options were
+actually priced, the spend turned out to be roughly half a cent per unit of activity — about a
+dollar a month at the project's real scale. The category was right and the magnitude was never
+checked, so a non-decision was escalated as a blocker, and the actual differentiators (output
+quality in a specific dialect, and which vendor receives user photographs) were left unstated
+underneath it. The decision-maker would have been asked to weigh a cost that does not matter while
+the things that do matter went unnamed.
+
+**Suggested improvement:** When a stop-and-ask trigger fires on cost, require an order-of-magnitude
+estimate in the same breath as the escalation — even a rough one. If the number turns out to be
+immaterial at the project's scale, say so and re-frame the question around whatever actually
+differentiates the options. Escalate the real decision, not the category it fell into.
+
+**Principle:** A trigger identifies a *kind* of decision, not its *weight*. Escalating on category
+alone spends the decision-maker's attention on the label rather than the substance — and worse, it
+can hide the real trade-off underneath a cost framing that turns out to be noise. Quantify before
+escalating; the estimate is usually cheap and it decides whether the question is even worth asking.
