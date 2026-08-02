@@ -8,6 +8,8 @@
 // No model name appears in this file, or in any adapter. Model names live in registry.ts and in
 // environment variables, and `scripts/verify.sh` fails the gate if one appears anywhere else.
 
+import type { ResponseSchema } from './schema.ts';
+
 /// Which class of model a call needs. Mirrors `ModelTier` in
 /// `packages/ai/lib/src/provider/ai_provider.dart` and the `model_tier` frontmatter key that every
 /// file in `prompts/` carries.
@@ -40,6 +42,11 @@ export interface ModelRequest {
   readonly model: string;
 
   readonly maxTokens: number;
+
+  /// When set, this call must return JSON conforming to the schema. Adapters express the
+  /// constraint in their provider's dialect; the local validator in schema.ts is what actually
+  /// rejects a reply that does not match.
+  readonly responseSchema?: ResponseSchema;
 }
 
 export interface ModelResponse {
@@ -47,6 +54,13 @@ export interface ModelResponse {
 
   /// The model that actually served the call, for evals and logs.
   readonly modelId: string;
+
+  /// Why generation stopped, normalised across providers.
+  ///
+  /// A reply cut off at the token limit arrives as ordinary-looking text that then fails to parse.
+  /// Without this field a caller cannot tell "the model was truncated" from "the model wrote
+  /// nonsense", and reports the wrong thing to a Cook.
+  readonly stopReason: 'stop' | 'length' | 'other';
 }
 
 /// A normalised failure. Adapters translate provider error shapes into this so callers never parse a

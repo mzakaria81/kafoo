@@ -232,23 +232,45 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 These are not in the original plan. They come from calling a real model and finding out what the
 design documents could not have known.
 
-- [ ] T081 **Put a response schema in the adapter interface.** Measured: asking a model for clean
-  JSON in the prompt does not work — it wrapped the reply in a Markdown code fence *despite the
-  prompt forbidding one*. Setting `responseMimeType: application/json` plus a schema returns bare
-  JSON every time. A prompt instruction is a request; an API parameter is a constraint, and
-  `.claude/rules/ai.md` demands strict JSON validated against a schema.
+- [x] T081 **Put a response schema in the adapter interface — DONE, and the premise below turned
+  out to be wrong.** `ModelRequest` gained an optional schema and each provider expresses it in its
+  own dialect, as planned. What changed is where the enforcement lives.
 
-  Real work, not a tweak: `ModelRequest` gains an optional schema, and each provider expresses it
-  differently — Gemini takes an OpenAPI-ish `responseSchema`, OpenAI takes JSON Schema under
-  structured outputs, Anthropic does it through tool use. That divergence is exactly the quirk the
-  adapter layer exists to absorb. **Do this before `analyze-meal` is written**, so the function is
-  not built on the weaker approach and then retrofitted.
+  **Re-measured on 2026-08-02 before writing anything: 23 live calls, the real prompt, the fast-tier
+  model.** The reply was *never* wrapped in a code fence — not once, including the nine calls with
+  no constraint applied at all. And attaching `responseSchema` made this provider strictly worse:
 
-- [ ] T082 **Declare functions in `supabase/config.toml`.** Every preview build warns that only
-  declared functions deploy to branches, and none are declared — so E1's `delete-account` is not
-  exercised on preview branches either, and `analyze-meal` would silently not be. Pre-existing gap,
-  cheap to close, and it invalidates any "tested on the preview branch" claim about a function
-  until it is.
+  | mode | n | parsed cleanly | latency | output tokens |
+  |---|---|---|---|---|
+  | prompt instruction only | 9 | 9/9 | 0.83–1.11 s | 194–250 |
+  | `responseMimeType` only | 6 | 6/6 | 0.94–1.18 s | 192–283 |
+  | `responseMimeType` + `responseSchema` | 11 | **7/11** | 1.10–**6.73 s** | 200–**2033** |
+
+  Four of eleven schema calls ran into the output cap and returned truncated, unparseable JSON;
+  explanation fields ran 347–445 characters against 59–92 without the schema; latency hit 6.7 s
+  against a 2-second voice budget. `maxLength` and `description` guardrails did not prevent it.
+
+  So Gemini sets `responseMimeType` and is deliberately *not* sent the schema, with the numbers
+  recorded in the adapter. **The load-bearing part is the local validator** in
+  `_shared/ai/schema.ts` — that is what enforces shape and bounds, on every provider, and it is
+  what rejects `calories: 190000`. OpenAI (strict structured outputs) and Anthropic (forced tool
+  use) are implemented and marked UNMEASURED — no key for either exists.
+
+  `ModelResponse` also gained `stopReason`, because a reply truncated at the token limit and a
+  reply that is nonsense are different problems and were previously indistinguishable.
+
+  ~~Measured: asking a model for clean JSON in the prompt does not work — it wrapped the reply in a
+  Markdown code fence *despite the prompt forbidding one*. Setting `responseMimeType` plus a schema
+  returns bare JSON every time.~~ Not reproducible. Retained as the record of what was believed.
+
+- [x] T082 **Declare functions in `supabase/config.toml` — DONE for `delete-account`.** Every
+  preview build warned that only declared functions deploy to branches, and none were declared — so
+  E1's `delete-account` was not exercised on preview branches either. That invalidated any "tested
+  on the preview branch" claim about a function, including the `docs/ops/verifying-e1.md` §6
+  walkthrough, which on a preview branch was exercising nothing.
+
+  `analyze-meal` gets its own entry in the change that creates it, rather than here: a declared
+  function with no directory fails the deploy, so the entry and the function belong in one commit.
 
 - [ ] T083 **Measure on-device Egyptian Arabic transcription.** Before E3. The weakest link in a
   voice-first feature is probably not the model — it is whether the phone hears `بانيه` correctly
