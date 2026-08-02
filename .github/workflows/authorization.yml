@@ -17,6 +17,16 @@ name: Authorization
 on:
   pull_request:
     branches: [main, develop]
+    # Only when the database changes, because only then does a preview branch
+    # exist to run against. Supabase skips its own check on the same condition
+    # ("no changes detected in supabase directory"), and without this filter a
+    # documentation-only pull request leaves this job polling for a branch that
+    # is never going to appear.
+    #
+    # The cost of the filter: a change to the runner script or to this workflow
+    # is not exercised until the next pull request that touches supabase/.
+    paths:
+      - 'supabase/**'
 
 concurrency:
   group: authorization-${{ github.ref }}
