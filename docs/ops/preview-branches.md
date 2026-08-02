@@ -85,11 +85,63 @@ that statement had never executed anywhere. Measured on the branch:
 | `authenticate_as_anon` | true | true |
 | `clear_authentication` | true | true |
 
-Exactly the intended shape. The narrow scope matters: the suites in `supabase/tests/` deliberately
-*become* `anon` or `authenticated` and then call `clear_authentication()` to climb back out, so
-revoking the whole schema would turn the bottom three `false` and fail every authorization test in
-the project. The `tests` schema is also absent from `api.schemas`, and a PostgREST call to it returns
-404 — checked, not assumed.
+The narrow scope is right: the suites in `supabase/tests/` deliberately *become* `anon` or
+`authenticated` and then call `clear_authentication()` to climb back out, so revoking the whole
+schema would fail every authorization test in the project. The `tests` schema is also absent from
+`api.schemas`, and a PostgREST call to it returns 404 — checked, not assumed.
+
+**But that table was read too generously, and the conclusion drawn from it was wrong.** `EXECUTE`
+being granted does not make a function callable: `tests.foo()` also needs `USAGE` on the schema, and
+a newly created schema grants `USAGE` to nobody. Measured 2026-08-02: `has_schema_privilege` is
+`false` for both roles, and every call raised `permission denied for schema tests`. The privileges
+read as granted while nothing was callable. `seed.sql` now grants the `USAGE` as well.
+
+## The authorization suites still do not run
+
+They have never executed, and the reason has changed twice. pgTAP and the `tests` helpers were
+missing until `seed.sql` was added; that was fixed, and revealed two blockers underneath. Both were
+measured on 2026-08-02, and both apply to a local stack exactly as much as to a branch:
+
+1. **No `USAGE` on schema `tests`** for `anon` or `authenticated`, so `tests.clear_authentication()`
+   — which every suite calls *while* acting as one of those roles — raised permission denied. Fixed
+   in `seed.sql`.
+2. **No `SELECT` on `auth.users`** for either role. Every suite resolves a user with
+   `(SELECT id FROM auth.users WHERE email = '...')` while authenticated as that user, and neither
+   role can read that table in any Supabase project.
+
+The second is **not** fixed, deliberately. Granting a test role read access to `auth.users` would
+weaken the database the suites exist to check, and a suite that passes because the database was
+loosened for it proves nothing. The fix belongs in the suites: capture the ids that
+`tests.create_supabase_user` already returns into a temp table, `GRANT SELECT` on it to `anon` and
+`authenticated`, and read ids from there. That pattern is verified working — the probes described
+below use it.
+
+Until that lands, "the authorization suites pass" remains a thing nobody has ever observed.
+
+## What was verified instead, on 2026-08-02
+
+Rather than modify the suites in place, their intent was re-expressed as direct probes run as the
+real `anon` and `authenticated` roles against preview branch `iknhgmnmdecuvsdibrdi`. Eleven checks,
+all passing, plus a deliberately-wrong twelfth that failed — because a harness that has only ever
+printed PASS may be incapable of printing FAIL, which would make every other line meaningless.
+
+| Check | Result |
+|---|---|
+| Owner reads own Kitchen Profile | 1 row |
+| A different Cook reads Kitchen Profiles | 0 rows |
+| A different Cook updates the owner's profile | 0 rows affected |
+| A different Cook inserts a profile owned by the owner | rejected |
+| A different Cook reassigns `cook_id` to themselves | rejected |
+| Owner's `display_name` after those attempts | unchanged |
+| Signed-out visitor reads Kitchen Profiles | 0 rows |
+| A person reads their own analytics events | 0 rows |
+| A person attributes an event to someone else | rejected |
+| Anonymous records `SignInStarted` | allowed |
+| Anonymous records a non-funnel event | rejected |
+| **Control — deliberately wrong** | **failed, as required** |
+
+This is evidence that the policies *behave*, which is a different claim from the policies being
+written correctly, and it is the first time the former has been true of this project.
 
 ## Operating notes
 

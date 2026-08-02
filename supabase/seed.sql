@@ -30,11 +30,32 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 CREATE SCHEMA IF NOT EXISTS tests;
 
+-- Fixture directory: which test person got which id.
+--
+-- The suites need a person's id while acting AS that person, and neither anon nor authenticated may
+-- read auth.users in any Supabase project — that is one of the reasons the suites had never run.
+-- Every id in here was minted by tests.create_supabase_user moments earlier, so exposing it to the
+-- test roles reveals nothing they did not just create.
+--
+-- Deliberately a table and not a SECURITY DEFINER lookup over auth.users. A definer function would
+-- answer for *any* address, including a real person's, which is a worse thing to leave lying around
+-- than a list of fixtures. This holds only what the harness created.
+--
+-- No RLS, and that is not a breach of the same-migration rule in CLAUDE.md: this is not a migration
+-- and this table never exists in production. seed.sql runs locally and on preview branches only, the
+-- `tests` schema is absent from api.schemas so PostgREST does not expose it, and every row is
+-- written and rolled back inside a suite's own transaction.
+CREATE TABLE IF NOT EXISTS tests.registry (
+  email text PRIMARY KEY,
+  id    uuid NOT NULL
+);
+
 -- Create a person the way Supabase Auth would, so foreign keys to auth.users resolve.
 --
--- The argument is the email address, because the suites look users up by it
--- (`SELECT id FROM auth.users WHERE email = 'owner@test.kafoo'`).
-CREATE OR REPLACE FUNCTION tests.create_supabase_user(email text)
+-- The argument is the email address, because that is how the suites refer to their fixtures.
+-- Named p_email, not email: a PL/pgSQL parameter sharing a name with a column of a table the body
+-- writes to makes every mention of it ambiguous, and Postgres rejects the function at run time.
+CREATE OR REPLACE FUNCTION tests.create_supabase_user(p_email text)
 RETURNS uuid
 LANGUAGE plpgsql
 AS $$
@@ -48,15 +69,26 @@ BEGIN
     raw_app_meta_data, raw_user_meta_data,
     confirmation_token, recovery_token, email_change_token_new, email_change
   ) VALUES (
-    uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', email,
+    uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', p_email,
     'not-a-real-password-hash', now(),
     now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
     '', '', '', ''
   );
+
+  INSERT INTO tests.registry (email, id) VALUES (p_email, uid)
+  ON CONFLICT (email) DO UPDATE SET id = EXCLUDED.id;
+
   RETURN uid;
 END;
 $$;
+
+-- Resolve a fixture's id. This is what the suites call instead of reading auth.users.
+CREATE OR REPLACE FUNCTION tests.user_id(email text)
+RETURNS uuid
+LANGUAGE sql
+STABLE
+AS $$ SELECT r.id FROM tests.registry r WHERE r.email = user_id.email $$;
 
 -- Become that person for the rest of the transaction.
 --
@@ -130,3 +162,19 @@ $$;
 --   clear_authentication   anon=true  authenticated=true
 -- and a PostgREST call to the tests schema returns 404.
 REVOKE ALL ON FUNCTION tests.create_supabase_user(text) FROM PUBLIC, anon, authenticated;
+
+-- EXECUTE alone is not enough, and reading it as though it were produced a wrong conclusion once.
+-- Calling tests.foo() needs USAGE on the schema as well; a new schema grants USAGE to nobody. So
+-- the three privileges above read as granted while every call raised "permission denied for schema
+-- tests" — which is one of two reasons the suites in supabase/tests/ have never run.
+--
+-- Safe to grant: the `tests` schema is absent from api.schemas, so PostgREST does not expose it
+-- (checked — an RPC call returns 404), and create_supabase_user stays revoked above.
+GRANT USAGE ON SCHEMA tests TO anon, authenticated;
+
+-- The fixture directory, for the same reason. Note what is NOT here: no grant on auth.users. The
+-- quick way to make these suites run was to give the test roles read access to it, and that would
+-- have loosened the exact database the suites exist to check — a green test bought that way proves
+-- less than nothing.
+GRANT SELECT ON tests.registry TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION tests.user_id(text) TO anon, authenticated;

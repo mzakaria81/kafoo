@@ -15,7 +15,7 @@ SELECT tests.authenticate_as('owner@test.kafoo');
 INSERT INTO public.kitchen_profiles
   (cook_id, display_name, story, area, delivery_terms)
 VALUES (
-  (SELECT id FROM auth.users WHERE email = 'owner@test.kafoo'),
+  tests.user_id('owner@test.kafoo'),
   'مطبخ الأم',
   'بنعمل أكل بيتي بحب',
   'مدينة نصر',
@@ -40,25 +40,41 @@ SELECT tests.authenticate_as('other@test.kafoo');
 
 UPDATE public.kitchen_profiles
   SET display_name = 'hacked'
-  WHERE cook_id = (SELECT id FROM auth.users WHERE email = 'owner@test.kafoo');
+  WHERE cook_id = tests.user_id('owner@test.kafoo');
 
 SELECT is(
   (SELECT display_name FROM public.kitchen_profiles
-   WHERE cook_id = (SELECT id FROM auth.users WHERE email = 'owner@test.kafoo')),
+   WHERE cook_id = tests.user_id('owner@test.kafoo')),
   NULL,
   'other cannot update owner kitchen profile (reads null because no SELECT access)'
 );
 
 SELECT tests.clear_authentication();
 
--- 3. Owner tries to set cook_id to Other → rejected by WITH CHECK.
--- This is the critical test: USING alone is not enough.
+-- 3. Owner tries to set cook_id to Other → rejected.
+--
+-- READ THIS BEFORE RELYING ON IT. The comment here used to say "rejected by WITH CHECK — this is
+-- the critical test: USING alone is not enough". Mutation-tested on 2026-08-02 and that is not what
+-- the test detects: with the policy weakened to `WITH CHECK (true)`, this assertion still passed.
+--
+-- What actually refuses the reassign today is the SELECT policy. Postgres applies it to the *new*
+-- row, and a row whose cook_id is someone else is not one this Cook may see, so the update is
+-- refused with 42501. Measured both ways: SELECT policy present -> 42501; SELECT policy dropped and
+-- WITH CHECK (true) -> the reassign succeeds silently.
+--
+-- So WITH CHECK is redundant *while* kitchens are private, and becomes the only guard the moment
+-- they are not. FR-030 makes a kitchen publicly discoverable once its Cook has a published Meal
+-- (E2), which broadens the SELECT policy — and on that day this test stops covering the thing its
+-- name suggests. Whoever writes that migration must add an assertion that fails with
+-- `WITH CHECK (true)` in place, because this one will not.
 SELECT tests.authenticate_as('owner@test.kafoo');
 
 SELECT throws_ok(
   $$ UPDATE public.kitchen_profiles
-       SET cook_id = (SELECT id FROM auth.users WHERE email = 'other@test.kafoo')
-       WHERE cook_id = (SELECT id FROM auth.users WHERE email = 'owner@test.kafoo') $$,
+       SET cook_id = tests.user_id('other@test.kafoo')
+       WHERE cook_id = tests.user_id('owner@test.kafoo') $$,
+  '42501',
+  NULL,
   'owner cannot reassign cook_id to another person (WITH CHECK)'
 );
 
@@ -82,12 +98,14 @@ SELECT throws_ok(
   $$ INSERT INTO public.kitchen_profiles
        (cook_id, display_name, story, area, delivery_terms)
      VALUES (
-       (SELECT id FROM auth.users WHERE email = 'owner@test.kafoo'),
+       tests.user_id('owner@test.kafoo'),
        'مطبخ تاني',
        'قصة تانية',
        'حدائق القبة',
        'شرط التوصيل'
      ) $$,
+  '23505',
+  NULL,
   'owner cannot create a second kitchen profile (UNIQUE cook_id)'
 );
 
@@ -100,27 +118,40 @@ SELECT throws_ok(
   $$ INSERT INTO public.kitchen_profiles
        (cook_id, display_name, story, area, delivery_terms)
      VALUES (
-       (SELECT id FROM auth.users WHERE email = 'other@test.kafoo'),
+       tests.user_id('other@test.kafoo'),
        'مطبخ مزيف',
        'قصة مزيفة',
        'منطقة ما',
        'شرط ما'
      ) $$,
+  '42501',
+  NULL,
   'owner cannot create kitchen profile for another person (WITH CHECK)'
 );
 
 SELECT tests.clear_authentication();
 
--- 7. Anyone tries to DELETE a Kitchen Profile → rejected (no DELETE policy).
+-- 7. Anyone tries to DELETE a Kitchen Profile → nothing is deleted (no DELETE policy).
+--
+-- Asserted as survival of the row, not as an exception. A DELETE that RLS filters removes zero rows
+-- and raises nothing: the row is simply not visible to the statement, and deleting nothing is not an
+-- error. The original throws_ok could never have passed — and it would have gone on reporting red
+-- while the property it cared about was in fact holding, which is the worst of both.
 SELECT tests.authenticate_as('owner@test.kafoo');
 
-SELECT throws_ok(
-  $$ DELETE FROM public.kitchen_profiles
-       WHERE cook_id = (SELECT id FROM auth.users WHERE email = 'owner@test.kafoo') $$,
-  'no one can delete a kitchen profile directly'
-);
+DELETE FROM public.kitchen_profiles
+  WHERE cook_id = tests.user_id('owner@test.kafoo');
 
 SELECT tests.clear_authentication();
+
+-- Counted with authentication cleared, so this sees the table as it really is rather than through
+-- the owner's own SELECT policy.
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+    WHERE cook_id = tests.user_id('owner@test.kafoo')),
+  1,
+  'no one can delete a kitchen profile directly'
+);
 
 SELECT finish();
 ROLLBACK;
