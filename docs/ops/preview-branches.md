@@ -53,25 +53,44 @@ CLI, so no session can do it.
   including #12, which added all three migrations, and #15, which changed two files inside
   `supabase/`. So the "the pull request had nothing database-related in it" explanation is ruled
   out.
-- A branch named **`staging` exists**, created by hand on 2026-08-02. It is healthy and correctly
-  migrated, but it is **not** a preview branch: it has no `git_branch`, so no pull request creates
-  or destroys it, and it does not make the check above pass. Creating a branch by hand and fixing
-  the GitHub integration are separate jobs; only the second produces per-pull-request previews.
-- `staging` is also flagged `persistent: false` while having no pull request to be torn down with —
-  the running cost of a permanent branch with the lifetime guarantee of a temporary one. Decide
-  which it is meant to be rather than leaving it in between.
+- A branch named `staging` was created by hand on 2026-08-02 and **deleted the same day**. It was
+  healthy and correctly migrated, but it was not a preview branch — no `git_branch`, so no pull
+  request created or destroyed it, and it did nothing for the check above. Creating a branch by hand
+  and enabling the integration are separate jobs; only the second produces per-pull-request
+  previews. It was deleted because it was empty, billed while it existed, and was flagged
+  non-persistent with no pull request to be torn down with — the running cost of a permanent branch
+  with the lifetime of a temporary one.
+- The project therefore has **one branch, `main`**, and no preview branch has ever been built.
 
-Whatever is switched off is visible only in the dashboard:
+**The reason, read from the check itself rather than guessed.** The GitHub check run carries a
+summary field, and on pull request #15 it said:
 
-1. Open **Project Settings → Integrations → GitHub** for the `kafoo` project.
-2. Confirm the connected repository is `mzakaria81/kafoo` and that the **supabase directory** is
-   `supabase` — a wrong or empty value here makes Supabase decide the pull request changes nothing
-   it cares about, and skip.
-3. Confirm the **production branch** is `main`.
-4. On **Branches**, confirm preview branches are enabled for pull requests.
+> Creating a new preview branch per PR is disabled. You can re-enable it in Project Integrations
+> Settings.
+
+So the integration is connected and working correctly. One toggle is off. Earlier revisions of this
+document speculated about the repository connection and the *supabase directory* setting; both were
+wrong, and the check had been carrying the real answer the whole time.
+
+**The fix:** open **Project Settings → Integrations → GitHub** for the `kafoo` project and enable
+creating a preview branch per pull request.
+
+This cannot be done from a session. The Supabase Management API publishes 115 endpoints and not one
+of them touches the GitHub integration — checked 2026-08-02 against the API's own specification, so
+this is a property of the API rather than a missing permission.
 
 `Supabase Preview` turning from `skipped` to a real result on the next pull request that touches
-`supabase/` is how you know it worked. If it still skips, the settings above are the place to look.
+`supabase/` is how you know it worked.
+
+**If it skips again, read the check's summary before changing any setting.** That field names the
+cause directly:
+
+```bash
+# the check-run id comes from the pull request's checks
+curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+  https://api.github.com/repos/mzakaria81/kafoo/check-runs/<id> \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['output']['summary'])"
+```
 
 ## What a branch actually contains — measured, not assumed
 
@@ -79,8 +98,9 @@ An earlier version of this document asserted that a branch gets the migrations a
 file. That was written from the documented behaviour, before any branch existed to check. Half of it
 is wrong.
 
-Measured on 2026-08-02 against the `staging` branch (`jxujlmhfaxlngrjeuvhb`), by querying it
-directly:
+Measured on 2026-08-02 by querying the `staging` branch directly, before it was deleted. The branch
+is gone, so these numbers cannot be re-derived — that is the reason for writing them down rather
+than linking to a dashboard:
 
 | | Result |
 |---|---|

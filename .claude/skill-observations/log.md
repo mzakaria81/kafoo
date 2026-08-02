@@ -595,3 +595,60 @@ name is the beginning of the check, not the end of it.
 **Principle:** Existence, health and name are the cheapest properties to satisfy and the least
 informative. The properties that determine whether a thing does its job are the ones describing how
 it is created, how it ends, and what it costs in between.
+
+### Observation 28: The failing system often states its own reason in a field nobody reads
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Diagnosing why an automated check had been reporting `skipped` across four
+consecutive pull requests.
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Reading the evidence already present before forming a hypothesis
+
+**Issue:** An external service posted a status check that came back `skipped` on every pull request.
+The status was read — the name, the conclusion, the link it pointed at — and two rounds of
+hypotheses were built on those three fields and written into documentation as likely causes. Both
+were wrong. The check object also carried a human-readable summary field, never fetched, containing
+one sentence naming the exact disabled setting and where to re-enable it. The default listing of
+checks does not display it; one additional request for the full object does. So four pull requests'
+worth of "why is this skipping" had a published answer the entire time, and the cost of reading it
+was one request.
+
+**Suggested improvement:** In `systematic-debugging`, add an explicit step before hypothesis
+formation: fetch the *full* record of the failing object, not the summary view the listing gave you.
+Listings are designed for scanning many items and omit exactly the free-text fields — summary,
+message, detail, annotations — where a service explains itself. The rule of thumb: if a status has a
+human-readable field you have not read, you are not yet debugging, you are guessing.
+
+**Principle:** Prefer the failing system's own account of the failure over any inference from its
+observable behaviour. Machine-readable status tells you *that* something did not happen; the
+free-text field next to it usually tells you *why*, and it is almost always one request away.
+
+### Observation 29: Reading a resource can disclose its secrets, so the read is part of the blast radius
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Inspecting a newly created database branch to confirm it had been built
+correctly.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Inspecting infrastructure that holds credentials
+
+**Issue:** Confirming a resource was healthy meant fetching its detail record. That record embedded
+the database password and the token-signing secret in plaintext, so a read-only verification step
+copied live credentials into a durable transcript. Nothing warned that it would: the endpoint's
+purpose is describing the resource, and the credentials arrive as ordinary fields alongside host and
+port. A narrower endpoint answered the same question without them. The exposure was recoverable only
+because the resource was disposable and could be destroyed.
+
+**Suggested improvement:** Add a rule for inspection steps: before fetching a detail record from an
+infrastructure API, consider whether the response is likely to embed credentials, and prefer the
+narrowest endpoint that answers the question. Where a broad endpoint must be used, extract only the
+needed fields rather than rendering the whole response. Treat an accidental disclosure as
+requiring the same rotate-or-destroy response as any other leak, and say so — a read that was
+technically authorised is still a disclosure.
+
+**Principle:** Verification is not automatically side-effect-free. A read that returns secrets has
+published them; the question is not whether the call was permitted but where the response now lives
+and who can reach it.
