@@ -6,8 +6,23 @@ Decisions taken before design, and the ones deliberately left to a person.
 
 ## 1. Which model provider
 
-**Decision**: Not taken here. The requirements are settled; the choice is the founder's, because it
-is recurring spend and `CLAUDE.md` makes money a stop-and-ask.
+**Decision, taken 2026-08-02: Anthropic Claude Haiku 4.5 on the fast tier.** Recorded in ADR-0005
+Amendment 1. Two things about how it was reached are worth keeping.
+
+**Cost did not decide it, and this section originally assumed it would.** Priced against the real
+call shape — roughly 4,600 input and 600 output tokens per published Meal across two calls — every
+fast-tier candidate lands between US$0.002 and US$0.008. That is under two dollars a month at
+friends-and-family scale, and half a cent per Meal between cheapest and dearest. Deferring the
+choice as "recurring spend" was correct as a category and wrong about the magnitude, and it nearly
+buried the two things that do decide it: dialect quality, and which vendor receives a Cook's
+photograph.
+
+**The founder also made reversibility a hard requirement rather than a property.** Switching
+provider must involve no code diff at all — one environment variable. That is now designed for
+(prompts declare a tier, a registry maps tier → model) and enforced by a `scripts/verify.sh` check
+that fails if a model name appears outside the registry.
+
+The rest of this section is the requirement analysis the decision was made against, kept as written.
 
 **What it must do**, derived from the specification rather than from preference:
 

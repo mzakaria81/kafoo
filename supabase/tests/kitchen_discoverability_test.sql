@@ -1,99 +1,158 @@
--- Discoverability contract for kitchen_profiles (US4, FR-019, FR-030).
+-- Discoverability contract for kitchen_profiles — cases 26-30 of
+-- specs/003-meal-publishing/contracts/authorization.md.
+--
+-- THIS FILE FLIPPED IN E2, ON PURPOSE.
+--
+-- In E1 every count here was zero and that was correct: FR-025 makes a kitchen discoverable only
+-- while its Cook has a Meal on offer, and `meals` did not exist. The previous version said so and
+-- said the right way to make these numbers non-zero was to create the table and add the widening
+-- policy. That is what happened. The assertions now run the other way.
 --
 -- READ THIS BEFORE "FIXING" A FAILURE HERE.
 --
--- Every count below is expected to be ZERO, and that is correct in E1, not a
--- bug. FR-030 makes a kitchen discoverable only while its Cook has a published
--- Meal, and `meals` does not exist yet. The right way to make these numbers
--- non-zero is to create `meals` in E2 and add the widening SELECT policy that
--- data-model.md has already written out — never to add a public policy here.
+-- Cases 27 and 28 are the ones somebody will try to fix wrongly. A kitchen that cannot be found
+-- looks like a bug and is not: a Cook whose Meals are all drafts has never opened, and a Cook who
+-- has taken everything off the menu is closed. Neither is discoverable, and the fix for "my kitchen
+-- disappeared" is to put a Meal back on the menu, never to widen this policy.
+--
+-- Case 26 is also the check that the widening policy landed at all. Its failure mode is silent —
+-- a missing policy returns zero rows rather than erroring — so every other suite in this
+-- repository would stay green while Kafoo shipped Meals whose kitchens nobody could reach.
 --
 -- Run with: supabase test db
 
 BEGIN;
-SELECT plan(5);
+SELECT plan(7);
 
-SELECT tests.create_supabase_user('cook@test.kafoo');
+SELECT tests.create_supabase_user('open@test.kafoo');       -- has a Meal on offer
+SELECT tests.create_supabase_user('drafting@test.kafoo');   -- has drafts only
+SELECT tests.create_supabase_user('paused@test.kafoo');     -- has unavailable Meals only
+SELECT tests.create_supabase_user('empty@test.kafoo');      -- has no Meals at all
 SELECT tests.create_supabase_user('customer@test.kafoo');
 
-SELECT tests.authenticate_as('cook@test.kafoo');
-
-INSERT INTO public.kitchen_profiles
-  (cook_id, display_name, story, area, delivery_terms)
-VALUES (
-  tests.user_id('cook@test.kafoo'),
-  'مطبخ الأم',
-  'بنعمل أكل بيتي بحب',
-  'مدينة نصر',
-  'توصيل في نفس الحي'
-);
-
+-- A kitchen for each Cook. Same shape, different food, so the only thing that varies between them
+-- is what is on the menu.
+SELECT tests.authenticate_as('open@test.kafoo');
+INSERT INTO public.kitchen_profiles (cook_id, display_name, story, area, delivery_terms)
+VALUES (tests.user_id('open@test.kafoo'), 'مطبخ الأم', 'بنعمل أكل بيتي بحب', 'مدينة نصر', 'توصيل في نفس الحي');
+INSERT INTO public.meals (cook_id, title, description, price, cuisine, category, status)
+VALUES (tests.user_id('open@test.kafoo'), 'كشري', 'كشري بالعدس والحمص', 75.00, 'egyptian', 'main', 'published');
 SELECT tests.clear_authentication();
 
--- 1. The Cook can always read their own kitchen. If this is zero, the owner
---    policy is broken and the other four assertions prove nothing.
-SELECT tests.authenticate_as('cook@test.kafoo');
+SELECT tests.authenticate_as('drafting@test.kafoo');
+INSERT INTO public.kitchen_profiles (cook_id, display_name, story, area, delivery_terms)
+VALUES (tests.user_id('drafting@test.kafoo'), 'مطبخ لسه', 'لسه بنجهز', 'الدقي', 'هنشوف');
+INSERT INTO public.meals (cook_id, title, description, price, cuisine, category, status)
+VALUES (tests.user_id('drafting@test.kafoo'), 'ملوخية', 'ملوخية بالفراخ', 120.00, 'egyptian', 'main', 'draft');
+SELECT tests.clear_authentication();
+
+SELECT tests.authenticate_as('paused@test.kafoo');
+INSERT INTO public.kitchen_profiles (cook_id, display_name, story, area, delivery_terms)
+VALUES (tests.user_id('paused@test.kafoo'), 'مطبخ مقفول', 'قافلين شوية', 'المعادي', 'توصيل قريب');
+INSERT INTO public.meals (cook_id, title, description, price, cuisine, category, status)
+VALUES (tests.user_id('paused@test.kafoo'), 'محشي', 'محشي كرنب', 90.00, 'egyptian', 'main', 'unavailable');
+SELECT tests.clear_authentication();
+
+SELECT tests.authenticate_as('empty@test.kafoo');
+INSERT INTO public.kitchen_profiles (cook_id, display_name, story, area, delivery_terms)
+VALUES (tests.user_id('empty@test.kafoo'), 'مطبخ فاضي', 'لسه بندور', 'شبرا', 'مش محدد');
+SELECT tests.clear_authentication();
+
+-- 0. The Cook still reads their own kitchen. If the widening policy were written in a way that
+--    replaced the owner policy rather than adding to it, this is what would catch it.
+--
+--    Scoped to their own row deliberately. An unscoped count here returns 2, not 1 — this Cook
+--    reads their own closed kitchen AND the one kitchen that is open, because RLS policies are
+--    OR-ed together and a Cook is also a person who can discover other kitchens. The first version
+--    of this assertion counted every row and expected 1, which was a wrong test rather than a wrong
+--    policy: it would have failed on the day a second Cook opened.
+SELECT tests.authenticate_as('paused@test.kafoo');
 
 SELECT is(
-  (SELECT COUNT(*)::int FROM public.kitchen_profiles),
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+    WHERE cook_id = tests.user_id('paused@test.kafoo')),
   1,
-  'the owning Cook reads their own kitchen'
+  'a Cook with nothing on the menu still reads their own kitchen'
 );
 
 SELECT tests.clear_authentication();
 
--- 2. A signed-in Customer browsing every kitchen finds none, because no Cook
---    has food on offer. Kafoo never shows a kitchen that cannot be ordered from.
-SELECT tests.authenticate_as('customer@test.kafoo');
+-- 26. A signed-out person finds a kitchen whose Cook has food on offer.
+--     E1's outstanding obligation, discharged.
+SELECT tests.authenticate_as_anon();
 
 SELECT is(
-  (SELECT COUNT(*)::int FROM public.kitchen_profiles),
-  0,
-  'a Customer discovers zero kitchens while no Meals exist'
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+    WHERE cook_id = tests.user_id('open@test.kafoo')),
+  1,
+  'a signed-out person finds a kitchen with food on offer'
 );
 
 SELECT tests.clear_authentication();
 
--- 3. Searching by a known display name is not a way around it. Discovery is
---    denied by the absence of a policy, not by the absence of a query.
+-- 27. A kitchen whose Cook has only drafts is not open, and is not findable.
+SELECT tests.authenticate_as_anon();
+
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+    WHERE cook_id = tests.user_id('drafting@test.kafoo')),
+  0,
+  'a kitchen with only drafts has never opened, and nobody finds it'
+);
+
+SELECT tests.clear_authentication();
+
+-- 28. Nor one whose Meals are all off the menu.
+SELECT tests.authenticate_as_anon();
+
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+    WHERE cook_id = tests.user_id('paused@test.kafoo')),
+  0,
+  'a kitchen with everything taken off the menu is closed, and nobody finds it'
+);
+
+SELECT tests.clear_authentication();
+
+-- 29. Nor one with no Meals at all — and being signed in is not a way around it.
 SELECT tests.authenticate_as('customer@test.kafoo');
 
 SELECT is(
   (SELECT COUNT(*)::int FROM public.kitchen_profiles
-   WHERE display_name = 'مطبخ الأم'),
+    WHERE cook_id = tests.user_id('empty@test.kafoo')),
   0,
-  'naming a kitchen exactly does not reveal it'
+  'a signed-in Customer does not find a kitchen with no Meals'
 );
 
 SELECT tests.clear_authentication();
 
--- 4. Nor is being signed out.
-SELECT tests.authenticate_as_anon();
+-- 29b. The whole surface at once. Counting every kitchen a Customer can reach is what would catch
+--      a widening policy that is broader than its predicate looks — three of these four kitchens
+--      must be invisible, and asserting them one at a time would not notice a fifth appearing.
+SELECT tests.authenticate_as('customer@test.kafoo');
 
 SELECT is(
   (SELECT COUNT(*)::int FROM public.kitchen_profiles),
-  0,
-  'a signed-out person discovers zero kitchens'
+  1,
+  'exactly one kitchen is discoverable, and it is the one with food on offer'
 );
 
 SELECT tests.clear_authentication();
 
--- 5. FR-020: a phone number is readable only by its owner. Kafoo never copies
---    it into a table of its own, so the only route to one is auth.users, and
---    that route is closed.
+-- 30. FR-020, restated because this feature adds a new route to a kitchen and every new route is a
+--     new chance to leak the number. It holds by construction — auth.users is not exposed through
+--     the data API — and "holds by construction" is a claim about code that changes.
+--
+--     Asserted as a refusal (42501), not as an empty result: no Supabase project grants
+--     authenticated any access to auth.users at all, so the Customer is turned away at the door
+--     rather than shown an empty room.
 SELECT tests.authenticate_as('customer@test.kafoo');
 
--- Asserted as a refusal, not as an empty result. This read used to expect zero rows, which assumed
--- a row-level filter; the actual mechanism is a table-level privilege denial (42501), because no
--- Supabase project grants authenticated any access to auth.users at all. The guarantee is therefore
--- stronger than the original assertion claimed — the Customer is refused at the door rather than
--- shown an empty room — and the old form could never have passed, since a hard error aborts the
--- statement instead of returning 0.
 SELECT throws_ok(
-  $$ SELECT COUNT(*)::int FROM auth.users WHERE email = 'cook@test.kafoo' $$,
+  $$ SELECT COUNT(*)::int FROM auth.users WHERE email = 'open@test.kafoo' $$,
   '42501',
   NULL,
-  'a Customer cannot reach another person''s auth record, and so cannot reach their phone number'
+  'finding a kitchen through a Meal does not lead to the Cook''s phone number'
 );
 
 SELECT tests.clear_authentication();

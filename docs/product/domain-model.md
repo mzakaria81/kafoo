@@ -123,9 +123,11 @@ terms, and photo. Nothing else about the Cook is reachable through it, signed in
 particular the phone number, which Kafoo never copies out of the authentication record. Adding a
 sixth detail is a change to this rule, not a layout decision.
 
-Consequence, stated because it looks like a bug and is not: **no Kitchen Profile is discoverable
-until Meals exist.** Every discovery query correctly returns zero rows today. The fix is to create
-Meals and widen the read policy then — never to make Kitchen Profiles publicly readable now.
+Consequence, stated because it looks like a bug and is not: **a Kitchen Profile is discoverable
+exactly while its Cook has a Meal on offer.** E2 added the widening read policy that makes this
+true. A Cook whose Meals are all drafts has never opened; a Cook who has taken everything off the
+menu is closed. Both correctly return zero rows to everyone but the Cook, and the fix for "my
+kitchen disappeared" is to put a Meal back on the menu — never to widen the policy.
 
 ## Entity fields
 
@@ -137,12 +139,30 @@ column, per `.claude/rules/supabase.md`.
 Display name · story · area · delivery terms · photo · `cook_id` (owner).
 
 ### Meal
-`cook_id` (owner, `ON DELETE RESTRICT`) · title · description · price · cuisine · category ·
+`cook_id` (owner) · title · description · price · cuisine · category ·
 `status` (CHECK against the lifecycle) · ingredients · calories · allergens ·
-`nutrition_source` (`ai` | `cook`).
+`nutrition_source` (`ai` | `cook`) · photo path · `published_at`.
 
-Calories and allergens are AI estimates until a Cook confirms them. They are **never** presented
-as verified fact, and the `source` field is what the UI reads to decide how to label them.
+Calories and allergens are AI estimates until a Cook **changes** them. They are **never** presented
+as verified fact, and `nutrition_source` is what the UI reads to decide how to label them.
+
+**`nutrition_source` is derived, never accepted from a client.** A trigger sets it to `cook` when
+an update actually changes the calories or the allergens, and leaves it alone otherwise. Approving
+an estimate without editing it does not make it verified — that distinction is the whole of the
+"AI suggests, humans approve" rule, and a client allowed to assert the field could erase it. The
+one exception is INSERT, where there is no previous value to compare against and the Cook is the
+one confirming.
+
+**`published_at` is the first time a Meal went on offer**, set by trigger and never overwritten. A
+Meal taken off the menu and put back has been made available again, not republished.
+
+**Price covers the whole Meal**, not a portion. There is no quantity on a Meal — it is an offer,
+not inventory.
+
+**`cook_id` is `ON DELETE CASCADE` today, and this document previously said `RESTRICT`.** RESTRICT
+is right once an Order can reference a Meal, and wrong before then: E1 promises that removing an
+account removes everything belonging to it, and RESTRICT would break that promise for the only case
+that currently exists. **The migration that creates `orders` must change it to `RESTRICT`.**
 
 ### Order
 `customer_id` · `cook_id` · `meal_id` · `status` (CHECK) · quantity · price at time of order ·

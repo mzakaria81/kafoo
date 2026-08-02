@@ -914,3 +914,158 @@ the redundant one will otherwise look like prudent belt-and-braces to whoever ne
 **Principle:** A platform feature is adopted for one capability and arrives with several. The ones
 nobody asked for are the dangerous ones, because nothing in the change request names them and no
 review covers them — they are discovered by their side effects, usually later than you would like.
+
+### Observation 39: A "watch the test fail first" rule needs a stated fallback when the environment cannot run the test
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Readiness assessment for E2 (Meal Publishing) before implementation starts
+**Skill:** ship-check (and the Kafoo build-a-feature sequence in CLAUDE.md steps 5–6)
+**Type:** open-source
+**Phase/Area:** Authorization-test ordering / red-then-green verification
+
+**Issue:** The workflow mandates writing an authorization test, running it, and confirming it FAILS
+before the policy exists. The task list encodes this as local commands (`supabase test db`, then
+`supabase db reset && supabase test db`). The session container has the Supabase CLI but no Docker
+daemon, so neither command can run locally. The rule is unsatisfiable as written, and the two
+failure modes are both bad: silently skip the red step and claim the ordering was honoured, or
+stall. Neither is what the rule intends. A workable third path exists — push the tests alone,
+watch the CI authorization job go red against a disposable preview database, then push the policy
+and watch it go green — but it is not written down anywhere, and it changes commit sequencing
+(two pushes on the PR, not one squashed commit).
+
+**Suggested improvement:** In the ordering rule, state the environment it assumes and name the
+remote fallback explicitly: if the local database cannot run, the red observation is made on the
+pull request by pushing the failing tests in their own commit before the migration. Add the
+sequencing consequence, because it contradicts the usual "one logical change per commit" habit.
+
+**Principle:** A verification rule that names specific local commands silently assumes an
+environment. When it can be satisfied remotely instead, write the fallback into the rule — an
+unsatisfiable rule is not obeyed, it is skipped, and the skip is invisible in the artefact.
+
+### Observation 40: A rule enforced at two layers needs one assertion per layer, or neither can be mutation-tested
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Writing the E2 authorization suites for the `meals` table
+**Skill:** ship-check (definition-of-done / RLS verification), and the RLS review checklist
+**Type:** open-source
+**Phase/Area:** Authorization test design, mutation testing
+
+**Issue:** The design deliberately enforced one invariant ("a row cannot change owner") twice — in
+a row-level security policy and in a database trigger — with the rationale that policies defend
+against a hostile client and constraints defend against the project's own code. Both layers are
+correct. But the combination made either layer individually untestable: the trigger runs before
+the policy is evaluated, so it answers first, and the single test asserting "the reassign is
+refused" stays green when the policy is deliberately broken. The previous feature hit the same
+shape from the other direction and left a written warning that its test did not detect what its
+name claimed. Defence in depth silently converts into a test that cannot fail for the reason it
+says it can.
+
+**Suggested improvement:** Where a rule is deliberately enforced at more than one layer, require
+an assertion per layer, each distinguished by the *mechanism* that answers (distinct error codes,
+or temporarily disabling one layer inside the test transaction to isolate the other). Name the
+mutation target explicitly in a comment on the isolating assertion — "break X and THIS assertion
+must go red" — so a later reader can verify the suite rather than trusting it. Add a review
+question: for each new invariant, how many layers enforce it, and is there an assertion that fails
+when each one alone is removed?
+
+**Principle:** Redundant enforcement is good for safety and bad for evidence. Layers mask each
+other in a fixed order, so a single "the bad thing is refused" assertion measures only the
+outermost layer and silently stops measuring the rest. Coverage must be counted per enforcement
+layer, not per rule — and the mutation that should redden each assertion belongs in a comment next
+to it, because a suite that has only ever been green looks identical to one that cannot fail.
+
+### Observation 41: Quantify a deferred cost decision before deferring it to a human
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Pricing model providers for E2's blocked-on-a-decision task
+**Skill:** ship-check / the stop-and-ask trigger list in the project instructions
+**Type:** open-source
+**Phase/Area:** Stop-and-ask triggers, decision deferral
+
+**Issue:** A planning document correctly identified a choice as recurring spend and therefore a
+human decision, and deferred it as a hard blocker on a whole phase of work. When the options were
+actually priced, the spend turned out to be roughly half a cent per unit of activity — about a
+dollar a month at the project's real scale. The category was right and the magnitude was never
+checked, so a non-decision was escalated as a blocker, and the actual differentiators (output
+quality in a specific dialect, and which vendor receives user photographs) were left unstated
+underneath it. The decision-maker would have been asked to weigh a cost that does not matter while
+the things that do matter went unnamed.
+
+**Suggested improvement:** When a stop-and-ask trigger fires on cost, require an order-of-magnitude
+estimate in the same breath as the escalation — even a rough one. If the number turns out to be
+immaterial at the project's scale, say so and re-frame the question around whatever actually
+differentiates the options. Escalate the real decision, not the category it fell into.
+
+**Principle:** A trigger identifies a *kind* of decision, not its *weight*. Escalating on category
+alone spends the decision-maker's attention on the label rather than the substance — and worse, it
+can hide the real trade-off underneath a cost framing that turns out to be noise. Quantify before
+escalating; the estimate is usually cheap and it decides whether the question is even worth asking.
+
+### Observation 42: A gate that enumerates tracked files silently ignores uncommitted work — and still answers
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Adding an Edge Function unit-test step to the project's verification gate
+**Skill:** verification-before-completion, and ship-check
+**Type:** open-source
+**Phase/Area:** Verification tooling, pre-commit gates
+
+**Issue:** The project's gate script discovers what to check with the version-control tool's
+"list tracked files" command, which every existing check used and which I copied. Ten new unit
+tests were sitting on disk, unstaged. The gate printed "no unit tests yet — skipping" and then
+"ok", and the overall result was a pass. Nothing was wrong and nothing was verified. The failure
+is not that the check was skipped — it is that the gate *answered*, in the affirmative, about work
+it had not looked at. Had I trusted it, I would have committed ten tests that had never run inside
+the gate, and reported the gate as green with a straight face.
+
+Noticed only because the count looked wrong. A skip line is easy to read past when nine other
+lines say ok.
+
+**Suggested improvement:** In verification guidance, add a specific check: after adding a step to
+a gate, confirm it actually examined the new files rather than skipping them — the skip path and
+the pass path print differently, and the difference must be read. More generally, prefer
+filesystem discovery over version-control discovery for anything meant to validate work in
+progress, and reserve tracked-file enumeration for checks about the repository's committed state
+(such as scanning for committed credentials, where "untracked" genuinely means "not a problem").
+
+**Principle:** A verification step that cannot find its subject should be loud, not silent. Any
+gate whose discovery mechanism can return an empty set needs to distinguish "checked, found
+nothing wrong" from "found nothing to check" — and the second must never be reported as success.
+Skip-on-empty is the default shape of these scripts and it converts a missing check into a green
+tick.
+
+### Observation 43: Configuration read from documentation is a guess until one real call is made
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Integrating a third-party API
+
+**Issue:** Built an integration against a third-party API and populated its configuration —
+identifiers, defaults, tier mappings — from the provider's published documentation and pricing
+pages. Unit tests passed, type checks passed, the whole gate was green. The first real call failed
+immediately: the primary identifier was rejected as "no longer available to new users". Two more
+followed. A second identifier returned malformed output despite the request constraining the
+format; a third was correct but roughly ten times slower than needed, because it silently spent
+most of its latency on internal reasoning for a task that did not need any. All three were
+invisible to every check that did not actually call the service. The provider's own "list what
+exists" endpoint still advertised the rejected identifier, so even querying the service
+programmatically would not have caught it — only a real request did.
+
+**Suggested improvement:** When integrating any external service, require one real call before the
+work is considered done, and record the measured result next to the configuration it justifies.
+Treat "the docs say X" as a hypothesis and the call as the test. Where a value has a performance
+budget attached, measure it rather than assuming the documented tier meets it — and prefer the
+cheapest, least capable option that passes, since heavier ones often add latency without adding
+correctness on extraction-shaped work.
+
+**Principle:** Documentation describes the service the provider intends to offer; a call describes
+the one your credential can actually reach. The gap between them is invisible to type checks, unit
+tests and even the provider's own discovery endpoints, and it is systematically in the direction of
+"this looked fine and does not work". One real call is the cheapest test available and the only one
+that closes that gap — make it before claiming an integration works, and write the number down so
+the next person inherits evidence instead of a citation.

@@ -40,10 +40,10 @@ problem, E2 inherits it and both look green.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `flutter_riverpod` and `riverpod_annotation` to `apps/mobile/pubspec.yaml`, and `riverpod_generator` + `build_runner` to its `dev_dependencies` — the decision recorded in research.md §4
-- [ ] T002 Add the `meal-photos` storage bucket to `supabase/config.toml`, public read, beside the existing `kitchen-photos`
-- [ ] T003 [P] Create `prompts/meal-analysis.md` and `prompts/meal-description.md` with the frontmatter `.claude/rules/ai.md` requires — `id`, `version: 1`, `model_tier: fast`, `last_evaluated`. Both MUST instruct the model explicitly on Egyptian Arabic, not Modern Standard
-- [ ] T004 Run `melos bootstrap`, then `dart run build_runner build --delete-conflicting-outputs`, and confirm `./scripts/verify.sh` still passes — the codegen drift check now does work instead of skipping, and this is the commit where that starts
+- [x] T001 Add `flutter_riverpod` and `riverpod_annotation` to `apps/mobile/pubspec.yaml`, and `riverpod_generator` + `build_runner` to its `dev_dependencies` — the decision recorded in research.md §4
+- [x] T002 Add the `meal-photos` storage bucket — **in the migration, not `supabase/config.toml`.** No bucket is declared in `config.toml`; `kitchen-photos` is created by an `INSERT INTO storage.buckets` in `20260730165511`, and a second mechanism for the same thing is how two sources of truth start. Done alongside T019
+- [x] T003 [P] Create `prompts/meal-analysis.md` and `prompts/meal-description.md` with the frontmatter `.claude/rules/ai.md` requires — `id`, `version: 1`, `model_tier: fast`, `last_evaluated`. Both MUST instruct the model explicitly on Egyptian Arabic, not Modern Standard
+- [x] T004 Run `melos bootstrap`, then `dart run build_runner build --delete-conflicting-outputs`, and confirm `./scripts/verify.sh` still passes — the codegen drift check now does work instead of skipping, and this is the commit where that starts
 
 ---
 
@@ -51,11 +51,11 @@ problem, E2 inherits it and both look green.
 
 Blocking prerequisites. Every user story depends on these.
 
-- [ ] T005 [P] Define `Meal`, `MealStatus` and `NutritionSource` in `packages/domain/lib/meal.dart` — entity and invariants, including `canTransitionTo`. No Flutter, no Supabase imports
-- [ ] T006 [P] Define `MealAnalysis` in `packages/domain/lib/meal_analysis.dart` as a **separate type** from `Meal` — a suggestion is not a Meal, and sharing a type is how one silently becomes the other
-- [ ] T007 [P] Define the question sequence as data in `packages/domain/lib/meal_step.dart`, following `conversation_step.dart` from E1 — a domain rule about what a Meal must say about itself, not a property of a screen
-- [ ] T008 [P] Add a `dart test` in `packages/domain/test/meal_test.dart` asserting every legal and illegal lifecycle transition from data-model.md, provable without a database
-- [ ] T009 [P] Add the E2 event name constants to `apps/mobile/lib/features/analytics/event_names.dart`, copied from `docs/product/event-model.md` — `MealDrafted`, `MealPublished`, `MealUpdated`, `MealArchived`. No event name is invented at a call site
+- [x] T005 [P] Define `Meal`, `MealStatus` and `NutritionSource` in `packages/domain/lib/meal.dart` — entity and invariants, including `canTransitionTo`. No Flutter, no Supabase imports
+- [x] T006 [P] Define `MealAnalysis` in `packages/domain/lib/meal_analysis.dart` as a **separate type** from `Meal` — a suggestion is not a Meal, and sharing a type is how one silently becomes the other
+- [x] T007 [P] Define the question sequence as data in `packages/domain/lib/meal_step.dart`, following `conversation_step.dart` from E1 — a domain rule about what a Meal must say about itself, not a property of a screen
+- [x] T008 [P] Add a `dart test` in `packages/domain/test/meal_test.dart` asserting every legal and illegal lifecycle transition from data-model.md, provable without a database
+- [x] T009 [P] Add the E2 event name constants to `apps/mobile/lib/features/analytics/event_names.dart`, copied from `docs/product/event-model.md` — `MealDrafted`, `MealPublished`, `MealUpdated`, `MealArchived`. No event name is invented at a call site
 - [ ] T010 Create `apps/mobile/lib/features/meal/` with `presentation/`, `application/` and `data/` subdirectories, per plan.md's structure decision
 
 ---
@@ -70,20 +70,26 @@ route. Every attempt returns nothing and changes nothing — automatically, on e
 
 ### Tests first — these must fail before the migration exists
 
-- [ ] T011 [P] [US3] Write `supabase/tests/meals_rls_test.sql` covering cases 1–13 and 22–25 of `contracts/authorization.md` — most importantly case 8, that a Cook cannot reassign `cook_id`, which is the `WITH CHECK` case that fails when a policy is written from memory
-- [ ] T012 [P] [US3] Write the lifecycle cases 14–21 in `supabase/tests/meals_lifecycle_test.sql`, especially case 18 — a retired Meal never returns to offer, by any route
-- [ ] T013 [US3] Rewrite `supabase/tests/kitchen_discoverability_test.sql` for cases 26–30: a kitchen with a published Meal is readable by `anon`, one with only drafts or only unavailable Meals is not. This file currently asserts the opposite, which was correct in E1
-- [ ] T014 [US3] Run `supabase test db` and confirm all three suites **FAIL**. A suite that passes here is testing nothing and must be fixed before proceeding
+- [x] T011 [P] [US3] Write `supabase/tests/meals_rls_test.sql` covering cases 1–13 and 22–25 of `contracts/authorization.md` — most importantly case 8, that a Cook cannot reassign `cook_id`, which is the `WITH CHECK` case that fails when a policy is written from memory
+- [x] T012 [P] [US3] Write the lifecycle cases 14–21 in `supabase/tests/meals_lifecycle_test.sql`, especially case 18 — a retired Meal never returns to offer, by any route
+- [x] T013 [US3] Rewrite `supabase/tests/kitchen_discoverability_test.sql` for cases 26–30: a kitchen with a published Meal is readable by `anon`, one with only drafts or only unavailable Meals is not. This file currently asserts the opposite, which was correct in E1
+- [x] T014 [US3] Confirm all suites **FAIL** before the migration lands. A suite that passes here is testing nothing and must be fixed before proceeding.
+
+  **`supabase test db` cannot run in the session container — there is no Docker daemon.** The red
+  observation therefore happens on the pull request: the suites are pushed in their own commit
+  (`4ad4c3b`), and the `Authorization` workflow runs them against the preview branch Supabase builds
+  for the PR, where `meals` does not exist. This costs one extra push and gives a publicly recorded
+  red rather than a claim about a local run
 
 ### Then the schema that makes them pass
 
-- [ ] T015 [US3] Create the migration with `supabase migration new create_meals` — never hand-write the timestamp — containing the table, `ENABLE ROW LEVEL SECURITY`, all five policies, **and the widening `kitchen_profiles` SELECT policy from data-model.md, in the same file**. Without the widening policy, kitchens with Meals on offer are silently unreachable
-- [ ] T016 [US3] Add the `enforce_meal_lifecycle` trigger from data-model.md in the same migration — FR-018 and FR-016 as constraints, not conventions
-- [ ] T017 [US3] Add the `derive_nutrition_source` trigger in the same migration, so the source is set from what actually changed rather than from what the client claims. This is the one place where believing the client destroys Principle II
-- [ ] T018 [US3] Add a check that a Meal's `cook_id` owns a Kitchen Profile (FR-017), as a trigger — **not** as a foreign key to `kitchen_profiles.cook_id`, which would make a Meal belong to a kitchen rather than to a Cook and contradict FR-016
-- [ ] T019 [US3] Add the `meal-photos` storage policies — public read, write and delete restricted to `{auth.uid()}/`, path `{uid}/{meal_id}.jpg` so one photo cannot overwrite another
-- [ ] T020 [US3] Run `supabase db reset && supabase test db` and confirm all three suites now **PASS**
-- [ ] T021 [US3] Deliberately weaken the `UPDATE` policy's `WITH CHECK`, confirm case 8 goes red, then restore it — the mutation check from `docs/ops/verifying-e1.md` §5, applied to a suite nobody has yet seen fail
+- [x] T015 [US3] Create the migration with `supabase migration new create_meals` — never hand-write the timestamp — containing the table, `ENABLE ROW LEVEL SECURITY`, all five policies, **and the widening `kitchen_profiles` SELECT policy from data-model.md, in the same file**. Without the widening policy, kitchens with Meals on offer are silently unreachable
+- [x] T016 [US3] Add the `enforce_meal_lifecycle` trigger from data-model.md in the same migration — FR-018 and FR-016 as constraints, not conventions
+- [x] T017 [US3] Add the `derive_nutrition_source` trigger in the same migration, so the source is set from what actually changed rather than from what the client claims. This is the one place where believing the client destroys Principle II
+- [x] T018 [US3] Add a check that a Meal's `cook_id` owns a Kitchen Profile (FR-017), as a trigger — **not** as a foreign key to `kitchen_profiles.cook_id`, which would make a Meal belong to a kitchen rather than to a Cook and contradict FR-016
+- [x] T019 [US3] Add the `meal-photos` storage policies — write and delete restricted to `{auth.uid()}/`, path `{uid}/{meal_id}.jpg` so one photo cannot overwrite another. **Read is owner-scoped, not public**, which still satisfies contract case 33: the bucket's `public` flag is what serves a photo, and object URLs bypass policy checks. A public SELECT policy would add nothing except an answering enumeration endpoint — the hole closed on `kitchen-photos` in `20260802065138`, three days after these documents were written
+- [x] T020 [US3] Confirm all suites now **PASS**. Done on the preview branch, same reason as T014: 54 assertions across five files, 0 failures, run 30747218115
+- [x] T021 [US3] The mutation check, **automated rather than performed once**. The manual version in `docs/ops/verifying-e1.md` §5 is unreachable here — Supabase pushes only *new* migration files to a preview branch, so editing the migration that created the policy changes nothing on the database the suites run against. Assertion 19 of `meals_rls_test.sql` weakens `WITH CHECK` to `true` inside the rolled-back transaction, disables the trigger that would answer first, and proves the reassign then succeeds. Case 8b's sensitivity is now measured on every commit instead of remembered
 
 **Checkpoint**: the ownership rules exist and are proven. Every later story writes into a protected
 table.
@@ -208,7 +214,7 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 ## Phase 10: Polish & Cross-Cutting
 
-- [ ] T070 **Amend ADR-0005.** It assumes the model seam and the credential live in the same place. They cannot — the key would ship in the Flutter binary. Record that the seam stays `AiProvider` while the vendor swap moves inside the Edge Function
+- [x] T070 **Amend ADR-0005 — DONE, and moved to the front of the epic rather than the end.** Building the Edge Function on an architecture document known to be wrong is how a decision record becomes fiction. Amendment 1 covers the moved seam, the one-variable switch, and the chosen provider. ~~**Amend ADR-0005.**~~ It assumes the model seam and the credential live in the same place. They cannot — the key would ship in the Flutter binary. Record that the seam stays `AiProvider` while the vendor swap moves inside the Edge Function
 - [ ] T071 [P] Add the Meal shape and the `nutrition_source` rule to `docs/product/domain-model.md`, and record that `meals.cook_id` uses `ON DELETE CASCADE` today and **must become `RESTRICT` in the migration that creates `orders`** (Definition of Done item 6)
 - [ ] T072 [P] Move every E2 event in `docs/product/event-model.md` from `planned` to `active`
 - [ ] T073 [P] Confirm every new screen renders under RTL with `EdgeInsetsDirectional` and `start`/`end`, never `left`/`right` (SC-009)
@@ -221,9 +227,55 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 ---
 
+## Added after the provider seam was measured (2026-08-02)
+
+These are not in the original plan. They come from calling a real model and finding out what the
+design documents could not have known.
+
+- [ ] T081 **Put a response schema in the adapter interface.** Measured: asking a model for clean
+  JSON in the prompt does not work — it wrapped the reply in a Markdown code fence *despite the
+  prompt forbidding one*. Setting `responseMimeType: application/json` plus a schema returns bare
+  JSON every time. A prompt instruction is a request; an API parameter is a constraint, and
+  `.claude/rules/ai.md` demands strict JSON validated against a schema.
+
+  Real work, not a tweak: `ModelRequest` gains an optional schema, and each provider expresses it
+  differently — Gemini takes an OpenAPI-ish `responseSchema`, OpenAI takes JSON Schema under
+  structured outputs, Anthropic does it through tool use. That divergence is exactly the quirk the
+  adapter layer exists to absorb. **Do this before `analyze-meal` is written**, so the function is
+  not built on the weaker approach and then retrofitted.
+
+- [ ] T082 **Declare functions in `supabase/config.toml`.** Every preview build warns that only
+  declared functions deploy to branches, and none are declared — so E1's `delete-account` is not
+  exercised on preview branches either, and `analyze-meal` would silently not be. Pre-existing gap,
+  cheap to close, and it invalidates any "tested on the preview branch" claim about a function
+  until it is.
+
+- [ ] T083 **Measure on-device Egyptian Arabic transcription.** Before E3. The weakest link in a
+  voice-first feature is probably not the model — it is whether the phone hears `بانيه` correctly
+  in the first place, and nobody has checked. If it is bad, no downstream model quality rescues it,
+  and the fix (server-side transcription) is a smaller change than it sounds.
+
+- [ ] T084 **Throwaway spike: the Gemini Live API for Customer discovery.** Before E3, and
+  explicitly not for E2 — E2's model call is a single structured extraction, and the Live API's
+  advantages are latency (already met at 645 ms) and open-ended dialogue (Kafoo asks the questions
+  here, not the model). Adopting it in E2 would also put the API key back on the handset and end
+  one-variable provider switching. It is a genuine candidate for E3, where a Customer talks to
+  Kafoo to find food and the model does lead. Spike to answer that, and throw the code away.
+
+---
+
 ## Blocked on a decision
 
-- [ ] T080 **Choose a model provider.** Requirements are in research.md §1: vision, Egyptian Arabic, strict JSON, streaming, known cost per published Meal. This is recurring spend and a stop-and-ask — the founder decides, and nothing in Phase 4 can be evaluated against a real model until they do
+- [x] T080 **Choose a model provider — DECIDED 2026-08-02: Anthropic Claude Haiku 4.5, fast tier.** Recorded in ADR-0005 Amendment 1, with switching made a one-variable configuration change and enforced by a `verify.sh` check. Original framing kept below.
+
+  ~~**Choose a model provider.**~~ Requirements are in research.md §1: vision, Egyptian Arabic, strict JSON, streaming, known cost per published Meal. This is recurring spend and a stop-and-ask — the founder decides, and nothing in Phase 4 can be evaluated against a real model until they do
+
+  **Priced on 2026-08-02, and the cost turns out not to decide it.** One published Meal is roughly
+  4,600 input and 600 output tokens across two calls (analysis with photo, then description). Every
+  fast-tier candidate lands between US$0.002 and US$0.008 per Meal — at a few hundred Meals a month
+  that is under two dollars. The question is therefore Egyptian Arabic quality, which only the
+  golden cases can answer, and which vendor receives a Cook's photograph, which only the founder
+  can answer. Cost is not the constraint it was assumed to be.
 
 ---
 

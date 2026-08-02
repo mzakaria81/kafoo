@@ -65,7 +65,7 @@ Source: `.specify/memory/constitution.md` (v1.1.0).
 | II | **AI suggests, humans approve** | PASS | Enforced structurally, not by convention: the Edge Function that calls the model holds no service-role key and performs no writes. Every write is the Cook's own session under RLS. `nutrition_source` is a column, not a UI flag, so an approved estimate stays an estimate in the data. |
 | III | **Security by default** | PASS | `meals` enables RLS in the same migration, four per-operation policies, `USING` + `WITH CHECK` on `UPDATE`, deny-by-default. Lifecycle and ownership are `CHECK` constraints and foreign keys, not application validation. Negative tests written first. |
 | IV | **Conversation first, Arabic first** | PASS | Seven values are gathered, which would be a seven-field form. FR-001 forbids it. One question at a time, and the AI Assistant exists precisely so most values are inferred rather than asked. |
-| V | **Provider independence** | PASS **with an ADR amendment required** | All calls go through `AiProvider`. But the adapter now calls a Kafoo Edge Function rather than a vendor SDK, because the key cannot ship in the client. ADR-0005 does not anticipate this and must be amended — see Complexity Tracking. |
+| V | **Provider independence** | PASS — **amendment landed 2026-08-02** | All calls go through `AiProvider`. The adapter calls a Kafoo Edge Function rather than a vendor SDK, because the key cannot ship in the client. ADR-0005 Amendment 1 records this, fixes the configuration mechanism so switching vendors is one environment variable with no code diff, and names the provider (Claude Haiku 4.5). Written **before** the Edge Function, not after — building on a decision record known to be wrong is how one becomes fiction. |
 | VI | **Canonical vocabulary** | PASS | Names reserved in `docs/product/event-model.md`: `MealDrafted`, `MealPublished`, `MealUpdated`, `MealArchived`, plus `ConversationStepCompleted` with `kind: meal`. None invented here. |
 | VII | **Documentation separation** | PASS | `spec.md` names no framework, storage engine, provider or policy. Verified by grep at spec time. |
 | — | **Performance budgets** | **AT RISK** | Publishing stays under 3s because FR-030 moves estimation out of it. The estimate itself is a vision call inside a 2-second voice budget, and nothing in Kafoo has ever measured a model round-trip. Called out rather than assumed — see research.md §3. |
@@ -144,8 +144,10 @@ per-field approval.
 
 ## What this plan does not decide
 
-- **Which model provider.** Research §1 sets the requirements it must meet and the questions to put
-  to the founder. It is recurring spend and a stop-and-ask.
+- ~~**Which model provider.**~~ **Decided 2026-08-02: Claude Haiku 4.5.** Priced first, and the
+  pricing changed the question — every fast-tier candidate costs under a cent per published Meal, so
+  the decision turned on adversarial robustness and photo handling rather than spend. Switching is
+  one environment variable, by requirement rather than by luck. See ADR-0005 Amendment 1.
 - **Whether estimates are cached.** `.claude/rules/ai.md` says cache nutrition estimates for
   identical Meal text. Worth doing, but it needs a cache-invalidation answer and is not required
   for correctness.

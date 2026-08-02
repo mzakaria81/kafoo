@@ -7,17 +7,37 @@ paths:
 
 # AI layer
 
-## Provider independence (ADR-0005)
+## Provider independence (ADR-0005, as amended 2026-08-02)
 
 Every model call goes through `AiProvider` in `packages/ai/lib/provider/`. Feature code never
 imports an OpenAI, Anthropic, or Gemini SDK — it depends on the interface.
 
-Provider-specific quirks (token limits, tool-call formats, response shapes) are absorbed inside the
-adapter. If a quirk leaks into a caller, the abstraction has failed and needs fixing, not
-working around.
+**The vendor call happens in an Edge Function, not in Dart.** A provider key compiled into the
+Flutter app is extractable by anyone who downloads it, and rotating it does not reach handsets
+already installed. So `packages/ai/lib/provider/` holds the interface, the stub, and an adapter that
+calls Kafoo's own function — and **no vendor SDK, ever**. Vendor quirks are absorbed in the Edge
+Function's provider registry.
 
-Switching providers must be a config change. Test this claim: `packages/ai/test/` runs the same
-golden cases against a stub adapter.
+This has a second effect worth more than the first: the function that talks to the model holds no
+service-role key and has no write path, so the AI Assistant is *structurally* unable to write.
+
+**Switching providers is one environment variable, with no code diff at all.** Prompts declare
+`model_tier`, never a model name; the registry maps tier → model per provider. A model id belongs in
+exactly two places — the registry's default table and an env var. `scripts/verify.sh` fails the gate
+if one appears anywhere else, and that check was mutation-tested on 2026-08-02.
+
+Test the claim rather than asserting it: `packages/ai/test/` runs the same golden cases against a
+stub adapter.
+
+**Active configuration: Gemini by default** — an unset `AI_PROVIDER` resolves to `gemini`, fast tier
+`gemini-3.1-flash-lite`, key in `GEMINI_API_KEY`. `AI_PROVIDER=anthropic` switches to Claude Haiku
+4.5 and nothing else changes. A *wrong* value throws rather than falling back.
+
+**Pick models by measuring them, not by reading pricing pages.** Every default here was first
+written from documentation and every one was wrong: `gemini-2.5-flash` is listed by the provider's
+own ListModels endpoint and refuses new accounts; `gemini-3.5-flash` returns invalid JSON;
+`gemini-3.6-flash` burns 600–900 "thinking" tokens on an extraction task and takes 4–8 seconds
+against a 2-second budget. The model that works takes 645 ms. One real call found all of it.
 
 ## Prompt files
 

@@ -41,8 +41,11 @@ run "codegen drift" bash -c '
     echo "   no melos workspace yet — skipping"; exit 0; }
   grep -rqE "^[[:space:]]+build_runner:" --include=pubspec.yaml . || {
     echo "   no package uses build_runner yet — skipping"; exit 0; }
+  # No --delete-conflicting-outputs: build_runner removed the flag and now only
+  # warns that it was ignored. Kept working by accident, which is how a dead
+  # flag survives long enough for someone to copy it somewhere it does matter.
   melos exec --depends-on=build_runner -- \
-    dart run build_runner build --delete-conflicting-outputs >/dev/null 2>&1 \
+    dart run build_runner build >/dev/null 2>&1 \
     && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
 # Edge Functions are Deno and are never compiled by the Dart toolchain, so
@@ -61,6 +64,43 @@ run "edge functions" bash -c '
   out=$(git ls-files -z "supabase/functions/*.ts" | xargs -0 deno check 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"Import .* failed"*|*"connection"*|*"dns error"*)
+        echo "   no network for remote imports — skipping"; exit 0 ;;
+      *) printf "%s\n" "${out}" >&2; exit 1 ;;
+    esac
+  }
+  exit 0'
+
+# Edge Function unit tests. `deno check` proves a function would parse; these prove it behaves.
+#
+# The registry suite in particular is what keeps ADR-0005 Amendment 1 honest — a half-added
+# provider or a silent fallback to the wrong one would pass every other check in this gate.
+#
+# NAMING IS LOAD-BEARING HERE, and this is where the convention is written down:
+#
+#   *_test.ts   unit. No network, no database, no local stack. Runs in this gate on every commit.
+#   *.test.ts   integration. Needs `supabase start`. Runs by hand, and never here.
+#
+# delete-account/index.test.ts is the second kind — it creates real auth users against a local
+# stack and cannot pass without Docker. Sweeping both kinds into the gate makes it fail on every
+# machine that has no Docker, which is every CI runner we use and the session container too.
+#
+# Network-dependent for the same reason as the check above (jsr imports), and skipped rather than
+# failed for the same reason.
+#
+# Reads the filesystem, not `git ls-files`. The other checks here list tracked files, which means a
+# test written but not yet staged is invisible to them — the gate says "skipping", prints ok, and
+# the author reasonably concludes their new suite passed. Caught exactly that way on 2026-08-02
+# with ten registry tests sitting unstaged on disk. A gate that silently ignores uncommitted work
+# is worse than one that has not been written, because it answers.
+run "edge function tests" bash -c '
+  files=$(find supabase/functions -name "*_test.ts" -type f 2>/dev/null | sort)
+  [ -n "${files}" ] || { echo "   no edge function unit tests yet — skipping"; exit 0; }
+  command -v deno >/dev/null || {
+    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+  # shellcheck disable=SC2086
+  out=$(deno test --quiet --allow-env ${files} 2>&1) || {
+    case "${out}" in
+      *"error sending request"*|*"connection"*|*"dns error"*)
         echo "   no network for remote imports — skipping"; exit 0 ;;
       *) printf "%s\n" "${out}" >&2; exit 1 ;;
     esac
@@ -116,6 +156,28 @@ run "vocabulary" bash -c '
     --include="*.dart" --include="*.sql" --include="*.ts" \
     apps packages supabase 2>/dev/null || true)
   if [ -n "$hits" ]; then echo "$hits"; exit 1; fi'
+
+# ADR-0005 Amendment 1: switching model providers must be a configuration change with no code
+# diff at all. That claim is only true while a model name lives in exactly two places — the Edge
+# Function's provider registry, and an environment variable.
+#
+# A hardcoded model id anywhere else is the whole mechanism quietly failing: the code still works,
+# the switch still looks like config, and one call site keeps talking to the old vendor. Cheaper to
+# catch here than to discover during a dialect bake-off.
+#
+# decisions/, docs/ and specs/ are excluded — naming a model is what those files are for.
+run "model config seam" bash -c '
+  registry=supabase/functions/_shared/ai/registry.ts
+  hits=$(grep -rinE "(claude-[a-z0-9]+-[0-9]|gpt-[0-9]+(\.[0-9]+)?(-[a-z]+)?|gemini-[0-9]+(\.[0-9]+)?-[a-z]+)" \
+    --include="*.dart" --include="*.ts" --include="*.md" \
+    apps packages prompts supabase/functions 2>/dev/null \
+    | grep -v "^${registry}:" || true)
+  if [ -n "$hits" ]; then
+    echo "$hits"
+    echo "   A model name belongs in ${registry} or an environment variable, nowhere else."
+    echo "   See decisions/0005-... Amendment 1."
+    exit 1
+  fi'
 
 # Every user-facing string must exist in the Egyptian Arabic ARB, not just English.
 run "localization parity" bash -c '

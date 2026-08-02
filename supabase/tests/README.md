@@ -30,6 +30,21 @@ Same suites, second transport, not a second definition of passing.
 execute them — deliberate, since helpers that create auth users have no business in a live database.
 To check production, read `pg_policies` and compare against the contract.
 
+## The mutation check runs itself now
+
+`meals_rls_test.sql` ends with an assertion that weakens the `UPDATE` policy to `WITH CHECK (true)`,
+disables the trigger that would otherwise answer first, and proves the reassign then **succeeds**.
+That is case 8b's sensitivity, measured on every commit instead of remembered from an exercise
+somebody did once.
+
+Two reasons it lives in the suite rather than in a runbook. A manual mutation is only true on the
+day it is performed, and a policy rewritten later is covered by nobody's memory of it. And on this
+project the manual version is not reachable anyway: **Supabase pushes only new migration files to a
+preview branch**, so editing the migration that created a policy changes nothing on the database
+the suites actually run against.
+
+Copy the shape when you add an assertion whose failure mode is "quietly stops testing anything".
+
 ## Confirm they can fail
 
 These suites passed for the first time on 2026-08-02, and a suite that has only ever been green may
@@ -40,6 +55,14 @@ turns `kitchen_profiles_rls_test.sql` red. Do the same before trusting any asser
 That exercise also found that test 3 does not detect what its name suggested; see the comment above
 it. Weakening `WITH CHECK` alone leaves the suite green, because the SELECT policy independently
 refuses the reassign today. It will stop doing so when FR-030 makes kitchens publicly discoverable.
+
+**E2 inherited that trap and handled it explicitly.** `meals_rls_test.sql` case 8 attempts the
+reassign on a *published* Meal, so the SELECT layer cannot mask the result — but the BEFORE UPDATE
+trigger still answers before `WITH CHECK` is evaluated, because that is the order Postgres runs them
+in. Case 8b therefore disables the trigger for one statement and asserts `42501`, isolating the
+policy. **8b is the mutation target for the `meals` UPDATE policy**: write `WITH CHECK (true)` and
+8b must go red while 8 stays green. Anywhere a rule is deliberately enforced twice, expect to need
+an assertion per layer — one assertion cannot mutation-test both.
 
 ## How they prove anything
 
