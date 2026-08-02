@@ -1069,3 +1069,121 @@ tests and even the provider's own discovery endpoints, and it is systematically 
 "this looked fine and does not work". One real call is the cheapest test available and the only one
 that closes that gap — make it before claiming an integration works, and write the number down so
 the next person inherits evidence instead of a citation.
+
+---
+
+## 2026-08-02
+
+### Observation 44: A model allowlist can name the right models under the wrong billing namespace
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Delegating T081/T082/analyze-meal via `opencode-delegate`. The first dispatch,
+using the prefix the repository's own CLAUDE.md prescribed, failed with HTTP 401
+`CreditsError: Insufficient balance` against `https://opencode.ai/zen/v1/responses`.
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** "Choose the implementer model" in SKILL.md; "Match the model to the brief" in
+references/writing-the-brief.md
+
+**Issue:** The skill correctly makes the allowed-model set the human's to state, and the project had
+stated it: ten model names, a task-shape table, a prominent warning that the prefix "is NOT a
+billing boundary", and a note that the list was "verified against this account with
+`opencode models`". Every one of those model names existed under that prefix. The prefix was still
+the wrong product. One `OPENCODE_API_KEY` authenticates two distinct providers — `opencode-go/`
+(the flat-rate subscription) and `opencode/` (a metered, per-token product) — and both namespaces
+carry the same model names. `opencode models` confirms a model exists; it says nothing about which
+account is billed. The verification that had been performed and written down was the wrong
+verification, and it read as thorough.
+
+Two downstream errors followed from the same root, both of which had stood for a week: the
+project's model table pointed every delegation at the metered endpoint, and six models were
+recorded as "on the published lineup but absent from this account" when they were merely under the
+namespace nobody had listed. That absence had been explained away as beta lineup drift — a
+plausible cause that stopped anyone looking for the real one.
+
+**Suggested improvement:** In "Choose the implementer model", add: the prefix is the billing
+boundary, and a stated allowlist should be validated by a dispatch that actually succeeds, not by
+the model appearing in `opencode models`. Add the concrete trap: when one credential serves several
+provider namespaces, run `opencode auth list` and note whether the credential appears more than
+once — a key listed under two provider names means two billing paths reachable with identical
+model strings. Also worth stating that a first dispatch against a zero balance fails loudly and
+free, which makes an unverified prefix cheap to test deliberately before any real work rides on it.
+
+**Principle:** Confirming that a resource exists is not confirming which account pays for it. Where
+one credential serves several tiers, the namespace is the boundary that matters and the resource
+name is actively misleading — it is identical on both sides. Verify a billing assumption with a
+transaction, not a catalog lookup, and treat a plausible explanation for a missing item (lineup
+drift, deprecation) as a hypothesis to test rather than a finding to write down, because a
+plausible cause on the record is what stops anyone finding the real one.
+
+### Observation 45: Measure the brief's premises before dispatch — the implementer cannot discover the task is wrong
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Implementing a task whose written specification asserted a measured cause ("the
+model wrapped the reply in a Markdown code fence despite the prompt forbidding one") and prescribed
+a fix (attach a response schema to the provider call).
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** references/writing-the-brief.md — currently covers "Premises freeze at dispatch"
+but only as a warning to audit the fact block, not as an instruction to establish the facts
+
+**Issue:** Before writing the brief I spent 23 live calls against the real provider testing the
+specification's premise. The premise did not reproduce: the reply was never fenced, in any call,
+including the ones with no constraint applied at all. Worse, the prescribed fix was actively
+harmful — attaching the schema cut clean-parse reliability from 9/9 to 7/11, multiplied output
+length up to tenfold, and pushed latency from 1.0 s to 6.7 s against a 2-second budget.
+
+Had the brief been written from the specification, the implementer would have built exactly what
+was asked, every gate would have passed, the diff would have reviewed cleanly against the brief,
+and the feature would have been slower and less reliable than doing nothing. No step in the
+delegate loop catches this. Review checks the diff against the brief; it cannot check the brief
+against reality. The implementer has no standing to question a premise, because the brief is its
+entire world.
+
+**Suggested improvement:** Add a step before "Write the brief": identify the load-bearing factual
+claims the brief rests on, and establish the ones that are cheap to establish. Where a claim was
+measured, carry the numbers into the brief in a `<facts>` block with the conditions they were
+measured under, and state explicitly which parts of the design depend on them — an implementer
+handed a counter-intuitive instruction with no evidence will reasonably "correct" it. Where a claim
+could not be established, label it unmeasured in the brief rather than dropping it, so the code
+carries the uncertainty forward instead of laundering it into apparent fact.
+
+**Principle:** Delegation transmits premises faithfully, including the wrong ones. Review catches an
+implementer that did the wrong thing; nothing in the loop catches a brief that asked for the wrong
+thing, and passing gates are actively reassuring in that case. So the orchestrator's distinctive
+pre-dispatch job is not describing the task, it is converting the task's assumed premises into
+measured ones — and then shipping the measurements, not just the conclusions, because a conclusion
+without its evidence is the first thing a capable implementer overrides.
+
+### Observation 46: A lesson applied at one call site and not its neighbours reads as fixed while still failing
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Reading a project's verification gate before delegating, to name its real
+commands in the brief.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** what counts as evidence that a gate actually examined the work
+
+**Issue:** The gate script enumerated the files to check with `git ls-files`. New, untracked
+work — the files most in need of checking — was therefore invisible to it, and the gate printed
+"ok" rather than "skipped". The project had already been caught by exactly this, had diagnosed it
+correctly, and had fixed it: one check was switched to `find` and carries a long comment explaining
+that "a gate that silently ignores uncommitted work is worse than one that has not been written,
+because it answers". The adjacent check, six lines above, still used `git ls-files` and nobody had
+looked at it. The presence of a thorough, correct, well-written comment about the failure mode made
+the surviving instance of that failure mode harder to see, not easier.
+
+**Suggested improvement:** Add to the skill: when a verification defect is found and fixed, grep for
+the defective pattern across the whole verification layer before calling it fixed, and record the
+sweep. A fix written up as a lesson should name where else the pattern was checked for. Relatedly,
+when reading someone else's gate to decide whether it constitutes evidence, do not let a
+well-argued comment about a class of bug stand as evidence that the class was eliminated — it is
+evidence that one instance was.
+
+**Principle:** A documented fix creates the impression of a solved class of problem while only
+solving an instance, and the better the write-up the stronger the impression. Treat "we already
+learned this" as a prompt to sweep for siblings rather than as an assurance, and make the sweep —
+not the fix — the thing you record as done.
