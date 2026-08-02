@@ -29,7 +29,15 @@ if one appears anywhere else, and that check was mutation-tested on 2026-08-02.
 Test the claim rather than asserting it: `packages/ai/test/` runs the same golden cases against a
 stub adapter.
 
-Active configuration: `AI_PROVIDER=anthropic`, fast tier resolving to Claude Haiku 4.5.
+**Active configuration: Gemini by default** — an unset `AI_PROVIDER` resolves to `gemini`, fast tier
+`gemini-3.1-flash-lite`, key in `GEMINI_API_KEY`. `AI_PROVIDER=anthropic` switches to Claude Haiku
+4.5 and nothing else changes. A *wrong* value throws rather than falling back.
+
+**Pick models by measuring them, not by reading pricing pages.** Every default here was first
+written from documentation and every one was wrong: `gemini-2.5-flash` is listed by the provider's
+own ListModels endpoint and refuses new accounts; `gemini-3.5-flash` returns invalid JSON;
+`gemini-3.6-flash` burns 600–900 "thinking" tokens on an extraction task and takes 4–8 seconds
+against a 2-second budget. The model that works takes 645 ms. One real call found all of it.
 
 ## Prompt files
 

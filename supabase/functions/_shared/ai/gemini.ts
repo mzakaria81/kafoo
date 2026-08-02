@@ -1,4 +1,4 @@
-// Google adapter.
+// Gemini adapter (Google).
 //
 // The third provider, and the one whose request shape differs most — different envelope, different
 // name for the system prompt, different streaming format. That is the point: an abstraction proven
@@ -64,9 +64,9 @@ function textFromCandidates(payload: {
     .join('');
 }
 
-export const googleAdapter: ProviderAdapter = {
-  id: 'google',
-  apiKeyEnvVar: 'GOOGLE_API_KEY',
+export const geminiAdapter: ProviderAdapter = {
+  id: 'gemini',
+  apiKeyEnvVar: 'GEMINI_API_KEY',
 
   async complete(request: ModelRequest, apiKey: string): Promise<ModelResponse> {
     const response = await fetch(endpoint(request.model, false), {

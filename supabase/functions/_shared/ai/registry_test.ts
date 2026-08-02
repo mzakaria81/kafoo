@@ -8,7 +8,7 @@
 // Run with: deno test supabase/functions/_shared/ai/registry_test.ts
 
 import { assertEquals, assertThrows } from 'jsr:@std/assert@1';
-import { PROVIDERS, resolveProvider, TIERS } from './registry.ts';
+import { DEFAULT_PROVIDER, PROVIDERS, resolveProvider, TIERS } from './registry.ts';
 
 /// Builds an env lookup from a plain object, so a test can describe a whole deployment's
 /// configuration in one literal without touching process-wide state.
@@ -56,18 +56,18 @@ Deno.test('switching provider is one variable', () => {
   // difference — and the resolved model changes without anything else being set.
   const bothKeys = {
     ANTHROPIC_API_KEY: 'key-a',
-    GOOGLE_API_KEY: 'key-g',
+    GEMINI_API_KEY: 'key-g',
   };
 
-  const before = resolveProvider('fast', envFrom({ ...bothKeys, AI_PROVIDER: 'anthropic' }));
-  const after = resolveProvider('fast', envFrom({ ...bothKeys, AI_PROVIDER: 'google' }));
+  const before = resolveProvider('fast', envFrom({ ...bothKeys, AI_PROVIDER: 'gemini' }));
+  const after = resolveProvider('fast', envFrom({ ...bothKeys, AI_PROVIDER: 'anthropic' }));
 
-  assertEquals(before.adapter.id, 'anthropic');
-  assertEquals(after.adapter.id, 'google');
-  assertEquals(before.model, PROVIDERS.anthropic.defaults.fast);
-  assertEquals(after.model, PROVIDERS.google.defaults.fast);
-  assertEquals(before.apiKey, 'key-a');
-  assertEquals(after.apiKey, 'key-g');
+  assertEquals(before.adapter.id, 'gemini');
+  assertEquals(after.adapter.id, 'anthropic');
+  assertEquals(before.model, PROVIDERS.gemini.defaults.fast);
+  assertEquals(after.model, PROVIDERS.anthropic.defaults.fast);
+  assertEquals(before.apiKey, 'key-g');
+  assertEquals(after.apiKey, 'key-a');
 });
 
 Deno.test('an explicit model overrides the default', () => {
@@ -117,27 +117,42 @@ Deno.test('an unknown provider fails loudly instead of falling back', () => {
     () =>
       resolveProvider(
         'fast',
-        envFrom({ AI_PROVIDER: 'anthropc', ANTHROPIC_API_KEY: 'key-a' }),
+        envFrom({ AI_PROVIDER: 'anthropc', ANTHROPIC_API_KEY: 'key-a', GEMINI_API_KEY: 'key-g' }),
       ),
     Error,
     'not a known provider',
   );
 });
 
-Deno.test('an unset provider fails loudly', () => {
-  assertThrows(
-    () => resolveProvider('fast', envFrom({ ANTHROPIC_API_KEY: 'key-a' })),
-    Error,
-    'AI_PROVIDER is not set',
-  );
+Deno.test('an unset provider resolves to the documented default', () => {
+  // Deliberately NOT an error. A named default is a decision somebody made; the founder chose
+  // Gemini, and a deployment that sets nothing runs what was chosen. Contrast with the typo case
+  // above, which must still throw — that is the one where nobody picked what is running.
+  const resolved = resolveProvider('fast', envFrom({ GEMINI_API_KEY: 'key-g' }));
+
+  assertEquals(resolved.adapter.id, DEFAULT_PROVIDER);
+  assertEquals(resolved.adapter.id, 'gemini');
+  assertEquals(resolved.model, PROVIDERS.gemini.defaults.fast);
+});
+
+Deno.test('a blank provider resolves to the default rather than failing', () => {
+  // `supabase secrets set AI_PROVIDER=` is how somebody tries to clear the override.
+  const resolved = resolveProvider('fast', envFrom({ AI_PROVIDER: '  ', GEMINI_API_KEY: 'key-g' }));
+
+  assertEquals(resolved.adapter.id, DEFAULT_PROVIDER);
+});
+
+Deno.test('the default provider is actually in the registry', () => {
+  // Guards the one-character typo that would make every unconfigured deployment throw.
+  assertEquals(Object.keys(PROVIDERS).includes(DEFAULT_PROVIDER), true);
 });
 
 Deno.test('a missing key fails before anything reaches the network', () => {
   // Named after the variable that is actually missing. "Unauthorized" from a provider at runtime is
   // a much worse way to learn that a secret was never set on this deployment.
   assertThrows(
-    () => resolveProvider('fast', envFrom({ AI_PROVIDER: 'google', ANTHROPIC_API_KEY: 'key-a' })),
+    () => resolveProvider('fast', envFrom({ AI_PROVIDER: 'gemini', ANTHROPIC_API_KEY: 'key-a' })),
     Error,
-    'GOOGLE_API_KEY is not set',
+    'GEMINI_API_KEY is not set',
   );
 });

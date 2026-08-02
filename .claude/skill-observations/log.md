@@ -1036,3 +1036,36 @@ gate whose discovery mechanism can return an empty set needs to distinguish "che
 nothing wrong" from "found nothing to check" — and the second must never be reported as success.
 Skip-on-empty is the default shape of these scripts and it converts a missing check into a green
 tick.
+
+### Observation 43: Configuration read from documentation is a guess until one real call is made
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Integrating a third-party API
+
+**Issue:** Built an integration against a third-party API and populated its configuration —
+identifiers, defaults, tier mappings — from the provider's published documentation and pricing
+pages. Unit tests passed, type checks passed, the whole gate was green. The first real call failed
+immediately: the primary identifier was rejected as "no longer available to new users". Two more
+followed. A second identifier returned malformed output despite the request constraining the
+format; a third was correct but roughly ten times slower than needed, because it silently spent
+most of its latency on internal reasoning for a task that did not need any. All three were
+invisible to every check that did not actually call the service. The provider's own "list what
+exists" endpoint still advertised the rejected identifier, so even querying the service
+programmatically would not have caught it — only a real request did.
+
+**Suggested improvement:** When integrating any external service, require one real call before the
+work is considered done, and record the measured result next to the configuration it justifies.
+Treat "the docs say X" as a hypothesis and the call as the test. Where a value has a performance
+budget attached, measure it rather than assuming the documented tier meets it — and prefer the
+cheapest, least capable option that passes, since heavier ones often add latency without adding
+correctness on extraction-shaped work.
+
+**Principle:** Documentation describes the service the provider intends to offer; a call describes
+the one your credential can actually reach. The gap between them is invisible to type checks, unit
+tests and even the provider's own discovery endpoints, and it is systematically in the direction of
+"this looked fine and does not work". One real call is the cheapest test available and the only one
+that closes that gap — make it before claiming an integration works, and write the number down so
+the next person inherits evidence instead of a citation.
