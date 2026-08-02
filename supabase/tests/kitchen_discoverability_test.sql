@@ -60,10 +60,17 @@ SELECT tests.clear_authentication();
 
 -- 0. The Cook still reads their own kitchen. If the widening policy were written in a way that
 --    replaced the owner policy rather than adding to it, this is what would catch it.
+--
+--    Scoped to their own row deliberately. An unscoped count here returns 2, not 1 — this Cook
+--    reads their own closed kitchen AND the one kitchen that is open, because RLS policies are
+--    OR-ed together and a Cook is also a person who can discover other kitchens. The first version
+--    of this assertion counted every row and expected 1, which was a wrong test rather than a wrong
+--    policy: it would have failed on the day a second Cook opened.
 SELECT tests.authenticate_as('paused@test.kafoo');
 
 SELECT is(
-  (SELECT COUNT(*)::int FROM public.kitchen_profiles),
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+    WHERE cook_id = tests.user_id('paused@test.kafoo')),
   1,
   'a Cook with nothing on the menu still reads their own kitchen'
 );

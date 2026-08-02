@@ -17,8 +17,21 @@
 --
 -- Run with: supabase test db
 
+-- A second thing that is not what it looks like: **case 34 cannot be tested behaviourally through
+-- SQL at all.** Supabase installs `storage.protect_delete()`, which refuses every direct DELETE
+-- from `storage.objects` regardless of who is asking and regardless of RLS — "Use the Storage API
+-- instead". The first version of this suite asserted that another Cook's DELETE removed nothing,
+-- and it errored rather than passing, because nobody's DELETE removes anything here.
+--
+-- That guard is a stronger guarantee than the one the contract asked for, so it is asserted
+-- directly. The owner-scoped DELETE policy still matters for the route the guard does not cover —
+-- the Storage API, which this harness does not speak — so it is checked structurally instead, by
+-- reading the policy back out of the catalog. A structural check is weaker than a behavioural one
+-- and is named as such rather than dressed up: it catches a policy someone widens, and it would
+-- not catch a policy that is correct and ineffective.
+
 BEGIN;
-SELECT plan(4);
+SELECT plan(6);
 
 SELECT tests.create_supabase_user('cook_a@test.kafoo');
 SELECT tests.create_supabase_user('cook_b@test.kafoo');
@@ -70,21 +83,46 @@ SELECT is(
   'the bucket is public, so a Meal on offer shows its photo to anyone with the path'
 );
 
--- 34. Another Cook deletes someone else's photo → nothing happens.
+-- 34a. Another Cook deletes someone else's photo → refused outright.
+--      42501 here is storage.protect_delete(), not RLS. Every direct DELETE is refused, so the
+--      contract's requirement holds by a mechanism broader than the one it named.
 SELECT tests.authenticate_as('cook_b@test.kafoo');
 
-DELETE FROM storage.objects
-  WHERE bucket_id = 'meal-photos'
-    AND name = tests.user_id('cook_a@test.kafoo')::text || '/cccccccc-0000-4000-8000-000000000001.jpg';
+SELECT throws_ok(
+  format(
+    $$ DELETE FROM storage.objects
+         WHERE bucket_id = 'meal-photos' AND name = %L $$,
+    tests.user_id('cook_a@test.kafoo')::text || '/cccccccc-0000-4000-8000-000000000001.jpg'
+  ),
+  '42501',
+  NULL,
+  'a Cook cannot delete another Cook''s photo'
+);
 
 SELECT tests.clear_authentication();
 
+-- 34b. And the photo is still there afterwards, which is the thing that actually matters. A
+--      refusal that still removed the row would satisfy the assertion above and lose the file.
 SELECT is(
   (SELECT COUNT(*)::int FROM storage.objects
     WHERE bucket_id = 'meal-photos'
       AND name = tests.user_id('cook_a@test.kafoo')::text || '/cccccccc-0000-4000-8000-000000000001.jpg'),
   1,
-  'a Cook cannot delete another Cook''s photo'
+  'the photo survives the attempt'
+);
+
+-- 34c. The DELETE policy is owner-scoped, checked in the catalog rather than by behaviour.
+--      This is the guard for the Storage API path, which protect_delete() does not sit in front of
+--      and which this harness cannot exercise. Structural, and therefore weaker: it catches
+--      somebody widening the predicate, which is the realistic failure, and it would not catch a
+--      predicate that reads correctly and does not work.
+SELECT ok(
+  (SELECT qual LIKE '%auth.uid()%'
+     FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'owner deletes meal photo'),
+  'the meal-photos DELETE policy is scoped to the caller''s own folder'
 );
 
 SELECT finish();
