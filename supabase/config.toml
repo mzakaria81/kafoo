@@ -46,9 +46,22 @@ enable_signup = true
 [auth.sms]
 enable_confirmations = true
 
+
+# No leading `+` on these keys, and that is not a typo — do not "fix" it.
+#
+# The deployed config API rejects the `+` outright: applying a branch with it returns
+#   400 sms_test_otp: Must be a comma separated list of <phone-number>=<code>.
+#              Phone numbers are in E.164 without the leading + sign.
+# which is how the first preview branch failed on 2026-08-02, before it got as far as migrations.
+# The local stack accepted the `+` quietly, so this survived from E1 until a deployed environment
+# finally read the same file.
+#
+# Callers still use full E.164 *with* the `+` — supabase/functions/delete-account/index.test.ts
+# signs in as `+201000000001`, and docs/ops/verifying-e1.md tells a human to type it that way. The
+# asymmetry is real: the `+` belongs on the number a client sends, not on the key that looks it up.
 [auth.sms.test_otp]
-"+201000000001" = "000001"
-"+201000000002" = "000002"
+"201000000001" = "000001"
+"201000000002" = "000002"
 
 [storage]
 enabled = true
