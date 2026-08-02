@@ -44,6 +44,12 @@ against a 2-second budget. The model that works takes 645 ms. One real call foun
 Prompts live in `prompts/*.md`, version-controlled, one file per task. Never inline a multi-line
 prompt in Dart or TypeScript.
 
+**An Edge Function cannot read them at runtime.** `prompts/` sits at the repository root and is not
+part of a deployed function bundle, so `scripts/generate-prompts.ts` compiles the markdown into
+`supabase/functions/_shared/prompts.ts`, which is committed and imported. Edit the markdown and
+re-run the generator — never the generated file. `./scripts/verify.sh` compares the two and fails
+on drift, because a prompt edit that was not regenerated is a deploy quietly serving the old words.
+
 Each file carries frontmatter:
 
 ```yaml

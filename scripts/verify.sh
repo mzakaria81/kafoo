@@ -115,6 +115,50 @@ run "edge function tests" bash -c '
   }
   exit 0'
 
+# Prompt files live at the repository root and are not part of a deployed Edge Function bundle.
+# scripts/generate-prompts.ts inlines them into supabase/functions/_shared/prompts.ts, which is
+# committed. A prompt edit that is not regenerated is a deploy serving the old words — silent and
+# wrong.
+#
+# `--check` COMPARES CONTENT. The first version of this check regenerated the file and asked
+# `git diff` what had changed, which is the same shape as the Dart codegen check above and looks
+# right. It reported ok while a prompt was edited and the bundle was stale, because git has no diff
+# to show for a file it is not yet tracking. Content is the question; ask it directly.
+run "prompt bundle drift" bash -c '
+  command -v deno >/dev/null || {
+    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+  ls prompts/*.md >/dev/null 2>&1 || {
+    echo "   no prompts yet — skipping"; exit 0; }
+  deno run --allow-read scripts/generate-prompts.ts --check >/dev/null'
+
+# Principle II, made mechanical rather than reviewed.
+#
+# A function that talks to a model must not also hold credentials that can write. delete-account
+# legitimately holds the service role — it deletes auth users, which nothing else can. The rule is
+# therefore not "no function names this variable" but "no function that reaches the model layer
+# does", which is the property the constitution actually claims and the one a future AI function
+# would quietly break.
+#
+# This lived briefly as a unit test that read its own source, which worked but bought one file of
+# coverage at the price of giving every Edge Function test filesystem access. A grep here covers
+# every function that will ever exist and needs no permission at all.
+run "ai path holds no write credential" bash -c '
+  bad=0
+  for dir in supabase/functions/*/; do
+    name=$(basename "$dir")
+    grep -rqE "_shared/ai/" "$dir" 2>/dev/null || continue
+    hits=$(grep -rlE "SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|SERVICE_ROLE" "$dir" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
+      echo "   ${name} reaches the model layer and names a write credential:"
+      printf "%s\n" "$hits"
+      bad=1
+    fi
+  done
+  [ "$bad" -eq 0 ] || {
+    echo "   The AI Assistant is structurally unable to write. That property comes from the" >&2
+    echo "   function not having the means, not from it choosing well." >&2
+    exit 1; }'
+
 # Credentials belong in the environment, never in the repository. Two are live
 # in this project and both are rotate-everything incidents if committed:
 # OPENCODE_API_KEY (delegation) and SUPABASE_SERVICE_ROLE_KEY (bypasses RLS

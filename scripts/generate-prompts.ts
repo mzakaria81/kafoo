@@ -1,0 +1,187 @@
+// Reads every prompts/*.md and writes supabase/functions/_shared/prompts.ts.
+//
+// Deployed Edge Functions cannot read files at the repository root. Inlining the
+// prompt text in TypeScript is also forbidden — prompts are version-controlled
+// markdown. Generation is the only path that keeps both rules true: the markdown
+// stays the source of truth, and the deployed bundle carries a generated copy.
+//
+// Run with: deno run --allow-read --allow-write scripts/generate-prompts.ts
+// The generated file is committed. There is no build step at deploy time.
+//
+// `--check` compares instead of writing, and exits 1 on drift. The gate uses that rather than
+// regenerating and asking git what changed: git sees nothing when the generated file is untracked,
+// so a git-based drift check reports "ok" for a brand-new bundle no matter how stale it is. That
+// is not hypothetical — it was measured on this file the day it was written, by editing a prompt
+// and watching the gate pass. Comparing content answers the question being asked.
+
+import { MODEL_TIERS, type ModelTier } from '../supabase/functions/_shared/ai/types.ts';
+
+const PROMPTS_DIR = new URL('../prompts/', import.meta.url);
+const OUT_FILE = new URL('../supabase/functions/_shared/prompts.ts', import.meta.url);
+
+interface Frontmatter {
+  id: string;
+  version: number;
+  modelTier: ModelTier;
+  lastEvaluated: string;
+}
+
+function parseFrontmatter(raw: string, path: string): { meta: Frontmatter; body: string } {
+  if (!raw.startsWith('---\n') && !raw.startsWith('---\r\n')) {
+    throw new Error(`${path}: missing YAML frontmatter opener`);
+  }
+
+  const end = raw.indexOf('\n---', 4);
+  if (end === -1) {
+    throw new Error(`${path}: missing YAML frontmatter closer`);
+  }
+
+  const yamlBlock = raw.slice(4, end).trim();
+  // Body starts after the closing --- line.
+  const afterCloser = raw.indexOf('\n', end + 1);
+  const body = afterCloser === -1 ? '' : raw.slice(afterCloser + 1).replace(/^\r?\n/, '');
+
+  const fields: Record<string, string> = {};
+  for (const line of yamlBlock.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith('#')) continue;
+    const colon = trimmed.indexOf(':');
+    if (colon === -1) {
+      throw new Error(`${path}: malformed frontmatter line: ${line}`);
+    }
+    const key = trimmed.slice(0, colon).trim();
+    // Strip inline comments and surrounding quotes.
+    let value = trimmed.slice(colon + 1).trim();
+    const hash = value.indexOf(' #');
+    if (hash !== -1) value = value.slice(0, hash).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    fields[key] = value;
+  }
+
+  for (const required of ['id', 'version', 'model_tier', 'last_evaluated']) {
+    if (!(required in fields) || fields[required].length === 0) {
+      throw new Error(`${path}: frontmatter missing required field "${required}"`);
+    }
+  }
+
+  const modelTier = fields['model_tier'];
+  if (!(MODEL_TIERS as readonly string[]).includes(modelTier)) {
+    throw new Error(
+      `${path}: model_tier "${modelTier}" is not one of ${MODEL_TIERS.join(', ')}. ` +
+        `Refusing to default — a wrong tier is a wrong bill and a wrong latency budget.`,
+    );
+  }
+
+  const version = Number(fields['version']);
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error(`${path}: version must be a positive integer, got "${fields['version']}"`);
+  }
+
+  return {
+    meta: {
+      id: fields['id'],
+      version,
+      modelTier: modelTier as ModelTier,
+      lastEvaluated: fields['last_evaluated'],
+    },
+    body,
+  };
+}
+
+function tsString(value: string): string {
+  return JSON.stringify(value);
+}
+
+async function main(): Promise<void> {
+  const entries: Array<{ meta: Frontmatter; body: string; source: string }> = [];
+
+  for await (const entry of Deno.readDir(PROMPTS_DIR)) {
+    if (!entry.isFile || !entry.name.endsWith('.md')) continue;
+    const path = new URL(entry.name, PROMPTS_DIR);
+    const raw = await Deno.readTextFile(path);
+    const parsed = parseFrontmatter(raw, `prompts/${entry.name}`);
+    if (parsed.meta.id !== entry.name.replace(/\.md$/, '')) {
+      throw new Error(
+        `prompts/${entry.name}: frontmatter id "${parsed.meta.id}" does not match filename`,
+      );
+    }
+    entries.push({ ...parsed, source: entry.name });
+  }
+
+  entries.sort((a, b) => a.meta.id.localeCompare(b.meta.id));
+
+  if (entries.length === 0) {
+    throw new Error('no prompts/*.md files found');
+  }
+
+  const ids = new Set<string>();
+  for (const e of entries) {
+    if (ids.has(e.meta.id)) {
+      throw new Error(`duplicate prompt id "${e.meta.id}"`);
+    }
+    ids.add(e.meta.id);
+  }
+
+  const lines: string[] = [];
+  lines.push('// GENERATED FILE — do not edit by hand.');
+  lines.push('// Generated by scripts/generate-prompts.ts from prompts/*.md.');
+  lines.push('// Edit the markdown under prompts/ and re-run the generator.');
+  lines.push('');
+  lines.push("import type { ModelTier } from './ai/types.ts';");
+  lines.push('');
+  lines.push('export interface Prompt {');
+  lines.push('  readonly id: string;');
+  lines.push('  readonly version: number;');
+  lines.push('  readonly modelTier: ModelTier;');
+  lines.push('  readonly body: string;');
+  lines.push('}');
+  lines.push('');
+  lines.push('export const PROMPTS: Readonly<Record<string, Prompt>> = {');
+
+  for (const e of entries) {
+    lines.push(`  ${tsString(e.meta.id)}: {`);
+    lines.push(`    id: ${tsString(e.meta.id)},`);
+    lines.push(`    version: ${e.meta.version},`);
+    lines.push(`    modelTier: ${tsString(e.meta.modelTier)},`);
+    lines.push(`    body: ${tsString(e.body)},`);
+    lines.push('  },');
+  }
+
+  lines.push('} as const;');
+  lines.push('');
+
+  const generated = lines.join('\n');
+
+  if (Deno.args.includes('--check')) {
+    let existing: string;
+    try {
+      existing = await Deno.readTextFile(OUT_FILE);
+    } catch {
+      console.error(
+        'supabase/functions/_shared/prompts.ts does not exist. Run the generator without --check.',
+      );
+      Deno.exit(1);
+    }
+    if (existing !== generated) {
+      console.error(
+        'supabase/functions/_shared/prompts.ts is out of date with prompts/*.md.\n' +
+          'Run: deno run --allow-read --allow-write scripts/generate-prompts.ts',
+      );
+      Deno.exit(1);
+    }
+    console.log(`prompt bundle matches ${entries.length} prompt(s)`);
+    return;
+  }
+
+  await Deno.writeTextFile(OUT_FILE, generated);
+  console.log(`wrote ${entries.length} prompt(s) to supabase/functions/_shared/prompts.ts`);
+}
+
+if (import.meta.main) {
+  await main();
+}
