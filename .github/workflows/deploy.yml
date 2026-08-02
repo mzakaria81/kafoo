@@ -6,7 +6,6 @@ name: Deploy
 #
 # Secrets that light steps up:
 #   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID   -> Cloudflare Pages (admin web)
-#   SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF   -> Supabase migrations
 #   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD
 #     + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD   -> a signed Android bundle
 #   IOS_CERTIFICATE_BASE64 + IOS_CERTIFICATE_PASSWORD
@@ -17,9 +16,11 @@ name: Deploy
 # runner, which costs about ten times an Ubuntu minute, so it stays gated
 # behind the preflight job rather than starting and then skipping.
 #
-# Deploying migrations to production writes to the live database. That stays
-# gated behind a human-reviewed merge to main — never unattended from an
-# unreviewed branch.
+# MIGRATIONS ARE NOT THIS WORKFLOW'S JOB. Supabase Branching applies them to the
+# production database when a pull request merges to main. The gate on a schema
+# change is therefore the pull request review itself — there is no second approval
+# between merging and the live database being altered. See the backend job below
+# and docs/ops/preview-branches.md.
 #
 # NOTE ON STORE SUBMISSION: this workflow deliberately stops at building and
 # archiving a release candidate. It does not upload to App Store Connect or Play.
@@ -58,17 +59,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-      HAS_SUPABASE: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' && secrets.SUPABASE_PROJECT_REF != '' }}
     steps:
       - uses: actions/checkout@v5
 
       - name: Preflight
         run: |
           echo "cloudflare secrets present: ${HAS_CLOUDFLARE}"
-          echo "supabase secrets present:   ${HAS_SUPABASE}"
           [ -f apps/admin/pubspec.yaml ] && echo "admin app: yes" || echo "admin app: no"
-          ls supabase/migrations/*.sql >/dev/null 2>&1 \
-            && echo "migrations: yes" || echo "migrations: none"
+          echo "migrations: deployed by Supabase Branching on merge, not by this workflow"
 
       - name: Set up Flutter
         if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
@@ -92,28 +90,26 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy apps/admin/build/web --project-name=kafoo-admin
 
-      - name: Deploy Supabase migrations
-        if: env.HAS_SUPABASE == 'true' && hashFiles('supabase/migrations/*.sql') != ''
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          # Pinned deliberately. `@latest` would run code that was never
-          # reviewed, holding an account-scoped token, against production, on
-          # every push to main. Bump this on purpose.
-          #
-          # Keep equal to SUPABASE_CLI_VERSION in scripts/install-toolchain.sh,
-          # so a migration that applies locally applies here. The previous value,
-          # 2.66.2, was never published to npm — only 2.66.0 and 2.66.1 exist —
-          # so this step could only ever have failed. It went unseen because the
-          # `if:` above skips the whole step when the Supabase secrets are absent.
-          SUPABASE_CLI_VERSION: '2.111.0'
-        run: |
-          npx --yes "supabase@${SUPABASE_CLI_VERSION}" link --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes "supabase@${SUPABASE_CLI_VERSION}" db push
+      # MIGRATIONS ARE NOT DEPLOYED HERE ANY MORE. Supabase Branching does it:
+      # merging a pull request to main applies that branch's migrations to the
+      # production database, through the GitHub integration and not through this
+      # workflow. Verified on 2026-08-02 — this step failed on the merge of #17
+      # and production received 20260802065138 anyway.
+      #
+      # It was deleted rather than repaired, deliberately. Two systems writing the
+      # production schema is worse than one: they race, neither knows what the
+      # other applied, and `db push` reconciling against a history Supabase has
+      # already advanced is how a migration gets applied twice or skipped. If this
+      # job is ever wanted back, turn Supabase Branching's production deploys off
+      # first — do not run both.
+      #
+      # The consequence to keep in view: a merge to main is now a production
+      # database change, with no separate approval step in this workflow.
+      # See docs/ops/preview-branches.md.
 
       - name: Nothing to deploy
-        if: env.HAS_CLOUDFLARE != 'true' && env.HAS_SUPABASE != 'true'
-        run: echo "No backend deploy secrets configured — skipping, as expected."
+        if: env.HAS_CLOUDFLARE != 'true'
+        run: echo "No Cloudflare deploy secrets configured — skipping, as expected."
 
   android:
     name: android release candidate

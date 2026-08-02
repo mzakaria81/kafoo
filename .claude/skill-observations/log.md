@@ -884,3 +884,33 @@ changes.
 
 **Principle:** Proof does not survive a rewrite. When the thing you validated and the thing you ship
 are two different files, only one of them has been tested, and it is not the one that matters.
+
+### Observation 38: Enabling a platform feature can silently take over a responsibility your own pipeline still claims
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Investigating a failing deployment step after a merge, and finding the work had
+been done anyway.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Adopting a managed platform feature
+
+**Issue:** A hosted feature was switched on for one benefit — disposable environments per change
+request. It also quietly assumed a second responsibility: applying schema changes to production on
+merge. The existing pipeline still contained a step doing the same thing. Nobody chose to have two,
+and for a while nobody could tell, because the pipeline's step had never run — it was gated on
+credentials that were absent. When those credentials were finally supplied the step ran, failed on
+an unrelated defect, and production received the change regardless. That failure is the only reason
+the duplication surfaced; had the step succeeded, two systems would have been writing the same
+schema with neither aware of the other, and the symptom would have been an occasional migration
+applied twice or skipped.
+
+**Suggested improvement:** When enabling a managed feature, enumerate what it now does *beyond* the
+reason it was enabled, and check each against what the existing pipeline already does. Overlaps are
+not additive — for anything with a single authoritative state, such as a schema or a deployment
+target, two writers is worse than either alone. Resolve to exactly one owner and record which, since
+the redundant one will otherwise look like prudent belt-and-braces to whoever next reads it.
+
+**Principle:** A platform feature is adopted for one capability and arrives with several. The ones
+nobody asked for are the dangerous ones, because nothing in the change request names them and no
+review covers them — they are discovered by their side effects, usually later than you would like.

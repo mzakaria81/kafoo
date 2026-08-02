@@ -164,20 +164,43 @@ def build(path):
     )
 
 
-def resolve_branch(parent, git_branch, timeout=600):
-    """Wait for the preview branch belonging to a git branch to be usable."""
+def resolve_branch(parent, git_branch, timeout=600, absent_grace=120):
+    """Wait for the preview branch belonging to a git branch to be usable.
+
+    Two different waits, because they mean different things. A branch that exists
+    and is still building is worth waiting out. A branch that does not exist at
+    all usually never will — Supabase only creates one when the pull request
+    touches the supabase directory — and polling the full timeout for it turns a
+    clear "nothing to run against" into ten minutes of silence and a bare
+    non-zero exit. Give absence a short grace period, then say so plainly.
+    """
     deadline = time.time() + timeout
+    absent_deadline = time.time() + absent_grace
     while time.time() < deadline:
         branches = api(f"/v1/projects/{parent}/branches")
         if isinstance(branches, dict):
             print("  cannot list branches:", branches.get("__error__"))
             return None
-        for b in branches:
-            if b.get("git_branch") == git_branch and not b.get("is_default"):
-                if b.get("status") in ("FUNCTIONS_DEPLOYED", "MIGRATIONS_PASSED"):
-                    return b["project_ref"]
-                print(f"  branch {b['name']}: {b.get('status')} — waiting")
+        match = next(
+            (b for b in branches
+             if b.get("git_branch") == git_branch and not b.get("is_default")),
+            None,
+        )
+        if match is None:
+            if time.time() > absent_deadline:
+                print(f"  no preview branch for '{git_branch}' after {absent_grace}s.")
+                print("  Supabase creates one only when a pull request changes the")
+                print("  supabase directory. If this pull request does not, there is")
+                print("  nothing to verify and this job should not have run —")
+                print("  check the paths filter in .github/workflows/authorization.yml.")
+                return None
+            print(f"  no preview branch for '{git_branch}' yet — waiting")
+        elif match.get("status") in ("FUNCTIONS_DEPLOYED", "MIGRATIONS_PASSED"):
+            return match["project_ref"]
+        else:
+            print(f"  branch {match['name']}: {match.get('status')} — waiting")
         time.sleep(15)
+    print(f"  timed out after {timeout}s waiting for '{git_branch}' to become ready")
     return None
 
 

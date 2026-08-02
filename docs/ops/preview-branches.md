@@ -143,6 +143,27 @@ printed PASS may be incapable of printing FAIL, which would make every other lin
 This is evidence that the policies *behave*, which is a different claim from the policies being
 written correctly, and it is the first time the former has been true of this project.
 
+## Merging a pull request changes the production database
+
+This is the part of branching that is easy to switch on without noticing. **When a pull request
+merges to `main`, Supabase applies that branch's migrations to the production database**, through the
+GitHub integration. Nothing in `.github/workflows/` does it and nothing asks first.
+
+Observed on 2026-08-02: the merge of #17 carried `20260802065138_restrict_kitchen_photo_enumeration`,
+the deploy workflow's migration step **failed** on a malformed token, and production received the
+migration anyway — recorded in `supabase_migrations.schema_migrations`, with the old policy gone.
+
+Two consequences worth holding on to:
+
+1. **The pull request review is the only gate on a schema change.** There is no separate approval
+   between merge and the live database. Treat a migration in a diff as a production change, because
+   that is what merging it does.
+2. **`deploy.yml` no longer deploys migrations.** The step was deleted rather than repaired, because
+   two systems writing the same schema is worse than one: they race, neither knows what the other
+   applied, and `db push` reconciling against a history Supabase has already advanced is how a
+   migration gets applied twice or skipped. If that job is ever wanted back, turn Supabase's
+   production deploys off first.
+
 ## Operating notes
 
 **Only new migration files are pushed on each commit.** Supabase's own comment on the pull request:
