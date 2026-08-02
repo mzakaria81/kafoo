@@ -73,7 +73,7 @@ route. Every attempt returns nothing and changes nothing — automatically, on e
 - [x] T011 [P] [US3] Write `supabase/tests/meals_rls_test.sql` covering cases 1–13 and 22–25 of `contracts/authorization.md` — most importantly case 8, that a Cook cannot reassign `cook_id`, which is the `WITH CHECK` case that fails when a policy is written from memory
 - [x] T012 [P] [US3] Write the lifecycle cases 14–21 in `supabase/tests/meals_lifecycle_test.sql`, especially case 18 — a retired Meal never returns to offer, by any route
 - [x] T013 [US3] Rewrite `supabase/tests/kitchen_discoverability_test.sql` for cases 26–30: a kitchen with a published Meal is readable by `anon`, one with only drafts or only unavailable Meals is not. This file currently asserts the opposite, which was correct in E1
-- [ ] T014 [US3] Confirm all suites **FAIL** before the migration lands. A suite that passes here is testing nothing and must be fixed before proceeding.
+- [x] T014 [US3] Confirm all suites **FAIL** before the migration lands. A suite that passes here is testing nothing and must be fixed before proceeding.
 
   **`supabase test db` cannot run in the session container — there is no Docker daemon.** The red
   observation therefore happens on the pull request: the suites are pushed in their own commit
@@ -88,8 +88,8 @@ route. Every attempt returns nothing and changes nothing — automatically, on e
 - [x] T017 [US3] Add the `derive_nutrition_source` trigger in the same migration, so the source is set from what actually changed rather than from what the client claims. This is the one place where believing the client destroys Principle II
 - [x] T018 [US3] Add a check that a Meal's `cook_id` owns a Kitchen Profile (FR-017), as a trigger — **not** as a foreign key to `kitchen_profiles.cook_id`, which would make a Meal belong to a kitchen rather than to a Cook and contradict FR-016
 - [x] T019 [US3] Add the `meal-photos` storage policies — write and delete restricted to `{auth.uid()}/`, path `{uid}/{meal_id}.jpg` so one photo cannot overwrite another. **Read is owner-scoped, not public**, which still satisfies contract case 33: the bucket's `public` flag is what serves a photo, and object URLs bypass policy checks. A public SELECT policy would add nothing except an answering enumeration endpoint — the hole closed on `kitchen-photos` in `20260802065138`, three days after these documents were written
-- [ ] T020 [US3] Run `supabase db reset && supabase test db` and confirm all three suites now **PASS**
-- [ ] T021 [US3] Deliberately weaken the `UPDATE` policy's `WITH CHECK`, confirm case 8 goes red, then restore it — the mutation check from `docs/ops/verifying-e1.md` §5, applied to a suite nobody has yet seen fail
+- [x] T020 [US3] Confirm all suites now **PASS**. Done on the preview branch, same reason as T014: 54 assertions across five files, 0 failures, run 30747218115
+- [x] T021 [US3] The mutation check, **automated rather than performed once**. The manual version in `docs/ops/verifying-e1.md` §5 is unreachable here — Supabase pushes only *new* migration files to a preview branch, so editing the migration that created the policy changes nothing on the database the suites run against. Assertion 19 of `meals_rls_test.sql` weakens `WITH CHECK` to `true` inside the rolled-back transaction, disables the trigger that would answer first, and proves the reassign then succeeds. Case 8b's sensitivity is now measured on every commit instead of remembered
 
 **Checkpoint**: the ownership rules exist and are proven. Every later story writes into a protected
 table.
