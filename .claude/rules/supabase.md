@@ -6,6 +6,39 @@ paths:
 
 # Supabase
 
+## Precedence over the vendored Supabase skills
+
+`.claude/skills/supabase`, `.claude/skills/supabase-postgres-best-practices` and
+`.claude/skills/supabase-server` are third-party skills maintained by Supabase, vendored into this
+repository on 2026-08-02 (`skills-lock.json` pins the versions). They are good general Postgres and
+Supabase guidance and they do not know about Kafoo.
+
+**Where they differ from this file, this file wins.** Two known differences:
+
+- The RLS examples use `for all` policies. This file requires a policy **per operation**; a
+  `FOR ALL` policy is not acceptable here even when its predicate is narrow.
+- Their naming guidance stops at lowercase `snake_case`. Kafoo additionally requires plural table
+  names and the glossary's vocabulary — `meals`, never `products`.
+
+Neither is a reason to remove the skills. It is a reason not to treat them as the authority on a
+question this repository has already answered.
+
+## Legacy API keys — a real migration, not yet scheduled
+
+The `supabase-server` skill states that `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
+legacy and will be deprecated in favour of publishable (`sb_publishable_…`) and secret
+(`sb_secret_…`) keys, and it will propose migrating to the `@supabase/server` package on sight of
+the old pattern.
+
+Kafoo uses the legacy form in two places today — `supabase/functions/delete-account/index.ts` reads
+`SUPABASE_SERVICE_ROLE_KEY`, and `apps/mobile/lib/main.dart` reads `SUPABASE_ANON_KEY`. The
+environment already carries a `SUPABASE_PUBLISHABLE_KEY` alongside them.
+
+**Do not migrate opportunistically.** Adopting `@supabase/server` is a new runtime dependency in the
+Edge Function path and changes how inbound requests are authenticated — an ADR and a founder
+decision, not a refactor to slip into an unrelated change. Until that decision exists, leave the
+existing keys alone and do not rewrite a working function because a skill suggested it.
+
 ## Migrations
 
 Create with `supabase migration new <name>`. Never hand-write the timestamp prefix — collisions are
