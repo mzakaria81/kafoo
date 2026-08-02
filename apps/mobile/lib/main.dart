@@ -11,11 +11,29 @@ import 'l10n/app_localizations.dart';
 
 // URL and key come from --dart-define at build time. They must never be
 // hardcoded or committed.
+//
+// The name below must match the --dart-define in docs/ops/verifying-e1.md. It read
+// SUPABASE_ANON_KEY until 2026-08-02 while the runbook passed SUPABASE_PUBLISHABLE_KEY, so a build
+// following the documented command got an empty key: String.fromEnvironment returns "" for a name
+// nobody defined, and nothing complained. That is the reason for the check in main().
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-const _supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+const _supabasePublishableKey =
+    String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Fail here, loudly, rather than at the first request with a confusing auth error. A missing
+  // --dart-define is a build mistake, and an app that cannot reach Supabase cannot do anything
+  // useful — so refusing to start is the honest outcome, not a harsh one.
+  if (_supabaseUrl.isEmpty || _supabasePublishableKey.isEmpty) {
+    throw StateError(
+      'Supabase is not configured. Build with '
+      '--dart-define=SUPABASE_URL=... and '
+      '--dart-define=SUPABASE_PUBLISHABLE_KEY=... '
+      '(see docs/ops/verifying-e1.md).',
+    );
+  }
 
   await Supabase.initialize(
     url: _supabaseUrl,

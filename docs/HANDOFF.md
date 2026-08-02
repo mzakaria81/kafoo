@@ -57,7 +57,11 @@ Still to do in `Kafoo_Dev`, by hand:
 ### Environment variable names
 
 **Unsuffixed names only.** `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-`SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`.
+`SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_DB_PASSWORD`.
+
+`SUPABASE_PUBLISHABLE_KEY` — not `SUPABASE_ANON_KEY`. The app reads the publishable name as of
+2026-08-02; see `.claude/rules/supabase.md` for why the two key migrations are separate and which
+one is still blocked.
 
 The environment briefly used `_DEV`-suffixed variants while the repository read the unsuffixed
 ones. Nothing failed loudly: an unset variable expands to an empty string, so scripts ran against

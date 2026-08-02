@@ -7,12 +7,24 @@
 -- The helpers are vendored rather than pulled from database.dev on purpose: a test harness that
 -- needs the network to start is a test harness that fails in CI for reasons unrelated to the code.
 --
--- WHERE THIS RUNS. Locally, and on every preview branch — a preview branch is built by applying
--- migrations and then running this file. It does NOT run on production: `supabase db push` applies
--- migrations only. An earlier version of this comment claimed seeds never reach a deployed project,
--- which was wrong the moment preview branches were switched on: a preview branch is a real,
--- internet-facing Supabase project with its own URL and anon key. See the REVOKE at the foot of
--- this file for what follows from that.
+-- WHERE THIS RUNS. All three cases measured on 2026-08-02, after this comment had been wrong twice
+-- in opposite directions:
+--
+--   Locally                    — yes, on `supabase db reset`.
+--   Git-linked preview branch  — yes. Confirmed on branch coamyiukxwrsnvyyextf (pull request #16):
+--                                `tests` schema present, pgTAP installed, all four helpers created.
+--   Hand-created branch        — no. The `staging` branch got all three migrations and not this
+--                                file, because a branch with no repository behind it has nothing to
+--                                read the seed from.
+--   Production                 — no. `supabase db push` applies migrations only.
+--
+-- Why it matters: a preview branch is a real, internet-facing Supabase project with its own URL and
+-- anon key. This file installs a user-creating helper there, which is what the REVOKE at the foot of
+-- the file is for.
+--
+-- Note for editing this file: Supabase pushes only *new* migration files on each commit to an open
+-- pull request. Changing this seed and pushing does not re-run it — close and reopen the pull
+-- request, or the branch keeps the previous version.
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
@@ -110,4 +122,11 @@ $$;
 -- Scoped to create_supabase_user ONLY. The other three helpers must stay callable by anon and
 -- authenticated: every suite calls tests.clear_authentication() *while* acting as one of those
 -- roles, so revoking them here would fail every authorization test in supabase/tests/.
+--
+-- Verified on branch coamyiukxwrsnvyyextf, 2026-08-02 — its first execution anywhere:
+--   create_supabase_user   anon=false authenticated=false
+--   authenticate_as        anon=true  authenticated=true
+--   authenticate_as_anon   anon=true  authenticated=true
+--   clear_authentication   anon=true  authenticated=true
+-- and a PostgREST call to the tests schema returns 404.
 REVOKE ALL ON FUNCTION tests.create_supabase_user(text) FROM PUBLIC, anon, authenticated;

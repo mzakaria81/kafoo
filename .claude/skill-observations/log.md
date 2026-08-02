@@ -540,3 +540,202 @@ the provider has an API, the check is one request and belongs in the gate.
 **Principle:** A configuration value that duplicates a fact owned by an external system is stale by
 default — it can only be confirmed by asking that system. Treat every such value as a cached copy
 with no invalidation, and check it on a schedule rather than trusting the copy.
+
+### Observation 26: Documenting an external system's behaviour from its documentation produces a confident claim with no evidence behind it
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Preparing ephemeral database branches, then measuring the first branch that
+actually existed.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Writing documentation ahead of the thing it documents
+
+**Issue:** A change was prepared for a hosted feature that could not be exercised yet — the feature
+was configured but never firing. The accompanying documentation stated what the platform would do,
+in the platform's own terms, and a safety measure was added on the strength of it. When an instance
+finally existed and was queried directly, half the claim was false: one of the two documented steps
+had not happened, and the safety measure had therefore never executed. The claim had been repeated
+across three files by then, each repetition making it look better established. Nothing had made the
+uncertainty visible, because the sentence describing a vendor's documented behaviour and the
+sentence describing an observed behaviour are written identically.
+
+**Suggested improvement:** In `verification-before-completion`, distinguish *documented* from
+*observed* when writing about an external system, and make the distinction survive into the
+artefact — a dated measurement line, or an explicit "documented, not yet observed here" marker.
+The failure is not believing the vendor; it is that the reader cannot tell which kind of statement
+they are reading, so nobody knows which claims still need checking once the system is live.
+
+**Principle:** A vendor's documentation describes the general case; your configuration is a specific
+case, and only the running system knows which one you got. Write down which claims are measured and
+when, so the unmeasured ones stay visibly unmeasured instead of aging into apparent fact.
+
+### Observation 27: An artefact created with the right name can be the wrong thing, and the name suppresses the check
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Confirming that a requested piece of infrastructure had been created.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Confirming someone else's completed action
+
+**Issue:** A user reported creating the agreed resource, and one had indeed appeared with the
+expected name and a healthy status. Two attributes settled it as a different kind of object than the
+one designed: it was not linked to the source-control branch that would create and destroy it, and
+it was flagged short-lived while having nothing to be torn down with — so it carried the running
+cost of a permanent resource and the lifetime guarantee of a temporary one. The surrounding
+integration it was meant to activate was untouched and still inert. Confirming "it exists and is
+healthy" would have been true and would have missed all of it.
+
+**Suggested improvement:** When confirming that a requested resource exists, check the attributes
+that define its *kind* and its *lifecycle*, not just its presence and health. Specifically: what
+creates it, what destroys it, and what it costs while it exists. A resource matching the requested
+name is the beginning of the check, not the end of it.
+
+**Principle:** Existence, health and name are the cheapest properties to satisfy and the least
+informative. The properties that determine whether a thing does its job are the ones describing how
+it is created, how it ends, and what it costs in between.
+
+### Observation 28: The failing system often states its own reason in a field nobody reads
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Diagnosing why an automated check had been reporting `skipped` across four
+consecutive pull requests.
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Reading the evidence already present before forming a hypothesis
+
+**Issue:** An external service posted a status check that came back `skipped` on every pull request.
+The status was read — the name, the conclusion, the link it pointed at — and two rounds of
+hypotheses were built on those three fields and written into documentation as likely causes. Both
+were wrong. The check object also carried a human-readable summary field, never fetched, containing
+one sentence naming the exact disabled setting and where to re-enable it. The default listing of
+checks does not display it; one additional request for the full object does. So four pull requests'
+worth of "why is this skipping" had a published answer the entire time, and the cost of reading it
+was one request.
+
+**Suggested improvement:** In `systematic-debugging`, add an explicit step before hypothesis
+formation: fetch the *full* record of the failing object, not the summary view the listing gave you.
+Listings are designed for scanning many items and omit exactly the free-text fields — summary,
+message, detail, annotations — where a service explains itself. The rule of thumb: if a status has a
+human-readable field you have not read, you are not yet debugging, you are guessing.
+
+**Principle:** Prefer the failing system's own account of the failure over any inference from its
+observable behaviour. Machine-readable status tells you *that* something did not happen; the
+free-text field next to it usually tells you *why*, and it is almost always one request away.
+
+### Observation 29: Reading a resource can disclose its secrets, so the read is part of the blast radius
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Inspecting a newly created database branch to confirm it had been built
+correctly.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Inspecting infrastructure that holds credentials
+
+**Issue:** Confirming a resource was healthy meant fetching its detail record. That record embedded
+the database password and the token-signing secret in plaintext, so a read-only verification step
+copied live credentials into a durable transcript. Nothing warned that it would: the endpoint's
+purpose is describing the resource, and the credentials arrive as ordinary fields alongside host and
+port. A narrower endpoint answered the same question without them. The exposure was recoverable only
+because the resource was disposable and could be destroyed.
+
+**Suggested improvement:** Add a rule for inspection steps: before fetching a detail record from an
+infrastructure API, consider whether the response is likely to embed credentials, and prefer the
+narrowest endpoint that answers the question. Where a broad endpoint must be used, extract only the
+needed fields rather than rendering the whole response. Treat an accidental disclosure as
+requiring the same rotate-or-destroy response as any other leak, and say so — a read that was
+technically authorised is still a disclosure.
+
+**Principle:** Verification is not automatically side-effect-free. A read that returns secrets has
+published them; the question is not whether the call was permitted but where the response now lives
+and who can reach it.
+
+### Observation 30: A local emulator that accepts what the real service rejects turns local testing into a source of false confidence
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** The first ephemeral environment ever built for this project failed immediately
+on a configuration file that had passed every local run.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** The limits of local verification
+
+**Issue:** A configuration value had been written in a format the vendor's hosted API rejects
+outright. The local emulator of that same service accepted it silently, so the error survived
+authoring, code review, a full verification gate and three merged changes. The first deployed
+environment to read the identical file failed on it within seconds. The failure was not subtle or
+probabilistic — it was a flat 400 with a message naming the exact field and the exact rule — and it
+was undetectable locally by construction, because the component that would have complained was the
+one being emulated.
+
+**Suggested improvement:** Add to `test-driven-development` a note on the boundary of local testing:
+a local emulator verifies your code against *its* implementation of a service, not against the
+service. Configuration and schema that the hosted product validates on ingest are the highest-risk
+category, because the emulator is usually more permissive than the product. The remedy is not more
+local tests; it is one cheap disposable instance of the real thing in the pipeline. Where that
+exists, treat the first run of it as a review step in its own right.
+
+**Principle:** An emulator's silence is evidence about the emulator. Anything the real service
+validates and the emulator does not is invisible to every local test you will ever write, and no
+amount of local rigour converts into confidence about it.
+
+### Observation 31: When an experiment finally becomes possible, run it and record the result in the artefact that carried the guess
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** A hypothesis written into three files became testable the moment the first
+working ephemeral environment appeared.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Closing out explicitly-unverified claims
+
+**Issue:** Work had shipped with two claims explicitly marked unverified — a behaviour assumed from
+vendor documentation, and a safety statement that had never executed anywhere. Both were labelled
+honestly, which was necessary but not sufficient: a labelled uncertainty still ages into apparent
+fact once the label scrolls out of view. When the environment that could settle both finally
+existed, deliberately holding it open long enough to measure — rather than merging on green — turned
+both into observations, and revealed that the scoping decision behind the safety statement was
+correct in a way that could not have been argued from the code alone.
+
+**Suggested improvement:** In `verification-before-completion`, pair the practice of labelling
+unverified claims with a closing step: keep a short list of what is outstanding, and when the
+blocking condition clears, measure and write the result back into the same files that carried the
+guess. Where the verification window is transient — an ephemeral environment, a live incident, a
+one-off migration — protect it deliberately rather than letting the default workflow close it.
+
+**Principle:** Marking a claim unverified is a debt, not a discharge. The debt is paid by measuring
+and amending the original artefact, and the opportunity to do it is often a narrow window that the
+normal workflow will destroy by default.
+
+### Observation 32: A build-time constant lookup that defaults to empty turns a name mismatch into a shipped artefact
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Following up a user's remark that a credential already existed under a
+different name than the code expected.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Values injected at build time
+
+**Issue:** A compiled client read a credential from a build-time constant keyed by name. The runbook
+that documented the build passed one name; the source read another. The language's constant lookup
+returns an empty string for a name nobody supplied rather than failing, so the documented build
+produced a binary containing an empty credential — no warning at build, no warning at start, and a
+confusing authentication error much later. The variable in source was even *named* after the value
+the runbook passed, so the two files read as agreeing while disagreeing on the only string that
+mattered. Static analysis cannot catch it: both sides are individually valid, and the contract
+between them exists only in prose.
+
+**Suggested improvement:** Treat any build-time injected value as an untyped contract between the
+build command and the source, and close it explicitly — assert non-empty at startup so a mismatch
+fails immediately and names the flag to pass, rather than degrading into a runtime symptom. Where a
+runbook documents the build command, the names in it are part of the source contract and should be
+checked against the code whenever either changes. This is the same failure as an unset shell
+variable expanding to empty, one step worse: the empty value is baked into an artefact that can ship.
+
+**Principle:** Any lookup that answers "empty" instead of "no such thing" converts a naming mistake
+into valid-looking data. Wherever such a lookup feeds something essential, add the check that turns
+absence back into an error — the language will not.

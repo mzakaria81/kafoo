@@ -1,20 +1,18 @@
 # Preview branches (ephemeral databases)
 
-**Status: prepared in the repository, not yet firing.** The repository side is done. One dashboard
-setting is not, and it cannot be done from a session — see "The part a human has to do".
+**Status: working since 2026-08-02.** The first preview branch was built on pull request #16. It
+found a real bug in its first thirty seconds — see "What it caught immediately".
 
 ---
 
 ## What this is, in one paragraph
 
 A preview branch is a **throwaway Supabase database created for a single pull request**. Supabase
-builds it by applying every file in `supabase/migrations/` to an empty database, then running
-`supabase/seed.sql`. When the pull request is merged or closed, the branch is destroyed. It starts
-empty: no production data is copied in, ever.
+builds it by applying every file in `supabase/migrations/`, then running `supabase/seed.sql`. When
+the pull request is merged or closed, the branch is destroyed. It starts empty: no production data
+is copied in, ever.
 
-The point is to stop schema changes reaching the real database untried. Today a migration is
-reviewed by reading it. With previews, every pull request that touches the database gets one built
-from scratch, and a migration that cannot apply cleanly fails there instead of on the live project.
+The point is to stop schema and configuration changes reaching the real database untried.
 
 **Cost.** Branches bill only while they exist, so cost tracks how many pull requests are open rather
 than a monthly subscription. An idle repository costs nothing. Compare a persistent staging
@@ -22,83 +20,135 @@ database, which is about $10/month whether or not anyone uses it.
 
 ## Why ephemeral rather than persistent, for now
 
-Kafoo has no users. The live database holds nothing a mistake could damage, so it is already
-serving as its own staging environment. Buying a permanent second database to protect an empty one
-is paying for a rehearsal room with no performance to rehearse.
+Kafoo has no users. The live database holds nothing a mistake could damage, so it is already serving
+as its own staging environment. Buying a permanent second database to protect an empty one is paying
+for a rehearsal room with no performance to rehearse.
 
-Revisit this when either of these happens, whichever comes first:
+Revisit when either happens, whichever comes first:
 
 - the first real Cook signs up, or
 - a test build goes to someone outside the team and needs a fixed address to talk to
 
-At that point add a persistent branch as well. Preview branches and a persistent staging branch are
-not alternatives; the second becomes worth its cost later.
+At that point add a persistent branch *as well*. These are not alternatives; the second becomes
+worth its cost later.
 
 **When that day comes, do not copy real Customer data into staging.** It will be suggested as "more
 realistic testing". Allergy and dietary information is health-adjacent and is stored only with
 consent for a named purpose (`.claude/rules/business-rules.md`); "we copied it to a test database"
 is not that purpose. Realistic *shapes* of data, yes. Real people's records, no.
 
-## The part a human has to do
+## What it caught immediately
 
-Connecting Supabase to GitHub is an authorization step. It cannot be done through the API or the
-CLI, so no session can do it.
+The first branch build failed at its first step:
 
-**Current state, checked 2026-08-01:**
+```
+400 sms_test_otp: Must be a comma separated list of <phone-number>=<code>.
+    Phone numbers are in E.164 without the leading + sign.
+```
 
-- Branching is **enabled** on the project — the API reports a default branch for `main`.
-- The GitHub integration is **connected enough to post a check**: every pull request gets a
-  `Supabase Preview` entry.
-- That check has come back **`skipped` on every pull request so far** — #12, #13 and #14 — including
-  #12, which added all three migrations. So no preview branch has ever actually been built.
+`supabase/config.toml` had written the test-OTP phone numbers with a leading `+`. The local stack
+accepted that silently, so it survived from E1 through a green gate and three merged pull requests.
+The first deployed environment to read the same file rejected it in seconds.
 
-Whatever is switched off is visible only in the dashboard:
+That is the entire argument for this feature, demonstrated on day one: **no amount of local testing
+finds a setting the local stack does not validate.** Had the deploy workflow's migration step ever
+been enabled, this would have failed against production instead.
 
-1. Open **Project Settings → Integrations → GitHub** for the `kafoo` project.
-2. Confirm the connected repository is `mzakaria81/kafoo` and that the **supabase directory** is
-   `supabase` — a wrong or empty value here makes Supabase decide the pull request changes nothing
-   it cares about, and skip.
-3. Confirm the **production branch** is `main`.
-4. On **Branches**, confirm preview branches are enabled for pull requests.
+## What a branch actually contains — measured
 
-`Supabase Preview` turning from `skipped` to a real result on the next pull request that touches
-`supabase/` is how you know it worked. If it still skips, the settings above are the place to look.
+Measured 2026-08-02 by querying preview branch `coamyiukxwrsnvyyextf` (pull request #16) directly:
 
-## What a preview branch will contain
+| | Result |
+|---|---|
+| Postgres version | 17.6 — matches production |
+| Migrations applied | Yes — both tables present |
+| Row Level Security | Yes, on both tables |
+| `supabase/seed.sql` run | **Yes** — `tests` schema and pgTAP both present |
+| Edge Functions deployed | **No** — see below |
 
-Applied in this order:
+**This corrects an earlier claim, twice over.** A hand-created branch measured on the same day got
+the migrations and *not* the seed, and this document previously recorded seeds as not running, with
+"the difference is the git link" as an untested hypothesis. A git-linked branch now confirms it: the
+seed runs when the branch is built from the repository, and does not when the branch has no
+repository to read it from. Both halves are now observation rather than inference.
 
-1. Every migration in `supabase/migrations/`, oldest first.
-2. `supabase/seed.sql` — pgTAP and the `tests` helper schema.
+### The seed's REVOKE, verified for the first time
 
-Two consequences worth holding on to:
+`seed.sql` revokes `tests.create_supabase_user` — which inserts straight into `auth.users`, bypassing
+sign-up and phone verification — from `PUBLIC`, `anon` and `authenticated`. Until this branch existed
+that statement had never executed anywhere. Measured on the branch:
 
-**The seed file reaches a deployed project.** A preview branch is a real Supabase project with its
-own URL and anon key. `supabase/seed.sql` said in a comment that seeds never reach a deployed
-project; that stopped being true here. The one helper that writes — `tests.create_supabase_user`,
-which inserts directly into `auth.users` — now has its privileges revoked from `PUBLIC`, `anon` and
-`authenticated` at the foot of that file. The other three helpers are deliberately left callable,
-because the suites call them while acting as `anon` or `authenticated`.
+| Helper | `anon` execute | `authenticated` execute |
+|---|---|---|
+| `create_supabase_user` | **false** | **false** |
+| `authenticate_as` | true | true |
+| `authenticate_as_anon` | true | true |
+| `clear_authentication` | true | true |
 
-**Production is not seeded.** `supabase db push` applies migrations only. The test harness exists on
-disposable databases and not on the real one, which is the right way round.
+Exactly the intended shape. The narrow scope matters: the suites in `supabase/tests/` deliberately
+*become* `anon` or `authenticated` and then call `clear_authentication()` to climb back out, so
+revoking the whole schema would turn the bottom three `false` and fail every authorization test in
+the project. The `tests` schema is also absent from `api.schemas`, and a PostgREST call to it returns
+404 — checked, not assumed.
+
+## Operating notes
+
+**Only new migration files are pushed on each commit.** Supabase's own comment on the pull request:
+"Tasks are run on every commit but only new migration files are pushed. Close and reopen this PR if
+you want to apply changes from existing seed or migration files." So editing `seed.sql` or an
+existing migration and pushing does **not** re-apply it — close and reopen the pull request, or the
+branch keeps the old version and you will be testing against something that is not in the diff.
+
+**Edge Functions are not deployed to branches by default.** The build warns: "Only Functions declared
+in config.toml will be automatically deployed to branches: `[functions.my-slug]`". Nothing is
+declared, so `delete-account` does not exist on a preview branch and its contract tests cannot run
+there.
+
+Declaring it is **not** a one-line fix, and is deliberately left undone. The platform's default
+`verify_jwt = true` rejects unauthenticated requests *before* the function runs — including the CORS
+preflight `OPTIONS`, which carries no `Authorization` header and which this function handles
+explicitly. Declaring the function without settling that would break preflight for web clients. The
+function already verifies the JWT itself and returns 401 without a bearer token, so it is not
+unprotected today; it is simply absent from branches. Treat adopting it as its own change with its
+own test.
 
 ## The follow-up worth doing next
 
 E1's authorization suites have still never run against a real Postgres — every Dart test uses an
-in-memory stand-in, and `supabase test db` has only ever been run locally, if at all.
+in-memory stand-in.
 
-Once previews fire, the suites in `supabase/tests/` can run against the preview branch on every pull
-request. That is the change that turns "the policies are correct by review" into "a non-owner was
-observed getting zero rows on a real database". It is deliberately **not** in this change: a CI job
-that cannot be watched working is a job that gets written wrong and merged green.
+The blocker is now gone. A preview branch has the migrations, pgTAP, and the `tests` helpers, which
+is everything `supabase test db` needs. The next change should run `supabase/tests/*.sql` against the
+preview branch on every pull request. That is what turns "the policies are correct by review" into "a
+non-owner was observed getting zero rows on a real database".
 
-Do it in the first pull request after `Supabase Preview` reports a real result.
+## If a preview stops appearing
+
+Read the check's own summary before changing any setting — it names the cause directly. That field
+sat unread through four pull requests while this document guessed at two wrong causes:
+
+```bash
+# check-run id comes from the pull request's checks
+curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+  https://api.github.com/repos/mzakaria81/kafoo/check-runs/<id> \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['output']['summary'])"
+```
+
+The toggle lives in **Project Settings → Integrations → GitHub**. It cannot be changed from a
+session: the Management API publishes 115 endpoints and none touches the GitHub integration —
+checked 2026-08-02 against the API's own specification, so this is a property of the API rather than
+a missing permission.
 
 ## Local development is unaffected
 
-`supabase start` still runs the whole stack on your machine, and it is the fastest loop. Preview
-branches are for what happens after you push. Note that `supabase/config.toml` now pins
-`major_version = 17` to match the deployed project; it said 15 until 2026-08-01, so migrations were
-being authored against a different major version than the one they would be applied to. If your
-local volume predates that change, `supabase db reset` rebuilds it.
+`supabase start` still runs the whole stack on your machine and is the fastest loop. Preview branches
+are for what happens after you push. `supabase/config.toml` pins `major_version = 17` to match the
+deployed project; if your local volume predates 2026-08-01, `supabase db reset` rebuilds it.
+
+## A note on inspecting branches
+
+Fetch what you need, not the whole record. `GET /v1/branches/{id}` embeds the branch's database
+password and JWT signing secret in plaintext, so a read-only "is it healthy?" check copies live
+credentials into whatever transcript or log is watching. Use
+`POST /v1/projects/{ref}/database/query` for state questions, and
+`GET /v1/projects/{ref}/api-keys` when a key is genuinely needed.
