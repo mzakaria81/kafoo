@@ -709,3 +709,33 @@ one-off migration — protect it deliberately rather than letting the default wo
 **Principle:** Marking a claim unverified is a debt, not a discharge. The debt is paid by measuring
 and amending the original artefact, and the opportunity to do it is often a narrow window that the
 normal workflow will destroy by default.
+
+### Observation 32: A build-time constant lookup that defaults to empty turns a name mismatch into a shipped artefact
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Following up a user's remark that a credential already existed under a
+different name than the code expected.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Values injected at build time
+
+**Issue:** A compiled client read a credential from a build-time constant keyed by name. The runbook
+that documented the build passed one name; the source read another. The language's constant lookup
+returns an empty string for a name nobody supplied rather than failing, so the documented build
+produced a binary containing an empty credential — no warning at build, no warning at start, and a
+confusing authentication error much later. The variable in source was even *named* after the value
+the runbook passed, so the two files read as agreeing while disagreeing on the only string that
+mattered. Static analysis cannot catch it: both sides are individually valid, and the contract
+between them exists only in prose.
+
+**Suggested improvement:** Treat any build-time injected value as an untyped contract between the
+build command and the source, and close it explicitly — assert non-empty at startup so a mismatch
+fails immediately and names the flag to pass, rather than degrading into a runtime symptom. Where a
+runbook documents the build command, the names in it are part of the source contract and should be
+checked against the code whenever either changes. This is the same failure as an unset shell
+variable expanding to empty, one step worse: the empty value is baked into an artefact that can ship.
+
+**Principle:** Any lookup that answers "empty" instead of "no such thing" converts a naming mistake
+into valid-looking data. Wherever such a lookup feeds something essential, add the check that turns
+absence back into an error — the language will not.

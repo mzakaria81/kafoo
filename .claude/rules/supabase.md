@@ -23,21 +23,32 @@ Supabase guidance and they do not know about Kafoo.
 Neither is a reason to remove the skills. It is a reason not to treat them as the authority on a
 question this repository has already answered.
 
-## Legacy API keys — a real migration, not yet scheduled
+## Legacy API keys — two separate migrations, do not bundle them
 
-The `supabase-server` skill states that `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
-legacy and will be deprecated in favour of publishable (`sb_publishable_…`) and secret
-(`sb_secret_…`) keys, and it will propose migrating to the `@supabase/server` package on sight of
-the old pattern.
+Supabase is replacing `anon` / `service_role` keys with publishable (`sb_publishable_…`) and secret
+(`sb_secret_…`) keys. The `supabase-server` skill proposes both a key change *and* adopting the
+`@supabase/server` package on sight of the old pattern. Those are different sizes of decision and an
+earlier version of this section wrongly treated them as one.
 
-Kafoo uses the legacy form in two places today — `supabase/functions/delete-account/index.ts` reads
-`SUPABASE_SERVICE_ROLE_KEY`, and `apps/mobile/lib/main.dart` reads `SUPABASE_ANON_KEY`. The
-environment already carries a `SUPABASE_PUBLISHABLE_KEY` alongside them.
+**Client key — done.** `apps/mobile/lib/main.dart` reads `SUPABASE_PUBLISHABLE_KEY`, which is what
+the environment provides and what `docs/ops/verifying-e1.md` passes. Changing this needed no new
+dependency: `supabase_flutter` already takes a `publishableKey` argument. It also fixed a real
+defect — the code read `SUPABASE_ANON_KEY` while the runbook defined `SUPABASE_PUBLISHABLE_KEY`, and
+`String.fromEnvironment` answers "" rather than failing, so the documented build produced an app with
+no key at all.
 
-**Do not migrate opportunistically.** Adopting `@supabase/server` is a new runtime dependency in the
-Edge Function path and changes how inbound requests are authenticated — an ADR and a founder
-decision, not a refactor to slip into an unrelated change. Until that decision exists, leave the
-existing keys alone and do not rewrite a working function because a skill suggested it.
+**Server key — blocked, and not on merit.** `supabase/functions/delete-account/index.ts` still reads
+`SUPABASE_SERVICE_ROLE_KEY`. There is no `SUPABASE_SECRET_KEY` in the environment, so the swap cannot
+be made or tested yet. Add the secret key first; then it is a small change on its own.
+
+**`@supabase/server` — needs an ADR.** A new runtime dependency in the Edge Function path that
+changes how inbound requests are authenticated. Not a refactor to slip into an unrelated change, and
+not something to start because a skill suggested it. The function currently verifies the JWT itself
+and takes the user id from the token and nowhere else; that property must survive any rewrite, and
+it is worth more than the tidier code.
+
+**`SUPABASE_ANON_KEY` in `supabase/functions/delete-account/index.test.ts` is correct.** It reads the
+key `supabase start` prints for the local stack, not a deployed key. Leave it.
 
 ## Migrations
 
