@@ -42,13 +42,32 @@ API = "https://api.supabase.com"
 TAP = {"plan", "ok", "is", "isnt", "throws_ok", "lives_ok", "finish", "matches"}
 
 
+def token():
+    """The access token, with surrounding whitespace removed.
+
+    Not defensive programming for its own sake. A secret pasted from a soft-wrapped
+    terminal carries a trailing newline; GitHub stores that happily, and a newline
+    in an HTTP header value makes http.client raise `ValueError: Invalid header
+    value` — which the runner prints with the secret masked, so it reads as
+    `b'***'` and looks like a malformed token rather than a stray character. This
+    cost one CI run. .devcontainer/post-create.sh strips the Claude token for the
+    same reason.
+    """
+    raw = os.environ["SUPABASE_ACCESS_TOKEN"]
+    clean = raw.strip()
+    if clean != raw:
+        print("  note: SUPABASE_ACCESS_TOKEN had surrounding whitespace; using a "
+              "stripped copy. Re-paste the secret to silence this.")
+    return clean
+
+
 def api(path, method="GET", body=None):
     req = urllib.request.Request(
         API + path,
         method=method,
         data=json.dumps(body).encode() if body is not None else None,
         headers={
-            "Authorization": "Bearer " + os.environ["SUPABASE_ACCESS_TOKEN"],
+            "Authorization": "Bearer " + token(),
             "Content-Type": "application/json",
             # Not optional. The API sits behind a WAF that answers urllib's
             # default User-Agent with "403 error code: 1010" — which reads like
@@ -170,13 +189,19 @@ def main():
     ap.add_argument("files", nargs="*")
     a = ap.parse_args()
 
-    ref = a.ref
+    # Same whitespace hazard as the token: these land in URL paths and in an
+    # equality test against the branch name, and a stray newline breaks both
+    # quietly rather than loudly.
+    ref = (a.ref or "").strip() or None
+    parent = (a.parent or "").strip() or None
+    git_branch = (a.git_branch or "").strip() or None
+
     if not ref:
-        if not (a.parent and a.git_branch):
+        if not (parent and git_branch):
             sys.exit("need --ref, or --parent with --git-branch")
-        ref = resolve_branch(a.parent, a.git_branch)
+        ref = resolve_branch(parent, git_branch)
         if not ref:
-            sys.exit("no ready preview branch found for " + a.git_branch)
+            sys.exit("no ready preview branch found for " + git_branch)
     print(f"running against branch {ref}\n")
 
     files = a.files or sorted(glob.glob("supabase/tests/*.sql"))
