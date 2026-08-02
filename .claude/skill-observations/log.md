@@ -739,3 +739,33 @@ variable expanding to empty, one step worse: the empty value is baked into an ar
 **Principle:** Any lookup that answers "empty" instead of "no such thing" converts a naming mistake
 into valid-looking data. Wherever such a lookup feeds something essential, add the check that turns
 absence back into an error — the language will not.
+
+### Observation 33: Triage an automated security finding by attempting the exploit, not by reading the rule that fired
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Running a hosted platform's security linter against a live project.
+**Skill:** rls-reviewer
+**Type:** open-source
+**Phase/Area:** Triaging automated findings
+
+**Issue:** A platform security linter returned three findings. Two named a privileged function as
+callable by anonymous and signed-in users over the public API, quoting the exact URL. Both were
+false: the function's return type makes direct invocation impossible, and a single request against
+that URL returned an error rather than executing anything. The function also only *tightened*
+security — it was the platform's own safety net for enabling row-level security on new tables — so
+even a successful call had no adverse effect. The remaining finding was real, and confirming it
+took one request that returned success where failure was expected. Reporting all three at face
+value would have buried the one that mattered under two that did not, and reporting them as
+dismissed without testing would have been a guess in the other direction.
+
+**Suggested improvement:** Add a triage step to `rls-reviewer` for machine-generated findings: for
+each one, construct the smallest request that would demonstrate the claimed access, run it, and
+record the response alongside the finding. Static linters reason about grants and signatures; they
+do not attempt the call, so they cannot distinguish "granted" from "reachable" from "harmful". Three
+questions separate them — can it be invoked, does invoking it do anything, and does what it does
+help an attacker.
+
+**Principle:** A linter reports that a rule matched, not that a vulnerability exists. Confirmation
+and dismissal both require attempting the thing described; whichever way the evidence falls, the
+finding should carry the response that settled it.
