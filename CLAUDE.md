@@ -297,8 +297,27 @@ on faith — re-run `./scripts/verify.sh`.
 
 ### Allowed OpenCode models — the prefix IS the billing boundary, and it is `opencode-go/`
 
-The OpenCode subscription on this account is **OpenCode Go**, a flat-rate plan. Its namespace is
-**`opencode-go/`**. Everything dispatched for Kafoo uses that prefix.
+The OpenCode subscription on this account is **OpenCode Go**. Its namespace is **`opencode-go/`**.
+Everything dispatched for Kafoo uses that prefix.
+
+**It is not flat-rate, and this file said it was until 2026-08-03.** Go is $5 for the first month
+then $10/month, and it meters usage against three dollar-denominated caps
+(https://opencode.ai/docs/go/):
+
+| Window | Cap |
+|---|---|
+| rolling 5 hours | $12 of usage |
+| week | $30 of usage |
+| month | $60 of usage |
+
+So the `cost` field in a relay's `result.json` is not notional — **it is what counts against those
+caps.** Three `grok-4.5` dispatches on 2026-08-03 cost $0.44, $0.71 and $0.76: $1.91 for one
+session's work, about a sixth of a five-hour window. A delegation-heavy day can exhaust a window,
+and the failure mode is work stopping mid-task rather than a surprise bill.
+
+Model choice moves this by orders of magnitude, not percentages — the docs put MiMo-V2.5 at roughly
+150,400 requests a month against Kimi K3's 490. **Send mechanical work to a cheap model because it
+is cheap, not merely because it is sufficient.**
 
 **`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
 two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every
@@ -324,25 +343,32 @@ charge. If a task seems to need one, say so and let a human decide.
 The zero balance that produced the error above is not a safety net to rely on. It made this
 particular mistake free; a topped-up balance would have made the same mistake silent.
 
-### Allowlist — verified present on this account, 2026-08-02
+### Allowlist — verified present on this account, 2026-08-03
 
-The full published Go lineup is available. Listing `opencode-go/` returns all seventeen:
+The full published Go lineup is available. Listing `opencode-go/` returns all eighteen:
 
 `deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `gpt-5.6-luna` · `grok-4.5` ·
 `hy3` · `kimi-k2.6` · `kimi-k2.7-code` · `kimi-k3` · `mimo-v2.5` · `mimo-v2.5-pro` ·
-`minimax-m2.7` · `minimax-m3` · `qwen3.6-plus` · `qwen3.7-max` · `qwen3.7-plus`
+`minimax-m2.7` · `minimax-m3` · `qwen3.6-plus` · `qwen3.7-max` · `qwen3.7-plus` · `qwen3.8-max`
 
 Six of these — `kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3` — were
-previously recorded here as "on the published docs but not on this account", and a note warned that
-Go's lineup drifts. They were never missing. They were under the prefix nobody had looked at, and
-the drift the note described was a measurement error. Delete a warning when its cause turns out to
-be something else; a plausible explanation left standing is how the real one stays hidden.
+once recorded here as "on the published docs but not on this account", and a note warned that Go's
+lineup drifts. They were never missing. They were under the prefix nobody had looked at.
+
+**`qwen3.8-max` is the case that note was reaching for, and it is a cache, not drift.** A plain
+`opencode models` returned seventeen; `opencode models --refresh` returned eighteen. So the local
+catalog does go stale, and the symptom is indistinguishable from a model being unavailable —
+**always `--refresh` before concluding a model is missing.**
 
 | Task shape | Model |
 |---|---|
 | Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
 | Ordinary implementation | `opencode-go/qwen3.6-plus` |
 | Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
+
+Pick down this table, not up. `grok-4.5` is the expensive row and every dispatch on 2026-08-03 used
+it, including one that generated JSON fixtures — work the mechanical row would have done for a
+fraction of the cap. Reserve it for what the row actually says: subtle logic, auth, RLS, money.
 
 Re-run `opencode models --refresh` and update this allowlist rather than improvising per task. A
 model that no longer exists fails loudly, which is safe; a metered one does not.
