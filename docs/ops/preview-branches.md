@@ -1,7 +1,36 @@
 # Preview branches (ephemeral databases)
 
-**Status: working since 2026-08-02.** The first preview branch was built on pull request #16. It
-found a real bug in its first thirty seconds — see "What it caught immediately".
+> **RETIRED 2026-08-03, and turned OFF in Supabase.** Kafoo no longer builds a preview branch per
+> pull request, and the `Authorization` workflow no longer waits for one. The RLS suites now run
+> against a real Postgres started inside the CI runner — see **[local-database.md](local-database.md)**.
+>
+> **Why.** Two costs, one of them money. Every open pull request billed a live Supabase project. The
+> other cost was worse: with no local database, the constitution's requirement that a negative test
+> be *seen to fail* meant pushing the test in its own commit and waiting for a branch to build. One
+> extra push and a round trip for every red. The local harness answers in seconds and needs no
+> secrets.
+>
+> **What was given up.** A preview branch was real Supabase — real Auth issuing real JWTs, real
+> PostgREST, the real storage service. The local harness stands in for those, so it proves the
+> schema, constraints, triggers and policies as SQL and nothing about Supabase's own services.
+> `scripts/local-db-bootstrap.sql` names every stand-in. That is a real gap and it is the reason
+> this document is retained rather than deleted.
+>
+> **Turning it back on** is a setting in the Supabase dashboard's GitHub integration, plus restoring
+> the `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_REF` secrets and a workflow step that runs the
+> suites against the branch. Everything below still describes how it worked, including the bug it
+> caught in its first thirty seconds, which is the argument for bringing it back if the gap above
+> ever starts to matter.
+>
+> **One consequence to keep in view.** Migrations still reach production when a pull request merges
+> to `main`, through Supabase Branching's production deploys. Retiring *preview* branches removes
+> the rehearsal, not the deployment. A schema change is now reviewed and locally tested, then
+> applied to production on merge with nothing in between.
+
+---
+
+**Status: worked from 2026-08-02 to 2026-08-03.** The first preview branch was built on pull request
+#16. It found a real bug in its first thirty seconds — see "What it caught immediately".
 
 ---
 

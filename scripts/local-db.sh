@@ -6,8 +6,9 @@
 # *seen* to fail by pushing it in its own commit and reading a pull request's CI — one extra push
 # and a round trip for every red the constitution requires. This script removes that.
 #
-# It is not `supabase start`. It is Postgres 16 from the distribution packages, plus the smallest
-# set of Supabase objects the migrations actually reference. That difference is the whole caveat:
+# It is not `supabase start`. It is a Postgres of the SAME MAJOR VERSION Supabase runs, plus the
+# smallest set of Supabase objects the migrations actually reference. That difference is the whole
+# caveat:
 #
 #   WHAT IT PROVES        table shape, CHECK constraints, NOT NULL, triggers, and the pgTAP suites
 #                         that exercise them.
@@ -25,7 +26,16 @@
 
 set -uo pipefail
 
-PGBIN=/usr/lib/postgresql/16/bin
+# THE MAJOR VERSION IS READ FROM supabase/config.toml, NEVER HARDCODED HERE.
+#
+# This harness was first built on Postgres 16 while config.toml pinned Supabase to 17, so every
+# local run was exercising the migrations against a different major version than the one they would
+# be applied to — the classic source of "it worked locally", and the same mistake config.toml itself
+# records having made in the opposite direction on 2026-08-01. Deriving it from the pin means the
+# two cannot drift apart again without the file that defines the pin being edited.
+PG_MAJOR=$(grep -E '^major_version[[:space:]]*=' "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/supabase/config.toml" \
+           | head -1 | tr -dc '0-9')
+PGBIN="/usr/lib/postgresql/${PG_MAJOR}/bin"
 CLUSTER="${KAFOO_PGDATA:-/tmp/kafoo-pg}"
 SOCKET="${CLUSTER}/socket"
 DB=kafoo_test
@@ -38,6 +48,13 @@ export PGUSER=postgres
 log() { printf '   %s\n' "$*"; }
 
 start() {
+  if [ ! -x "${PGBIN}/initdb" ]; then
+    echo "PostgreSQL ${PG_MAJOR} is not installed, and supabase/config.toml pins that version." >&2
+    echo "Run ./scripts/install-toolchain.sh, which adds the PostgreSQL apt repository and" >&2
+    echo "installs postgresql-${PG_MAJOR} and postgresql-${PG_MAJOR}-pgtap." >&2
+    return 1
+  fi
+
   if [ -d "${CLUSTER}/data" ] && "${PGBIN}/pg_isready" -q 2>/dev/null; then
     log "already running"
     return 0
@@ -81,7 +98,7 @@ start() {
   psql -h "${SOCKET}" -U postgres -d "${DB}" -v ON_ERROR_STOP=1 -q \
     -f "${REPO}/supabase/seed.sql" || return 1
 
-  log "ready — $(basename "${CLUSTER}")"
+  log "ready — Postgres ${PG_MAJOR}, matching supabase/config.toml"
 }
 
 run_tests() {

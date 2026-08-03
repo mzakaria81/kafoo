@@ -6,12 +6,21 @@ first — a policy nobody tested is a policy that does not work.
 ## Running them
 
 ```bash
-supabase start
-supabase db reset     # applies migrations, then seed.sql
-supabase test db
+./scripts/local-db.sh test                              # every suite
+./scripts/local-db.sh test supabase/tests/meals_rls_test.sql   # just one
+./scripts/local-db.sh psql                              # a shell on the same database
+./scripts/local-db.sh stop                              # tear it down
 ```
 
-`supabase db reset` is what installs the harness. `supabase/seed.sql` creates the pgTAP extension
+That starts a real Postgres of the major version `supabase/config.toml` pins, applies every
+migration and `seed.sql`, and runs the suites against the result. **No Docker.** It was believed for
+some time that these suites could not run in a container without the Docker daemon; Docker was never
+the requirement, Postgres was, and `./scripts/install-toolchain.sh` installs it.
+
+`supabase start && supabase db reset && supabase test db` still works where the Docker daemon exists
+and is the closest thing to the real project. Both apply the same migrations and the same seed.
+
+`supabase db reset` — or the harness — is what installs the fixtures. `supabase/seed.sql` creates the pgTAP extension
 and the `tests` schema these files depend on: `create_supabase_user`, `authenticate_as`,
 `authenticate_as_anon`, `clear_authentication`. Running `supabase test db` against a database that
 has not been reset fails on the first statement with "schema tests does not exist".
@@ -21,10 +30,20 @@ has not been reset fails on the first statement with "schema tests does not exis
 any access to `auth.users`, so that read fails the moment a suite is acting as one of them. It is how
 these suites were originally written and one of the reasons they had never run.
 
-**Where they run.** Locally, and on the preview branch built for each pull request — the
-`Authorization` workflow runs them there via `scripts/run-authorization-suites.py`, which uses the
-Management API because `supabase test db` needs a direct Postgres port that CI networks often block.
-Same suites, second transport, not a second definition of passing.
+**Where they run.** Locally via `scripts/local-db.sh`, and in CI on every pull request that touches
+`supabase/` — the `Authorization` workflow builds the same Postgres in the runner and runs the same
+script. One definition of passing, and the same one you get on your own machine.
+
+They used to run against a Supabase preview branch built per pull request. That was real Supabase —
+real Auth, real PostgREST, real Storage — and it was also a billed project per pull request, and it
+put a build-and-wait cycle between writing a negative test and seeing it fail. The local harness
+gives that answer in seconds and costs nothing.
+
+**What the local harness cannot tell you** is written at the top of `scripts/local-db-bootstrap.sql`:
+it stands in for `auth.uid()`, the API roles, and the storage service, so it proves the schema, the
+constraints, the triggers and the policies as SQL, and not that Supabase's own services behave as
+assumed around them. That is a real gap. Weigh it before shipping anything whose safety rests on
+Supabase behaviour rather than on a policy predicate.
 
 **Never against production.** Seeds do not run there, so production has no `tests` schema and cannot
 execute them — deliberate, since helpers that create auth users have no business in a live database.

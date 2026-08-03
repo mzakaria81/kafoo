@@ -1,32 +1,47 @@
 name: Authorization
 
-# Runs supabase/tests/*.sql — the RLS suites — against the preview branch Supabase
-# builds for this pull request. That branch is a real Postgres with the migrations
-# and the seed applied, so this is the only place the policies are exercised rather
-# than reviewed.
+# Runs supabase/tests/*.sql — the RLS suites — against a real Postgres built in the runner by
+# scripts/local-db.sh. That script starts a cluster of the major version supabase/config.toml pins,
+# applies every migration and the seed, and runs the suites against the result.
 #
-# Pull requests only, and never against production. The suites create auth users
-# and write rows; a preview branch is disposable and production is not.
+# THIS USED TO RUN AGAINST A SUPABASE PREVIEW BRANCH, and it no longer does. The preview branch was
+# a real, internet-facing Supabase project spun up per pull request, and it was billed. It also made
+# the constitution's central requirement expensive: a negative test must be SEEN to fail before the
+# policy it tests exists, and with no local database the only way to observe that red was to push
+# the test in its own commit and wait for a preview branch to build. One extra push and a round trip
+# for every red.
 #
-# WHAT MAKES THIS MEANINGFUL. These suites were mutation-tested on 2026-08-02:
-# broadening the kitchen_profiles SELECT policy to `USING (true)` turns them red.
-# A suite that has only ever been green may be incapable of red, so if you add
-# assertions here, break the policy on purpose once and watch this job fail before
-# you trust it.
+# Docker was never the requirement — Postgres was, and the runner has it. The change removes a
+# recurring cost and a feedback loop measured in minutes, and replaces both with a run that takes
+# seconds and needs no secrets at all.
+#
+# WHAT IS LOST, stated plainly rather than discovered later. The preview branch was real Supabase:
+# real Auth issuing real JWTs, real PostgREST, the real storage service. This is Postgres plus the
+# smallest stand-in for those that the migrations actually reference — see
+# scripts/local-db-bootstrap.sql, which says what it fakes and why. So this job proves the schema,
+# the constraints, the triggers and the policies as SQL. It cannot prove that Supabase's own
+# services behave as assumed around them.
+#
+# Two of those stand-ins are worth knowing about because they are where a wrong result would come
+# from: auth.uid() reading request.jwt.claims, and the absence of a DELETE grant on storage.objects
+# standing in for Supabase routing deletion through its Storage API.
+#
+# WHAT MAKES THIS MEANINGFUL. These suites were mutation-tested on 2026-08-02, and again against
+# this harness on 2026-08-03: broadening the kitchen_profiles SELECT policy to `USING (true)` turns
+# two assertions red, and a clean rebuild returns to green. A suite that has only ever been green
+# may be incapable of red, so if you add assertions here, break the policy on purpose once and watch
+# this job fail before you trust it.
 
 on:
   pull_request:
     branches: [main, develop]
-    # Only when the database changes, because only then does a preview branch
-    # exist to run against. Supabase skips its own check on the same condition
-    # ("no changes detected in supabase directory"), and without this filter a
-    # documentation-only pull request leaves this job polling for a branch that
-    # is never going to appear.
-    #
-    # The cost of the filter: a change to the runner script or to this workflow
-    # is not exercised until the next pull request that touches supabase/.
+    # Only when something the suites read has changed. Migrations, the seed, the suites themselves,
+    # and the harness that runs them.
     paths:
       - 'supabase/**'
+      - 'scripts/local-db.sh'
+      - 'scripts/local-db-bootstrap.sql'
+      - '.github/workflows/authorization.yml'
 
 concurrency:
   group: authorization-${{ github.ref }}
@@ -39,35 +54,39 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Guarded like deploy.yml: with no secrets this is a visible no-op rather
-      # than a red cross on every pull request. It says so loudly, because a
-      # skipped check is easy to mistake for a passing one — the deploy workflow
-      # carried a CLI version that had never existed for exactly that reason.
-      - name: Preflight
-        id: pre
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      # The runner ships a Postgres, but not necessarily the major version Supabase runs, and not
+      # pgTAP. Read the pinned version from config.toml rather than hardcoding it here — that pin is
+      # the single place the version is decided, and a second copy is a second thing to get wrong.
+      - name: Install Postgres and pgTAP
         run: |
-          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Authorization suites did not run::SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are not set as repository secrets, so the RLS suites were skipped. The policies in this pull request are UNVERIFIED. Add both secrets to turn this check on."
-            echo "SKIPPED — the RLS suites did not run."
-            echo "Add SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF under"
-            echo "Settings > Secrets and variables > Actions to enable them."
-          fi
+          set -euo pipefail
+          PG_MAJOR="$(grep -E '^major_version[[:space:]]*=' supabase/config.toml \
+                      | head -1 | tr -dc '0-9')"
+          echo "supabase/config.toml pins Postgres ${PG_MAJOR}"
+          . /etc/os-release
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap"
+          /usr/lib/postgresql/"${PG_MAJOR}"/bin/postgres --version
 
-      # The preview branch is built by Supabase's GitHub integration when the pull
-      # request opens, not by this workflow, so it may not be ready yet. The script
-      # waits for it and fails loudly rather than passing on a branch that never
-      # appeared.
+      # No `if:` guard and no secrets. The previous version of this job skipped itself when the
+      # Supabase credentials were absent, and printed a warning saying the policies in the pull
+      # request were unverified — a skipped check that is easy to read as a passing one. There is
+      # nothing left to be absent, so the job either proves the policies or fails.
       - name: Run the authorization suites
-        if: steps.pre.outputs.ready == 'true'
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: sudo -E ./scripts/local-db.sh test
+
+      - name: Summary
+        if: always()
         run: |
-          python3 scripts/run-authorization-suites.py \
-            --parent "${{ secrets.SUPABASE_PROJECT_REF }}" \
-            --git-branch "${{ github.head_ref }}"
+          {
+            echo "### Authorization suites"
+            echo ""
+            echo "Run against a local Postgres matching \`supabase/config.toml\`, not a Supabase"
+            echo "preview branch. Proves the schema, constraints, triggers and policies as SQL."
+            echo "Does not exercise Supabase Auth, PostgREST, or the Storage service —"
+            echo "see \`scripts/local-db-bootstrap.sql\` for what stands in for them."
+          } >> "$GITHUB_STEP_SUMMARY"

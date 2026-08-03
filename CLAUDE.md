@@ -40,7 +40,8 @@ melos run analyze            # dart analyze, all packages
 melos run test               # unit + widget tests
 flutter test test/foo_test.dart   # single test — prefer this over full suite
 supabase start               # local stack (Docker required)
-supabase db reset            # rebuild local DB from migrations + seed
+supabase db reset            # rebuild local DB from migrations + seed (needs Docker)
+./scripts/local-db.sh test   # RLS suites against a real Postgres — no Docker. docs/ops/local-database.md
 supabase migration new NAME  # NEVER hand-write migration filenames
 supabase functions serve     # local Edge Functions
 deno check supabase/functions/**/*.ts   # type-check Edge Functions (also in verify.sh)

@@ -75,11 +75,16 @@ route. Every attempt returns nothing and changes nothing — automatically, on e
 - [x] T013 [US3] Rewrite `supabase/tests/kitchen_discoverability_test.sql` for cases 26–30: a kitchen with a published Meal is readable by `anon`, one with only drafts or only unavailable Meals is not. This file currently asserts the opposite, which was correct in E1
 - [x] T014 [US3] Confirm all suites **FAIL** before the migration lands. A suite that passes here is testing nothing and must be fixed before proceeding.
 
-  **`supabase test db` cannot run in the session container — there is no Docker daemon.** The red
-  observation therefore happens on the pull request: the suites are pushed in their own commit
-  (`4ad4c3b`), and the `Authorization` workflow runs them against the preview branch Supabase builds
-  for the PR, where `meals` does not exist. This costs one extra push and gives a publicly recorded
-  red rather than a claim about a local run
+  **This was done on the pull request, and that is no longer necessary.** At the time,
+  `supabase test db` needed a Docker daemon the session container does not have, so the red was
+  observed by pushing the suites in their own commit (`4ad4c3b`) and letting the `Authorization`
+  workflow run them against the preview branch Supabase built for the PR, where `meals` did not
+  exist. One extra push and a round trip for every red.
+
+  **Docker was never the requirement — Postgres was.** `scripts/local-db.sh` starts a real cluster
+  of the version `supabase/config.toml` pins and runs the suites in seconds. Later work (T087) got
+  its red locally, before the migration existed, which is what this step always meant to achieve.
+  See `docs/ops/local-database.md`
 
 ### Then the schema that makes them pass
 
@@ -88,7 +93,7 @@ route. Every attempt returns nothing and changes nothing — automatically, on e
 - [x] T017 [US3] Add the `derive_nutrition_source` trigger in the same migration, so the source is set from what actually changed rather than from what the client claims. This is the one place where believing the client destroys Principle II
 - [x] T018 [US3] Add a check that a Meal's `cook_id` owns a Kitchen Profile (FR-017), as a trigger — **not** as a foreign key to `kitchen_profiles.cook_id`, which would make a Meal belong to a kitchen rather than to a Cook and contradict FR-016
 - [x] T019 [US3] Add the `meal-photos` storage policies — write and delete restricted to `{auth.uid()}/`, path `{uid}/{meal_id}.jpg` so one photo cannot overwrite another. **Read is owner-scoped, not public**, which still satisfies contract case 33: the bucket's `public` flag is what serves a photo, and object URLs bypass policy checks. A public SELECT policy would add nothing except an answering enumeration endpoint — the hole closed on `kitchen-photos` in `20260802065138`, three days after these documents were written
-- [x] T020 [US3] Confirm all suites now **PASS**. Done on the preview branch, same reason as T014: 54 assertions across five files, 0 failures, run 30747218115
+- [x] T020 [US3] Confirm all suites now **PASS**. Done on the preview branch at the time, same reason as T014: 54 assertions across five files, 0 failures, run 30747218115. That number is now the corroboration for the local harness, which reproduces it exactly — see `docs/ops/local-database.md`
 - [x] T021 [US3] The mutation check, **automated rather than performed once**. The manual version in `docs/ops/verifying-e1.md` §5 is unreachable here — Supabase pushes only *new* migration files to a preview branch, so editing the migration that created the policy changes nothing on the database the suites run against. Assertion 19 of `meals_rls_test.sql` weakens `WITH CHECK` to `true` inside the rolled-back transaction, disables the trigger that would answer first, and proves the reassign then succeeds. Case 8b's sensitivity is now measured on every commit instead of remembered
 
 **Checkpoint**: the ownership rules exist and are proven. Every later story writes into a protected
