@@ -277,7 +277,12 @@ design documents could not have known.
   in the first place, and nobody has checked. If it is bad, no downstream model quality rescues it,
   and the fix (server-side transcription) is a smaller change than it sounds.
 
-- [ ] T084 **Throwaway spike: the Gemini Live API for Customer discovery.** Before E3, and
+- [ ] T084 **Throwaway spike: the Gemini Live API for Customer discovery — now scoped by
+  ADR-0009**, which holds the thin-client proposal at Proposed and names this spike as the
+  blocking question. Answer its three questions in order and stop at the first "no": does the
+  ephemeral-token flow actually work (if not, the proposal is dead and nothing else matters), does
+  Live hear Egyptian Arabic better than on-device transcription (T083), and what does a
+  conversation cost. Before E3, and
   explicitly not for E2 — E2's model call is a single structured extraction, and the Live API's
   advantages are latency (already met at 645 ms) and open-ended dialogue (Kafoo asks the questions
   here, not the model). Adopting it in E2 would also put the API key back on the handset and end
