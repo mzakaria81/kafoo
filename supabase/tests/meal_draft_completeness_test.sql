@@ -82,7 +82,7 @@ SELECT lives_ok(
 
 -- 8. A published Meal cannot then have a required field taken away. The constraint has to hold on
 --    every write, not only on the transition that first satisfied it — otherwise a Meal on offer
---    can be emptied out afterwards and the Customer sees a price-less listing.
+--    can be emptied out afterwards and a Customer sees a Meal on the menu with no price.
 SELECT throws_ok(
   $$ UPDATE meals SET price = NULL
        WHERE id = 'dddddddd-0000-4000-8000-000000000001' $$,
