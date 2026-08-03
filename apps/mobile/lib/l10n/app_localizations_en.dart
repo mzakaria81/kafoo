@@ -249,4 +249,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get changePhoneError =>
       'We could not change your number. Your old number still works — please try again.';
+
+  @override
+  String get aiMealAnalysisInvalid =>
+      'We could not read the AI Assistant\'s reply. Try again, or fill the details in yourself.';
+
+  @override
+  String get aiPromptNotStubbed =>
+      'The AI Assistant is not available right now. Carry on yourself and we will try again later.';
 }

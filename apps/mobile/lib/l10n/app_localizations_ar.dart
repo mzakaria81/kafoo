@@ -243,4 +243,12 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get changePhoneError =>
       'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.';
+
+  @override
+  String get aiMealAnalysisInvalid =>
+      'مش قادرين نفهم رد المساعد. جرب تاني، أو اكتب التفاصيل بنفسك.';
+
+  @override
+  String get aiPromptNotStubbed =>
+      'المساعد مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.';
 }

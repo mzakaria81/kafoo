@@ -529,6 +529,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.'**
   String get changePhoneError;
+
+  /// Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش قادرين نفهم رد المساعد. جرب تاني، أو اكتب التفاصيل بنفسك.'**
+  String get aiMealAnalysisInvalid;
+
+  /// Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable.
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.'**
+  String get aiPromptNotStubbed;
 }
 
 class _AppLocalizationsDelegate
