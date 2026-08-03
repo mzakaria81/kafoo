@@ -1319,3 +1319,43 @@ compatible with both being incomplete in exactly the same way. To detect absence
 against the source of demand, not against another copy of the supply. When a check is green and a
 defect exists anyway, the first question is not "why did it miss this instance" but "what class of
 defect is this check shaped to be blind to".
+
+### Observation 51: "It does not exist" is only ever a claim about where you looked
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** A user relayed a suggestion to use a `opencode-quota` command. Asked to check
+whether it helps, I reported that the tool did not exist. The user corrected me: it is a
+third-party npm package, and it does ship the CLI binary I said was fabricated.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** verifying a negative
+
+**Issue:** I checked three things and all three were true: the command was not on `PATH`, it was not
+a subcommand of the parent CLI, and shell completion knew nothing about it. From that I concluded
+the tool did not exist and that the suggestion had been fabricated — and I reinforced the wrong
+conclusion by noting that a field it supposedly returned did not match the vendor's actual billing
+model, which was true but irrelevant.
+
+Everything I did proved it was not *built in*. Nothing I did addressed whether it existed. One
+registry query would have settled it in seconds and I never made it, because the three checks felt
+like a thorough sweep rather than three views of the same shelf.
+
+The confident negative was the damaging part. A hedged "I cannot find it in the obvious places —
+where did you see it?" costs nothing and invites the correction. "It does not exist, and here is why
+the suggestion looks invented" puts the user in the position of having to argue with a wrong
+conclusion delivered with evidence attached.
+
+**Suggested improvement:** Add a rule for negative claims: a search proves absence only within the
+namespace searched, so state the namespace rather than the absence — "not on PATH and not a
+subcommand" instead of "does not exist". Before asserting a tool, package, API or file does not
+exist, enumerate the distribution channels it could plausibly arrive through (package registries,
+plugin ecosystems, extensions, vendored copies) and check the ones that apply. If any remain
+unchecked, the claim is "I could not find it in X, Y, Z", and the honest next move is to ask.
+
+**Principle:** Absence is unfalsifiable from inside a bounded search, so a negative finding carries
+its search space as an inseparable qualifier. The failure is not looking in too few places — it is
+reporting the result as though the places were all of them. Adding corroborating detail to a
+negative makes it worse rather than better: it converts a checkable "I looked here" into an
+unearned "and therefore it is not anywhere", and the more coherent the supporting story, the harder
+it is for the person who knows better to push back.
