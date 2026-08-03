@@ -231,6 +231,33 @@ run "model config seam" bash -c '
     exit 1
   fi'
 
+# Every AppError's messageKey must actually resolve to a string.
+#
+# The parity check below compares the two ARB files against each other, so a key missing from BOTH
+# is invisible to it — two files agreeing that a string does not exist is perfect parity. That is
+# how `aiMealAnalysisInvalid` reached the tree: every other messageKey in the repository had an
+# entry, this one did not, and the gate was green. What a Cook would have seen when a model reply
+# failed validation is nothing at all.
+#
+# `.claude/rules/dart.md` requires every user-facing error to be localized and actionable. This is
+# that rule, checked rather than remembered.
+run "error keys are localized" bash -c '
+  ar=apps/mobile/lib/l10n/app_ar.arb
+  [ -f "$ar" ] || { echo "   arb files not present yet — skipping"; exit 0; }
+  missing=""
+  # The opening quote is matched as "." and the closing quote is simply left out of the pattern,
+  # so nothing has to be stripped afterwards. An earlier version tried to strip it with `tr` and
+  # silently reported every key in the repository as missing.
+  keys=$(grep -rhoE "messageKey: .[A-Za-z0-9_]+" \
+           --include="*.dart" apps packages 2>/dev/null \
+         | grep -oE "[A-Za-z0-9_]+$" | sort -u)
+  for k in $keys; do
+    jq -e --arg k "$k" "has(\$k)" "$ar" >/dev/null 2>&1 || missing="${missing} ${k}"
+  done
+  [ -z "${missing}" ] || { echo "   messageKey with no Arabic string:${missing}" >&2
+                           echo "   Add it to both ARB files, Arabic written first." >&2
+                           exit 1; }'
+
 # Every user-facing string must exist in the Egyptian Arabic ARB, not just English.
 run "localization parity" bash -c '
   ar=apps/mobile/lib/l10n/app_ar.arb

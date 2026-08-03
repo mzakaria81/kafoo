@@ -1256,3 +1256,66 @@ tests answer "does this behave correctly when run"; questions of the form "does 
 mention X" are static and belong where static questions are cheap. Granting the capability answers
 the immediate need while making every future test more powerful than it should be — and the
 narrower placement is frequently the weaker assertion too, so the cost buys less than it appears to.
+
+### Observation 49: Golden discovery must not call expect at load time
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** meal-analysis parser + golden fixtures in packages/ai
+**Skill:** test-driven-development / writing-plans
+**Type:** open-source
+**Phase/Area:** fixture discovery for data-driven tests
+
+**Issue:** A golden runner that discovers fixtures at `main()` top-level and uses `expect(...)` to
+assert the directory exists throws `OutsideTestException` and fails to load the whole file. The
+corpus check never runs.
+
+**Suggested improvement:** Load fixtures with plain `throw StateError(...)` (or return empty and
+assert inside a test). Reserve matchers for inside `test`/`group` bodies. Document this in any
+skill that covers golden/data-driven suites.
+
+**Principle:** Matchers bind to a test zone. Discovery that runs before tests are registered is
+ordinary setup code and must fail with normal exceptions, not assertions.
+
+### Observation 50: A parity check between two copies cannot see what is missing from both
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** Reviewing delegated work that introduced a new user-facing error key. The
+project's localization gate was green and the string did not exist in any language.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** choosing what a check compares against
+
+**Issue:** The gate compared the two translation files against each other and failed on any key
+present in one and absent from the other. That is a real check and it had been catching real
+mistakes. It is also structurally incapable of catching the case that occurred: a key referenced in
+code and absent from BOTH files. Two files agreeing that a string does not exist is perfect parity.
+
+The consequence was not cosmetic. The new key was returned whenever a model reply failed
+validation, so what a user would have seen at that moment was nothing at all — and every other such
+key in the repository did have an entry, so the omission looked like an ordinary oversight rather
+than a hole in the check.
+
+The fix was to compare against the source of demand instead: extract every key the code actually
+references and require each to resolve. Parity between the copies was kept as a second, narrower
+check. Both are useful; only one of them can detect absence.
+
+Worth recording separately: the replacement check was itself wrong on first run — a quoting bug made
+it report every key in the repository as missing. It was caught immediately because it was run and
+watched, not because it was read. A check whose failure output is implausible ("all 11 keys are
+missing") is announcing a bug in the check, and that signal only exists if somebody looks at the
+output rather than the exit code.
+
+**Suggested improvement:** Add a rule for evaluating existing verification: ask what the check
+compares against, and whether that thing can be wrong in the same direction as the artefact. A
+check between two derived copies validates agreement, never completeness. Completeness needs a
+check against whatever creates the demand — the call sites, the schema, the interface — because
+that is the only artefact that knows something ought to exist.
+
+**Principle:** Consistency and completeness are different properties and are caught by differently
+shaped checks. Comparing two representations of the same thing proves they agree, which is silently
+compatible with both being incomplete in exactly the same way. To detect absence you must compare
+against the source of demand, not against another copy of the supply. When a check is green and a
+defect exists anyway, the first question is not "why did it miss this instance" but "what class of
+defect is this check shaped to be blind to".

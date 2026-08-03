@@ -1,0 +1,15 @@
+{
+  "name": "burger with transliterated English",
+  "kind": "dialect",
+  "said": "برجر لحمة هوم ميد بالكاتشب والمستردة وبصل وخص، العيش توست متحمر",
+  "modelReply": "{\"ingredients\":[\"لحمة\",\"عيش\",\"بصل\",\"خص\",\"كاتشب\",\"مستردة\"],\"calories\":720,\"allergens\":[\"جلوتين\"],\"cuisine\":\"american\",\"category\":\"main\",\"basis\":{\"ingredients\":\"الكوك قال برجر لحمة وعيش وبصل وخص وصوصات\",\"calories\":\"ساندويتش برجر كامل\",\"allergens\":\"العيش فيه قمح\",\"cuisine\":\"البرجر أكلة أمريكاني\",\"category\":\"ده ساندويتش رئيسي\"}}",
+  "expect": {
+    "isEmpty": false,
+    "cuisine": "american",
+    "category": "main",
+    "calories": 720,
+    "ingredientsContains": ["لحمة", "عيش"],
+    "allergensContains": ["جلوتين"],
+    "allergensNotEmpty": true
+  }
+}

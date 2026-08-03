@@ -13,13 +13,18 @@ final class StubAiProvider implements AiProvider {
   ///
   /// A prompt with no entry in [replies] yields a [Failure], so a test that
   /// forgets to stub a call fails loudly instead of silently passing.
-  const StubAiProvider(this.replies);
+  StubAiProvider(this.replies);
 
   /// Canned reply text, keyed by `promptId`.
   final Map<String, String> replies;
 
+  /// The most recent request, for tests that need to prove untrusted input
+  /// reached the provider unchanged rather than being scrubbed on the way in.
+  AiRequest? lastRequest;
+
   @override
   Future<Result<AiResponse, AppError>> complete(AiRequest request) async {
+    lastRequest = request;
     final reply = replies[request.promptId];
     if (reply == null) {
       return const Failure(AppError(messageKey: 'aiPromptNotStubbed'));
