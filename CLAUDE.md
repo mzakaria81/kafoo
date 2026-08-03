@@ -237,6 +237,23 @@ is written but never committed is lost at teardown. Say so rather than silently 
 `using-superpowers` is injected automatically at session start by
 `.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
 
+**caveman and ponytail are wired but set to different intensities, on purpose.** Both are
+hook-driven output-compression tools vendored into `.claude/`; the full reasoning is in
+`.claude/skills/_vendor-licenses/VENDORED.md`, and the short version is:
+
+- **caveman is `off`.** It compresses *prose to the reader*, and its `full` default contradicts the
+  communication contract at the top of this file. Every command still works on demand —
+  `/caveman lite`, `/caveman-stats`, `/caveman-commit`, `/caveman-review`. Do not switch the default
+  on without saying so; the founder reads these answers to make decisions.
+- **ponytail is `lite`.** It shapes generated *code*, so it does not collide with that contract, and
+  it agrees with Simplicity at position 2 in the priority order. It is deliberately not `full`:
+  RLS in the same migration, a negative test seen to fail, and both ARB locales are all work a
+  strong "write less" prior will argue against. **Ponytail never outranks a non-negotiable.** If it
+  suggests dropping one, ponytail is wrong.
+
+Its subagent injection is scoped by `PONYTAIL_SUBAGENT_MATCHER` to implementation agents only.
+The review agents in `.claude/agents/` exist to object, and telling them to do less defeats them.
+
 ## Delegating implementation work
 
 **YOU MUST delegate implementation.** Writing production code directly is the exception, not the

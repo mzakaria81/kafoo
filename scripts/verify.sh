@@ -297,6 +297,51 @@ run "localization parity" bash -c '
     <(jq -r "keys[]" "$en" | grep -v "^@" | sort))
   if [ -n "$missing" ]; then echo "   missing Arabic keys:"; echo "$missing"; exit 1; fi'
 
+# A hook that points at a file which is not there fails SILENTLY. Claude Code runs the command,
+# the command is not found, and the session continues as though the hook had chosen to do nothing.
+#
+# That is not hypothetical: six caveman skills sat on this account for weeks describing a hook that
+# had never been installed, and /caveman-stats answered with nothing at all rather than an error.
+# The instruction was intact and the program it named was absent, which is indistinguishable from
+# the assistant ignoring you.
+#
+# So the gate resolves every hook command in settings.json and checks the file exists. This is
+# general on purpose — it covers check-rls.sh and the session-start scripts too, not only the
+# vendored ones, and it will cover whatever is wired next without being edited.
+run "session hooks resolve" bash -c '
+  [ -f .claude/settings.json ] || { echo "   no settings.json — skipping"; exit 0; }
+  command -v node >/dev/null || { echo "   node not on PATH — the .js hooks cannot run" >&2; exit 1; }
+  python3 - <<"PY"
+import json, os, re, sys
+
+settings = json.load(open(".claude/settings.json"))
+missing = []
+checked = 0
+
+for event, groups in (settings.get("hooks") or {}).items():
+    for group in groups:
+        for hook in group.get("hooks") or []:
+            command = hook.get("command", "")
+            # Pull out every path-looking token that anchors on the project dir. The commands are
+            # a mix of bare paths and `node "<path>"`, so match the variable rather than parse a shell.
+            for raw in re.findall(r"\$\{CLAUDE_PROJECT_DIR\}[^\"\s]*", command):
+                path = raw.replace("${CLAUDE_PROJECT_DIR}", ".")
+                checked += 1
+                if not os.path.isfile(path):
+                    missing.append(f"{event}: {path}")
+
+if missing:
+    print("   hook command points at a file that does not exist:", file=sys.stderr)
+    for m in missing:
+        print(f"     {m}", file=sys.stderr)
+    print("   A missing hook does not error — it silently does nothing.", file=sys.stderr)
+    sys.exit(1)
+
+if checked == 0:
+    print("   no project-dir hooks found in settings.json", file=sys.stderr)
+    sys.exit(1)
+PY'
+
 echo ""
 if [ "$FAILED" -eq 0 ]; then
   echo "PASS"
