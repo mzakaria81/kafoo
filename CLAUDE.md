@@ -319,6 +319,30 @@ Model choice moves this by orders of magnitude, not percentages — the docs put
 150,400 requests a month against Kimi K3's 490. **Send mechanical work to a cheap model because it
 is cheap, not merely because it is sufficient.**
 
+**YOU MUST run the spend ledger around every dispatch.** Two commands, and neither is optional:
+
+```bash
+python3 scripts/opencode-spend.py report          # BEFORE dispatching. Obey the verdict.
+python3 scripts/opencode-spend.py record <relay-result-dir>   # AFTER every relay, pass or fail
+```
+
+Then **commit `.claude/opencode-spend.jsonl`**. It is append-only, one row per dispatch, and it
+lives in the repository for the same reason the observation log does: cloud containers are
+destroyed after each session, so an uncommitted ledger is a ledger that resets to zero against a
+cap that does not. `opencode stats` cannot do this job — it reads the container's local database
+and starts empty every time.
+
+The report prints `OK`, `WARN` at 70% of any window, or `STOP` at 90%. `WARN` means send the next
+task down the model table. `STOP` means finish what is in flight and start nothing new: the failure
+being avoided is a long task dying halfway, not a bill.
+
+**It is an approximation and it is honest about being one.** It records what Kafoo spent, which
+tracks the account only while delegated coding is the sole consumer of the subscription — true as
+of 2026-08-03. It cannot see spend from a laptop or another machine. The authoritative number is
+the OpenCode workspace console, which needs a browser credential that must not be put in a cloud
+environment: there is no secrets store, so anyone with access to the environment could read it, and
+a console session reaches billing rather than just model calls.
+
 **`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
 two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every
 agent to use the metered one:
