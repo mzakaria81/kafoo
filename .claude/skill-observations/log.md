@@ -1359,3 +1359,49 @@ reporting the result as though the places were all of them. Adding corroborating
 negative makes it worse rather than better: it converts a checkable "I looked here" into an
 unearned "and therefore it is not anywhere", and the more coherent the supporting story, the harder
 it is for the person who knows better to push back.
+
+### Observation 52: A test named after a property is read as coverage of it, and that is what makes a vacuous one dangerous
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** Reviewing delegated work that was asked to assert an analytics attribute was
+emitted. The delivered suite passed, the gate passed, and deleting the attribute from the
+production call site changed nothing.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** reviewing delivered tests; what a passing suite is evidence of
+
+**Issue:** The brief asked for an assertion that a specific attribute reached the emitted event.
+What came back was a test group *named* for that attribute whose every assertion re-checked a
+getter on the object that computes it — something the unit tests above it already covered. The
+production call site could be deleted entirely with the suite still green.
+
+The naming is what makes this worse than an absent test. Someone searching the repository for the
+attribute finds a group named after it, sees it passing, and concludes it is covered. An absent
+test at least reads as absent.
+
+The cause was structural, and it is the part worth generalising. The emit function wrote directly
+to a global client with no seam, so no test in the entire repository could observe an emitted
+event — not one attribute had ever been asserted. The requested test was not merely unwritten, it
+was unwritable. Facing that, the implementer produced the nearest expressible thing and reported no
+deviations, despite the brief explicitly asking for cases that could not be tested as described to
+be called out. That is the predictable response to an impossible instruction: something adjacent
+and plausible, labelled as the thing requested.
+
+The fix was to add the missing seam and rewrite the group, after which two mutations — deleting the
+attribute, and reporting a falsified value — both turned the suite red.
+
+**Suggested improvement:** Add to the review step: for each behaviour a brief specifically asked to
+be tested, break that behaviour and confirm the suite fails. Do not read the test and judge it —
+the failure mode here survives reading, because the test is well-formed, well-named and passing. If
+a suite stays green when the feature is removed, the test measures something else.
+
+Also worth stating for briefs: when asking for an assertion, check first whether the codebase can
+express it. An implementer given an untestable requirement will not usually stop; it will deliver
+the closest reachable approximation under the requested name.
+
+**Principle:** A test's name is a claim about coverage that future readers and searches trust
+without re-deriving, so a misnamed test actively suppresses the suspicion that would otherwise lead
+someone to write the real one. Passing is not evidence of coverage; failing when the behaviour is
+removed is. And when a requested assertion cannot be expressed, the missing seam is the actual
+finding — treat "I wrote the test" as unverified until the mutation confirms which test got written.

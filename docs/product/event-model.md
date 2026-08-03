@@ -136,7 +136,7 @@ unmeasurable, since a Review requires a completed Order.
 | `SignInStarted` | active (E1) | `route` | A code was requested |
 | `SignInCompleted` | active (E1) | `route`, `first_time` | The person got in |
 | `SignInFailed` | active (E1) | `route`, `reason` | Wrong code, expired, or rate-limited |
-| `ConversationStarted` | active (E1) | `kind`, `input` | A conversation began |
+| `ConversationStarted` | active (E1) | `kind`, `input`, `speech_locale` | A conversation began |
 | `ConversationStepCompleted` | active (E1) | `kind`, `step`, `input` | One question answered — **this is the drop-off signal** |
 | `ConversationCompleted` | active (E1) | `kind`, `input` | The person confirmed and finished |
 | `RecoveryEmailOffered` | active (E1) | — | Kafoo offered a second way in |
@@ -167,6 +167,13 @@ the check, who at that moment is an unrelated stranger.
 **`ConversationStepCompleted` covers the whole product**, not just the Kitchen Profile flow: Meal
 publishing in E2 and conversational search reuse it. That is why it is a family with a `kind`
 rather than one event per surface.
+
+**`ConversationStarted` carries `speech_locale`** because a bare `input: voice` cannot answer
+whether Egyptian Arabic was actually used. The value is the locale id passed to the on-device
+recogniser — `ar-EG` when the handset has it, or another Arabic locale such as `ar-SA` when it
+does not. A `fallback` value (any Arabic other than `ar-EG`) is the signal that on-device
+recognition is not serving Egyptian Arabic, and the Cook's dialect is being transcribed by a model
+trained on something else. When voice is unavailable the literal string `none` is recorded.
 
 **`SearchPerformed` records that a search happened and how many results came back — not the
 phrase.** What people search for is genuinely valuable to a food marketplace, but a search phrase

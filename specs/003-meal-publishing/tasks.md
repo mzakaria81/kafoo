@@ -284,7 +284,21 @@ design documents could not have known.
   `analyze-meal` gets its own entry in the change that creates it, rather than here: a declared
   function with no directory fails the deploy, so the entry and the function belong in one commit.
 
-- [ ] T083 **Measure on-device Egyptian Arabic transcription.** Before E3. The weakest link in a
+- [ ] T083 **Measure on-device Egyptian Arabic transcription — INSTRUMENTED 2026-08-03, still
+  unmeasured.** Reading the code first found two things worth more than the measurement alone.
+  `voice_input.dart` asks for `ar-EG` and falls back to *any* Arabic locale, and its own header
+  says `ar-EG` is missing on many Egyptian handsets — so the normal case is an Egyptian Cook
+  transcribed by a Modern Standard or Gulf model, told to nobody and recorded nowhere. And the
+  events carried `input: voice` but not *which* Arabic, so production could not answer this either.
+
+  Now it can: `ConversationStarted` carries `speech_locale`, and `VoiceInput` exposes
+  `localeMatch` as `exact | fallback | none`. `docs/ops/measuring-transcription.md` holds the
+  runbook and `docs/ops/transcription-corpus.json` the 26-utterance corpus, weighted so that
+  Modern Standard substitution — `فراخ` becoming `دجاج` — is the metric that decides it.
+
+  **What remains needs a real handset**, ideally bought in Egypt, quiet room then kitchen noise.
+  The session container has no microphone and no mobile runtime; a simulated number would be worse
+  than none. Results table is in the runbook, empty. Before E3. The weakest link in a
   voice-first feature is probably not the model — it is whether the phone hears `بانيه` correctly
   in the first place, and nobody has checked. If it is bad, no downstream model quality rescues it,
   and the fix (server-side transcription) is a smaller change than it sounds.
