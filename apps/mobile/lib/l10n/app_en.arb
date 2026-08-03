@@ -1,369 +1,349 @@
 {
   "@@locale": "en",
-
   "appTitle": "Kafoo",
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
-
   "publishMeal": "Publish Meal",
   "@publishMeal": {
     "description": "Action a Cook takes to move a Meal from draft to published."
   },
-
   "archiveMeal": "Archive Meal",
   "@archiveMeal": {
     "description": "Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history."
   },
-
   "acceptOrder": "Accept Order",
   "@acceptOrder": {
     "description": "Action the owning Cook takes to agree to cook an Order."
   },
-
   "rejectOrder": "Reject Order",
   "@rejectOrder": {
     "description": "Action the owning Cook takes to decline an Order."
   },
-
   "orderRejected": "The Cook could not take this Order right now. Try another Meal, or order from another Cook.",
   "@orderRejected": {
     "description": "Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next."
   },
-
   "networkUnavailable": "No internet connection. Check that you are online and try again.",
   "@networkUnavailable": {
     "description": "Shown when a request fails for connectivity reasons."
   },
-
   "aiEstimateNotice": "These are AI Assistant estimates. The Cook has not confirmed them yet.",
   "@aiEstimateNotice": {
     "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
   },
-
   "signInTitle": "Welcome to Kafoo",
   "@signInTitle": {
     "description": "Heading on the phone-number sign-in screen."
   },
-
   "signInPhoneLabel": "Your phone number",
   "@signInPhoneLabel": {
     "description": "Label for the phone number input field."
   },
-
   "signInContinue": "Continue",
   "@signInContinue": {
     "description": "Button to submit the phone number and request an OTP."
   },
-
   "signInRateLimited": "Too many attempts. Wait {minutes} minutes and try again.",
   "@signInRateLimited": {
     "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
     "placeholders": {
-      "minutes": { "type": "int" }
+      "minutes": {
+        "type": "int"
+      }
     }
   },
-
   "codeTitle": "Enter the code",
   "@codeTitle": {
     "description": "Heading on the OTP code entry screen."
   },
-
   "codeSubtitle": "We sent a code to {phone}",
   "@codeSubtitle": {
     "description": "Tells the person which number the OTP was sent to.",
     "placeholders": {
-      "phone": { "type": "String" }
+      "phone": {
+        "type": "String"
+      }
     }
   },
-
   "codeWrongCode": "Wrong code. Try again.",
   "@codeWrongCode": {
     "description": "Shown when the OTP is incorrect."
   },
-
   "codeExpired": "Code has expired. Request a new one.",
   "@codeExpired": {
     "description": "Shown when the OTP has expired (distinct from wrong code)."
   },
-
   "codeResend": "Send a new code",
   "@codeResend": {
     "description": "Button to request a new OTP without restarting sign-in."
   },
-
   "signInNetworkError": "No internet connection. Check that you are online and try again.",
   "@signInNetworkError": {
     "description": "Shown when sign-in fails due to connectivity, not a wrong code."
   },
-
   "kitchenConvPromptDisplayName": "What is your kitchen called?",
   "@kitchenConvPromptDisplayName": {
     "description": "First question in the Kitchen Profile conversation."
   },
-
   "kitchenConvPromptStory": "Tell me about your cooking. What do you make and how?",
   "@kitchenConvPromptStory": {
     "description": "Second question: the Cook's story."
   },
-
   "kitchenConvPromptArea": "Which area do you cook in?",
   "@kitchenConvPromptArea": {
     "description": "Third question: the Cook's area."
   },
-
   "kitchenConvPromptDeliveryTerms": "How do people receive their food from you?",
   "@kitchenConvPromptDeliveryTerms": {
     "description": "Fourth question: delivery or pickup terms."
   },
-
   "kitchenConvHintDisplayName": "e.g. Om Ali's Kitchen",
   "@kitchenConvHintDisplayName": {
     "description": "Hint text below the display name question."
   },
-
   "kitchenConvHintStory": "e.g. Home-cooked food the old-fashioned way",
   "@kitchenConvHintStory": {
     "description": "Hint text below the story question."
   },
-
   "kitchenConvHintArea": "e.g. Maadi, Heliopolis",
   "@kitchenConvHintArea": {
     "description": "Hint text below the area question."
   },
-
   "kitchenConvHintDeliveryTerms": "e.g. Delivery within an hour, or pick up yourself",
   "@kitchenConvHintDeliveryTerms": {
     "description": "Hint text below the delivery terms question."
   },
-
   "kitchenConvContinue": "Continue",
   "@kitchenConvContinue": {
     "description": "Button to confirm the current answer and move to the next step."
   },
-
   "kitchenConvVoiceHint": "Say your answer out loud",
   "@kitchenConvVoiceHint": {
     "description": "Shown next to the microphone button."
   },
-
   "kitchenConvVoiceUnavailable": "Voice recognition is not available. You can type your answer instead.",
   "@kitchenConvVoiceUnavailable": {
     "description": "Shown when on-device speech recognition is not available."
   },
-
   "kitchenConvSummaryTitle": "Here is what you told us",
   "@kitchenConvSummaryTitle": {
     "description": "Heading on the summary screen."
   },
-
   "kitchenConvSummaryConfirm": "Looks good, save",
   "@kitchenConvSummaryConfirm": {
     "description": "Button to confirm the summary and write the Kitchen Profile."
   },
-
   "kitchenConvSummaryEdit": "Change",
   "@kitchenConvSummaryEdit": {
     "description": "Button to edit a single answer on the summary screen."
   },
-
   "kitchenConvLabelDisplayName": "Kitchen name",
   "@kitchenConvLabelDisplayName": {
     "description": "Label for the display name field on the summary screen."
   },
-
   "kitchenConvLabelStory": "Your story",
   "@kitchenConvLabelStory": {
     "description": "Label for the story field on the summary screen."
   },
-
   "kitchenConvLabelArea": "Area",
   "@kitchenConvLabelArea": {
     "description": "Label for the area field on the summary screen."
   },
-
   "kitchenConvLabelDeliveryTerms": "How food reaches people",
   "@kitchenConvLabelDeliveryTerms": {
     "description": "Label for the delivery terms field on the summary screen."
   },
-
   "kitchenConvLabelPhoto": "Kitchen photo",
   "@kitchenConvLabelPhoto": {
     "description": "Label for the optional photo on the summary screen."
   },
-
   "kitchenConvPhotoAdd": "Add a photo",
   "@kitchenConvPhotoAdd": {
     "description": "Button to add a kitchen photo on the summary screen."
   },
-
   "kitchenConvSaveError": "Something went wrong saving. Please try again.",
   "@kitchenConvSaveError": {
     "description": "Shown if writing the Kitchen Profile to Supabase fails."
   },
-
   "kitchenConvPhotoError": "The photo could not be uploaded. You can continue without one.",
   "@kitchenConvPhotoError": {
     "description": "Shown if photo upload fails. The Cook can proceed without a photo."
   },
-
   "kitchenExistsTitle": "You already have a kitchen",
   "@kitchenExistsTitle": {
     "description": "Heading shown when a person who already has a Kitchen Profile tries to create another."
   },
-
   "kitchenExistsBody": "You already have a Kitchen Profile on this account. Taking you there now.",
   "@kitchenExistsBody": {
     "description": "Body text shown when redirecting an existing Cook to their own Kitchen Profile."
   },
-
   "kitchenViewTitle": "Your kitchen",
   "@kitchenViewTitle": {
     "description": "Heading on the Cook's own Kitchen Profile screen."
   },
-
   "kitchenEditCurrentValue": "Current",
   "@kitchenEditCurrentValue": {
     "description": "Labels the value as it stands now, kept visible while a change is being made (US5 scenario 2)."
   },
-
   "kitchenEditNewValue": "New",
   "@kitchenEditNewValue": {
     "description": "Labels the field holding the replacement value."
   },
-
   "kitchenEditSave": "Save change",
   "@kitchenEditSave": {
     "description": "Button confirming a single-detail change."
   },
-
   "kitchenEditCancel": "Cancel",
   "@kitchenEditCancel": {
     "description": "Button abandoning a single-detail change, leaving the previous value in place."
   },
-
   "kitchenEditSaved": "Changed",
   "@kitchenEditSaved": {
     "description": "Brief confirmation shown after one detail changes."
   },
-
   "removeAccountEntry": "Delete my account",
   "@removeAccountEntry": {
     "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was."
   },
-
   "removeAccountTitle": "Delete account",
   "@removeAccountTitle": {
     "description": "Heading on the removal screen."
   },
-
   "removeAccountBody": "Your account and everything in it will be deleted: your kitchen and its photo. This cannot be undone.",
   "@removeAccountBody": {
     "description": "States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034)."
   },
-
   "removeAccountConfirm": "Delete my account",
   "@removeAccountConfirm": {
     "description": "The single confirmation button. There is no second are-you-sure."
   },
-
   "removeAccountCancel": "Back",
   "@removeAccountCancel": {
     "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."
   },
-
   "removeAccountError": "We could not delete your account. It is unchanged — please try again.",
   "@removeAccountError": {
     "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
   },
-
   "recoveryEmailTitle": "Add an email address?",
   "@recoveryEmailTitle": {
     "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed."
   },
-
   "recoveryEmailBody": "If you lose your number, an email address is how you get back into your account. It is not required, and you can skip it.",
   "@recoveryEmailBody": {
     "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath."
   },
-
   "recoveryEmailLabel": "Your email address",
   "@recoveryEmailLabel": {
     "description": "Label for the email input on the invitation."
   },
-
   "recoveryEmailAttach": "Add email",
   "@recoveryEmailAttach": {
     "description": "Button attaching the address to the existing account."
   },
-
   "recoveryEmailDecline": "Not now",
   "@recoveryEmailDecline": {
     "description": "Button declining the invitation. Declining withholds nothing."
   },
-
   "recoveryEmailAttached": "Done. We have sent a confirmation message to that address.",
   "@recoveryEmailAttached": {
     "description": "Shown after the address is attached and a confirmation message is sent."
   },
-
   "recoveryEmailError": "We could not add that address. Please try again.",
   "@recoveryEmailError": {
     "description": "Shown when attaching the address fails."
   },
-
   "signInLostNumber": "Can't reach your number?",
   "@signInLostNumber": {
     "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009)."
   },
-
   "emailSignInTitle": "Sign in by email",
   "@emailSignInTitle": {
     "description": "Heading on the email sign-in screen, reached only from the lost-number route."
   },
-
   "emailSignInBody": "If you added an email address to your account before, enter it here and we will send you a code.",
   "@emailSignInBody": {
     "description": "Explains that this route works only for an address already attached from inside the account (FR-007)."
   },
-
   "emailSignInLabel": "Email address",
   "@emailSignInLabel": {
     "description": "Label for the email field on the email sign-in screen."
   },
-
   "emailSignInUnknown": "That address is not linked to any account. Try signing in with your phone number.",
   "@emailSignInUnknown": {
     "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within."
   },
-
   "changePhoneTitle": "Change phone number",
   "@changePhoneTitle": {
     "description": "Heading on the change-of-number screen."
   },
-
   "changePhoneBody": "Enter your new number. We will send a code to it, and once you confirm, the old number will stop reaching your account.",
   "@changePhoneBody": {
     "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026)."
   },
-
   "changePhoneLabel": "New number",
   "@changePhoneLabel": {
     "description": "Label for the new phone number field."
   },
-
   "changePhoneEntry": "Change phone number",
   "@changePhoneEntry": {
     "description": "Entry point to the change-of-number flow."
   },
-
   "changePhoneDone": "Your number has changed. The old one no longer reaches your account.",
   "@changePhoneDone": {
     "description": "Confirmation shown after the new number is verified."
   },
-
   "changePhoneError": "We could not change your number. Your old number still works — please try again.",
   "@changePhoneError": {
     "description": "Shown when the change fails, stating the old number still works."
+  },
+  "aiMealAnalysisInvalid": "We could not read the AI Assistant's reply. Try again, or fill the details in yourself.",
+  "@aiMealAnalysisInvalid": {
+    "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it."
+  },
+  "aiPromptNotStubbed": "The AI Assistant is not available right now. Carry on yourself and we will try again later.",
+  "@aiPromptNotStubbed": {
+    "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable."
+  },
+  "analyzeMealUnauthorized": "Sign in first and try again.",
+  "@analyzeMealUnauthorized": {
+    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in."
+  },
+  "analyzeMealNotOwned": "This Meal is not yours.",
+  "@analyzeMealNotOwned": {
+    "description": "Shown when the Cook tries to analyze a Meal that belongs to someone else."
+  },
+  "analyzeMealRateLimited": "Too many attempts. Wait a bit and try again.",
+  "@analyzeMealRateLimited": {
+    "description": "Shown when the model provider rate-limits the request."
+  },
+  "analyzeMealTimeout": "The response took too long. Try again.",
+  "@analyzeMealTimeout": {
+    "description": "Shown when the model provider times out."
+  },
+  "analyzeMealInvalidResponse": "We could not understand the AI Assistant's reply. Try again, or fill the details in yourself.",
+  "@analyzeMealInvalidResponse": {
+    "description": "Shown when the model provider returns a response that fails validation."
+  },
+  "analyzeMealProviderError": "The AI Assistant is not available right now. Try again later, or fill the details in yourself.",
+  "@analyzeMealProviderError": {
+    "description": "Shown when the model provider has an auth, upstream, or configuration error."
+  },
+  "analyzeMealServerError": "Something went wrong on our side. Please try again.",
+  "@analyzeMealServerError": {
+    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured)."
+  },
+  "analyzeMealUnknownError": "An unexpected error occurred. Try again, or fill the details in yourself.",
+  "@analyzeMealUnknownError": {
+    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash."
+  },
+  "mealSaveError": "We could not save the Meal. Please try again.",
+  "@mealSaveError": {
+    "description": "Shown when creating, updating, or publishing a Meal fails."
+  },
+  "mealPhotoError": "The photo could not be uploaded. You can continue without one.",
+  "@mealPhotoError": {
+    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
   }
 }

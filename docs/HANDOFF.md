@@ -202,10 +202,12 @@ Stated plainly, because the expensive failures this session were all of this kin
   not be taken — no device, no emulator, no Android SDK in the container. The first release build
   is still when these become real.
 - **Nothing in E1 has touched a live Supabase.** Every Dart test runs against an in-memory fake.
-  The repositories, the RLS policies and the Edge Function are correct by construction and by
-  review, which is not the same as correct. Preview branches are the intended fix and are prepared
-  but not yet firing — `docs/ops/preview-branches.md` has the state and the one dashboard setting
-  still outstanding.
+  The Edge Functions are correct by construction and by review, which is not the same as correct.
+  **The RLS policies are no longer in that category**: they run against a real Postgres on every
+  pull request and locally in seconds — `docs/ops/local-database.md`, 64 assertions. What that does
+  not cover is Supabase's own services around them, so the gap has narrowed rather than closed.
+  Preview branches were the earlier answer and are retired; `docs/ops/preview-branches.md` says why
+  and what it would take to bring them back.
 - **Migrations were authored against Postgres 15 and would deploy to Postgres 17.** `config.toml`
   pinned the local stack to 15 while the project runs 17.6. Corrected 2026-08-01; no migration is
   known to depend on the difference, but none was written with it in mind either.

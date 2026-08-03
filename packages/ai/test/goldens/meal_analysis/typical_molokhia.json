@@ -1,0 +1,13 @@
+{
+  "name": "molokhia with chicken and rice",
+  "kind": "typical",
+  "said": "ملوخية خضرا بالفراخ والرز، ثوم وكسبرة وكمان شوية شطة",
+  "modelReply": "{\"ingredients\":[\"ملوخية\",\"فراخ\",\"رز\",\"ثوم\",\"كسبرة\"],\"calories\":620,\"allergens\":[],\"cuisine\":\"egyptian\",\"category\":\"main\",\"basis\":{\"ingredients\":\"الكوك قال ملوخية وفراخ ورز وثوم وكسبرة\",\"calories\":\"طبق ملوخية بفراخ ورز لشخص\",\"cuisine\":\"الملوخية أكلة مصرية\",\"category\":\"طبق رئيسي بالرز والفراخ\"}}",
+  "expect": {
+    "isEmpty": false,
+    "cuisine": "egyptian",
+    "category": "main",
+    "calories": 620,
+    "ingredientsContains": ["ملوخية", "فراخ", "رز"]
+  }
+}

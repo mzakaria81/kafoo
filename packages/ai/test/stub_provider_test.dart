@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('returns the canned reply for a stubbed prompt', () async {
-    const provider = StubAiProvider({'meal-analysis': 'كشري'});
+    final provider = StubAiProvider({'meal-analysis': 'كشري'});
     const request = AiRequest(promptId: 'meal-analysis', tier: ModelTier.fast);
 
     final result = await provider.complete(request);
@@ -16,7 +16,7 @@ void main() {
   });
 
   test('fails loudly when a prompt was never stubbed', () async {
-    const provider = StubAiProvider({});
+    final provider = StubAiProvider({});
     const request = AiRequest(promptId: 'unstubbed', tier: ModelTier.fast);
 
     final result = await provider.complete(request);

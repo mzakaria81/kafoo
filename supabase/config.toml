@@ -64,3 +64,33 @@ enable_confirmations = true
 [storage]
 enabled = true
 file_size_limit = "50MiB"
+
+
+# EDGE FUNCTIONS MUST BE DECLARED HERE OR THEY DO NOT DEPLOY.
+#
+# Supabase Branching deploys only the functions named in this file. Nothing was named until
+# 2026-08-02, so `delete-account` — E1's account-removal function — has never been deployed to a
+# preview branch. Every preview build said so, in a warning nobody read:
+#
+#   Docker is not running. Functions will not be deployed.
+#   ... only Functions declared in config.toml will be deployed to branches
+#
+# The consequence is not cosmetic. It invalidates any "verified on the preview branch" claim about
+# a function: the preview branch had no function to verify. `docs/ops/verifying-e1.md` §6 walks a
+# human through deleting their account against a deployed environment, and on a preview branch that
+# walkthrough was exercising nothing.
+#
+# One entry per function, added in the same change that adds the function. A function directory
+# with no entry here is code that runs everywhere except where it is tested.
+#
+# `verify_jwt = true` makes the platform reject an unauthenticated request before the function is
+# invoked. It is a second lock, not the lock: both functions read identity from the verified JWT
+# themselves and must keep doing so, because this setting is configuration and configuration can be
+# changed by someone who is not reading the function.
+[functions.delete-account]
+enabled = true
+verify_jwt = true
+
+[functions.analyze-meal]
+enabled = true
+verify_jwt = true

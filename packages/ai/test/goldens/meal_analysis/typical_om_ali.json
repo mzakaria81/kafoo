@@ -1,0 +1,15 @@
+{
+  "name": "om ali dessert",
+  "kind": "typical",
+  "said": "أم علي باللبن والمكسرات والزبيب، عجينة رقيقة ومتحمرة من فوق",
+  "modelReply": "{\"ingredients\":[\"عجين\",\"لبن\",\"مكسرات\",\"زبيب\",\"سكر\"],\"calories\":480,\"allergens\":[\"جلوتين\",\"ألبان\",\"مكسرات\"],\"cuisine\":\"egyptian\",\"category\":\"dessert\",\"basis\":{\"ingredients\":\"الكوك وصف عجين ولبن ومكسرات وزبيب\",\"calories\":\"طبق أم علي فردي\",\"allergens\":\"العجين فيه قمح واللبن ألبان والمكسرات ظاهرة\",\"cuisine\":\"أم علي حلو مصري معروف\",\"category\":\"دي تحلية مش أكلة رئيسية\"}}",
+  "expect": {
+    "isEmpty": false,
+    "cuisine": "egyptian",
+    "category": "dessert",
+    "calories": 480,
+    "ingredientsContains": ["لبن", "مكسرات"],
+    "allergensContains": ["جلوتين", "ألبان", "مكسرات"],
+    "allergensNotEmpty": true
+  }
+}

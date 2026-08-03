@@ -1,6 +1,27 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Receives an event instead of the database. Test seam only.
+typedef EventRecorder = void Function(
+    String name, Map<String, Object> attributes);
+
+/// When set, events go here instead of to Supabase.
+///
+/// This exists because event ATTRIBUTES are constitutional and, until it did, none of them were
+/// testable. `emitEvent` wrote directly to `Supabase.instance.client`, so a widget test had no way
+/// to observe what was emitted — and consequently not one test in this repository asserted an
+/// attribute. That was found on 2026-08-03 by deleting `speech_locale` from a call site and
+/// watching the whole suite stay green, including a test group named after it.
+///
+/// Attribute correctness is not a detail: `docs/product/event-model.md` is a source of truth that
+/// funnels and product decisions are read off, and an event carrying the wrong attribute is a
+/// measurement that lies rather than one that fails.
+///
+/// Production never sets this. Tests set it in `setUp` and null it in `tearDown`.
+@visibleForTesting
+EventRecorder? debugEventRecorder;
 
 // FR-037: events record WHICH step, never WHAT was said. The guard below
 // catches the most obvious violations — any string attribute longer than 100
@@ -22,6 +43,14 @@ Future<void> emitEvent(
     if (value is String && value.length > _maxAttributeStringLength) {
       return;
     }
+  }
+
+  // Deliberately AFTER the free-text guard above, so a test observes exactly what production would
+  // have written — including an event the guard drops.
+  final recorder = debugEventRecorder;
+  if (recorder != null) {
+    recorder(name, attributes);
+    return;
   }
 
   try {

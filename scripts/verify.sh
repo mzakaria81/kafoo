@@ -48,6 +48,35 @@ run "codegen drift" bash -c '
     dart run build_runner build >/dev/null 2>&1 \
     && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
+# The ARB files are the source of truth for every user-facing string; app_localizations*.dart is
+# generated from them by `flutter gen-l10n` and is committed. A commit that edits an ARB without
+# regenerating ships an app whose Arabic is stale — and there is no runtime error, just the old
+# words, or a missing getter that only fails at build time on someone else's machine.
+#
+# THE CHECK ABOVE DOES NOT COVER THIS. "codegen drift" runs build_runner and diffs *.g.dart and
+# *.freezed.dart; these files come from gen-l10n and match neither pattern. That gap produced a real
+# defect on 2026-08-03: two ARB keys were committed without their generated Dart, the gate passed,
+# and the drift only surfaced when an unrelated task happened to run the tests.
+#
+# Compares CONTENT against a snapshot rather than asking git, for the same reason the prompt bundle
+# check does: git has no diff to show for a generated file it is not yet tracking.
+run "localization codegen drift" bash -c '
+  [ -f apps/mobile/l10n.yaml ] || { echo "   no l10n.yaml yet — skipping"; exit 0; }
+  command -v flutter >/dev/null || { echo "   flutter not on PATH — skipping"; exit 0; }
+  snapshot=$(mktemp -d)
+  cp apps/mobile/lib/l10n/app_localizations*.dart "${snapshot}/" 2>/dev/null || true
+  (cd apps/mobile && flutter gen-l10n >/dev/null 2>&1) || {
+    echo "   flutter gen-l10n failed" >&2; rm -rf "${snapshot}"; exit 1; }
+  drift=""
+  for f in apps/mobile/lib/l10n/app_localizations*.dart; do
+    [ -e "$f" ] || continue
+    if ! cmp -s "$f" "${snapshot}/$(basename "$f")"; then drift="${drift} $(basename "$f")"; fi
+  done
+  rm -rf "${snapshot}"
+  [ -z "${drift}" ] || { echo "   generated localizations are out of date:${drift}" >&2
+                         echo "   Run: (cd apps/mobile && flutter gen-l10n) and commit the result" >&2
+                         exit 1; }'
+
 # Edge Functions are Deno and are never compiled by the Dart toolchain, so
 # nothing else in this gate would ever read them. Type-checking is the cheapest
 # real check available without Docker: it catches a function that would fail on
@@ -56,12 +85,20 @@ run "codegen drift" bash -c '
 #
 # `deno check` reaches the network for remote imports; a sandbox without one
 # skips rather than fails, since an offline machine is not a broken change.
+#
+# READS THE FILESYSTEM, NOT `git ls-files`. It listed tracked files until 2026-08-02, which meant a
+# function written but not yet staged was invisible: the gate printed ok and the author reasonably
+# concluded their new code type-checked. That is the identical defect fixed in the check immediately
+# below, diagnosed correctly and written up at length there — and this one, six lines away, was left
+# alone for another day. A lesson applied at one call site and not its neighbours reads as fixed
+# while still failing, so when the next such bug is found, sweep for siblings before calling it done.
 run "edge functions" bash -c '
-  git ls-files -z "supabase/functions/*.ts" | grep -qz . || {
-    echo "   no edge functions yet — skipping"; exit 0; }
+  files=$(find supabase/functions -name "*.ts" -type f 2>/dev/null | sort)
+  [ -n "${files}" ] || { echo "   no edge functions yet — skipping"; exit 0; }
   command -v deno >/dev/null || {
     echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
-  out=$(git ls-files -z "supabase/functions/*.ts" | xargs -0 deno check 2>&1) || {
+  # shellcheck disable=SC2086
+  out=$(deno check ${files} 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"Import .* failed"*|*"connection"*|*"dns error"*)
         echo "   no network for remote imports — skipping"; exit 0 ;;
@@ -106,6 +143,50 @@ run "edge function tests" bash -c '
     esac
   }
   exit 0'
+
+# Prompt files live at the repository root and are not part of a deployed Edge Function bundle.
+# scripts/generate-prompts.ts inlines them into supabase/functions/_shared/prompts.ts, which is
+# committed. A prompt edit that is not regenerated is a deploy serving the old words — silent and
+# wrong.
+#
+# `--check` COMPARES CONTENT. The first version of this check regenerated the file and asked
+# `git diff` what had changed, which is the same shape as the Dart codegen check above and looks
+# right. It reported ok while a prompt was edited and the bundle was stale, because git has no diff
+# to show for a file it is not yet tracking. Content is the question; ask it directly.
+run "prompt bundle drift" bash -c '
+  command -v deno >/dev/null || {
+    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+  ls prompts/*.md >/dev/null 2>&1 || {
+    echo "   no prompts yet — skipping"; exit 0; }
+  deno run --allow-read scripts/generate-prompts.ts --check >/dev/null'
+
+# Principle II, made mechanical rather than reviewed.
+#
+# A function that talks to a model must not also hold credentials that can write. delete-account
+# legitimately holds the service role — it deletes auth users, which nothing else can. The rule is
+# therefore not "no function names this variable" but "no function that reaches the model layer
+# does", which is the property the constitution actually claims and the one a future AI function
+# would quietly break.
+#
+# This lived briefly as a unit test that read its own source, which worked but bought one file of
+# coverage at the price of giving every Edge Function test filesystem access. A grep here covers
+# every function that will ever exist and needs no permission at all.
+run "ai path holds no write credential" bash -c '
+  bad=0
+  for dir in supabase/functions/*/; do
+    name=$(basename "$dir")
+    grep -rqE "_shared/ai/" "$dir" 2>/dev/null || continue
+    hits=$(grep -rlE "SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|SERVICE_ROLE" "$dir" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
+      echo "   ${name} reaches the model layer and names a write credential:"
+      printf "%s\n" "$hits"
+      bad=1
+    fi
+  done
+  [ "$bad" -eq 0 ] || {
+    echo "   The AI Assistant is structurally unable to write. That property comes from the" >&2
+    echo "   function not having the means, not from it choosing well." >&2
+    exit 1; }'
 
 # Credentials belong in the environment, never in the repository. Two are live
 # in this project and both are rotate-everything incidents if committed:
@@ -178,6 +259,33 @@ run "model config seam" bash -c '
     echo "   See decisions/0005-... Amendment 1."
     exit 1
   fi'
+
+# Every AppError's messageKey must actually resolve to a string.
+#
+# The parity check below compares the two ARB files against each other, so a key missing from BOTH
+# is invisible to it — two files agreeing that a string does not exist is perfect parity. That is
+# how `aiMealAnalysisInvalid` reached the tree: every other messageKey in the repository had an
+# entry, this one did not, and the gate was green. What a Cook would have seen when a model reply
+# failed validation is nothing at all.
+#
+# `.claude/rules/dart.md` requires every user-facing error to be localized and actionable. This is
+# that rule, checked rather than remembered.
+run "error keys are localized" bash -c '
+  ar=apps/mobile/lib/l10n/app_ar.arb
+  [ -f "$ar" ] || { echo "   arb files not present yet — skipping"; exit 0; }
+  missing=""
+  # The opening quote is matched as "." and the closing quote is simply left out of the pattern,
+  # so nothing has to be stripped afterwards. An earlier version tried to strip it with `tr` and
+  # silently reported every key in the repository as missing.
+  keys=$(grep -rhoE "messageKey: .[A-Za-z0-9_]+" \
+           --include="*.dart" apps packages 2>/dev/null \
+         | grep -oE "[A-Za-z0-9_]+$" | sort -u)
+  for k in $keys; do
+    jq -e --arg k "$k" "has(\$k)" "$ar" >/dev/null 2>&1 || missing="${missing} ${k}"
+  done
+  [ -z "${missing}" ] || { echo "   messageKey with no Arabic string:${missing}" >&2
+                           echo "   Add it to both ARB files, Arabic written first." >&2
+                           exit 1; }'
 
 # Every user-facing string must exist in the Egyptian Arabic ARB, not just English.
 run "localization parity" bash -c '

@@ -40,7 +40,8 @@ melos run analyze            # dart analyze, all packages
 melos run test               # unit + widget tests
 flutter test test/foo_test.dart   # single test — prefer this over full suite
 supabase start               # local stack (Docker required)
-supabase db reset            # rebuild local DB from migrations + seed
+supabase db reset            # rebuild local DB from migrations + seed (needs Docker)
+./scripts/local-db.sh test   # RLS suites against a real Postgres — no Docker. docs/ops/local-database.md
 supabase migration new NAME  # NEVER hand-write migration filenames
 supabase functions serve     # local Edge Functions
 deno check supabase/functions/**/*.ts   # type-check Edge Functions (also in verify.sh)
@@ -97,17 +98,30 @@ not copy event lists into other documents.
 ## Repo map
 
 ```
-apps/mobile/         Flutter app (customer + cook, one binary)
-apps/admin/          Web admin (Flutter web)
+apps/mobile/         Flutter app (Customer + Cook, one binary). The only app that exists.
 packages/ui/         Shared widgets, design system
 packages/domain/     Entities + business logic. No Supabase imports here.
 packages/ai/         Provider abstraction, prompts, conversation engine
+prompts/             Prompt files. Compiled into supabase/functions/_shared/prompts.ts.
+scripts/             verify.sh (the gate), the toolchain installer, code generators
 supabase/migrations/ SQL. Generated names only.
 supabase/functions/  Edge Functions
+specs/               Per-epic spec, plan and tasks
 decisions/           ADRs. Read before proposing architecture changes.
 ```
 
 `packages/domain/` must not import `supabase_flutter`. If you need it there, the boundary is wrong.
+
+**There is no `apps/admin/`, and its absence is a decision rather than a gap.** E0's T045 defers an
+administrative surface until one is needed. This map listed it as though it existed until
+2026-08-03, which is worse than omitting it: a map is read as a description of what is there, and a
+deferred decision written in the present tense reads as a directory somebody forgot to commit.
+
+**There is no Customer web surface yet either.** ADR-0008 commits to one and deliberately leaves the
+rendering technology open until E2 lands and there is a Meal to show. `apps/mobile/web/` is a
+development and demonstration target, measured at 42 MB on a canvas that cannot produce a
+previewable link — read ADR-0008 before treating it as the Customer surface, because it says in
+terms not to.
 
 ## Building a feature
 
@@ -252,9 +266,9 @@ agent has no way to know: canonical vocabulary, Egyptian Arabic register, whethe
 was actually seen to fail, whether an RLS policy is as narrow as it looks. **You are accountable for
 what you commit, whoever typed it.**
 
-Model choice comes from the table below. Verified against this account on 2026-08-02: all ten
-allowlisted models are present. Re-verify rather than trusting this sentence — model lineups go
-stale silently, which this project learned the expensive way the same day.
+Model choice comes from the table below. **Read the prefix carefully** — `opencode-go/` is the
+flat-rate subscription and `opencode/` is a metered product sharing the same credential. Re-verify
+rather than trusting this sentence; both the lineup and the prefix have been wrong here before.
 
 The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
 session.
@@ -274,55 +288,123 @@ the default **Trusted** network allowlist — it is reachable from the environme
 but an environment restricted to Trusted may need `opencode.ai` added under **Custom**.
 
 Without a credential, `opencode models` lists only the anonymous free tier and shows none of the
-allowlist below. That is a missing key, not a drifted plan — the ten models below were all
-confirmed present once a key was supplied.
+allowlist below. That is a missing key, not a drifted plan — every model below was confirmed
+present once a key was supplied.
 
 `opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
 edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,
 read the diff against the brief, then commit. Never accept a delegated agent's "gates passed"
 on faith — re-run `./scripts/verify.sh`.
 
-### Allowed OpenCode models — flat-rate only
+### Allowed OpenCode models — the prefix IS the billing boundary, and it is `opencode-go/`
 
-The OpenCode subscription on this account is **OpenCode Go**, a flat-rate plan covering a
-specific set of models. The prefix is `opencode/` (verified against this account with
-`opencode models`; the provider ID in `auth.json` is `opencode`).
+The OpenCode subscription on this account is **OpenCode Go**. Its namespace is **`opencode-go/`**.
+Everything dispatched for Kafoo uses that prefix.
 
-**The `opencode/` prefix is NOT a billing boundary.** That namespace also serves frontier models
-billed per token — `opencode/claude-opus-5`, `opencode/gpt-5.5-pro`, `opencode/gemini-3.1-pro`
-and similar. They share the prefix with the flat-rate models and nothing in the model string
-distinguishes them, so "starts with `opencode/`" is not a safety check.
+**It is not flat-rate, and this file said it was until 2026-08-03.** Go is $5 for the first month
+then $10/month, and it meters usage against three dollar-denominated caps
+(https://opencode.ai/docs/go/):
 
-**MUST NOT** dispatch a model outside the allowlist below. Selecting a frontier model produces a
-real, unbudgeted charge. If a task seems to need one, say so and let a human decide — never pick
-from `opencode models` output on the assumption that the prefix makes it safe.
+| Window | Cap |
+|---|---|
+| rolling 5 hours | $12 of usage |
+| week | $30 of usage |
+| month | $60 of usage |
 
-### Allowlist — verified present on this account
+So the `cost` field in a relay's `result.json` is not notional — **it is what counts against those
+caps.** Three `grok-4.5` dispatches on 2026-08-03 cost $0.44, $0.71 and $0.76: $1.91 for one
+session's work, about a sixth of a five-hour window. A delegation-heavy day can exhaust a window,
+and the failure mode is work stopping mid-task rather than a surprise bill.
 
-`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `grok-4.5` · `kimi-k2.6` ·
-`kimi-k2.7-code` · `minimax-m2.7` · `minimax-m3` · `qwen3.6-plus`
+Model choice moves this by orders of magnitude, not percentages — the docs put MiMo-V2.5 at roughly
+150,400 requests a month against Kimi K3's 490. **Send mechanical work to a cheap model because it
+is cheap, not merely because it is sufficient.**
 
-Each is on the published Go lineup *and* present in this account's catalog. Models with a
-`-free` suffix are outside the plan's paid tier and fine to use.
+**YOU MUST run the spend ledger around every dispatch.** Two commands, and neither is optional:
+
+```bash
+python3 scripts/opencode-spend.py report          # BEFORE dispatching. Obey the verdict.
+python3 scripts/opencode-spend.py record <relay-result-dir>   # AFTER every relay, pass or fail
+```
+
+Then **commit `.claude/opencode-spend.jsonl`**. It is append-only, one row per dispatch, and it
+lives in the repository for the same reason the observation log does: cloud containers are
+destroyed after each session, so an uncommitted ledger is a ledger that resets to zero against a
+cap that does not. `opencode stats` cannot do this job — it reads the container's local database
+and starts empty every time.
+
+The report prints `OK`, `WARN` at 70% of any window, or `STOP` at 90%. `WARN` means send the next
+task down the model table. `STOP` means finish what is in flight and start nothing new: the failure
+being avoided is a long task dying halfway, not a bill.
+
+**It is an approximation and it is honest about being one.** It records what Kafoo spent, which
+tracks the account only while delegated coding is the sole consumer of the subscription — true as
+of 2026-08-03. It cannot see spend from a laptop or another machine. The authoritative number is
+the OpenCode workspace console, which needs a browser credential that must not be put in a cloud
+environment: there is no secrets store, so anyone with access to the environment could read it, and
+a console session reaches billing rather than just model calls.
+
+**`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
+two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every
+agent to use the metered one:
+
+| Prefix | Provider | Billing | Models |
+|---|---|---|---|
+| `opencode-go/` | OpenCode Go | flat-rate subscription | 17 — the published Go lineup |
+| `opencode/` | OpenCode Zen | **metered, per token** | 60 — includes frontier models |
+
+Corrected on 2026-08-02, and not by reading anything. A dispatch to `opencode/grok-4.5` failed with
+HTTP 401 `CreditsError: Insufficient balance`, against `https://opencode.ai/zen/v1/responses` — the
+model string named a Go-lineup model and the request still went to Zen. `opencode auth list` then
+showed `OPENCODE_API_KEY` listed twice, once under "OpenCode Go" and once under "OpenCode Zen".
+
+The earlier text said the provider id was `opencode` "verified with `opencode models`". Both
+providers appear in that output, both carry Go-lineup model names, and the flat-rate one sorts
+lower. Verifying that a model *exists* is not verifying which account pays for it.
+
+**MUST NOT** dispatch anything outside `opencode-go/`. A metered model produces a real, unbudgeted
+charge. If a task seems to need one, say so and let a human decide.
+
+The zero balance that produced the error above is not a safety net to rely on. It made this
+particular mistake free; a topped-up balance would have made the same mistake silent.
+
+### Allowlist — verified present on this account, 2026-08-03
+
+The full published Go lineup is available. Listing `opencode-go/` returns all eighteen:
+
+`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `gpt-5.6-luna` · `grok-4.5` ·
+`hy3` · `kimi-k2.6` · `kimi-k2.7-code` · `kimi-k3` · `mimo-v2.5` · `mimo-v2.5-pro` ·
+`minimax-m2.7` · `minimax-m3` · `qwen3.6-plus` · `qwen3.7-max` · `qwen3.7-plus` · `qwen3.8-max`
+
+Six of these — `kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3` — were
+once recorded here as "on the published docs but not on this account", and a note warned that Go's
+lineup drifts. They were never missing. They were under the prefix nobody had looked at.
+
+**`qwen3.8-max` is the case that note was reaching for, and it is a cache, not drift.** A plain
+`opencode models` returned seventeen; `opencode models --refresh` returned eighteen. So the local
+catalog does go stale, and the symptom is indistinguishable from a model being unavailable —
+**always `--refresh` before concluding a model is missing.**
 
 | Task shape | Model |
 |---|---|
-| Mechanical — renames, migrations, removal sweeps, formatting | `opencode/deepseek-v4-flash` |
-| Ordinary implementation | `opencode/qwen3.6-plus` |
-| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode/grok-4.5` |
+| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
+| Ordinary implementation | `opencode-go/qwen3.6-plus` |
+| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
 
-Go is in beta and its lineup drifts — the published docs already list models this account does
-not have (`kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3`). Re-run
-`opencode models --refresh` and update this allowlist rather than improvising per task. A model
-that no longer exists fails loudly, which is safe; a metered one does not.
+Pick down this table, not up. `grok-4.5` is the expensive row and every dispatch on 2026-08-03 used
+it, including one that generated JSON fixtures — work the mechanical row would have done for a
+fraction of the cap. Reserve it for what the row actually says: subtle logic, auth, RLS, money.
 
-**Do not substitute a same-named model from another provider.** Checked on 2026-07-26 after a
-cache refresh: `kimi-k3` is absent from `opencode/` but present as
-`cloudflare-ai-gateway/moonshotai/kimi-k3`. That is a different provider — billed per token,
-requiring separate credentials, and not covered by this subscription. The same applies to any
-`openrouter/`, `cloudflare-ai-gateway/`, or similar path that happens to carry a model name from
-the Go lineup. If a wanted model is missing from `opencode/`, the subscription cannot reach it
-and no configuration changes that; use the nearest allowlisted model or ask.
+Re-run `opencode models --refresh` and update this allowlist rather than improvising per task. A
+model that no longer exists fails loudly, which is safe; a metered one does not.
+
+**Do not substitute a same-named model from another provider.** `cloudflare-ai-gateway/`,
+`amazon-bedrock/`, `github-models/` and `openrouter/` all carry names from the Go lineup and none
+of them are covered by this subscription — they bill separately and need their own credentials.
+This is the same trap as `opencode/` versus `opencode-go/`, one level out: a familiar model name is
+not evidence of who pays for the call. If a wanted model is missing from `opencode-go/`, the
+subscription cannot reach it and no configuration changes that; use the nearest allowlisted model
+or ask.
 
 ### Delegated work is still Kafoo work
 

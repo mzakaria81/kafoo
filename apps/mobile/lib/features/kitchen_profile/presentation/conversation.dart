@@ -118,6 +118,8 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
       attributes: {
         'kind': kitchenProfileConversationKind,
         'input': available ? 'voice' : 'typed',
+        'speech_locale':
+            available ? (_voice.resolvedLocaleId ?? 'none') : 'none',
       },
     ));
   }

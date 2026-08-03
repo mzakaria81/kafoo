@@ -1,5 +1,21 @@
 import 'package:speech_to_text/speech_to_text.dart';
 
+/// How well the resolved speech locale matches Egyptian Arabic.
+///
+/// A `fallback` conversation is one where an Egyptian Cook is being transcribed
+/// by a model trained on a different dialect, and until this field existed that
+/// was indistinguishable from success.
+enum VoiceLocaleMatch {
+  /// The device offered `ar-EG` (case-insensitive, `-` and `_` both accepted).
+  exact,
+
+  /// No `ar-EG`, but some other Arabic locale was used.
+  fallback,
+
+  /// No Arabic locale at all, so recognition is unavailable.
+  none,
+}
+
 /// On-device speech recognition for the Kitchen Profile conversation.
 ///
 /// Recognition failing is the likeliest real-world outcome, not the exceptional
@@ -15,12 +31,20 @@ class VoiceInput {
   bool _initialized = false;
   bool _available = false;
   String? _arabicLocaleId;
+  VoiceLocaleMatch _localeMatch = VoiceLocaleMatch.none;
 
   /// Whether recognition can be used at all. False means the conversation
   /// must offer typing with a plain explanation, never a dead microphone.
   bool get isAvailable => _available;
 
   bool get isListening => _speech.isListening;
+
+  /// The locale id actually passed to the recogniser, or null when recognition
+  /// is unavailable.
+  String? get resolvedLocaleId => _arabicLocaleId;
+
+  /// How well the resolved locale matches Egyptian Arabic.
+  VoiceLocaleMatch get localeMatch => _localeMatch;
 
   /// Initializes recognition and resolves an Egyptian Arabic locale.
   ///
@@ -52,12 +76,19 @@ class VoiceInput {
     final locales = await _speech.locales();
     for (final locale in locales) {
       final id = locale.localeId.toLowerCase().replaceAll('-', '_');
-      if (id == 'ar_eg') return locale.localeId;
+      if (id == 'ar_eg') {
+        _localeMatch = VoiceLocaleMatch.exact;
+        return locale.localeId;
+      }
     }
     for (final locale in locales) {
       final id = locale.localeId.toLowerCase();
-      if (id.startsWith('ar')) return locale.localeId;
+      if (id.startsWith('ar')) {
+        _localeMatch = VoiceLocaleMatch.fallback;
+        return locale.localeId;
+      }
     }
+    _localeMatch = VoiceLocaleMatch.none;
     return null;
   }
 

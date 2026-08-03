@@ -1,0 +1,14 @@
+{
+  "name": "panee with mixed Latin and Arabic script",
+  "kind": "dialect",
+  "said": "بانيه فراخ مقرمش مع fries وسلطة طماطم وخيار، الـ batter بتاعي فيه بيض وبقسماط",
+  "modelReply": "{\"ingredients\":[\"فراخ\",\"بقسماط\",\"بيض\",\"بطاطس\",\"طماطم\",\"خيار\"],\"calories\":780,\"allergens\":[\"جلوتين\",\"بيض\"],\"cuisine\":\"other\",\"category\":\"main\",\"basis\":{\"ingredients\":\"الكوك قال بانيه فراخ وبقسماط وبيض وfries وسلطة\",\"calories\":\"طبق بانيه ببطاطس لشخص\",\"allergens\":\"البقسماط فيه قمح والباتر فيه بيض\",\"cuisine\":\"البانيه منتشر ومش مربوط بمطبخ واحد\",\"category\":\"طبق رئيسي مش مقبلات\"}}",
+  "expect": {
+    "isEmpty": false,
+    "category": "main",
+    "calories": 780,
+    "ingredientsContains": ["فراخ", "بقسماط", "بيض"],
+    "allergensContains": ["جلوتين", "بيض"],
+    "allergensNotEmpty": true
+  }
+}

@@ -148,6 +148,37 @@ if [ "${WITH_ANDROID}" = "1" ]; then
   flutter config --android-sdk "${ANDROID_HOME}" >/dev/null 2>&1 || true
 fi
 
+# --- Postgres ---------------------------------------------------------------
+# scripts/local-db.sh runs the authorization suites against a real Postgres, which is what lets a
+# negative test be SEEN to fail before the policy it tests exists — the sequence the constitution
+# requires. Docker is not involved and is not needed; only the server binaries and pgTAP are.
+#
+# The major version comes from supabase/config.toml so it always matches the deployed database.
+# Ubuntu ships one major version per release and it is usually not the one Supabase runs, so the
+# PostgreSQL project's own apt repository is added.
+PG_MAJOR="$(grep -E '^major_version[[:space:]]*=' \
+            "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/supabase/config.toml" \
+            | head -1 | tr -dc '0-9')"
+
+if [ -x "/usr/lib/postgresql/${PG_MAJOR}/bin/initdb" ] \
+   && [ -f "/usr/share/postgresql/${PG_MAJOR}/extension/pgtap.control" ]; then
+  log "postgres ${PG_MAJOR} + pgtap: already present"
+elif [ "$(id -u)" -ne 0 ]; then
+  log "postgres ${PG_MAJOR}: skipping — needs root to install packages"
+else
+  log "postgres ${PG_MAJOR} + pgtap: installing"
+  . /etc/os-release
+  if [ ! -f /etc/apt/sources.list.d/pgdg.list ]; then
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+      | gpg --dearmor > /usr/share/keyrings/pgdg.gpg
+    echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list
+  fi
+  apt-get update >/dev/null 2>&1
+  apt-get install -y "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" >/dev/null 2>&1 \
+    || log "postgres ${PG_MAJOR}: install reported errors — run scripts/local-db.sh to see them"
+fi
+
 # --- Workspace --------------------------------------------------------------
 # scripts/verify.sh runs `melos run analyze`, which needs resolved packages.
 log "workspace: bootstrapping"

@@ -1,0 +1,15 @@
+{
+  "name": "koshary, plainly described",
+  "kind": "typical",
+  "said": "عملت كشري بالعدس والحمص، الوصفة بتاعة ماما، رز ومكرونة وبصل محمر وصلصة",
+  "modelReply": "{\"ingredients\":[\"عدس\",\"رز\",\"مكرونة\",\"حمص\",\"بصل\",\"صلصة\"],\"calories\":850,\"allergens\":[\"جلوتين\"],\"cuisine\":\"egyptian\",\"category\":\"main\",\"basis\":{\"ingredients\":\"الكشري أساسه عدس ورز ومكرونة، والكوك قال إن فيه حمص\",\"calories\":\"طبق كشري كامل بالحجم اللي اتقال\",\"allergens\":\"المكرونة فيها قمح\",\"cuisine\":\"الكشري طبق مصري\",\"category\":\"ده طبق رئيسي مش تحلية\"}}",
+  "expect": {
+    "isEmpty": false,
+    "cuisine": "egyptian",
+    "category": "main",
+    "calories": 850,
+    "ingredientsContains": ["عدس", "مكرونة"],
+    "allergensContains": ["جلوتين"],
+    "allergensNotEmpty": true
+  }
+}

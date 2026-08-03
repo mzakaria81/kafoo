@@ -1,0 +1,9 @@
+{
+  "name": "nothing usable from the Cook",
+  "kind": "empty",
+  "said": "ااااا .... ??? hello 123",
+  "modelReply": "{\"ingredients\":[],\"calories\":null,\"allergens\":[],\"cuisine\":null,\"category\":null,\"basis\":{}}",
+  "expect": {
+    "isEmpty": true
+  }
+}

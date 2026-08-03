@@ -1,0 +1,222 @@
+{
+  "id": "egyptian-arabic-transcription-v1",
+  "created": "2026-08-03",
+  "purpose": "Measure whether a handset hears an Egyptian Cook correctly, before any model sees the words. Read docs/ops/measuring-transcription.md before using this.",
+  "scoring": {
+    "exact": "The transcript matches one of `accept` exactly. Best case.",
+    "equivalent": "Different spelling, same word, and a model would read it the same. Counts as a pass — Arabic orthography varies and the downstream model tolerates it.",
+    "msa_substituted": "The recogniser returned the Modern Standard equivalent in `msa_trap` instead of what was said. THIS IS THE METRIC THAT DECIDES T083. It means the engine is transcribing Egyptian speech through a non-Egyptian model, and every Cook in Egypt hits it.",
+    "wrong": "Something else, or nothing. Note whether it was silence, a truncation, or a different word."
+  },
+  "how_to_read_the_result": "An msa_substituted rate above roughly 20% on the `msa_lexical` set means on-device recognition is not serving Egyptian Arabic, whatever the raw accuracy looks like. Loanword and dish failures matter more than sentence failures: a Cook can rephrase a sentence, but if the phone cannot hear بانيه there is no rephrasing that helps, and no downstream model recovers a dish name it never received.",
+  "utterances": [
+    {
+      "id": "lex-chicken",
+      "category": "msa_lexical",
+      "say": "فراخ",
+      "accept": ["فراخ"],
+      "msa_trap": "دجاج",
+      "why": "The single most common protein a Cook will say. Egyptian uses فراخ; every MSA-trained model reaches for دجاج."
+    },
+    {
+      "id": "lex-rice",
+      "category": "msa_lexical",
+      "say": "رز",
+      "accept": ["رز"],
+      "msa_trap": "أرز",
+      "why": "One letter apart in writing, clearly different when spoken. A cheap probe for which dialect model is loaded."
+    },
+    {
+      "id": "lex-bread",
+      "category": "msa_lexical",
+      "say": "عيش",
+      "accept": ["عيش"],
+      "msa_trap": "خبز",
+      "why": "عيش means bread in Egypt and life in MSA. A substitution here changes meaning, not just spelling."
+    },
+    {
+      "id": "lex-tomato",
+      "category": "msa_lexical",
+      "say": "قوطة",
+      "accept": ["قوطة", "أوطة"],
+      "msa_trap": "طماطم",
+      "why": "Deep colloquial Cairene for tomato. A recogniser that returns طماطم is still usable; one that returns nothing is not."
+    },
+    {
+      "id": "lex-want",
+      "category": "msa_lexical",
+      "say": "عايزة أعرض أكل",
+      "accept": ["عايزة أعرض أكل", "عايزه أعرض أكل"],
+      "msa_trap": "أريد أن أعرض طعام",
+      "why": "The verb a Cook actually uses to start. If this comes back as MSA the whole conversation register is wrong."
+    },
+    {
+      "id": "lex-now",
+      "category": "msa_lexical",
+      "say": "دلوقتي",
+      "accept": ["دلوقتي", "دلوقت"],
+      "msa_trap": "الآن",
+      "why": "No MSA speaker says this. Pure dialect marker."
+    },
+    {
+      "id": "lex-not",
+      "category": "msa_lexical",
+      "say": "مش حار",
+      "accept": ["مش حار"],
+      "msa_trap": "ليس حارا",
+      "why": "Negation is structural. Getting it wrong can invert an allergen or spice statement."
+    },
+    {
+      "id": "loan-burger",
+      "category": "loanword",
+      "say": "برجر",
+      "accept": ["برجر", "برغر"],
+      "msa_trap": null,
+      "why": "Named explicitly in .claude/rules/ai.md as a case the product must handle."
+    },
+    {
+      "id": "loan-panee",
+      "category": "loanword",
+      "say": "بانيه",
+      "accept": ["بانيه", "بانية"],
+      "msa_trap": null,
+      "why": "The word T083 was written around. Extremely common on Egyptian menus and absent from most dictionaries."
+    },
+    {
+      "id": "loan-crepe",
+      "category": "loanword",
+      "say": "كريب",
+      "accept": ["كريب"],
+      "msa_trap": null,
+      "why": "Loanword that collides with real Arabic roots, so a weak model has something wrong to reach for."
+    },
+    {
+      "id": "loan-chipsy",
+      "category": "loanword",
+      "say": "شيبسي",
+      "accept": ["شيبسي", "شيبسى"],
+      "msa_trap": null,
+      "why": "Brand name turned common noun. Purely Egyptian usage."
+    },
+    {
+      "id": "loan-ketchup",
+      "category": "loanword",
+      "say": "كاتشب",
+      "accept": ["كاتشب", "كاتشاب"],
+      "msa_trap": null,
+      "why": "Loanword with unstable spelling — tests whether `equivalent` scoring is doing real work."
+    },
+    {
+      "id": "phon-cheese",
+      "category": "phonology",
+      "say": "جبنة رومي",
+      "accept": ["جبنة رومي", "جبنه رومي"],
+      "msa_trap": null,
+      "why": "Cairene pronounces ج as a hard g. A model trained on Levantine or Gulf audio expects a j and may miss the word entirely."
+    },
+    {
+      "id": "phon-coffee",
+      "category": "phonology",
+      "say": "قهوة",
+      "accept": ["قهوة", "قهوه"],
+      "msa_trap": null,
+      "why": "Cairene realises ق as a glottal stop — 'ahwa, not qahwa. The clearest single test of whether the acoustic model is Egyptian."
+    },
+    {
+      "id": "phon-carrot",
+      "category": "phonology",
+      "say": "جزر",
+      "accept": ["جزر"],
+      "msa_trap": null,
+      "why": "Same hard-g test on a food word, so a failure is attributable to phonology rather than vocabulary."
+    },
+    {
+      "id": "phon-tagen",
+      "category": "phonology",
+      "say": "طاجن بامية",
+      "accept": ["طاجن بامية", "طاجن باميه"],
+      "msa_trap": null,
+      "why": "Hard g plus emphatic consonants in one short phrase, which is how these actually arrive."
+    },
+    {
+      "id": "dish-koshary",
+      "category": "dish",
+      "say": "كشري",
+      "accept": ["كشري", "كشرى"],
+      "msa_trap": null,
+      "why": "Egypt's national dish. If this fails, nothing else about the feature matters."
+    },
+    {
+      "id": "dish-molokhia",
+      "category": "dish",
+      "say": "ملوخية",
+      "accept": ["ملوخية", "ملوخيه"],
+      "msa_trap": null,
+      "why": "Common, and phonetically long enough that a partial match is informative."
+    },
+    {
+      "id": "dish-mahshi",
+      "category": "dish",
+      "say": "محشي كرنب",
+      "accept": ["محشي كرنب", "محشى كرنب"],
+      "msa_trap": null,
+      "why": "Two-word dish name. Tests whether the second word survives when the first is recognised."
+    },
+    {
+      "id": "dish-hawawshi",
+      "category": "dish",
+      "say": "حواوشي",
+      "accept": ["حواوشي", "حواوشى"],
+      "msa_trap": null,
+      "why": "Distinctly Egyptian, unlikely to appear in a general Arabic lexicon."
+    },
+    {
+      "id": "dish-om-ali",
+      "category": "dish",
+      "say": "أم علي",
+      "accept": ["أم علي", "ام علي"],
+      "msa_trap": null,
+      "why": "A dish name made of two ordinary words, so a recogniser may transcribe it correctly yet a naive matcher would still need to treat it as one dish."
+    },
+    {
+      "id": "dish-feteer",
+      "category": "dish",
+      "say": "فطير مشلتت",
+      "accept": ["فطير مشلتت", "فطير مشلت"],
+      "msa_trap": null,
+      "why": "The hardest dish name in common use. Expect this one to fail even on a good engine."
+    },
+    {
+      "id": "sent-koshary",
+      "category": "sentence",
+      "say": "عملت كشري بالعدس والحمص، الوصفة بتاعة ماما",
+      "accept": ["عملت كشري بالعدس والحمص الوصفة بتاعة ماما"],
+      "msa_trap": null,
+      "why": "A whole first answer, exactly as a Cook would give it. Score per word, not whole-string."
+    },
+    {
+      "id": "sent-molokhia",
+      "category": "sentence",
+      "say": "ملوخية خضرا بالفراخ والرز، وكمان شوية شطة",
+      "accept": ["ملوخية خضرا بالفراخ والرز وكمان شوية شطة"],
+      "msa_trap": "دجاج",
+      "why": "Carries the فراخ trap inside a natural sentence, where surrounding context might rescue it — or might not."
+    },
+    {
+      "id": "sent-allergen",
+      "category": "sentence",
+      "say": "الطبق ده فيه جلوتين وألبان",
+      "accept": ["الطبق ده فيه جلوتين وألبان"],
+      "msa_trap": null,
+      "why": "Allergen words spoken aloud. A mistranscription here is the highest-consequence failure in the product, because a Customer reads the result as fact."
+    },
+    {
+      "id": "sent-price",
+      "category": "sentence",
+      "say": "السعر خمسة وسبعين جنيه",
+      "accept": ["السعر خمسة وسبعين جنيه", "السعر ٧٥ جنيه", "السعر 75 جنيه"],
+      "msa_trap": null,
+      "why": "Spoken numbers, which recognisers render inconsistently as words or digits. Price is money, so the parser must handle both — and this records which one arrives."
+    }
+  ]
+}

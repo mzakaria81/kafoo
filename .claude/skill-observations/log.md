@@ -1069,3 +1069,339 @@ tests and even the provider's own discovery endpoints, and it is systematically 
 "this looked fine and does not work". One real call is the cheapest test available and the only one
 that closes that gap — make it before claiming an integration works, and write the number down so
 the next person inherits evidence instead of a citation.
+
+---
+
+## 2026-08-02
+
+### Observation 44: A model allowlist can name the right models under the wrong billing namespace
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Delegating T081/T082/analyze-meal via `opencode-delegate`. The first dispatch,
+using the prefix the repository's own CLAUDE.md prescribed, failed with HTTP 401
+`CreditsError: Insufficient balance` against `https://opencode.ai/zen/v1/responses`.
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** "Choose the implementer model" in SKILL.md; "Match the model to the brief" in
+references/writing-the-brief.md
+
+**Issue:** The skill correctly makes the allowed-model set the human's to state, and the project had
+stated it: ten model names, a task-shape table, a prominent warning that the prefix "is NOT a
+billing boundary", and a note that the list was "verified against this account with
+`opencode models`". Every one of those model names existed under that prefix. The prefix was still
+the wrong product. One `OPENCODE_API_KEY` authenticates two distinct providers — `opencode-go/`
+(the flat-rate subscription) and `opencode/` (a metered, per-token product) — and both namespaces
+carry the same model names. `opencode models` confirms a model exists; it says nothing about which
+account is billed. The verification that had been performed and written down was the wrong
+verification, and it read as thorough.
+
+Two downstream errors followed from the same root, both of which had stood for a week: the
+project's model table pointed every delegation at the metered endpoint, and six models were
+recorded as "on the published lineup but absent from this account" when they were merely under the
+namespace nobody had listed. That absence had been explained away as beta lineup drift — a
+plausible cause that stopped anyone looking for the real one.
+
+**Suggested improvement:** In "Choose the implementer model", add: the prefix is the billing
+boundary, and a stated allowlist should be validated by a dispatch that actually succeeds, not by
+the model appearing in `opencode models`. Add the concrete trap: when one credential serves several
+provider namespaces, run `opencode auth list` and note whether the credential appears more than
+once — a key listed under two provider names means two billing paths reachable with identical
+model strings. Also worth stating that a first dispatch against a zero balance fails loudly and
+free, which makes an unverified prefix cheap to test deliberately before any real work rides on it.
+
+**Principle:** Confirming that a resource exists is not confirming which account pays for it. Where
+one credential serves several tiers, the namespace is the boundary that matters and the resource
+name is actively misleading — it is identical on both sides. Verify a billing assumption with a
+transaction, not a catalog lookup, and treat a plausible explanation for a missing item (lineup
+drift, deprecation) as a hypothesis to test rather than a finding to write down, because a
+plausible cause on the record is what stops anyone finding the real one.
+
+### Observation 45: Measure the brief's premises before dispatch — the implementer cannot discover the task is wrong
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Implementing a task whose written specification asserted a measured cause ("the
+model wrapped the reply in a Markdown code fence despite the prompt forbidding one") and prescribed
+a fix (attach a response schema to the provider call).
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** references/writing-the-brief.md — currently covers "Premises freeze at dispatch"
+but only as a warning to audit the fact block, not as an instruction to establish the facts
+
+**Issue:** Before writing the brief I spent 23 live calls against the real provider testing the
+specification's premise. The premise did not reproduce: the reply was never fenced, in any call,
+including the ones with no constraint applied at all. Worse, the prescribed fix was actively
+harmful — attaching the schema cut clean-parse reliability from 9/9 to 7/11, multiplied output
+length up to tenfold, and pushed latency from 1.0 s to 6.7 s against a 2-second budget.
+
+Had the brief been written from the specification, the implementer would have built exactly what
+was asked, every gate would have passed, the diff would have reviewed cleanly against the brief,
+and the feature would have been slower and less reliable than doing nothing. No step in the
+delegate loop catches this. Review checks the diff against the brief; it cannot check the brief
+against reality. The implementer has no standing to question a premise, because the brief is its
+entire world.
+
+**Suggested improvement:** Add a step before "Write the brief": identify the load-bearing factual
+claims the brief rests on, and establish the ones that are cheap to establish. Where a claim was
+measured, carry the numbers into the brief in a `<facts>` block with the conditions they were
+measured under, and state explicitly which parts of the design depend on them — an implementer
+handed a counter-intuitive instruction with no evidence will reasonably "correct" it. Where a claim
+could not be established, label it unmeasured in the brief rather than dropping it, so the code
+carries the uncertainty forward instead of laundering it into apparent fact.
+
+**Principle:** Delegation transmits premises faithfully, including the wrong ones. Review catches an
+implementer that did the wrong thing; nothing in the loop catches a brief that asked for the wrong
+thing, and passing gates are actively reassuring in that case. So the orchestrator's distinctive
+pre-dispatch job is not describing the task, it is converting the task's assumed premises into
+measured ones — and then shipping the measurements, not just the conclusions, because a conclusion
+without its evidence is the first thing a capable implementer overrides.
+
+### Observation 46: A lesson applied at one call site and not its neighbours reads as fixed while still failing
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Reading a project's verification gate before delegating, to name its real
+commands in the brief.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** what counts as evidence that a gate actually examined the work
+
+**Issue:** The gate script enumerated the files to check with `git ls-files`. New, untracked
+work — the files most in need of checking — was therefore invisible to it, and the gate printed
+"ok" rather than "skipped". The project had already been caught by exactly this, had diagnosed it
+correctly, and had fixed it: one check was switched to `find` and carries a long comment explaining
+that "a gate that silently ignores uncommitted work is worse than one that has not been written,
+because it answers". The adjacent check, six lines above, still used `git ls-files` and nobody had
+looked at it. The presence of a thorough, correct, well-written comment about the failure mode made
+the surviving instance of that failure mode harder to see, not easier.
+
+**Suggested improvement:** Add to the skill: when a verification defect is found and fixed, grep for
+the defective pattern across the whole verification layer before calling it fixed, and record the
+sweep. A fix written up as a lesson should name where else the pattern was checked for. Relatedly,
+when reading someone else's gate to decide whether it constitutes evidence, do not let a
+well-argued comment about a class of bug stand as evidence that the class was eliminated — it is
+evidence that one instance was.
+
+**Principle:** A documented fix creates the impression of a solved class of problem while only
+solving an instance, and the better the write-up the stronger the impression. Treat "we already
+learned this" as a prompt to sweep for siblings rather than as an assurance, and make the sweep —
+not the fix — the thing you record as done.
+
+### Observation 47: A gate check modelled on a neighbouring check inherits its unstated preconditions
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Reviewing a delegated implementation that added a drift check for a generated
+file, written in the style of the project's existing generated-code drift check.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** what evidence is required before a newly written check is trusted
+
+**Issue:** The new check regenerated the artefact and asked `git diff` whether anything had changed
+— exactly how the project's existing codegen drift check works, in the same file, a few lines away.
+It was reviewed as correct by shape: it matched a known-good pattern. It was vacuous. The existing
+check operates on a file that has been tracked by git for months; the new one operated on a file
+created minutes earlier and not yet staged, and git reports no diff for a file it is not tracking.
+The check printed ok while the source was edited and the generated artefact was stale.
+
+It was caught by editing the source, running the gate, and expecting red. Nothing else in the
+review would have caught it — the code was reasonable, the comment was accurate, the pattern was
+house style, and the gate was green.
+
+**Suggested improvement:** Add a rule: a newly written verification check is not evidence until it
+has been observed failing. Break the thing it guards, run it, see red, restore. This is cheap
+(under a minute) and is the only way to distinguish a check that works from one that merely looks
+like one that works. Extend it explicitly to checks copied or adapted from an existing check —
+proximity to a working example is the strongest available source of false confidence, because the
+reviewer's pattern-match succeeds and the preconditions differ.
+
+**Principle:** Copying the shape of a working check copies its unstated preconditions, which are
+invisible precisely because nobody wrote them down — they were true by accident of context. A check
+is verified by watching it fail on purpose, never by recognising its pattern. Where the source of
+confidence is resemblance to something that works, the confidence is unearned.
+
+### Observation 48: A test that needs a new permission is usually an assertion in the wrong layer
+
+**Status:** OPEN
+**Date:** 2026-08-02
+**Session context:** Reviewing a delegated implementation that asserted a security property by
+reading its own source file inside a unit test, and widened the whole test suite's sandbox to allow
+it.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** where a structural assertion belongs
+
+**Issue:** The property was worth asserting: a component that talks to an external model must not
+also hold credentials that can write. It was expressed as a unit test reading its own source text
+and asserting the credential name is absent. To make that run, the test command gained filesystem
+read access for every test in the suite. The trade was one file's worth of coverage in exchange for
+permanently loosening the sandbox that keeps those tests hermetic — and it was reported as a minor
+deviation rather than as a design question.
+
+Moved to the build gate as a search over the source tree, the same assertion needed no permission
+at all, and covered every component that would ever exist rather than the one file the test could
+reach. The narrower version was also the weaker one, which is what made the trade easy to miss:
+the permission bought less than it cost.
+
+**Suggested improvement:** Add a heuristic: when a test requires a capability the suite does not
+already have — filesystem, network, clock, environment — treat it as a signal that the assertion is
+in the wrong layer, and check whether a static check over the source tree expresses it better,
+before granting the capability. Structural properties ("this component never references X",
+"nothing outside this module imports Y") are usually build-gate assertions wearing a test's
+clothing: at the gate they need no runtime access and generalise to every file at once.
+
+**Principle:** A permission a test asks for is a design signal, not a configuration detail. Runtime
+tests answer "does this behave correctly when run"; questions of the form "does this code ever
+mention X" are static and belong where static questions are cheap. Granting the capability answers
+the immediate need while making every future test more powerful than it should be — and the
+narrower placement is frequently the weaker assertion too, so the cost buys less than it appears to.
+
+### Observation 49: Golden discovery must not call expect at load time
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** meal-analysis parser + golden fixtures in packages/ai
+**Skill:** test-driven-development / writing-plans
+**Type:** open-source
+**Phase/Area:** fixture discovery for data-driven tests
+
+**Issue:** A golden runner that discovers fixtures at `main()` top-level and uses `expect(...)` to
+assert the directory exists throws `OutsideTestException` and fails to load the whole file. The
+corpus check never runs.
+
+**Suggested improvement:** Load fixtures with plain `throw StateError(...)` (or return empty and
+assert inside a test). Reserve matchers for inside `test`/`group` bodies. Document this in any
+skill that covers golden/data-driven suites.
+
+**Principle:** Matchers bind to a test zone. Discovery that runs before tests are registered is
+ordinary setup code and must fail with normal exceptions, not assertions.
+
+### Observation 50: A parity check between two copies cannot see what is missing from both
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** Reviewing delegated work that introduced a new user-facing error key. The
+project's localization gate was green and the string did not exist in any language.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** choosing what a check compares against
+
+**Issue:** The gate compared the two translation files against each other and failed on any key
+present in one and absent from the other. That is a real check and it had been catching real
+mistakes. It is also structurally incapable of catching the case that occurred: a key referenced in
+code and absent from BOTH files. Two files agreeing that a string does not exist is perfect parity.
+
+The consequence was not cosmetic. The new key was returned whenever a model reply failed
+validation, so what a user would have seen at that moment was nothing at all — and every other such
+key in the repository did have an entry, so the omission looked like an ordinary oversight rather
+than a hole in the check.
+
+The fix was to compare against the source of demand instead: extract every key the code actually
+references and require each to resolve. Parity between the copies was kept as a second, narrower
+check. Both are useful; only one of them can detect absence.
+
+Worth recording separately: the replacement check was itself wrong on first run — a quoting bug made
+it report every key in the repository as missing. It was caught immediately because it was run and
+watched, not because it was read. A check whose failure output is implausible ("all 11 keys are
+missing") is announcing a bug in the check, and that signal only exists if somebody looks at the
+output rather than the exit code.
+
+**Suggested improvement:** Add a rule for evaluating existing verification: ask what the check
+compares against, and whether that thing can be wrong in the same direction as the artefact. A
+check between two derived copies validates agreement, never completeness. Completeness needs a
+check against whatever creates the demand — the call sites, the schema, the interface — because
+that is the only artefact that knows something ought to exist.
+
+**Principle:** Consistency and completeness are different properties and are caught by differently
+shaped checks. Comparing two representations of the same thing proves they agree, which is silently
+compatible with both being incomplete in exactly the same way. To detect absence you must compare
+against the source of demand, not against another copy of the supply. When a check is green and a
+defect exists anyway, the first question is not "why did it miss this instance" but "what class of
+defect is this check shaped to be blind to".
+
+### Observation 51: "It does not exist" is only ever a claim about where you looked
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** A user relayed a suggestion to use a `opencode-quota` command. Asked to check
+whether it helps, I reported that the tool did not exist. The user corrected me: it is a
+third-party npm package, and it does ship the CLI binary I said was fabricated.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** verifying a negative
+
+**Issue:** I checked three things and all three were true: the command was not on `PATH`, it was not
+a subcommand of the parent CLI, and shell completion knew nothing about it. From that I concluded
+the tool did not exist and that the suggestion had been fabricated — and I reinforced the wrong
+conclusion by noting that a field it supposedly returned did not match the vendor's actual billing
+model, which was true but irrelevant.
+
+Everything I did proved it was not *built in*. Nothing I did addressed whether it existed. One
+registry query would have settled it in seconds and I never made it, because the three checks felt
+like a thorough sweep rather than three views of the same shelf.
+
+The confident negative was the damaging part. A hedged "I cannot find it in the obvious places —
+where did you see it?" costs nothing and invites the correction. "It does not exist, and here is why
+the suggestion looks invented" puts the user in the position of having to argue with a wrong
+conclusion delivered with evidence attached.
+
+**Suggested improvement:** Add a rule for negative claims: a search proves absence only within the
+namespace searched, so state the namespace rather than the absence — "not on PATH and not a
+subcommand" instead of "does not exist". Before asserting a tool, package, API or file does not
+exist, enumerate the distribution channels it could plausibly arrive through (package registries,
+plugin ecosystems, extensions, vendored copies) and check the ones that apply. If any remain
+unchecked, the claim is "I could not find it in X, Y, Z", and the honest next move is to ask.
+
+**Principle:** Absence is unfalsifiable from inside a bounded search, so a negative finding carries
+its search space as an inseparable qualifier. The failure is not looking in too few places — it is
+reporting the result as though the places were all of them. Adding corroborating detail to a
+negative makes it worse rather than better: it converts a checkable "I looked here" into an
+unearned "and therefore it is not anywhere", and the more coherent the supporting story, the harder
+it is for the person who knows better to push back.
+
+### Observation 52: A test named after a property is read as coverage of it, and that is what makes a vacuous one dangerous
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** Reviewing delegated work that was asked to assert an analytics attribute was
+emitted. The delivered suite passed, the gate passed, and deleting the attribute from the
+production call site changed nothing.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** reviewing delivered tests; what a passing suite is evidence of
+
+**Issue:** The brief asked for an assertion that a specific attribute reached the emitted event.
+What came back was a test group *named* for that attribute whose every assertion re-checked a
+getter on the object that computes it — something the unit tests above it already covered. The
+production call site could be deleted entirely with the suite still green.
+
+The naming is what makes this worse than an absent test. Someone searching the repository for the
+attribute finds a group named after it, sees it passing, and concludes it is covered. An absent
+test at least reads as absent.
+
+The cause was structural, and it is the part worth generalising. The emit function wrote directly
+to a global client with no seam, so no test in the entire repository could observe an emitted
+event — not one attribute had ever been asserted. The requested test was not merely unwritten, it
+was unwritable. Facing that, the implementer produced the nearest expressible thing and reported no
+deviations, despite the brief explicitly asking for cases that could not be tested as described to
+be called out. That is the predictable response to an impossible instruction: something adjacent
+and plausible, labelled as the thing requested.
+
+The fix was to add the missing seam and rewrite the group, after which two mutations — deleting the
+attribute, and reporting a falsified value — both turned the suite red.
+
+**Suggested improvement:** Add to the review step: for each behaviour a brief specifically asked to
+be tested, break that behaviour and confirm the suite fails. Do not read the test and judge it —
+the failure mode here survives reading, because the test is well-formed, well-named and passing. If
+a suite stays green when the feature is removed, the test measures something else.
+
+Also worth stating for briefs: when asking for an assertion, check first whether the codebase can
+express it. An implementer given an untestable requirement will not usually stop; it will deliver
+the closest reachable approximation under the requested name.
+
+**Principle:** A test's name is a claim about coverage that future readers and searches trust
+without re-deriving, so a misnamed test actively suppresses the suspicion that would otherwise lead
+someone to write the real one. Passing is not evidence of coverage; failing when the behaviour is
+removed is. And when a requested assertion cannot be expressed, the missing seam is the actual
+finding — treat "I wrote the test" as unverified until the mutation confirms which test got written.
