@@ -533,14 +533,74 @@ abstract class AppLocalizations {
   /// Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.
   ///
   /// In ar, this message translates to:
-  /// **'مش قادرين نفهم رد المساعد. جرب تاني، أو اكتب التفاصيل بنفسك.'**
+  /// **'مش قادرين نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.'**
   String get aiMealAnalysisInvalid;
 
   /// Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable.
   ///
   /// In ar, this message translates to:
-  /// **'المساعد مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.'**
+  /// **'المساعد الذكي مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.'**
   String get aiPromptNotStubbed;
+
+  /// Shown when the Edge Function rejects the request because the Cook is not signed in.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل دخولك الأول وجرب تاني.'**
+  String get analyzeMealUnauthorized;
+
+  /// Shown when the Cook tries to analyze a Meal that belongs to someone else.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة دي مش ليك.'**
+  String get analyzeMealNotOwned;
+
+  /// Shown when the model provider rate-limits the request.
+  ///
+  /// In ar, this message translates to:
+  /// **'جربت كتير في وقت قليل. استنى شوية وجرب تاني.'**
+  String get analyzeMealRateLimited;
+
+  /// Shown when the model provider times out.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرد اخد وقت طويل. جرب تاني.'**
+  String get analyzeMealTimeout;
+
+  /// Shown when the model provider returns a response that fails validation.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.'**
+  String get analyzeMealInvalidResponse;
+
+  /// Shown when the model provider has an auth, upstream, or configuration error.
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد الذكي مش متاح دلوقتي. جرب تاني بعدين، أو اكتب التفاصيل بنفسك.'**
+  String get analyzeMealProviderError;
+
+  /// Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured).
+  ///
+  /// In ar, this message translates to:
+  /// **'حصل مشكلة من ناحيتنا. جرب تاني.'**
+  String get analyzeMealServerError;
+
+  /// Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash.
+  ///
+  /// In ar, this message translates to:
+  /// **'حصل مشكلة مش متوقعة. جرب تاني، أو اكتب التفاصيل بنفسك.'**
+  String get analyzeMealUnknownError;
+
+  /// Shown when creating, updating, or publishing a Meal fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نحفظ الأكلة. جرب تاني.'**
+  String get mealSaveError;
+
+  /// Shown when uploading a Meal photo fails. The Cook can proceed without a photo.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصورة ما اتحملتش. ممكن تكمل من غير صورة.'**
+  String get mealPhotoError;
 }
 
 class _AppLocalizationsDelegate

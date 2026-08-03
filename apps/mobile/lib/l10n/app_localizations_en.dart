@@ -257,4 +257,40 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiPromptNotStubbed =>
       'The AI Assistant is not available right now. Carry on yourself and we will try again later.';
+
+  @override
+  String get analyzeMealUnauthorized => 'Sign in first and try again.';
+
+  @override
+  String get analyzeMealNotOwned => 'This Meal is not yours.';
+
+  @override
+  String get analyzeMealRateLimited =>
+      'Too many attempts. Wait a bit and try again.';
+
+  @override
+  String get analyzeMealTimeout => 'The response took too long. Try again.';
+
+  @override
+  String get analyzeMealInvalidResponse =>
+      'We could not understand the AI Assistant\'s reply. Try again, or fill the details in yourself.';
+
+  @override
+  String get analyzeMealProviderError =>
+      'The AI Assistant is not available right now. Try again later, or fill the details in yourself.';
+
+  @override
+  String get analyzeMealServerError =>
+      'Something went wrong on our side. Please try again.';
+
+  @override
+  String get analyzeMealUnknownError =>
+      'An unexpected error occurred. Try again, or fill the details in yourself.';
+
+  @override
+  String get mealSaveError => 'We could not save the Meal. Please try again.';
+
+  @override
+  String get mealPhotoError =>
+      'The photo could not be uploaded. You can continue without one.';
 }

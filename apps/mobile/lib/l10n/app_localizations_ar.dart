@@ -246,9 +246,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiMealAnalysisInvalid =>
-      'مش قادرين نفهم رد المساعد. جرب تاني، أو اكتب التفاصيل بنفسك.';
+      'مش قادرين نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.';
 
   @override
   String get aiPromptNotStubbed =>
-      'المساعد مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.';
+      'المساعد الذكي مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.';
+
+  @override
+  String get analyzeMealUnauthorized => 'سجل دخولك الأول وجرب تاني.';
+
+  @override
+  String get analyzeMealNotOwned => 'الأكلة دي مش ليك.';
+
+  @override
+  String get analyzeMealRateLimited =>
+      'جربت كتير في وقت قليل. استنى شوية وجرب تاني.';
+
+  @override
+  String get analyzeMealTimeout => 'الرد اخد وقت طويل. جرب تاني.';
+
+  @override
+  String get analyzeMealInvalidResponse =>
+      'مقدرناش نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.';
+
+  @override
+  String get analyzeMealProviderError =>
+      'المساعد الذكي مش متاح دلوقتي. جرب تاني بعدين، أو اكتب التفاصيل بنفسك.';
+
+  @override
+  String get analyzeMealServerError => 'حصل مشكلة من ناحيتنا. جرب تاني.';
+
+  @override
+  String get analyzeMealUnknownError =>
+      'حصل مشكلة مش متوقعة. جرب تاني، أو اكتب التفاصيل بنفسك.';
+
+  @override
+  String get mealSaveError => 'مقدرناش نحفظ الأكلة. جرب تاني.';
+
+  @override
+  String get mealPhotoError => 'الصورة ما اتحملتش. ممكن تكمل من غير صورة.';
 }

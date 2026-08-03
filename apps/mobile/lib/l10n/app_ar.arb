@@ -298,12 +298,52 @@
   "@changePhoneError": {
     "description": "Shown when the change fails, stating the old number still works."
   },
-  "aiMealAnalysisInvalid": "مش قادرين نفهم رد المساعد. جرب تاني، أو اكتب التفاصيل بنفسك.",
+  "aiMealAnalysisInvalid": "مش قادرين نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.",
   "@aiMealAnalysisInvalid": {
     "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it."
   },
-  "aiPromptNotStubbed": "المساعد مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.",
+  "aiPromptNotStubbed": "المساعد الذكي مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.",
   "@aiPromptNotStubbed": {
     "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable."
+  },
+  "analyzeMealUnauthorized": "سجل دخولك الأول وجرب تاني.",
+  "@analyzeMealUnauthorized": {
+    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in."
+  },
+  "analyzeMealNotOwned": "الأكلة دي مش ليك.",
+  "@analyzeMealNotOwned": {
+    "description": "Shown when the Cook tries to analyze a Meal that belongs to someone else."
+  },
+  "analyzeMealRateLimited": "جربت كتير في وقت قليل. استنى شوية وجرب تاني.",
+  "@analyzeMealRateLimited": {
+    "description": "Shown when the model provider rate-limits the request."
+  },
+  "analyzeMealTimeout": "الرد اخد وقت طويل. جرب تاني.",
+  "@analyzeMealTimeout": {
+    "description": "Shown when the model provider times out."
+  },
+  "analyzeMealInvalidResponse": "مقدرناش نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.",
+  "@analyzeMealInvalidResponse": {
+    "description": "Shown when the model provider returns a response that fails validation."
+  },
+  "analyzeMealProviderError": "المساعد الذكي مش متاح دلوقتي. جرب تاني بعدين، أو اكتب التفاصيل بنفسك.",
+  "@analyzeMealProviderError": {
+    "description": "Shown when the model provider has an auth, upstream, or configuration error."
+  },
+  "analyzeMealServerError": "حصل مشكلة من ناحيتنا. جرب تاني.",
+  "@analyzeMealServerError": {
+    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured)."
+  },
+  "analyzeMealUnknownError": "حصل مشكلة مش متوقعة. جرب تاني، أو اكتب التفاصيل بنفسك.",
+  "@analyzeMealUnknownError": {
+    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash."
+  },
+  "mealSaveError": "مقدرناش نحفظ الأكلة. جرب تاني.",
+  "@mealSaveError": {
+    "description": "Shown when creating, updating, or publishing a Meal fails."
+  },
+  "mealPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
+  "@mealPhotoError": {
+    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
   }
 }

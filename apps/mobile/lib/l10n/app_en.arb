@@ -305,5 +305,45 @@
   "aiPromptNotStubbed": "The AI Assistant is not available right now. Carry on yourself and we will try again later.",
   "@aiPromptNotStubbed": {
     "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable."
+  },
+  "analyzeMealUnauthorized": "Sign in first and try again.",
+  "@analyzeMealUnauthorized": {
+    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in."
+  },
+  "analyzeMealNotOwned": "This Meal is not yours.",
+  "@analyzeMealNotOwned": {
+    "description": "Shown when the Cook tries to analyze a Meal that belongs to someone else."
+  },
+  "analyzeMealRateLimited": "Too many attempts. Wait a bit and try again.",
+  "@analyzeMealRateLimited": {
+    "description": "Shown when the model provider rate-limits the request."
+  },
+  "analyzeMealTimeout": "The response took too long. Try again.",
+  "@analyzeMealTimeout": {
+    "description": "Shown when the model provider times out."
+  },
+  "analyzeMealInvalidResponse": "We could not understand the AI Assistant's reply. Try again, or fill the details in yourself.",
+  "@analyzeMealInvalidResponse": {
+    "description": "Shown when the model provider returns a response that fails validation."
+  },
+  "analyzeMealProviderError": "The AI Assistant is not available right now. Try again later, or fill the details in yourself.",
+  "@analyzeMealProviderError": {
+    "description": "Shown when the model provider has an auth, upstream, or configuration error."
+  },
+  "analyzeMealServerError": "Something went wrong on our side. Please try again.",
+  "@analyzeMealServerError": {
+    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured)."
+  },
+  "analyzeMealUnknownError": "An unexpected error occurred. Try again, or fill the details in yourself.",
+  "@analyzeMealUnknownError": {
+    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash."
+  },
+  "mealSaveError": "We could not save the Meal. Please try again.",
+  "@mealSaveError": {
+    "description": "Shown when creating, updating, or publishing a Meal fails."
+  },
+  "mealPhotoError": "The photo could not be uploaded. You can continue without one.",
+  "@mealPhotoError": {
+    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
   }
 }
