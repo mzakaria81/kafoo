@@ -97,17 +97,30 @@ not copy event lists into other documents.
 ## Repo map
 
 ```
-apps/mobile/         Flutter app (customer + cook, one binary)
-apps/admin/          Web admin (Flutter web)
+apps/mobile/         Flutter app (Customer + Cook, one binary). The only app that exists.
 packages/ui/         Shared widgets, design system
 packages/domain/     Entities + business logic. No Supabase imports here.
 packages/ai/         Provider abstraction, prompts, conversation engine
+prompts/             Prompt files. Compiled into supabase/functions/_shared/prompts.ts.
+scripts/             verify.sh (the gate), the toolchain installer, code generators
 supabase/migrations/ SQL. Generated names only.
 supabase/functions/  Edge Functions
+specs/               Per-epic spec, plan and tasks
 decisions/           ADRs. Read before proposing architecture changes.
 ```
 
 `packages/domain/` must not import `supabase_flutter`. If you need it there, the boundary is wrong.
+
+**There is no `apps/admin/`, and its absence is a decision rather than a gap.** E0's T045 defers an
+administrative surface until one is needed. This map listed it as though it existed until
+2026-08-03, which is worse than omitting it: a map is read as a description of what is there, and a
+deferred decision written in the present tense reads as a directory somebody forgot to commit.
+
+**There is no Customer web surface yet either.** ADR-0008 commits to one and deliberately leaves the
+rendering technology open until E2 lands and there is a Meal to show. `apps/mobile/web/` is a
+development and demonstration target, measured at 42 MB on a canvas that cannot produce a
+previewable link — read ADR-0008 before treating it as the Customer surface, because it says in
+terms not to.
 
 ## Building a feature
 

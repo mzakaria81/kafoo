@@ -5,12 +5,28 @@ name: Deploy
 # workflow is a safe no-op — it neither fails nor deploys.
 #
 # Secrets that light steps up:
-#   CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID   -> Cloudflare Pages (admin web)
 #   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD
 #     + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD   -> a signed Android bundle
 #   IOS_CERTIFICATE_BASE64 + IOS_CERTIFICATE_PASSWORD
 #     + IOS_PROVISIONING_PROFILE_BASE64
 #     + IOS_KEYCHAIN_PASSWORD                      -> a signed iOS archive
+#
+# THERE IS NO WEB DEPLOY HERE, AND THERE WAS NOT ONE BEFORE EITHER. Until 2026-08-03 this workflow
+# carried a job that built `apps/admin` and pushed it to Cloudflare Pages, gated on
+# `hashFiles('apps/admin/pubspec.yaml')`. That directory has never existed — E0's T045 defers an
+# administrative surface until one is needed — so the condition could never be true and the step
+# had never run once. The job reported success on every merge, which is the failure worth naming:
+# not a broken deploy, but a green tick standing in for a deploy that was never possible.
+#
+# It was deleted rather than repaired. Repairing it would have meant creating an empty web app and
+# publishing it, which is a scope decision nobody has made. ADR-0008 commits Kafoo to a *Customer*
+# web surface, deliberately leaves the rendering technology open until E2 lands and there is a Meal
+# to show, and says in terms that the existing `apps/mobile/web/` target is not that surface. When
+# that decision lands, the deploy job comes back with it — written against a surface that exists.
+#
+# The CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are now read by nothing. Leaving them
+# configured is harmless; they are listed here so their disappearance from this file is not read as
+# an accident.
 #
 # Kafoo ships on Android and iOS (ADR-0006). The iOS job runs on a macOS
 # runner, which costs about ten times an Ubuntu minute, so it stays gated
@@ -19,8 +35,14 @@ name: Deploy
 # MIGRATIONS ARE NOT THIS WORKFLOW'S JOB. Supabase Branching applies them to the
 # production database when a pull request merges to main. The gate on a schema
 # change is therefore the pull request review itself — there is no second approval
-# between merging and the live database being altered. See the backend job below
-# and docs/ops/preview-branches.md.
+# between merging and the live database being altered. See docs/ops/preview-branches.md.
+#
+# This workflow used to run `db push`. That step was deleted rather than repaired after it failed
+# on the merge of #17 and production received 20260802065138 anyway — Supabase Branching had
+# already applied it. Two systems writing one production schema is worse than one: they race,
+# neither knows what the other applied, and `db push` reconciling against a history Supabase has
+# already advanced is how a migration gets applied twice or skipped. If this job is ever wanted
+# back, turn Supabase Branching's production deploys off first. Do not run both.
 #
 # NOTE ON STORE SUBMISSION: this workflow deliberately stops at building and
 # archiving a release candidate. It does not upload to App Store Connect or Play.
@@ -53,63 +75,6 @@ jobs:
         run: |
           echo "has_ios_signing=${HAS_IOS}" >> "$GITHUB_OUTPUT"
           echo "iOS signing secrets present: ${HAS_IOS}"
-
-  backend:
-    name: admin web + migrations
-    runs-on: ubuntu-latest
-    env:
-      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Preflight
-        run: |
-          echo "cloudflare secrets present: ${HAS_CLOUDFLARE}"
-          [ -f apps/admin/pubspec.yaml ] && echo "admin app: yes" || echo "admin app: no"
-          echo "migrations: deployed by Supabase Branching on merge, not by this workflow"
-
-      - name: Set up Flutter
-        if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Build admin web
-        if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
-        working-directory: apps/admin
-        run: |
-          flutter pub get
-          flutter build web --release
-
-      - name: Deploy admin web to Cloudflare Pages
-        if: env.HAS_CLOUDFLARE == 'true' && hashFiles('apps/admin/pubspec.yaml') != ''
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/admin/build/web --project-name=kafoo-admin
-
-      # MIGRATIONS ARE NOT DEPLOYED HERE ANY MORE. Supabase Branching does it:
-      # merging a pull request to main applies that branch's migrations to the
-      # production database, through the GitHub integration and not through this
-      # workflow. Verified on 2026-08-02 — this step failed on the merge of #17
-      # and production received 20260802065138 anyway.
-      #
-      # It was deleted rather than repaired, deliberately. Two systems writing the
-      # production schema is worse than one: they race, neither knows what the
-      # other applied, and `db push` reconciling against a history Supabase has
-      # already advanced is how a migration gets applied twice or skipped. If this
-      # job is ever wanted back, turn Supabase Branching's production deploys off
-      # first — do not run both.
-      #
-      # The consequence to keep in view: a merge to main is now a production
-      # database change, with no separate approval step in this workflow.
-      # See docs/ops/preview-branches.md.
-
-      - name: Nothing to deploy
-        if: env.HAS_CLOUDFLARE != 'true'
-        run: echo "No Cloudflare deploy secrets configured — skipping, as expected."
 
   android:
     name: android release candidate
