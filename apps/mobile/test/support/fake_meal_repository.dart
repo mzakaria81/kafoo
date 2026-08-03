@@ -20,35 +20,22 @@ class FakeMealRepository implements MealRepository {
   int uploadPhotoCalls = 0;
 
   String? lastCreatedMealId;
+
+  /// Every title a draft was started from, in order.
+  final List<String> createdTitles = [];
   String? lastPublishedMealId;
   String? lastUploadedMealId;
 
   @override
-  Future<Result<Meal, AppError>> createDraft({
-    required String title,
-    required String description,
-    required String price,
-    required Cuisine cuisine,
-    required MealCategory category,
-  }) async {
+  Future<Result<String, AppError>> createDraft({required String title}) async {
     createDraftCalls++;
     if (failOperations) {
       return const Failure(AppError(messageKey: 'mealSaveError'));
     }
-    final meal = Meal(
-      id: 'fake-meal-$createDraftCalls',
-      cookId: 'fake-cook',
-      title: title,
-      description: description,
-      price: price,
-      cuisine: cuisine,
-      category: category,
-      status: MealStatus.draft,
-      nutritionSource: NutritionSource.ai,
-    );
-    lastCreatedMealId = meal.id;
-    existing = meal;
-    return Success(meal);
+    final id = 'fake-meal-$createDraftCalls';
+    lastCreatedMealId = id;
+    createdTitles.add(title);
+    return Success(id);
   }
 
   @override

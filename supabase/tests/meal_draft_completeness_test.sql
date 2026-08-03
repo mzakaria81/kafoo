@@ -14,7 +14,7 @@
 -- fail against the original schema with a not-null violation.
 
 BEGIN;
-SELECT plan(8);
+SELECT plan(10);
 
 SELECT tests.create_supabase_user('cook_draft@test.kafoo');
 SELECT tests.authenticate_as('cook_draft@test.kafoo');
@@ -89,6 +89,35 @@ SELECT throws_ok(
   'P0001',
   NULL,
   'a Meal on offer cannot have its price removed'
+);
+
+-- 9. THE INSERT PATH, which the update-path check cannot reach. RLS lets a Cook create a Meal with
+--    any status they like, so a client can POST one straight to `published` without ever being a
+--    draft. Guarding only the transition would leave that route open.
+--
+--    This assertion exists because removing the insert-side check left every other suite green —
+--    the rule was enforced and untested, which is the state a later cleanup quietly breaks.
+SELECT throws_ok(
+  format(
+    $$ INSERT INTO meals (id, cook_id, title, status)
+       VALUES ('dddddddd-0000-4000-8000-000000000002', %L, 'ملوخية', 'published') $$,
+    tests.user_id('cook_draft@test.kafoo')
+  ),
+  'P0001',
+  NULL,
+  'a Meal cannot be created straight to the menu while incomplete'
+);
+
+-- 10. The same route, complete, is allowed. Otherwise the rule above could be satisfied by
+--     forbidding the path outright, which is a different rule wearing the same test.
+SELECT lives_ok(
+  format(
+    $$ INSERT INTO meals (id, cook_id, title, description, price, cuisine, category, status)
+       VALUES ('dddddddd-0000-4000-8000-000000000003', %L,
+               'ملوخية', 'ملوخية بالفراخ', 90.00, 'egyptian', 'main', 'published') $$,
+    tests.user_id('cook_draft@test.kafoo')
+  ),
+  'a complete Meal may be created already on the menu'
 );
 
 SELECT finish();

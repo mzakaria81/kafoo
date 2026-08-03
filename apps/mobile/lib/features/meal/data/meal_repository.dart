@@ -12,13 +12,20 @@ abstract interface class MealRepository {
   /// Creates a draft Meal owned by the signed-in Cook.
   ///
   /// The `cook_id` comes from the session, never from an argument.
-  Future<Result<Meal, AppError>> createDraft({
-    required String title,
-    required String description,
-    required String price,
-    required Cuisine cuisine,
-    required MealCategory category,
-  });
+  /// Starts a draft from the first thing the Cook said, and returns its id.
+  ///
+  /// Only the title is required: that is all a Cook has given after answering
+  /// one question, and the conversation persists as it goes so that walking
+  /// away halfway leaves a draft rather than nothing. Completeness is enforced
+  /// by the database on the way OUT of `draft`, not on the way in.
+  ///
+  /// Returns an id rather than a [Meal] because at this moment there is no Meal
+  /// — [Meal] models a complete one, with a title, a price and a cuisine, and
+  /// widening it to describe a half-finished draft would make every published
+  /// Meal in the app carry nullable fields that cannot actually be null. The
+  /// conversation holds its own answers; what it needs from the database is the
+  /// identity to attach them to, and the path to store a photograph under.
+  Future<Result<String, AppError>> createDraft({required String title});
 
   /// Updates only the fields supplied on a draft Meal.
   ///
@@ -67,32 +74,25 @@ class SupabaseMealRepository implements MealRepository {
   String? get _uid => _client.auth.currentUser?.id;
 
   @override
-  Future<Result<Meal, AppError>> createDraft({
-    required String title,
-    required String description,
-    required String price,
-    required Cuisine cuisine,
-    required MealCategory category,
-  }) async {
+  Future<Result<String, AppError>> createDraft({required String title}) async {
     try {
       final uid = _uid;
       if (uid == null) {
         return const Failure(AppError(messageKey: 'mealSaveError'));
       }
+      // Only what the Cook has actually answered. An unanswered question is an absent column
+      // rather than an explicit null, so the row says "not asked yet" instead of "answered with
+      // nothing", and the database defaults keep applying.
       final row = await _client
           .from(_table)
           .insert({
             'cook_id': uid,
             'title': title,
-            'description': description,
-            'price': price,
-            'cuisine': cuisine.wireName,
-            'category': category.wireName,
             'status': MealStatus.draft.wireName,
           })
-          .select()
+          .select('id')
           .single();
-      return Success(_fromRow(row));
+      return Success(row['id'] as String);
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
     }

@@ -133,7 +133,7 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
 - [ ] T031 [US1] Build the conversation in `apps/mobile/lib/features/meal/presentation/meal_conversation.dart`, one question at a time, reusing the voice input and typing fallback from E1's kitchen profile conversation rather than writing a second one
 - [ ] T032 [US1] Add the Riverpod controller in `apps/mobile/lib/features/meal/application/meal_conversation_controller.dart` holding draft state, in-flight analysis and per-field approval
 - [x] T033 [US1] Implement `apps/mobile/lib/features/meal/data/meal_repository.dart` — the only layer touching Supabase. Inject a `FakeMealRepository` in tests, following `account_repository.dart` from E1
-- [ ] T087 **A partial draft cannot exist, and T034 and T043 both require one. BLOCKS US1.**
+- [x] T087 **A partial draft cannot exist — FIXED 2026-08-03. Was blocking US1.**
   Found while implementing T033 on 2026-08-03. `meals` declares `title`, `description`, `price`,
   `cuisine` and `category` all `NOT NULL` with `CHECK` constraints, so the earliest a row can be
   written is after the Cook has answered everything. But T034 requires persisting the draft **as
@@ -152,6 +152,19 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
 
   Founder decision, because it changes what a draft *is*: a saved intention rather than a finished
   Meal awaiting a button.
+
+  **Done.** `20260803160618_allow_incomplete_meal_drafts` drops `NOT NULL` from the five
+  conversation answers and moves completeness onto the transition — enforced on insert, on the
+  draft-to-offer move, and on every later write to a non-draft row. The test was written first and
+  seen to fail: six of eight assertions red, run locally rather than inferred, which
+  `scripts/local-db.sh` made possible for the first time.
+
+  Two things the mutation testing caught. Removing the insert-side check left every suite green, so
+  assertions 9 and 10 were added — the rule was enforced and untested, which is the state a later
+  cleanup quietly breaks. And `createDraft` now returns the new Meal's **id**, not a `Meal`:
+  `Meal` models a complete one, and widening it to describe a half-finished draft would give every
+  published Meal nullable fields that cannot be null. The conversation keeps its own answers; what
+  it needs from the database is an identity to attach them to.
 
 - [ ] T034 [US1] Persist the draft as the conversation proceeds and emit `MealDrafted`. **This is a deliberate divergence from E1**, whose conversation kept nothing before confirmation
 - [ ] T035 [US1] Start the analysis as soon as the description and photo exist, and let the Cook keep answering while it runs — the latency mitigation from research.md §3, not an optimisation to add later
