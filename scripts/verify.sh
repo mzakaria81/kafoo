@@ -48,6 +48,35 @@ run "codegen drift" bash -c '
     dart run build_runner build >/dev/null 2>&1 \
     && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
+# The ARB files are the source of truth for every user-facing string; app_localizations*.dart is
+# generated from them by `flutter gen-l10n` and is committed. A commit that edits an ARB without
+# regenerating ships an app whose Arabic is stale — and there is no runtime error, just the old
+# words, or a missing getter that only fails at build time on someone else's machine.
+#
+# THE CHECK ABOVE DOES NOT COVER THIS. "codegen drift" runs build_runner and diffs *.g.dart and
+# *.freezed.dart; these files come from gen-l10n and match neither pattern. That gap produced a real
+# defect on 2026-08-03: two ARB keys were committed without their generated Dart, the gate passed,
+# and the drift only surfaced when an unrelated task happened to run the tests.
+#
+# Compares CONTENT against a snapshot rather than asking git, for the same reason the prompt bundle
+# check does: git has no diff to show for a generated file it is not yet tracking.
+run "localization codegen drift" bash -c '
+  [ -f apps/mobile/l10n.yaml ] || { echo "   no l10n.yaml yet — skipping"; exit 0; }
+  command -v flutter >/dev/null || { echo "   flutter not on PATH — skipping"; exit 0; }
+  snapshot=$(mktemp -d)
+  cp apps/mobile/lib/l10n/app_localizations*.dart "${snapshot}/" 2>/dev/null || true
+  (cd apps/mobile && flutter gen-l10n >/dev/null 2>&1) || {
+    echo "   flutter gen-l10n failed" >&2; rm -rf "${snapshot}"; exit 1; }
+  drift=""
+  for f in apps/mobile/lib/l10n/app_localizations*.dart; do
+    [ -e "$f" ] || continue
+    if ! cmp -s "$f" "${snapshot}/$(basename "$f")"; then drift="${drift} $(basename "$f")"; fi
+  done
+  rm -rf "${snapshot}"
+  [ -z "${drift}" ] || { echo "   generated localizations are out of date:${drift}" >&2
+                         echo "   Run: (cd apps/mobile && flutter gen-l10n) and commit the result" >&2
+                         exit 1; }'
+
 # Edge Functions are Deno and are never compiled by the Dart toolchain, so
 # nothing else in this gate would ever read them. Type-checking is the cheapest
 # real check available without Docker: it catches a function that would fail on
