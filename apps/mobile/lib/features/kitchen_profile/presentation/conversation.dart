@@ -7,44 +7,12 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/application/photo_picker.dart';
+import '../../conversation/application/voice_input.dart';
+import '../../conversation/presentation/conversation_question.dart';
 import '../../identity/presentation/recovery_email_prompt.dart';
-import '../application/photo_picker.dart';
-import '../application/voice_input.dart';
 import '../data/kitchen_profile_repository.dart';
 import 'conversation_summary.dart';
-
-/// One question, rendered alone.
-///
-/// A distinct type so a test can assert that exactly one unanswered question
-/// is on screen at any moment (SC-006, T040) — an invariant that is otherwise
-/// only visible by reading the layout.
-class ConversationQuestion extends StatelessWidget {
-  const ConversationQuestion({
-    required this.prompt,
-    required this.hint,
-    super.key,
-  });
-
-  final String prompt;
-  final String hint;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(prompt, style: theme.textTheme.headlineSmall),
-        const SizedBox(height: KafooSpacing.xs),
-        Text(
-          hint,
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: theme.colorScheme.outline),
-        ),
-      ],
-    );
-  }
-}
 
 /// The Kitchen Profile conversation.
 ///
@@ -135,7 +103,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.kitchenConvContinue),
+            child: Text(l10n.convContinue),
           ),
         ],
       ),
@@ -286,14 +254,14 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
               if (_voiceAvailable)
                 _VoiceButton(
                   listening: _listening,
-                  label: l10n.kitchenConvVoiceHint,
+                  label: l10n.convVoiceHint,
                   onPressed: _toggleListening,
                 )
               else
                 // research.md §3: recognition missing is the likeliest
                 // real-world outcome. Say so plainly and keep the flow whole.
                 Text(
-                  l10n.kitchenConvVoiceUnavailable,
+                  l10n.convVoiceUnavailable,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               const Spacer(),
@@ -302,7 +270,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
                 ),
-                child: Text(l10n.kitchenConvContinue),
+                child: Text(l10n.convContinue),
               ),
             ],
           ),

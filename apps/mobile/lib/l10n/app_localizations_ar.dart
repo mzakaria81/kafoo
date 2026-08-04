@@ -97,13 +97,13 @@ class AppLocalizationsAr extends AppLocalizations {
       'مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك';
 
   @override
-  String get kitchenConvContinue => 'كمّل';
+  String get convContinue => 'كمّل';
 
   @override
-  String get kitchenConvVoiceHint => 'قول إجابتك بصوتك';
+  String get convVoiceHint => 'قول إجابتك بصوتك';
 
   @override
-  String get kitchenConvVoiceUnavailable =>
+  String get convVoiceUnavailable =>
       'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.';
 
   @override
@@ -285,4 +285,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealPhotoError => 'الصورة ما اتحملتش. ممكن تكمل من غير صورة.';
+
+  @override
+  String get mealConvPromptDish => 'طبخت إيه؟';
+
+  @override
+  String get mealConvHintDish => 'مثلاً: كشري، محشي، فراخ بانيه';
+
+  @override
+  String get mealConvPromptDescription => 'قولّي عنها. فيها إيه وبتتعمل إزاي؟';
+
+  @override
+  String get mealConvHintDescription =>
+      'مثلاً: عدس ورز ومكرونة، وبنحمّر البصل فوقها';
+
+  @override
+  String get mealConvPromptPhoto => 'في صورة للأكلة؟';
+
+  @override
+  String get mealConvHintPhoto =>
+      'الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز';
+
+  @override
+  String get mealConvPhotoDisclosure =>
+      'لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.';
+
+  @override
+  String get mealConvPhotoSkip => 'كمّل من غير صورة';
+
+  @override
+  String get mealConvPromptPrice => 'بتبيعها بكام؟';
+
+  @override
+  String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
+
+  @override
+  String get mealConvSaveError => 'حصل مشكلة وإحنا بنحفظ. جرب تاني.';
+
+  @override
+  String get mealConvStartError => 'مقدرناش نبدأ الأكلة. جرب تاني.';
 }

@@ -258,19 +258,19 @@ abstract class AppLocalizations {
   ///
   /// In ar, this message translates to:
   /// **'كمّل'**
-  String get kitchenConvContinue;
+  String get convContinue;
 
   /// Shown next to the microphone button — prompts the Cook to speak.
   ///
   /// In ar, this message translates to:
   /// **'قول إجابتك بصوتك'**
-  String get kitchenConvVoiceHint;
+  String get convVoiceHint;
 
   /// Shown when on-device speech recognition is not available. Offers typing as a fallback.
   ///
   /// In ar, this message translates to:
   /// **'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.'**
-  String get kitchenConvVoiceUnavailable;
+  String get convVoiceUnavailable;
 
   /// Heading on the summary screen shown after all questions are answered.
   ///
@@ -601,6 +601,78 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الصورة ما اتحملتش. ممكن تكمل من غير صورة.'**
   String get mealPhotoError;
+
+  /// First question in the Meal conversation: what the Cook made. Becomes the Meal's title.
+  ///
+  /// In ar, this message translates to:
+  /// **'طبخت إيه؟'**
+  String get mealConvPromptDish;
+
+  /// Hint below the dish question.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثلاً: كشري، محشي، فراخ بانيه'**
+  String get mealConvHintDish;
+
+  /// Second question: the description every AI-inferred field is derived from.
+  ///
+  /// In ar, this message translates to:
+  /// **'قولّي عنها. فيها إيه وبتتعمل إزاي؟'**
+  String get mealConvPromptDescription;
+
+  /// Hint below the description question.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثلاً: عدس ورز ومكرونة، وبنحمّر البصل فوقها'**
+  String get mealConvHintDescription;
+
+  /// Third question: the optional photograph. The only step a Cook may decline.
+  ///
+  /// In ar, this message translates to:
+  /// **'في صورة للأكلة؟'**
+  String get mealConvPromptPhoto;
+
+  /// Hint below the photo question. Says plainly that it can be skipped.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز'**
+  String get mealConvHintPhoto;
+
+  /// FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses.
+  ///
+  /// In ar, this message translates to:
+  /// **'لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.'**
+  String get mealConvPhotoDisclosure;
+
+  /// Button that declines the photo and continues the conversation.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمّل من غير صورة'**
+  String get mealConvPhotoSkip;
+
+  /// Fourth question: the price of the whole Meal.
+  ///
+  /// In ar, this message translates to:
+  /// **'بتبيعها بكام؟'**
+  String get mealConvPromptPrice;
+
+  /// Hint below the price question. Says whole dish, matching how calories are estimated.
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر الطبق كامل بالجنيه'**
+  String get mealConvHintPrice;
+
+  /// Shown when persisting an answer to the draft fails mid-conversation.
+  ///
+  /// In ar, this message translates to:
+  /// **'حصل مشكلة وإحنا بنحفظ. جرب تاني.'**
+  String get mealConvSaveError;
+
+  /// Shown when creating the draft Meal fails on the first answer.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نبدأ الأكلة. جرب تاني.'**
+  String get mealConvStartError;
 }
 
 class _AppLocalizationsDelegate

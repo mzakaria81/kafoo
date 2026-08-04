@@ -114,16 +114,16 @@
   "@kitchenConvHintDeliveryTerms": {
     "description": "Hint text below the delivery terms question."
   },
-  "kitchenConvContinue": "Continue",
-  "@kitchenConvContinue": {
+  "convContinue": "Continue",
+  "@convContinue": {
     "description": "Button to confirm the current answer and move to the next step."
   },
-  "kitchenConvVoiceHint": "Say your answer out loud",
-  "@kitchenConvVoiceHint": {
+  "convVoiceHint": "Say your answer out loud",
+  "@convVoiceHint": {
     "description": "Shown next to the microphone button."
   },
-  "kitchenConvVoiceUnavailable": "Voice recognition is not available. You can type your answer instead.",
-  "@kitchenConvVoiceUnavailable": {
+  "convVoiceUnavailable": "Voice recognition is not available. You can type your answer instead.",
+  "@convVoiceUnavailable": {
     "description": "Shown when on-device speech recognition is not available."
   },
   "kitchenConvSummaryTitle": "Here is what you told us",
@@ -345,5 +345,53 @@
   "mealPhotoError": "The photo could not be uploaded. You can continue without one.",
   "@mealPhotoError": {
     "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
+  },
+  "mealConvPromptDish": "What did you cook?",
+  "@mealConvPromptDish": {
+    "description": "First question in the Meal conversation: what the Cook made. Becomes the Meal's title."
+  },
+  "mealConvHintDish": "For example: koshary, mahshi, panee chicken",
+  "@mealConvHintDish": {
+    "description": "Hint below the dish question."
+  },
+  "mealConvPromptDescription": "Tell me about it. What's in it and how is it made?",
+  "@mealConvPromptDescription": {
+    "description": "Second question: the description every AI-inferred field is derived from."
+  },
+  "mealConvHintDescription": "For example: lentils, rice and pasta, with fried onion on top",
+  "@mealConvHintDescription": {
+    "description": "Hint below the description question."
+  },
+  "mealConvPromptPhoto": "Is there a photo of the dish?",
+  "@mealConvPromptPhoto": {
+    "description": "Third question: the optional photograph. The only step a Cook may decline."
+  },
+  "mealConvHintPhoto": "A photo gets you more orders, and you can skip it if you would rather not",
+  "@mealConvHintPhoto": {
+    "description": "Hint below the photo question. Says plainly that it can be skipped."
+  },
+  "mealConvPhotoDisclosure": "If you send a photo, the assistant will look at it to estimate the ingredients and calories. We will not use it for anything else.",
+  "@mealConvPhotoDisclosure": {
+    "description": "FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses."
+  },
+  "mealConvPhotoSkip": "Continue without a photo",
+  "@mealConvPhotoSkip": {
+    "description": "Button that declines the photo and continues the conversation."
+  },
+  "mealConvPromptPrice": "What do you sell it for?",
+  "@mealConvPromptPrice": {
+    "description": "Fourth question: the price of the whole Meal."
+  },
+  "mealConvHintPrice": "The price of the whole dish, in pounds",
+  "@mealConvHintPrice": {
+    "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealConvSaveError": "Something went wrong while saving. Please try again.",
+  "@mealConvSaveError": {
+    "description": "Shown when persisting an answer to the draft fails mid-conversation."
+  },
+  "mealConvStartError": "We could not start this Meal. Please try again.",
+  "@mealConvStartError": {
+    "description": "Shown when creating the draft Meal fails on the first answer."
   }
 }

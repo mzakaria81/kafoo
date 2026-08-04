@@ -99,13 +99,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'e.g. Delivery within an hour, or pick up yourself';
 
   @override
-  String get kitchenConvContinue => 'Continue';
+  String get convContinue => 'Continue';
 
   @override
-  String get kitchenConvVoiceHint => 'Say your answer out loud';
+  String get convVoiceHint => 'Say your answer out loud';
 
   @override
-  String get kitchenConvVoiceUnavailable =>
+  String get convVoiceUnavailable =>
       'Voice recognition is not available. You can type your answer instead.';
 
   @override
@@ -293,4 +293,46 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mealPhotoError =>
       'The photo could not be uploaded. You can continue without one.';
+
+  @override
+  String get mealConvPromptDish => 'What did you cook?';
+
+  @override
+  String get mealConvHintDish => 'For example: koshary, mahshi, panee chicken';
+
+  @override
+  String get mealConvPromptDescription =>
+      'Tell me about it. What\'s in it and how is it made?';
+
+  @override
+  String get mealConvHintDescription =>
+      'For example: lentils, rice and pasta, with fried onion on top';
+
+  @override
+  String get mealConvPromptPhoto => 'Is there a photo of the dish?';
+
+  @override
+  String get mealConvHintPhoto =>
+      'A photo gets you more orders, and you can skip it if you would rather not';
+
+  @override
+  String get mealConvPhotoDisclosure =>
+      'If you send a photo, the assistant will look at it to estimate the ingredients and calories. We will not use it for anything else.';
+
+  @override
+  String get mealConvPhotoSkip => 'Continue without a photo';
+
+  @override
+  String get mealConvPromptPrice => 'What do you sell it for?';
+
+  @override
+  String get mealConvHintPrice => 'The price of the whole dish, in pounds';
+
+  @override
+  String get mealConvSaveError =>
+      'Something went wrong while saving. Please try again.';
+
+  @override
+  String get mealConvStartError =>
+      'We could not start this Meal. Please try again.';
 }

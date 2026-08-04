@@ -114,16 +114,16 @@
   "@kitchenConvHintDeliveryTerms": {
     "description": "Hint text shown below the delivery terms question."
   },
-  "kitchenConvContinue": "كمّل",
-  "@kitchenConvContinue": {
+  "convContinue": "كمّل",
+  "@convContinue": {
     "description": "Button to confirm the current answer and proceed to the next step."
   },
-  "kitchenConvVoiceHint": "قول إجابتك بصوتك",
-  "@kitchenConvVoiceHint": {
+  "convVoiceHint": "قول إجابتك بصوتك",
+  "@convVoiceHint": {
     "description": "Shown next to the microphone button — prompts the Cook to speak."
   },
-  "kitchenConvVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
-  "@kitchenConvVoiceUnavailable": {
+  "convVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
+  "@convVoiceUnavailable": {
     "description": "Shown when on-device speech recognition is not available. Offers typing as a fallback."
   },
   "kitchenConvSummaryTitle": "ده اللي قلته",
@@ -345,5 +345,53 @@
   "mealPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
   "@mealPhotoError": {
     "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
+  },
+  "mealConvPromptDish": "طبخت إيه؟",
+  "@mealConvPromptDish": {
+    "description": "First question in the Meal conversation: what the Cook made. Becomes the Meal's title."
+  },
+  "mealConvHintDish": "مثلاً: كشري، محشي، فراخ بانيه",
+  "@mealConvHintDish": {
+    "description": "Hint below the dish question."
+  },
+  "mealConvPromptDescription": "قولّي عنها. فيها إيه وبتتعمل إزاي؟",
+  "@mealConvPromptDescription": {
+    "description": "Second question: the description every AI-inferred field is derived from."
+  },
+  "mealConvHintDescription": "مثلاً: عدس ورز ومكرونة، وبنحمّر البصل فوقها",
+  "@mealConvHintDescription": {
+    "description": "Hint below the description question."
+  },
+  "mealConvPromptPhoto": "في صورة للأكلة؟",
+  "@mealConvPromptPhoto": {
+    "description": "Third question: the optional photograph. The only step a Cook may decline."
+  },
+  "mealConvHintPhoto": "الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز",
+  "@mealConvHintPhoto": {
+    "description": "Hint below the photo question. Says plainly that it can be skipped."
+  },
+  "mealConvPhotoDisclosure": "لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.",
+  "@mealConvPhotoDisclosure": {
+    "description": "FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses."
+  },
+  "mealConvPhotoSkip": "كمّل من غير صورة",
+  "@mealConvPhotoSkip": {
+    "description": "Button that declines the photo and continues the conversation."
+  },
+  "mealConvPromptPrice": "بتبيعها بكام؟",
+  "@mealConvPromptPrice": {
+    "description": "Fourth question: the price of the whole Meal."
+  },
+  "mealConvHintPrice": "سعر الطبق كامل بالجنيه",
+  "@mealConvHintPrice": {
+    "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealConvSaveError": "حصل مشكلة وإحنا بنحفظ. جرب تاني.",
+  "@mealConvSaveError": {
+    "description": "Shown when persisting an answer to the draft fails mid-conversation."
+  },
+  "mealConvStartError": "مقدرناش نبدأ الأكلة. جرب تاني.",
+  "@mealConvStartError": {
+    "description": "Shown when creating the draft Meal fails on the first answer."
   }
 }
