@@ -413,5 +413,146 @@
   "mealSummaryConfirm": "Looks right, publish it",
   "@mealSummaryConfirm": {
     "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this."
+  },
+  "cuisineEgyptian": "Egyptian",
+  "@cuisineEgyptian": {
+    "description": "Display name for the cuisineEgyptian value."
+  },
+  "cuisineLevantine": "Levantine",
+  "@cuisineLevantine": {
+    "description": "Display name for the cuisineLevantine value."
+  },
+  "cuisineGulf": "Gulf",
+  "@cuisineGulf": {
+    "description": "Display name for the cuisineGulf value."
+  },
+  "cuisineSudanese": "Sudanese",
+  "@cuisineSudanese": {
+    "description": "Display name for the cuisineSudanese value."
+  },
+  "cuisineMoroccan": "Moroccan",
+  "@cuisineMoroccan": {
+    "description": "Display name for the cuisineMoroccan value."
+  },
+  "cuisineTurkish": "Turkish",
+  "@cuisineTurkish": {
+    "description": "Display name for the cuisineTurkish value."
+  },
+  "cuisineItalian": "Italian",
+  "@cuisineItalian": {
+    "description": "Display name for the cuisineItalian value."
+  },
+  "cuisineAsian": "Asian",
+  "@cuisineAsian": {
+    "description": "Display name for the cuisineAsian value."
+  },
+  "cuisineAmerican": "American",
+  "@cuisineAmerican": {
+    "description": "Display name for the cuisineAmerican value."
+  },
+  "cuisineOther": "Other",
+  "@cuisineOther": {
+    "description": "Display name for the cuisineOther value."
+  },
+  "categoryMain": "Main",
+  "@categoryMain": {
+    "description": "Display name for the categoryMain value."
+  },
+  "categoryAppetizer": "Appetizer",
+  "@categoryAppetizer": {
+    "description": "Display name for the categoryAppetizer value."
+  },
+  "categorySoup": "Soup",
+  "@categorySoup": {
+    "description": "Display name for the categorySoup value."
+  },
+  "categorySalad": "Salad",
+  "@categorySalad": {
+    "description": "Display name for the categorySalad value."
+  },
+  "categorySide": "Side",
+  "@categorySide": {
+    "description": "Display name for the categorySide value."
+  },
+  "categoryDessert": "Dessert",
+  "@categoryDessert": {
+    "description": "Display name for the categoryDessert value."
+  },
+  "categoryBakery": "Bakery",
+  "@categoryBakery": {
+    "description": "Display name for the categoryBakery value."
+  },
+  "categoryDrink": "Drink",
+  "@categoryDrink": {
+    "description": "Display name for the categoryDrink value."
+  },
+  "categoryOther": "Other",
+  "@categoryOther": {
+    "description": "Display name for the categoryOther value."
+  },
+  "mealSummaryEstimatesTitle": "The assistant's estimates",
+  "@mealSummaryEstimatesTitle": {
+    "description": "Heading of the AI estimate section on the Meal summary."
+  },
+  "mealSummaryEstimatesNotice": "These are estimates from the assistant, not confirmed facts. Check them and confirm each one before you publish.",
+  "@mealSummaryEstimatesNotice": {
+    "description": "FR-012: AI-derived values are shown as estimates, never as verified fact."
+  },
+  "mealSummaryEstimateBadge": "Estimate",
+  "@mealSummaryEstimateBadge": {
+    "description": "Marks a single value as an AI estimate rather than something the Cook said."
+  },
+  "mealSummaryApprove": "Looks right",
+  "@mealSummaryApprove": {
+    "description": "Approves one AI estimate. Founder rule: each must be approved or edited before publishing."
+  },
+  "mealSummaryApproved": "Confirmed",
+  "@mealSummaryApproved": {
+    "description": "State of an estimate the Cook has already approved."
+  },
+  "mealSummaryNeedsApproval": "Some estimates still need your confirmation",
+  "@mealSummaryNeedsApproval": {
+    "description": "Why the publish action is unavailable — estimates are still unapproved."
+  },
+  "mealSummaryLabelCuisine": "Cuisine",
+  "@mealSummaryLabelCuisine": {
+    "description": "Label for the AI-suggested cuisine."
+  },
+  "mealSummaryLabelCategory": "Category",
+  "@mealSummaryLabelCategory": {
+    "description": "Label for the AI-suggested category."
+  },
+  "mealSummaryLabelIngredients": "Ingredients",
+  "@mealSummaryLabelIngredients": {
+    "description": "Label for the AI-extracted ingredients."
+  },
+  "mealSummaryLabelCalories": "Calories",
+  "@mealSummaryLabelCalories": {
+    "description": "Label for the AI-estimated calories for the whole Meal."
+  },
+  "mealSummaryLabelAllergens": "Allergens",
+  "@mealSummaryLabelAllergens": {
+    "description": "Label for the AI-suggested allergens."
+  },
+  "mealSummaryCaloriesValue": "{calories} kcal",
+  "@mealSummaryCaloriesValue": {
+    "description": "Calories with their unit. Never string-concatenate a number.",
+    "placeholders": {
+      "calories": {
+        "type": "int"
+      }
+    }
+  },
+  "mealSummaryNoEstimates": "The assistant could not estimate anything. Write the details yourself.",
+  "@mealSummaryNoEstimates": {
+    "description": "Shown when the AI Assistant produced nothing usable (FR-014)."
+  },
+  "mealPublishError": "We could not publish this Meal. Please try again.",
+  "@mealPublishError": {
+    "description": "Shown when putting the Meal on offer fails."
+  },
+  "mealPublishedConfirmation": "This Meal is on the menu now.",
+  "@mealPublishedConfirmation": {
+    "description": "Confirms the Meal is now on offer."
   }
 }

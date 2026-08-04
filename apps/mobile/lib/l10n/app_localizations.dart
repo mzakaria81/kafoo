@@ -703,6 +703,210 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تمام، انشرها'**
   String get mealSummaryConfirm;
+
+  /// Display name for the cuisineEgyptian value.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصري'**
+  String get cuisineEgyptian;
+
+  /// Display name for the cuisineLevantine value.
+  ///
+  /// In ar, this message translates to:
+  /// **'شامي'**
+  String get cuisineLevantine;
+
+  /// Display name for the cuisineGulf value.
+  ///
+  /// In ar, this message translates to:
+  /// **'خليجي'**
+  String get cuisineGulf;
+
+  /// Display name for the cuisineSudanese value.
+  ///
+  /// In ar, this message translates to:
+  /// **'سوداني'**
+  String get cuisineSudanese;
+
+  /// Display name for the cuisineMoroccan value.
+  ///
+  /// In ar, this message translates to:
+  /// **'مغربي'**
+  String get cuisineMoroccan;
+
+  /// Display name for the cuisineTurkish value.
+  ///
+  /// In ar, this message translates to:
+  /// **'تركي'**
+  String get cuisineTurkish;
+
+  /// Display name for the cuisineItalian value.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيطالي'**
+  String get cuisineItalian;
+
+  /// Display name for the cuisineAsian value.
+  ///
+  /// In ar, this message translates to:
+  /// **'آسيوي'**
+  String get cuisineAsian;
+
+  /// Display name for the cuisineAmerican value.
+  ///
+  /// In ar, this message translates to:
+  /// **'أمريكاني'**
+  String get cuisineAmerican;
+
+  /// Display name for the cuisineOther value.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاني'**
+  String get cuisineOther;
+
+  /// Display name for the categoryMain value.
+  ///
+  /// In ar, this message translates to:
+  /// **'طبق رئيسي'**
+  String get categoryMain;
+
+  /// Display name for the categoryAppetizer value.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقبلات'**
+  String get categoryAppetizer;
+
+  /// Display name for the categorySoup value.
+  ///
+  /// In ar, this message translates to:
+  /// **'شوربة'**
+  String get categorySoup;
+
+  /// Display name for the categorySalad value.
+  ///
+  /// In ar, this message translates to:
+  /// **'سلطة'**
+  String get categorySalad;
+
+  /// Display name for the categorySide value.
+  ///
+  /// In ar, this message translates to:
+  /// **'طبق جنب'**
+  String get categorySide;
+
+  /// Display name for the categoryDessert value.
+  ///
+  /// In ar, this message translates to:
+  /// **'حلو'**
+  String get categoryDessert;
+
+  /// Display name for the categoryBakery value.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخبوزات'**
+  String get categoryBakery;
+
+  /// Display name for the categoryDrink value.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشروب'**
+  String get categoryDrink;
+
+  /// Display name for the categoryOther value.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاني'**
+  String get categoryOther;
+
+  /// Heading of the AI estimate section on the Meal summary.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقديرات المساعد'**
+  String get mealSummaryEstimatesTitle;
+
+  /// FR-012: AI-derived values are shown as estimates, never as verified fact.
+  ///
+  /// In ar, this message translates to:
+  /// **'دي تقديرات من المساعد، مش حاجة مؤكدة. راجعها وأكّدها قبل ما تنشر.'**
+  String get mealSummaryEstimatesNotice;
+
+  /// Marks a single value as an AI estimate rather than something the Cook said.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقدير'**
+  String get mealSummaryEstimateBadge;
+
+  /// Approves one AI estimate. Founder rule: each must be approved or edited before publishing.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام'**
+  String get mealSummaryApprove;
+
+  /// State of an estimate the Cook has already approved.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتأكد'**
+  String get mealSummaryApproved;
+
+  /// Why the publish action is unavailable — estimates are still unapproved.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه فيه تقديرات محتاجة موافقتك'**
+  String get mealSummaryNeedsApproval;
+
+  /// Label for the AI-suggested cuisine.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع المطبخ'**
+  String get mealSummaryLabelCuisine;
+
+  /// Label for the AI-suggested category.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الطبق'**
+  String get mealSummaryLabelCategory;
+
+  /// Label for the AI-extracted ingredients.
+  ///
+  /// In ar, this message translates to:
+  /// **'المكونات'**
+  String get mealSummaryLabelIngredients;
+
+  /// Label for the AI-estimated calories for the whole Meal.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعرات'**
+  String get mealSummaryLabelCalories;
+
+  /// Label for the AI-suggested allergens.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحساسية'**
+  String get mealSummaryLabelAllergens;
+
+  /// Calories with their unit. Never string-concatenate a number.
+  ///
+  /// In ar, this message translates to:
+  /// **'{calories} سعرة'**
+  String mealSummaryCaloriesValue(int calories);
+
+  /// Shown when the AI Assistant produced nothing usable (FR-014).
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد مقدرش يقدّر حاجة. اكتب التفاصيل بنفسك.'**
+  String get mealSummaryNoEstimates;
+
+  /// Shown when putting the Meal on offer fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش ننشر الأكلة. جرب تاني.'**
+  String get mealPublishError;
+
+  /// Confirms the Meal is now on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة بقت على المنيو.'**
+  String get mealPublishedConfirmation;
 }
 
 class _AppLocalizationsDelegate

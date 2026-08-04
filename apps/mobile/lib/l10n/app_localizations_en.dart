@@ -348,4 +348,112 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealSummaryConfirm => 'Looks right, publish it';
+
+  @override
+  String get cuisineEgyptian => 'Egyptian';
+
+  @override
+  String get cuisineLevantine => 'Levantine';
+
+  @override
+  String get cuisineGulf => 'Gulf';
+
+  @override
+  String get cuisineSudanese => 'Sudanese';
+
+  @override
+  String get cuisineMoroccan => 'Moroccan';
+
+  @override
+  String get cuisineTurkish => 'Turkish';
+
+  @override
+  String get cuisineItalian => 'Italian';
+
+  @override
+  String get cuisineAsian => 'Asian';
+
+  @override
+  String get cuisineAmerican => 'American';
+
+  @override
+  String get cuisineOther => 'Other';
+
+  @override
+  String get categoryMain => 'Main';
+
+  @override
+  String get categoryAppetizer => 'Appetizer';
+
+  @override
+  String get categorySoup => 'Soup';
+
+  @override
+  String get categorySalad => 'Salad';
+
+  @override
+  String get categorySide => 'Side';
+
+  @override
+  String get categoryDessert => 'Dessert';
+
+  @override
+  String get categoryBakery => 'Bakery';
+
+  @override
+  String get categoryDrink => 'Drink';
+
+  @override
+  String get categoryOther => 'Other';
+
+  @override
+  String get mealSummaryEstimatesTitle => 'The assistant\'s estimates';
+
+  @override
+  String get mealSummaryEstimatesNotice =>
+      'These are estimates from the assistant, not confirmed facts. Check them and confirm each one before you publish.';
+
+  @override
+  String get mealSummaryEstimateBadge => 'Estimate';
+
+  @override
+  String get mealSummaryApprove => 'Looks right';
+
+  @override
+  String get mealSummaryApproved => 'Confirmed';
+
+  @override
+  String get mealSummaryNeedsApproval =>
+      'Some estimates still need your confirmation';
+
+  @override
+  String get mealSummaryLabelCuisine => 'Cuisine';
+
+  @override
+  String get mealSummaryLabelCategory => 'Category';
+
+  @override
+  String get mealSummaryLabelIngredients => 'Ingredients';
+
+  @override
+  String get mealSummaryLabelCalories => 'Calories';
+
+  @override
+  String get mealSummaryLabelAllergens => 'Allergens';
+
+  @override
+  String mealSummaryCaloriesValue(int calories) {
+    return '$calories kcal';
+  }
+
+  @override
+  String get mealSummaryNoEstimates =>
+      'The assistant could not estimate anything. Write the details yourself.';
+
+  @override
+  String get mealPublishError =>
+      'We could not publish this Meal. Please try again.';
+
+  @override
+  String get mealPublishedConfirmation => 'This Meal is on the menu now.';
 }
