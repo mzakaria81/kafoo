@@ -661,18 +661,6 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سعر الطبق كامل بالجنيه'**
   String get mealConvHintPrice;
-
-  /// Shown when persisting an answer to the draft fails mid-conversation.
-  ///
-  /// In ar, this message translates to:
-  /// **'حصل مشكلة وإحنا بنحفظ. جرب تاني.'**
-  String get mealConvSaveError;
-
-  /// Shown when creating the draft Meal fails on the first answer.
-  ///
-  /// In ar, this message translates to:
-  /// **'مقدرناش نبدأ الأكلة. جرب تاني.'**
-  String get mealConvStartError;
 }
 
 class _AppLocalizationsDelegate

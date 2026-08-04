@@ -160,9 +160,31 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
 
 ### The conversation
 
-- [ ] T030 [P] [US1] Add the publishing strings to `apps/mobile/lib/l10n/app_ar.arb` in conversational Egyptian, written first, then their translations to `app_en.arb`
-- [ ] T031 [US1] Build the conversation in `apps/mobile/lib/features/meal/presentation/meal_conversation.dart`, one question at a time, reusing the voice input and typing fallback from E1's kitchen profile conversation rather than writing a second one
-- [ ] T032 [US1] Add the Riverpod controller in `apps/mobile/lib/features/meal/application/meal_conversation_controller.dart` holding draft state, in-flight analysis and per-field approval
+- [x] T030 [P] [US1] Add the publishing strings to `apps/mobile/lib/l10n/app_ar.arb` in conversational Egyptian, written first, then their translations to `app_en.arb` — **DONE 2026-08-04.** Four questions, four hints, the photo skip action and the FR-029 disclosure. **Arabic copy is drafted and under founder review; the wording is not final.** Two error strings were drafted and then removed: `mealSaveError` and `mealPhotoError` already existed from T033, and a second key for the same message is the drift the vocabulary rules exist to stop
+- [x] T031 [US1] Build the conversation in `apps/mobile/lib/features/meal/presentation/meal_conversation.dart`, one question at a time, reusing the voice input and typing fallback from E1's kitchen profile conversation rather than writing a second one — **DONE 2026-08-04.**
+
+  Reuse needed somewhere to reuse *from*. `VoiceInput`, the photo picker, `ConversationQuestion` and
+  `VoiceButton` now live in `features/conversation/`; importing them from `kitchen_profile/` would
+  have made the Meal feature depend on the Kitchen Profile feature permanently. E1 imports from the
+  same place and its tests stayed green throughout.
+
+  **Two things this task does NOT deliver, on purpose.** The photo step offers only "continue
+  without a photo" — choosing a photograph is T041. And answering all four questions lands on a
+  placeholder spinner, because the summary it should hand off to is T037. Both are marked in the
+  code. Neither is shippable alone, and the screen is not wired into navigation yet
+- [x] T032 [US1] Add the Riverpod controller in `apps/mobile/lib/features/meal/application/meal_conversation_controller.dart` holding draft state, in-flight analysis and per-field approval — **DONE 2026-08-04.** First Riverpod controller in the app, so it sets the pattern: `@riverpod`, a `part` directive, an immutable state class, and the repository from a provider so tests override it with `FakeMealRepository`.
+
+  The `analysis`, `analysisInFlight` and `approvals` fields are slots with nothing filling them.
+  Starting the analysis is T035 and rendering the approvals is T037; building the shape now is what
+  stops those tasks reshaping the controller.
+
+  **One bug worth recording, because it was invisible and would not have been for long.** The photo
+  branch recorded `photoPath` without setting `photoResolved`. `mealSteps()` reads `photoResolved`
+  and never reads the path, so a Cook who supplied a photograph would have been asked for one again,
+  forever — precisely the trap `meal_step.dart` documents in its own comment. Nothing reaches that
+  branch today, because the UI cannot supply a photo until T041, so no widget test could have caught
+  it. It is covered by a controller test instead, and that test was mutation-checked: removing the
+  fix turns it red
 - [x] T033 [US1] Implement `apps/mobile/lib/features/meal/data/meal_repository.dart` — the only layer touching Supabase. Inject a `FakeMealRepository` in tests, following `account_repository.dart` from E1
 - [x] T087 **A partial draft cannot exist — FIXED 2026-08-03. Was blocking US1.**
   Found while implementing T033 on 2026-08-03. `meals` declares `title`, `description`, `price`,

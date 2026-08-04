@@ -327,12 +327,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealConvHintPrice => 'The price of the whole dish, in pounds';
-
-  @override
-  String get mealConvSaveError =>
-      'Something went wrong while saving. Please try again.';
-
-  @override
-  String get mealConvStartError =>
-      'We could not start this Meal. Please try again.';
 }

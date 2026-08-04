@@ -10,6 +10,7 @@ import '../../analytics/event_names.dart';
 import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
+import '../../conversation/presentation/voice_button.dart';
 import '../../identity/presentation/recovery_email_prompt.dart';
 import '../data/kitchen_profile_repository.dart';
 import 'conversation_summary.dart';
@@ -252,7 +253,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
               ),
               const SizedBox(height: KafooSpacing.md),
               if (_voiceAvailable)
-                _VoiceButton(
+                VoiceButton(
                   listening: _listening,
                   label: l10n.convVoiceHint,
                   onPressed: _toggleListening,
@@ -275,34 +276,6 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _VoiceButton extends StatelessWidget {
-  const _VoiceButton({
-    required this.listening,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final bool listening;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-        ),
-        icon: Icon(listening ? Icons.stop : Icons.mic),
-        label: Text(label),
       ),
     );
   }

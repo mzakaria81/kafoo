@@ -267,6 +267,8 @@ final class Meal {
 final class MealDraft {
   MealDraft();
 
+  /// The id returned by createDraft, null until the first answer is persisted.
+  String? mealId;
   String? title;
   String? description;
   String? price;
@@ -276,6 +278,11 @@ final class MealDraft {
   int? calories;
   List<String> allergens = const [];
   String? photoPath;
+
+  /// Whether the photo step has been resolved — by supplying a photo or by
+  /// declining. Separate from photoPath so that declining does not look like
+  /// "not yet asked" and trap the Cook in a loop.
+  bool photoResolved = false;
 
   /// Whether the Cook has said enough for the Meal to go on offer.
   ///

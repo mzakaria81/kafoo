@@ -385,13 +385,5 @@
   "mealConvHintPrice": "The price of the whole dish, in pounds",
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
-  },
-  "mealConvSaveError": "Something went wrong while saving. Please try again.",
-  "@mealConvSaveError": {
-    "description": "Shown when persisting an answer to the draft fails mid-conversation."
-  },
-  "mealConvStartError": "We could not start this Meal. Please try again.",
-  "@mealConvStartError": {
-    "description": "Shown when creating the draft Meal fails on the first answer."
   }
 }

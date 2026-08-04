@@ -1455,3 +1455,56 @@ raw text alongside the verdict.
 **Principle:** A one-sided detector cannot distinguish absence of violations from absence of signal.
 When a check can only ever say "clean", its green result is an unfalsifiable claim, and it is more
 dangerous than no check because it is read as a pass.
+
+### Observation 55: A delegated agent's completion report is not evidence, and its narration reads like one
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** Delegating a Flutter screen and controller to a separate CLI agent
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Review — step 4, "do not trust the self-report"
+
+**Issue:** The brief specified a report contract: files changed, the exact gate commands run, and
+their real outcomes. What came back was a narration of intent — "Now let me run build_runner again"
+— with no outcome stated for any gate. It read as successful because it ended mid-stride on a
+plausible action. The code did not compile: an undefined generated type, four const-constructor
+errors, two unused imports and an unused field, with the tests unable to load at all. Two test
+assertions also searched for substrings absent from the locale the app renders, so they would have
+failed the moment they could run.
+
+**Suggested improvement:** Treat a report that does not explicitly state a gate's outcome as a
+report of failure, not of success — narration ending on an action is the most common shape of an
+unverified run. The reviewing step should check for the absence of stated outcomes before reading
+any diff, because that absence predicts what the diff will contain. Where a brief specifies a report
+contract, a reply not matching it is itself a finding worth recording.
+
+**Principle:** Absence of a stated result is evidence of an unverified result, not a neutral
+omission. An agent that narrates its final action without its outcome has told you it did not check,
+and the report's fluency is unrelated to whether the work runs.
+
+### Observation 56: A bug in an unreachable branch needs a test at the layer where it IS reachable
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** Reviewing a delegated controller against a domain rule documented in a comment
+**Skill:** New skill candidate: reviewing-delegated-implementations
+**Type:** open-source
+**Phase/Area:** Test coverage of not-yet-wired code paths
+
+**Issue:** A controller recorded a value for an optional step without also marking the step
+resolved. The sequencing function reads only the resolved flag, so the step would have re-asked
+forever — the exact trap the domain module documented in its own comment. No UI test could catch it:
+the interface cannot reach that branch until a later task wires it up, so every test passed with the
+bug present and would have kept passing until the feature that triggers it shipped.
+
+**Suggested improvement:** When review finds a defect in a branch the current interface cannot
+reach, do not rely on the test suite that missed it. Add a test at the layer where the branch IS
+reachable — usually a direct unit test against the component rather than through the surface — and
+mutation-check it by reverting the fix and confirming the test goes red. A green suite over an
+unreachable branch is the strongest possible false signal, because the branch will be reached later
+by someone who trusts it.
+
+**Principle:** Code that a test cannot reach today is code that ships untested to whoever wires it up
+tomorrow. Test at the layer where the path is reachable, not the layer where the feature will
+eventually live, and verify the test fails without the fix.

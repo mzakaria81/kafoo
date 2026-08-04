@@ -318,10 +318,4 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
-
-  @override
-  String get mealConvSaveError => 'حصل مشكلة وإحنا بنحفظ. جرب تاني.';
-
-  @override
-  String get mealConvStartError => 'مقدرناش نبدأ الأكلة. جرب تاني.';
 }

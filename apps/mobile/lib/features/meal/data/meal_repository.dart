@@ -1,7 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:kafoo_domain/domain.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+part 'meal_repository.g.dart';
 
 /// Meal operations for the publishing flow.
 ///
@@ -219,3 +222,9 @@ class SupabaseMealRepository implements MealRepository {
     );
   }
 }
+
+/// The default [MealRepository] provider.
+///
+/// Tests override this with [FakeMealRepository] via ProviderScope.
+@Riverpod(keepAlive: true)
+MealRepository mealRepository(Ref ref) => const SupabaseMealRepository();
