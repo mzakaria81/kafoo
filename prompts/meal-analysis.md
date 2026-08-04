@@ -2,12 +2,13 @@
 id: meal-analysis
 version: 1
 model_tier: fast
-# still never, and the golden cases landing did NOT change that. They run against the stub
-# provider, so they test the parser — that a reply becomes the right MealAnalysis, that a
-# 190000-calorie estimate is dropped rather than clamped. No model runs, so nothing here has
-# been evaluated for Egyptian Arabic quality. This becomes a date when the corpus in
-# packages/ai/test/goldens/meal_analysis/ is replayed against a real model and scored.
-last_evaluated: never
+# Replayed against the live fast-tier model on this date — scripts/replay-goldens.ts, full report
+# in docs/ops/eval-meal-analysis.md. All 8 fixtures pass their assertions and the injection case
+# holds its allergens. The date is when it was measured, not a grade: the eval found that the
+# register instruction below is only half obeyed — the model writes the Egyptian nouns and then
+# writes the `basis` sentences in Modern Standard. Fixing that is a prompt change, which bumps
+# `version` and needs another replay.
+last_evaluated: 2026-08-03
 ---
 
 # Meal analysis
