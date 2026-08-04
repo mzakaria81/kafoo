@@ -288,7 +288,7 @@ abstract class AppLocalizations {
   ///
   /// In ar, this message translates to:
   /// **'غيّر'**
-  String get kitchenConvSummaryEdit;
+  String get convEdit;
 
   /// Label for the display name field on the summary screen.
   ///
@@ -661,6 +661,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سعر الطبق كامل بالجنيه'**
   String get mealConvHintPrice;
+
+  /// Heading of the Meal summary, shown before anything is on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'ده اللي قلته عن الأكلة'**
+  String get mealSummaryTitle;
+
+  /// Label for the Meal's title on the summary.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة'**
+  String get mealSummaryLabelDish;
+
+  /// Label for the description on the summary.
+  ///
+  /// In ar, this message translates to:
+  /// **'التفاصيل'**
+  String get mealSummaryLabelDescription;
+
+  /// Label for the photo row on the summary.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصورة'**
+  String get mealSummaryLabelPhoto;
+
+  /// Label for the price on the summary.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get mealSummaryLabelPrice;
+
+  /// Shown in place of a photo when the Cook declined one.
+  ///
+  /// In ar, this message translates to:
+  /// **'من غير صورة'**
+  String get mealSummaryNoPhoto;
+
+  /// Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، انشرها'**
+  String get mealSummaryConfirm;
 }
 
 class _AppLocalizationsDelegate

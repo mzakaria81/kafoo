@@ -172,7 +172,7 @@ class _KitchenConversationSummaryState
                 value: _valueOf(step),
                 editing: _editing == step,
                 controller: _editController,
-                editLabel: l10n.kitchenConvSummaryEdit,
+                editLabel: l10n.convEdit,
                 onEdit: () => _beginEdit(step),
                 onCommit: _commitEdit,
               ),

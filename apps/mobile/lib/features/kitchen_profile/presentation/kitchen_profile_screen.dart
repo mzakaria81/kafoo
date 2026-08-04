@@ -99,7 +99,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
               _DetailRow(
                 label: _labelOf(l10n, field),
                 value: _valueOf(field),
-                editLabel: l10n.kitchenConvSummaryEdit,
+                editLabel: l10n.convEdit,
                 onEdit: () => _edit(field),
               ),
             if (_error != null) ...[

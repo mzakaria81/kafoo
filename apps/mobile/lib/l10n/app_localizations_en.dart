@@ -115,7 +115,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kitchenConvSummaryConfirm => 'Looks good, save';
 
   @override
-  String get kitchenConvSummaryEdit => 'Change';
+  String get convEdit => 'Change';
 
   @override
   String get kitchenConvLabelDisplayName => 'Kitchen name';
@@ -327,4 +327,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealConvHintPrice => 'The price of the whole dish, in pounds';
+
+  @override
+  String get mealSummaryTitle => 'Here is what you told me about this Meal';
+
+  @override
+  String get mealSummaryLabelDish => 'Meal';
+
+  @override
+  String get mealSummaryLabelDescription => 'Details';
+
+  @override
+  String get mealSummaryLabelPhoto => 'Photo';
+
+  @override
+  String get mealSummaryLabelPrice => 'Price';
+
+  @override
+  String get mealSummaryNoPhoto => 'No photo';
+
+  @override
+  String get mealSummaryConfirm => 'Looks right, publish it';
 }

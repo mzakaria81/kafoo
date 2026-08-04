@@ -134,8 +134,8 @@
   "@kitchenConvSummaryConfirm": {
     "description": "Button to confirm the summary and write the Kitchen Profile."
   },
-  "kitchenConvSummaryEdit": "غيّر",
-  "@kitchenConvSummaryEdit": {
+  "convEdit": "غيّر",
+  "@convEdit": {
     "description": "Button to edit a single answer on the summary screen."
   },
   "kitchenConvLabelDisplayName": "اسم المطبخ",
@@ -385,5 +385,33 @@
   "mealConvHintPrice": "سعر الطبق كامل بالجنيه",
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealSummaryTitle": "ده اللي قلته عن الأكلة",
+  "@mealSummaryTitle": {
+    "description": "Heading of the Meal summary, shown before anything is on offer."
+  },
+  "mealSummaryLabelDish": "الأكلة",
+  "@mealSummaryLabelDish": {
+    "description": "Label for the Meal's title on the summary."
+  },
+  "mealSummaryLabelDescription": "التفاصيل",
+  "@mealSummaryLabelDescription": {
+    "description": "Label for the description on the summary."
+  },
+  "mealSummaryLabelPhoto": "الصورة",
+  "@mealSummaryLabelPhoto": {
+    "description": "Label for the photo row on the summary."
+  },
+  "mealSummaryLabelPrice": "السعر",
+  "@mealSummaryLabelPrice": {
+    "description": "Label for the price on the summary."
+  },
+  "mealSummaryNoPhoto": "من غير صورة",
+  "@mealSummaryNoPhoto": {
+    "description": "Shown in place of a photo when the Cook declined one."
+  },
+  "mealSummaryConfirm": "تمام، انشرها",
+  "@mealSummaryConfirm": {
+    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this."
   }
 }

@@ -113,7 +113,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get kitchenConvSummaryConfirm => 'تمام، احفظ';
 
   @override
-  String get kitchenConvSummaryEdit => 'غيّر';
+  String get convEdit => 'غيّر';
 
   @override
   String get kitchenConvLabelDisplayName => 'اسم المطبخ';
@@ -318,4 +318,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
+
+  @override
+  String get mealSummaryTitle => 'ده اللي قلته عن الأكلة';
+
+  @override
+  String get mealSummaryLabelDish => 'الأكلة';
+
+  @override
+  String get mealSummaryLabelDescription => 'التفاصيل';
+
+  @override
+  String get mealSummaryLabelPhoto => 'الصورة';
+
+  @override
+  String get mealSummaryLabelPrice => 'السعر';
+
+  @override
+  String get mealSummaryNoPhoto => 'من غير صورة';
+
+  @override
+  String get mealSummaryConfirm => 'تمام، انشرها';
 }

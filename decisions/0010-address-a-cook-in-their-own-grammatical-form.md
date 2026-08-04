@@ -73,9 +73,10 @@ locales, not placeholders or `select` branches. A string converted in Arabic and
 or a `select` missing its `other` branch, passes the gate and fails at generation or at runtime. The
 sweep must extend the check, not rely on it.
 
-## Open question, not settled here
+## Settled alongside this: the Arabic word for Cook is الطباخ
 
-Two Arabic words for Cook are in use: the ARB strings say **الطباخ** and the prompts say **الكوك**.
-Canonical vocabulary is one name per concept, so one of them is a bug. It is in customer-facing copy
-and should be settled in the same sweep, but it is a separate decision and the founder has not made
-it yet.
+Two words were in use — the ARB strings said **الطباخ**, the prompts said **الكوك**. Founder
+decision, 2026-08-04: **الطباخ**. The strings are already correct; `prompts/meal-analysis.md` is
+not, and changing prompt wording is a semantic change, so it bumps `version` and forces a
+re-evaluation. That is the same replay T088 already needs for the register fix, so the two are done
+together and the corpus is replayed once rather than twice.

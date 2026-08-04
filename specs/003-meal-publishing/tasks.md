@@ -522,6 +522,8 @@ converting along with them — accepted, not overlooked.
 - [ ] T094 Instruct `prompts/meal-analysis.md` never to address the Cook in the second person, bump
   `version`, and re-replay with `scripts/replay-goldens.ts`. This keeps model output gender-free by
   construction rather than passing a preference into the model. Fold into T088 if that is still open
-- [ ] T095 **Settle which Arabic word means Cook.** The ARB strings say `الطباخ`; the prompts say
-  `الكوك`. Canonical vocabulary is one name per concept, so one of them is a bug, and it is in
-  customer-facing copy. Needs a founder decision, not a sweep
+- [ ] T095 **The Arabic word for Cook is `الطباخ`** — founder decision, 2026-08-04. The ARB strings
+  are already right; `prompts/meal-analysis.md` says `الكوك` and must change. That is a semantic
+  prompt change, so it bumps `version` and forces a re-evaluation — **fold it into T088** and replay
+  the corpus once rather than twice. Add `الكوك` to the vocabulary check in `scripts/verify.sh` so
+  it cannot come back

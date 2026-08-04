@@ -134,8 +134,8 @@
   "@kitchenConvSummaryConfirm": {
     "description": "Button to confirm the summary and write the Kitchen Profile."
   },
-  "kitchenConvSummaryEdit": "Change",
-  "@kitchenConvSummaryEdit": {
+  "convEdit": "Change",
+  "@convEdit": {
     "description": "Button to edit a single answer on the summary screen."
   },
   "kitchenConvLabelDisplayName": "Kitchen name",
@@ -385,5 +385,33 @@
   "mealConvHintPrice": "The price of the whole dish, in pounds",
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealSummaryTitle": "Here is what you told me about this Meal",
+  "@mealSummaryTitle": {
+    "description": "Heading of the Meal summary, shown before anything is on offer."
+  },
+  "mealSummaryLabelDish": "Meal",
+  "@mealSummaryLabelDish": {
+    "description": "Label for the Meal's title on the summary."
+  },
+  "mealSummaryLabelDescription": "Details",
+  "@mealSummaryLabelDescription": {
+    "description": "Label for the description on the summary."
+  },
+  "mealSummaryLabelPhoto": "Photo",
+  "@mealSummaryLabelPhoto": {
+    "description": "Label for the photo row on the summary."
+  },
+  "mealSummaryLabelPrice": "Price",
+  "@mealSummaryLabelPrice": {
+    "description": "Label for the price on the summary."
+  },
+  "mealSummaryNoPhoto": "No photo",
+  "@mealSummaryNoPhoto": {
+    "description": "Shown in place of a photo when the Cook declined one."
+  },
+  "mealSummaryConfirm": "Looks right, publish it",
+  "@mealSummaryConfirm": {
+    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this."
   }
 }
