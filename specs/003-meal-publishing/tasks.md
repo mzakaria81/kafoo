@@ -160,7 +160,7 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
 
 ### The conversation
 
-- [x] T030 [P] [US1] Add the publishing strings to `apps/mobile/lib/l10n/app_ar.arb` in conversational Egyptian, written first, then their translations to `app_en.arb` — **DONE 2026-08-04.** Four questions, four hints, the photo skip action and the FR-029 disclosure. **Arabic copy is drafted and under founder review; the wording is not final.** Two error strings were drafted and then removed: `mealSaveError` and `mealPhotoError` already existed from T033, and a second key for the same message is the drift the vocabulary rules exist to stop
+- [x] T030 [P] [US1] Add the publishing strings to `apps/mobile/lib/l10n/app_ar.arb` in conversational Egyptian, written first, then their translations to `app_en.arb` — **DONE 2026-08-04.** Four questions, four hints, the photo skip action and the FR-029 disclosure. **Arabic copy approved by the founder, 2026-08-04.** Two error strings were drafted and then removed: `mealSaveError` and `mealPhotoError` already existed from T033, and a second key for the same message is the drift the vocabulary rules exist to stop
 - [x] T031 [US1] Build the conversation in `apps/mobile/lib/features/meal/presentation/meal_conversation.dart`, one question at a time, reusing the voice input and typing fallback from E1's kitchen profile conversation rather than writing a second one — **DONE 2026-08-04.**
 
   Reuse needed somewhere to reuse *from*. `VoiceInput`, the photo picker, `ConversationQuestion` and
