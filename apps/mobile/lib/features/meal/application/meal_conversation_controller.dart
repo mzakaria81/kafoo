@@ -154,8 +154,11 @@ class MealConversationController extends _$MealConversationController {
   ) async {
     switch (step) {
       case MealStepId.dish:
-        // Title already stored by createDraft.
-        return const Success(null);
+        // Reachable only when the Cook CORRECTS the dish from the summary — the
+        // first answer creates the draft in the branch above and never arrives
+        // here. Returning success without writing would drop that correction
+        // silently, which is worse than failing to save it.
+        return _repository.updateDraft(mealId: mealId, title: value);
       case MealStepId.description:
         return _repository.updateDraft(mealId: mealId, description: value);
       case MealStepId.photo:

@@ -243,8 +243,33 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   a separate `analysisError` so a model outage can never render as "we could not save your Meal".
   A test asserts no analysed field reaches `updateDraft`, and it was mutation-checked by making the
   controller persist the estimated calories — it goes red
-- [ ] T036 [US1] Show the disclosure required by FR-029 before the photo is used, with a refusal that still leads to a working flow — estimates from words alone
-- [ ] T037 [US1] Build the summary in `apps/mobile/lib/features/meal/presentation/meal_summary.dart` where every value is correctable in one action and nothing is written until confirmation
+- [x] T036 [US1] Show the disclosure required by FR-029 before the photo is used, with a refusal that still leads to a working flow — estimates from words alone — **DONE 2026-08-04.** T031 already rendered the string; what was missing was proof. Four tests now hold it: the disclosure is on screen before either control that resolves the photo step, declining reaches the price question and completes the conversation, a declined photo still yields an analysis made from words alone, and no `photo_path` is ever sent to the provider when the Cook said no
+- [x] T037 [US1] Build the summary in `apps/mobile/lib/features/meal/presentation/meal_summary.dart` where every value is correctable in one action and nothing is written until confirmation — **DONE 2026-08-04.**
+
+  Every answer shown, each correctable by one tap that turns that row into a field. A declined photo
+  reads as a choice rather than an empty row. Nothing goes on offer: a test taps confirm and asserts
+  the repository received no publish call.
+
+  **AI-derived values are deliberately absent.** Cuisine, category, ingredients, calories and
+  allergens belong to US2 (T045 onward), which adds the strings labelling them as estimates and
+  saying what each was based on. No string in this repository labels a value as an estimate yet, so
+  rendering one here would necessarily present an AI guess as fact — the one thing
+  `business-rules.md` calls product-fatal. The layout leaves the section for US2 to fill.
+
+  **Three defects found in review, all invisible to a green suite.**
+
+  The summary was pushed as a route from `build()` behind a one-shot flag, so a Cook who came back
+  hit a spinner that could never push again — a dead end, and the same latent shape E1 carries. It
+  is rendered in place now: there is no navigation to fall out of step with.
+
+  It also held its own copies of the answers and wrote corrections straight to the repository,
+  leaving the controller holding the values the Cook had just replaced. Harmless until T038
+  publishes from the controller and ships the uncorrected Meal. One owner now — the controller —
+  and a test asserts a correction reaches it, mutation-checked.
+
+  And correcting the dish persisted nothing: `_persistAnswer` returned success without writing, on
+  reasoning ("title already stored by createDraft") that is true only for the first answer and never
+  for a correction. Also mutation-checked
 - [ ] T038 [US1] Write the Meal on confirmation, set `published_at`, and emit `MealPublished`
 - [ ] T039 [US1] Emit `ConversationStarted`, `ConversationStepCompleted` with `step`, and `ConversationCompleted`, all carrying `kind: meal` and `input` — the same family as E1, not a second idea
 - [ ] T040 [US1] Send a Cook with no Kitchen Profile to create one first (FR-017 in the UI; the trigger from T018 is the real guard)

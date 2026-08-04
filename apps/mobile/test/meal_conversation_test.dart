@@ -582,4 +582,139 @@ void main() {
     // Still on photo step — conversation usable.
     expect(find.byType(OutlinedButton), findsOneWidget);
   });
+
+  // --- T036 -----------------------------------------------------------------
+
+  testWidgets(
+      'photo disclosure is on screen before the skip button at the photo step',
+      (tester) async {
+    final repo = FakeMealRepository();
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+      repo: repo,
+    ));
+    await tester.pumpAndSettle();
+
+    // Answer dish and description to reach the photo step.
+    await tester.enterText(find.byType(TextField), 'كشري');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'عدس ورز');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // Disclosure is visible.
+    expect(find.text(l10n.mealConvPhotoDisclosure), findsOneWidget);
+
+    // Disclosure appears before the skip button in the widget tree — the first
+    // Text with that string is an ancestor of a column whose later child is the
+    // OutlinedButton (skip). Assert by finding both and checking that the
+    // disclosure Text is hit-tested before the button.
+    final disclosureFinder = find.text(l10n.mealConvPhotoDisclosure);
+    final skipFinder = find.text(l10n.mealConvPhotoSkip);
+    expect(disclosureFinder, findsOneWidget);
+    expect(skipFinder, findsOneWidget);
+
+    // The disclosure Text widget is positioned above the skip button: its
+    // top-center is higher on screen than the button's top-center.
+    final disclosureRect = tester.getRect(disclosureFinder);
+    final skipRect = tester.getRect(skipFinder);
+    expect(disclosureRect.top, lessThan(skipRect.top),
+        reason: 'disclosure must appear above the skip control');
+  });
+
+  testWidgets('declining photo reaches price and completes the conversation',
+      (tester) async {
+    final repo = FakeMealRepository();
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+      repo: repo,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'كشري');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'عدس ورز');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // Decline the photo.
+    await tester.tap(find.text(l10n.mealConvPhotoSkip));
+    await tester.pumpAndSettle();
+
+    // Price step is on screen.
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsNothing);
+
+    // Answer price — conversation completes (no question left).
+    await tester.enterText(find.byType(TextField), '50');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump();
+
+    expect(find.byType(ConversationQuestion), findsNothing);
+    expect(
+        repo.updateDraftArgs.map((c) => c.price).whereType<String>(), ['50']);
+  });
+
+  test('declined photo still produces analysis from words alone', () async {
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo, ai: _stubAi(_analysisReply));
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز ومكرونة');
+    await pumpEventQueue();
+
+    // Analysis started after description, before photo was declined.
+    expect(
+      container.read(mealConversationControllerProvider).analysis,
+      isNotNull,
+      reason: 'analysis must exist even when photo is never supplied',
+    );
+
+    // Decline photo — analysis is not cleared.
+    controller.declinePhoto();
+    expect(
+      container.read(mealConversationControllerProvider).analysis,
+      isNotNull,
+      reason: 'declining photo must not invalidate existing analysis',
+    );
+
+    // Complete the conversation.
+    final ok = await controller.answer(MealStepId.price, '50');
+    expect(ok, isTrue);
+    expect(controller.currentStep, isNull);
+  });
+
+  test('no photo_path sent to AI when Cook declined the photo', () async {
+    final repo = FakeMealRepository();
+    final ai = _DeferredAiProvider();
+    final container = _container(repo: repo, ai: ai);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+
+    // First analysis request (description) has no photo_path.
+    expect(ai.requests, hasLength(1));
+    expect(ai.requests.single.variables.containsKey('photo_path'), isFalse);
+
+    // Decline photo — no second analysis request is made.
+    controller.declinePhoto();
+    expect(ai.requests, hasLength(1),
+        reason: 'declining photo must not trigger a new analysis request');
+
+    // Complete the conversation.
+    final ok = await controller.answer(MealStepId.price, '50');
+    expect(ok, isTrue);
+
+    // Still only one request, and it never carried photo_path.
+    expect(ai.requests, hasLength(1));
+    expect(ai.requests.single.variables.containsKey('photo_path'), isFalse);
+  });
 }

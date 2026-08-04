@@ -10,6 +10,7 @@ import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../../conversation/presentation/voice_button.dart';
 import '../application/meal_conversation_controller.dart';
+import 'meal_summary.dart';
 
 /// The Meal conversation screen.
 ///
@@ -120,13 +121,20 @@ class _MealConversationScreenState
     final step = _currentStep;
 
     if (step == null) {
-      // PLACEHOLDER, and it must not ship as one. All four answers are in and
-      // the next thing a Cook should see is the summary where every AI
-      // suggestion is approved or corrected — that is T037, and until it exists
-      // there is nothing to push. A spinner with no exit is a dead end, so T037
-      // replaces this rather than adding to it.
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      // Rendered in place rather than pushed as a route.
+      //
+      // The first version pushed the summary from build() behind a one-shot
+      // flag, which trapped a Cook who came back: the flag stayed set, so the
+      // conversation rendered a spinner and never pushed again. Rendering in
+      // place removes the whole class of bug — there is no navigation to get
+      // out of step with, and correcting a value simply rebuilds this.
+      //
+      // Nothing is written by arriving here. The draft already exists (T034)
+      // and stays `draft`; onConfirm is where T038 puts it on offer.
+      return MealSummaryScreen(
+        onConfirm: () {
+          // T038 publishes here.
+        },
       );
     }
 
