@@ -468,3 +468,38 @@ E1 deferred its equivalent and the budget is still unverified.
 
 **T080 is first in the week and last in the file.** Nothing in the AI path can be honestly evaluated
 against a stub.
+
+---
+
+## After E2 — addressing a Cook in their own grammatical form
+
+**Not E2 work, and deliberately not started.** Founder decision, 2026-08-04, recorded in
+[ADR-0010](../../decisions/0010-address-a-cook-in-their-own-grammatical-form.md). It is written here
+because this is the file the next person opens, and a decision that lives only in a conversation is
+a decision that gets made twice.
+
+Every Cook-facing string addresses the Cook as a man. 56 of 94 Arabic strings are affected; the other
+38 are already correct for everyone, because written Arabic spells the past tense and the possessive
+suffix identically for both. E2's remaining tasks will add roughly thirty more strings that will need
+converting along with them — accepted, not overlooked.
+
+- [ ] T089 Add the stored form of address — a column on the Cook's row, a migration with the
+  authorization test first, and a default. **A form of address, never a gender**: the feature needs a
+  verb ending, and `business-rules.md` forbids collecting a demographic field the feature does not
+  need
+- [ ] T090 Add the fifth question to the Kitchen Profile conversation. This is a question the product
+  rules would normally reject as a failure to infer — it is asked because it genuinely cannot be
+  inferred, and guessing wrong is worse than asking. Say that in the code
+- [ ] T091 Convert the 56 gendered strings to ICU `select` in both ARB files, Arabic written first.
+  English carries identical branches only because the generator requires matching placeholders
+- [ ] T092 Supply the preference through a Riverpod provider and convert ~56 call sites. The two
+  Customer-facing strings that describe a Cook read the **Cook's** stored form, not the reader's
+- [ ] T093 Extend the localization parity check. It compares key presence between locales and nothing
+  else, so a `select` converted in Arabic and missed in English, or one missing its `other` branch,
+  passes the gate today and fails at generation. The sweep must fix the check, not trust it
+- [ ] T094 Instruct `prompts/meal-analysis.md` never to address the Cook in the second person, bump
+  `version`, and re-replay with `scripts/replay-goldens.ts`. This keeps model output gender-free by
+  construction rather than passing a preference into the model. Fold into T088 if that is still open
+- [ ] T095 **Settle which Arabic word means Cook.** The ARB strings say `الطباخ`; the prompts say
+  `الكوك`. Canonical vocabulary is one name per concept, so one of them is a bug, and it is in
+  customer-facing copy. Needs a founder decision, not a sweep
