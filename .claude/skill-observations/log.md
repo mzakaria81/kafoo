@@ -1508,3 +1508,26 @@ by someone who trusts it.
 **Principle:** Code that a test cannot reach today is code that ships untested to whoever wires it up
 tomorrow. Test at the layer where the path is reachable, not the layer where the feature will
 eventually live, and verify the test fails without the fix.
+
+### Observation 57: AutoDispose controller drops async analysis without a listener
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** T034/T035 Meal conversation persist + analysis
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Riverpod autoDispose + async side effects in tests
+
+**Issue:** MealConversationController is autoDispose. Unit tests that only
+`read` the notifier saw analysis completions silently dropped via
+`ref.mounted` once the provider disposed after the answer future returned.
+Widget tests were fine because the screen watches the provider.
+
+**Suggested improvement:** When testing async work kicked off with unawaited
+from an autoDispose Notifier, always `container.listen` the provider (or
+document keepAlive). A helper that builds the container should attach the
+listener by default.
+
+**Principle:** An autoDispose provider with no listener is disposed before
+async completions land; tests must keep a subscription or the completion
+path is never exercised.

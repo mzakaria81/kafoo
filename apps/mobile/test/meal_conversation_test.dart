@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/analytics/emit_event.dart';
+import 'package:kafoo_mobile/features/analytics/event_names.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
 import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
+import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
@@ -32,10 +38,42 @@ class _UnavailableVoiceInput extends VoiceInput {
   Future<void> cancel() async {}
 }
 
-Widget _testApp(Widget child, {FakeMealRepository? repo}) {
+/// Completes only when a test releases each call — drives in-flight and race
+/// cases that [StubAiProvider] cannot, because it answers immediately.
+class _DeferredAiProvider implements AiProvider {
+  final List<AiRequest> requests = [];
+  final List<Completer<Result<AiResponse, AppError>>> completers = [];
+
+  @override
+  Future<Result<AiResponse, AppError>> complete(AiRequest request) {
+    requests.add(request);
+    final completer = Completer<Result<AiResponse, AppError>>();
+    completers.add(completer);
+    return completer.future;
+  }
+}
+
+/// Minimal valid analysis JSON the parser accepts as non-empty.
+const _analysisReply =
+    '{"ingredients":["عدس","رز"],"calories":850,"allergens":["جلوتين"],'
+    '"cuisine":"egyptian","category":"main",'
+    '"basis":{"ingredients":"من وصف الكوك","calories":"تقدير لطبق كامل",'
+    '"allergens":"المكرونة فيها قمح","cuisine":"كشري مصري",'
+    '"category":"طبق رئيسي"}}';
+
+AiProvider _stubAi([String reply = '{}']) => StubAiProvider({
+      'meal-analysis': reply,
+    });
+
+Widget _testApp(
+  Widget child, {
+  FakeMealRepository? repo,
+  AiProvider? ai,
+}) {
   return ProviderScope(
     overrides: [
       if (repo != null) mealRepositoryProvider.overrideWithValue(repo),
+      aiProviderProvider.overrideWithValue(ai ?? _stubAi()),
     ],
     child: MaterialApp(
       locale: const Locale('ar'),
@@ -49,6 +87,21 @@ Widget _testApp(Widget child, {FakeMealRepository? repo}) {
       home: child,
     ),
   );
+}
+
+ProviderContainer _container({
+  required FakeMealRepository repo,
+  AiProvider? ai,
+}) {
+  final container = ProviderContainer(
+    overrides: [
+      mealRepositoryProvider.overrideWithValue(repo),
+      aiProviderProvider.overrideWithValue(ai ?? _stubAi(_analysisReply)),
+    ],
+  );
+  // Keep the autoDispose controller alive across async analysis completions.
+  container.listen(mealConversationControllerProvider, (_, __) {});
+  return container;
 }
 
 void main() {
@@ -107,6 +160,15 @@ void main() {
     // All four answered — no question left on screen.
     expect(find.byType(ConversationQuestion), findsNothing);
     expect(repo.createDraftCalls, 1);
+    expect(repo.updateDraftCalls, 2);
+    expect(
+      repo.updateDraftArgs.map((c) => c.description).whereType<String>(),
+      ['عدس ورز ومكرونة'],
+    );
+    expect(
+      repo.updateDraftArgs.map((c) => c.price).whereType<String>(),
+      ['50'],
+    );
   });
 
   // Declining the photo must advance to the price step, not loop back to
@@ -202,9 +264,7 @@ void main() {
   test('supplying a photo resolves the photo step, not just the path',
       () async {
     final repo = FakeMealRepository();
-    final container = ProviderContainer(
-      overrides: [mealRepositoryProvider.overrideWithValue(repo)],
-    );
+    final container = _container(repo: repo);
     addTearDown(container.dispose);
 
     final controller =
@@ -219,5 +279,307 @@ void main() {
 
     expect(controller.currentStep?.id, MealStepId.price,
         reason: 'a supplied photo must advance the conversation, not loop it');
+  });
+
+  // --- T034 -----------------------------------------------------------------
+
+  test('later answers persist description and price via updateDraft', () async {
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز ومكرونة');
+    controller.declinePhoto();
+    await controller.answer(MealStepId.price, '50');
+
+    expect(repo.createDraftCalls, 1);
+    expect(repo.updateDraftCalls, 2);
+    expect(repo.updateDraftArgs[0].description, 'عدس ورز ومكرونة');
+    expect(repo.updateDraftArgs[0].price, isNull);
+    expect(repo.updateDraftArgs[1].price, '50');
+    expect(repo.updateDraftArgs[1].description, isNull);
+  });
+
+  test('MealDrafted emits exactly once with no attributes', () async {
+    final repo = FakeMealRepository();
+    final events = <({String name, Map<String, Object> attributes})>[];
+    debugEventRecorder = (name, attributes) {
+      events.add((name: name, attributes: attributes));
+    };
+    addTearDown(() => debugEventRecorder = null);
+
+    final container = _container(repo: repo);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+    controller.declinePhoto();
+    await controller.answer(MealStepId.price, '40');
+
+    final drafted =
+        events.where((e) => e.name == EventNames.mealDrafted).toList();
+    expect(drafted, hasLength(1));
+    expect(drafted.single.attributes, isEmpty);
+  });
+
+  test('updateDraft failure surfaces error and does not advance the step',
+      () async {
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    expect(controller.currentStep?.id, MealStepId.description);
+
+    repo.failOperations = true;
+    final ok = await controller.answer(MealStepId.description, 'عدس ورز');
+
+    expect(ok, isFalse);
+    expect(controller.currentStep?.id, MealStepId.description);
+    expect(
+      container.read(mealConversationControllerProvider).error?.messageKey,
+      'mealSaveError',
+    );
+    expect(
+      container.read(mealConversationControllerProvider).draft.description,
+      isNull,
+    );
+  });
+
+  testWidgets(
+      'updateDraft failure keeps typed answer and shows save error on screen',
+      (tester) async {
+    final repo = FakeMealRepository();
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+      repo: repo,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'كشري');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    repo.failOperations = true;
+    await tester.enterText(find.byType(TextField), 'عدس ورز ومكرونة');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealSaveError), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('عدس ورز ومكرونة'), findsOneWidget);
+    expect(repo.updateDraftCalls, 1);
+  });
+
+  // --- T035 -----------------------------------------------------------------
+
+  test('analysis starts after description, not after dish alone', () async {
+    final repo = FakeMealRepository();
+    final ai = _DeferredAiProvider();
+    final container = _container(repo: repo, ai: ai);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    expect(ai.requests, isEmpty);
+    expect(
+      container.read(mealConversationControllerProvider).analysisInFlight,
+      isFalse,
+    );
+
+    await controller.answer(MealStepId.description, 'عدس ورز ومكرونة');
+    expect(ai.requests, hasLength(1));
+    expect(
+      container.read(mealConversationControllerProvider).analysisInFlight,
+      isTrue,
+    );
+    expect(ai.requests.single.promptId, 'meal-analysis');
+    expect(ai.requests.single.tier, ModelTier.fast);
+    expect(ai.requests.single.variables['said'], 'كشري. عدس ورز ومكرونة');
+    expect(ai.requests.single.variables['meal_id'], repo.lastCreatedMealId);
+    expect(ai.requests.single.variables.containsKey('photo_path'), isFalse);
+  });
+
+  test('Cook can keep answering while analysis is in flight', () async {
+    final repo = FakeMealRepository();
+    final ai = _DeferredAiProvider();
+    final container = _container(repo: repo, ai: ai);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+    expect(
+      container.read(mealConversationControllerProvider).analysisInFlight,
+      isTrue,
+    );
+
+    // Analysis still pending — photo and price must still work.
+    controller.declinePhoto();
+    final priceOk = await controller.answer(MealStepId.price, '55');
+    expect(priceOk, isTrue);
+    expect(controller.currentStep, isNull);
+    expect(repo.updateDraftArgs.last.price, '55');
+    expect(
+      container.read(mealConversationControllerProvider).analysisInFlight,
+      isTrue,
+    );
+  });
+
+  test('late reply from earlier analysis does not overwrite a newer one',
+      () async {
+    final repo = FakeMealRepository();
+    final ai = _DeferredAiProvider();
+    final container = _container(repo: repo, ai: ai);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+    expect(ai.completers, hasLength(1));
+
+    await controller.answer(MealStepId.photo, 'meal-photos/uid/id.jpg');
+    expect(ai.completers, hasLength(2));
+    expect(ai.requests[1].variables['photo_path'], 'meal-photos/uid/id.jpg');
+
+    const newerReply =
+        '{"ingredients":["من الصورة"],"calories":900,"allergens":["جلوتين"],'
+        '"cuisine":"egyptian","category":"main",'
+        '"basis":{"ingredients":"شوفنا الصورة","calories":"أكبر",'
+        '"allergens":"قمح","cuisine":"مصري","category":"رئيسي"}}';
+
+    // Second (photo) analysis settles first.
+    ai.completers[1].complete(
+      const Success(AiResponse(text: newerReply, modelId: 'second')),
+    );
+    await pumpEventQueue();
+
+    final afterNewer = container.read(mealConversationControllerProvider);
+    expect(afterNewer.analysis?.modelId, 'second');
+    expect(afterNewer.analysis?.ingredients?.value, ['من الصورة']);
+    expect(afterNewer.analysisInFlight, isFalse);
+
+    // First analysis lands late — must be dropped.
+    ai.completers[0].complete(
+      const Success(AiResponse(text: _analysisReply, modelId: 'first')),
+    );
+    await pumpEventQueue();
+
+    final afterStale = container.read(mealConversationControllerProvider);
+    expect(afterStale.analysis?.modelId, 'second');
+    expect(afterStale.analysis?.ingredients?.value, ['من الصورة']);
+  });
+
+  test('analysis result is never written to the database', () async {
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo, ai: _stubAi(_analysisReply));
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز ومكرونة');
+    await pumpEventQueue();
+
+    final state = container.read(mealConversationControllerProvider);
+    expect(state.analysis, isNotNull);
+    expect(state.analysis!.isNotEmpty, isTrue);
+    expect(state.analysisInFlight, isFalse);
+
+    expect(repo.updateDraftArgs, isNotEmpty);
+    for (final call in repo.updateDraftArgs) {
+      expect(call.carriesAnalysedField, isFalse,
+          reason: 'no analysed field may reach updateDraft');
+    }
+    expect(
+      repo.updateDraftArgs.every((c) => c.cuisine == null),
+      isTrue,
+    );
+    expect(
+      repo.updateDraftArgs.every((c) => c.calories == null),
+      isTrue,
+    );
+    expect(
+      repo.updateDraftArgs.every((c) => c.allergens == null),
+      isTrue,
+    );
+    expect(
+      repo.updateDraftArgs.every((c) => c.ingredients == null),
+      isTrue,
+    );
+    expect(
+      repo.updateDraftArgs.every((c) => c.category == null),
+      isTrue,
+    );
+  });
+
+  test(
+      'analysis failure leaves conversation usable and does not set save error',
+      () async {
+    final repo = FakeMealRepository();
+    final ai = _DeferredAiProvider();
+    final container = _container(repo: repo, ai: ai);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+
+    ai.completers.single.complete(
+      const Failure(AppError(messageKey: 'analyzeMealTimeout')),
+    );
+    await pumpEventQueue();
+
+    final state = container.read(mealConversationControllerProvider);
+    expect(state.analysisError?.messageKey, 'analyzeMealTimeout');
+    expect(state.error, isNull);
+    expect(state.analysisInFlight, isFalse);
+    expect(state.analysis, isNull);
+
+    // Conversation still advances.
+    controller.declinePhoto();
+    final ok = await controller.answer(MealStepId.price, '60');
+    expect(ok, isTrue);
+    expect(controller.currentStep, isNull);
+  });
+
+  testWidgets('analysis failure does not show the save-error string on screen',
+      (tester) async {
+    final repo = FakeMealRepository();
+    final ai = _DeferredAiProvider();
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+      repo: repo,
+      ai: ai,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'كشري');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'عدس ورز');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    ai.completers.single.complete(
+      const Failure(AppError(messageKey: 'analyzeMealTimeout')),
+    );
+    await tester.pump();
+
+    expect(find.text(l10n.mealSaveError), findsNothing);
+    // Still on photo step — conversation usable.
+    expect(find.byType(OutlinedButton), findsOneWidget);
   });
 }

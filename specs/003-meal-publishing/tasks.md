@@ -219,8 +219,30 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   published Meal nullable fields that cannot be null. The conversation keeps its own answers; what
   it needs from the database is an identity to attach them to.
 
-- [ ] T034 [US1] Persist the draft as the conversation proceeds and emit `MealDrafted`. **This is a deliberate divergence from E1**, whose conversation kept nothing before confirmation
-- [ ] T035 [US1] Start the analysis as soon as the description and photo exist, and let the Cook keep answering while it runs — the latency mitigation from research.md §3, not an optimisation to add later
+- [x] T034 [US1] Persist the draft as the conversation proceeds and emit `MealDrafted`. **This is a deliberate divergence from E1**, whose conversation kept nothing before confirmation — **DONE 2026-08-04.** Each answer after the dish calls `updateDraft` with only the field that changed; `MealDrafted` is emitted once, on `createDraft` success, with no attributes. A failed write surfaces the error and does not advance the step, so the Cook's typed answer stays in the field and the next tap retries — the same policy `createDraft` already had, rather than a second one
+- [x] T035 [US1] Start the analysis as soon as the description and photo exist, and let the Cook keep answering while it runs — the latency mitigation from research.md §3, not an optimisation to add later — **DONE 2026-08-04.**
+
+  **This task's own wording is wrong and was not followed.** It says the analysis waits for the
+  description *and photo*. `meal_step.dart` says the opposite in its own comment, and gives the
+  reason: a Cook who is going to decline the photo should not pay for the wait, and a photo arriving
+  triggers a second, better analysis. The domain is the considered version. Analysis begins when
+  `canBeginAnalysis(dish:, description:)` is true, and a supplied photo starts a second one.
+
+  **The real work was the race.** Two analyses can be in flight while the Cook keeps talking, and the
+  first can return after the second — silently replacing a photo-informed result with a
+  words-only one. A monotonic request id, compared on completion, drops the stale reply. The test
+  completes the second call before the first and was mutation-checked: remove the guard and it goes
+  red.
+
+  Review removed a second copy of that guard sitting after `parseMealAnalysis`. Parsing is
+  synchronous, so nothing can change between the two and the second pair could never fire —
+  and removing it alone left every test green, which is what an unreachable guard looks like from
+  the outside. One guard, tested, is worth more than two where only one runs.
+
+  **The AI writes nothing.** The result lands in controller state and nowhere else; a failure goes to
+  a separate `analysisError` so a model outage can never render as "we could not save your Meal".
+  A test asserts no analysed field reaches `updateDraft`, and it was mutation-checked by making the
+  controller persist the estimated calories — it goes red
 - [ ] T036 [US1] Show the disclosure required by FR-029 before the photo is used, with a refusal that still leads to a working flow — estimates from words alone
 - [ ] T037 [US1] Build the summary in `apps/mobile/lib/features/meal/presentation/meal_summary.dart` where every value is correctable in one action and nothing is written until confirmation
 - [ ] T038 [US1] Write the Meal on confirmation, set `published_at`, and emit `MealPublished`
