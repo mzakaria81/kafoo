@@ -5,6 +5,19 @@
 BEGIN;
 SELECT plan(11);
 
+-- GRANTED HERE ON PURPOSE, AND ONLY HERE.
+--
+-- Production grants `authenticated` no DELETE on this table
+-- (`supabase/migrations/20260805180727_grant_data_api_privileges.sql`): a Kitchen Profile goes when
+-- the account goes, by cascade, so the privilege is refused one layer below RLS. That stays.
+--
+-- Case 7 below is a claim about the POLICY layer — that no DELETE policy exists, so the row
+-- survives. With no grant the statement raises 42501 first and the case would pass without ever
+-- reaching a policy, which means a wrongly-written DELETE policy added tomorrow would go unnoticed.
+-- Granting inside this transaction restores that coverage; the ROLLBACK at the foot of the file is
+-- what keeps it out of any deployed database.
+GRANT DELETE ON public.kitchen_profiles TO authenticated;
+
 -- Create two test users.
 SELECT tests.create_supabase_user('owner@test.kafoo');
 SELECT tests.create_supabase_user('other@test.kafoo');

@@ -1,7 +1,29 @@
 # Preview branches (ephemeral databases)
 
-> **RETIRED 2026-08-03, and turned OFF in Supabase.** Kafoo no longer builds a preview branch per
-> pull request, and the `Authorization` workflow no longer waits for one. The RLS suites now run
+> **THEY ARE STILL ON. This document said otherwise until 2026-08-05.**
+>
+> The paragraph below recorded them as "turned OFF in Supabase" on 2026-08-03. Opening pull request
+> #32 built one anyway — project `zkctybzvjrnktithgldg`, migrations applied, seed run, Edge
+> Functions deployed — and pull request #29 had one too, live at the same moment. Whatever was
+> retired, the Supabase GitHub integration was not switched off with it.
+>
+> **This matters for money, which is the reason the retirement was decided.** Branches bill while
+> they exist, so the cost tracks how many pull requests are open. Two were open and billing while
+> this was believed to be off. Either turn the integration off in the Supabase dashboard's GitHub
+> settings, or delete this retirement notice — but the file and the account have to agree.
+>
+> **It also turned out to be useful, which complicates the decision rather than settling it.** WP-002
+> needed a real Supabase to measure a Cook's publish latency against, production was unusable, and
+> the preview branch was the thing that made the number takeable. That is the gap the retirement
+> accepted, reappearing the first time somebody needed it.
+>
+> One limit found while using it: **a preview branch gets no copy of the parent project's secrets.**
+> `analyze-meal` returns `502 provider_misconfigured` on one until a model credential is set on the
+> branch itself. Anything touching the AI path cannot be verified on a preview branch out of the box.
+
+> **RETIRED 2026-08-03 — the original notice, kept because the reasoning still stands.** Kafoo no
+> longer builds a preview branch per pull request *by intent*, and the `Authorization` workflow no
+> longer waits for one. The RLS suites now run
 > against a real Postgres started inside the CI runner — see **[local-database.md](local-database.md)**.
 >
 > **Why.** Two costs, one of them money. Every open pull request billed a live Supabase project. The

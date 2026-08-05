@@ -49,14 +49,23 @@ $$;
 
 GRANT USAGE ON SCHEMA public, extensions, auth, storage TO anon, authenticated, service_role;
 
--- Supabase grants the API roles table privileges by default, and RLS is what actually restricts
--- them. Without this every suite dies on "permission denied", which reads like a policy denying
--- access and is really the GRANT layer underneath it — the two are easy to confuse and only one of
--- them is what the suites are testing.
+-- TABLE PRIVILEGES ARE NOT GRANTED HERE, AND THAT IS THE POINT.
 --
--- Set BEFORE the migrations run, so it applies to every table they create.
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+-- This file used to say "Supabase grants the API roles table privileges by default, and RLS is what
+-- actually restricts them", and granted ALL on TABLES on the strength of it. **Measured against the
+-- live project on 2026-08-05, that is false.** anon, authenticated and service_role each held
+-- TRUNCATE, REFERENCES, TRIGGER and MAINTAIN on every table and none of SELECT, INSERT, UPDATE or
+-- DELETE, so every call through PostgREST returned `42501 permission denied` — the app could not
+-- read or write a single row in production while every suite here was green.
+--
+-- That is exactly what a stand-in is for: this line was supplying the layer production lacked, so
+-- the harness could not see the gap it exists to catch. Table privileges now come from
+-- `supabase/migrations/..._grant_data_api_privileges.sql`, the same place production gets them,
+-- and `supabase/tests/data_api_grants_test.sql` fails if a table ever ships without them.
+--
+-- Sequences and functions keep their default grants: nothing in Kafoo's schema uses a sequence or a
+-- public function through the API roles yet, so there is no production evidence either way, and
+-- inventing a rule from no measurement is what produced the line above.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public

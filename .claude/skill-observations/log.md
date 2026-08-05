@@ -1853,3 +1853,62 @@ changed. Note explicitly that a re-evaluation of unchanged text updates only the
 **Principle:** A checklist item that conjoins two independently-true conditions with "and" cannot be
 answered for the case where one applies and the other does not — and the failure mode is not a
 blocked check but a reviewer performing the unnecessary half to make the line tick.
+### Observation 71: A test stand-in that supplies what production lacks hides the gap it exists to catch
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-002 — measuring E2's two performance timings against the live Supabase project
+**Skill:** New skill candidate: verifying-a-stand-in
+**Type:** open-source
+**Phase/Area:** Test harness design; the boundary between a local substitute and the real system
+
+**Issue:** The local database harness bootstrapped its own environment with a blanket
+`ALTER DEFAULT PRIVILEGES ... GRANT ALL ON TABLES`, justified by a comment asserting the hosted
+platform grants those privileges by default. It does not, on this project. So the harness was
+supplying a layer production did not have. Every authorization suite was green while the deployed
+database refused every read and write from every application role with `42501 permission denied` —
+the product was unusable in production and nothing in the test suite could say so. It was found only
+by making a real call against the real deployment for an unrelated reason (a latency measurement),
+not by any check that existed.
+
+**Suggested improvement:** A harness that stands in for a real system should carry, per stand-in, a
+recorded answer to "what evidence says the real system behaves this way, and when was it checked?"
+A stand-in justified by an assumption rather than an observation is a defect generator: it can only
+ever make the suite greener than reality. Two concrete practices: (1) every stand-in line names its
+evidence and its date, and (2) at least one probe runs against the real system periodically, because
+a stand-in cannot audit itself by construction.
+
+**Principle:** A test double can only fail in one direction — toward false confidence. Anything a
+double supplies that the real system does not is invisible to every test that uses it, so the
+correctness of a double is never testable from inside the suite it serves. It must be established
+by observing the real system, and that observation has a date on it.
+
+### Observation 72: A latency measurement must gate on success, or failure reads as speed
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-002 — measuring publish and first-estimate latency against a real backend
+**Skill:** New skill candidate: measuring-against-a-budget
+**Type:** open-source
+**Phase/Area:** Performance measurement harnesses; verdict computation
+
+**Issue:** A harness timed a request, averaged the elapsed times, and compared the median to a
+budget. Twelve consecutive runs failed with HTTP 502 — the service could not reach its provider at
+all — and the report printed **"Verdict: PASS"**, because a request that fails fast is fast. The
+failure was invisible in the summary: the per-run table carried the status code, but the headline
+number, the median and the verdict were all computed over runs that returned nothing. The metric
+improved monotonically as the feature became more broken.
+
+**Suggested improvement:** A latency verdict must be computed only over runs that produced the
+result being timed, and the count of successes must appear beside the number. Where zero runs
+succeeded, print no number at all rather than a number from an empty or failed sample. Failures
+should be summarised by status and cause next to the missing figure, since they are the finding.
+Two related traps in the same harness: a cleanup check that read through a role holding no SELECT
+treated its own failed request as "nothing left" and reported success; and a summary that inherited
+its run count from the *requested* number of runs rather than the number actually completed.
+
+**Principle:** Any metric where failure is cheap will be improved by failure. Latency, throughput
+and cost all have this shape — the degenerate path is the fast path — so the success predicate is
+part of the measurement, not a separate quality check applied afterwards. The same rule covers
+verification steps: a check that cannot distinguish "I looked and found nothing" from "I could not
+look" will report the reassuring one.

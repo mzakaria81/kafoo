@@ -5,6 +5,19 @@
 BEGIN;
 SELECT plan(7);
 
+-- GRANTED HERE ON PURPOSE, AND ONLY HERE.
+--
+-- Production grants `authenticated` nothing but INSERT on this table
+-- (`supabase/migrations/20260805180727_grant_data_api_privileges.sql`): events are write-once, so
+-- SELECT and UPDATE are refused one layer below RLS. That is the stronger posture and it stays.
+--
+-- It also makes cases 1 and 6 below unable to test what they were written to test. "Zero rows come
+-- back" and "no rows are updated" are claims about the POLICY layer, and with no grant the
+-- statement raises 42501 before any policy is consulted — so a permissive SELECT policy added
+-- tomorrow would not be caught here. Granting inside this transaction restores that coverage; the
+-- ROLLBACK at the foot of the file is what keeps it out of any deployed database.
+GRANT SELECT, UPDATE ON public.analytics_events TO authenticated;
+
 -- Create two test users.
 SELECT tests.create_supabase_user('person@test.kafoo');
 SELECT tests.create_supabase_user('other@test.kafoo');
