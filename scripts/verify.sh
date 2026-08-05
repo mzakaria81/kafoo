@@ -412,6 +412,17 @@ if checked == 0:
     sys.exit(1)
 PY'
 
+# Work packages are how two sessions avoid building the same thing twice. The failure this catches
+# is silent by construction: on 2026-08-05 two sessions each built the Cook's Meal list, and the
+# only symptom until the merge was that both believed they owned it.
+#
+# The rules worth a gate are the ones a tired reader will not notice: an active package with no
+# owner, two EXCLUSIVE packages running at once, a dependency cycle, and a model outside the
+# opencode-go prefix — which is the billing boundary rather than a naming convention.
+run "work packages" bash -c '
+  [ -d coordination/packages ] || { echo "   no coordination/packages — skipping"; exit 0; }
+  python3 scripts/validate-coordination.py'
+
 echo ""
 if [ "$FAILED" -eq 0 ]; then
   echo "PASS"

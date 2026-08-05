@@ -48,6 +48,31 @@ REPO = Path(__file__).resolve().parent.parent
 LEDGER = REPO / ".claude" / "opencode-spend.jsonl"
 LEDGER_PATH_IN_GIT = ".claude/opencode-spend.jsonl"
 
+# What the OpenCode console actually billed, per day and per model, read off the founder's daily
+# screenshot. Kept in its own file rather than as rows in the ledger: a calibration row carrying a
+# `cost` would be summed as spend by everything below, and the check would corrupt the number it
+# exists to check.
+#
+# This exists because the ledger's figures are what the relay COMPUTES, not what the account is
+# BILLED, and on 2026-08-05 those turned out to differ per model rather than uniformly:
+#
+#     qwen3.6-plus   ledger $4.24  console $4.36   -2.7%   (-2%, -3%, -3% on three days)
+#     grok-4.5       ledger $7.28  console $5.35  +36.0%   (+1181%, -25%, +33%, +33%)
+#
+# qwen is accurate to within 3% every day. grok is not, and the two most recent days agree at +33%,
+# which is stable enough to correct for. The two earliest days are the first two days this tooling
+# was used at all and include a failed Zen dispatch and two runs at 21:03 and 21:10 UTC — close
+# enough to a day boundary that the console may bill them to the next day. That is a hypothesis, not
+# a finding: rows near midnight UTC are the diagnostic, and more calibration days will settle it.
+#
+# The correction below is therefore honest about being empirical. It is a measured factor per model,
+# not a theory about why.
+CALIBRATION = REPO / ".claude" / "opencode-calibration.jsonl"
+
+# The founder's stated tolerance, 2026-08-05: a day inside this after correction is fine. Outside it
+# means the factor has stopped holding — a signal to investigate, never to widen the band.
+TOLERANCE = 0.08
+
 # https://opencode.ai/docs/go/ — read 2026-08-03.
 #
 # The docs say "weekly" and "monthly" without saying whether those reset on a boundary or roll.
@@ -197,6 +222,64 @@ def _parse(stamp: str) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _calibration() -> list[dict]:
+    if not CALIBRATION.exists():
+        return []
+    rows = []
+    for line in CALIBRATION.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if {"day", "model", "console_cost"} <= row.keys():
+            rows.append(row)
+    return rows
+
+
+def _factors(rows: list[dict]) -> tuple[dict[str, float], list[dict]]:
+    """Per-model correction from ledger figures to billed figures.
+
+    Returns the factors and a per-day residual for each calibrated day, so the report can show
+    where the correction stops holding rather than quietly absorbing it.
+    """
+    cal = _calibration()
+    if not cal:
+        return {}, []
+
+    ledger_by_day: dict[tuple[str, str], float] = {}
+    for r in rows:
+        at = r.get("at", "")
+        if not at:
+            continue
+        key = (at[:10], r["model"])
+        ledger_by_day[key] = ledger_by_day.get(key, 0.0) + r["cost"]
+
+    totals: dict[str, list[float]] = {}
+    residuals = []
+    for c in cal:
+        key = (c["day"], c["model"])
+        led = ledger_by_day.get(key, 0.0)
+        con = float(c["console_cost"])
+        entry = totals.setdefault(c["model"], [0.0, 0.0])
+        entry[0] += led
+        entry[1] += con
+        residuals.append({"day": c["day"], "model": c["model"], "ledger": round(led, 4),
+                          "console": round(con, 4)})
+
+    factors = {m: (con / led) for m, (led, con) in totals.items() if led > 0}
+
+    for r in residuals:
+        f = factors.get(r["model"], 1.0)
+        corrected = r["ledger"] * f
+        r["corrected"] = round(corrected, 4)
+        r["residual"] = round((corrected - r["console"]) / r["console"], 4) if r["console"] else 0.0
+        r["within_tolerance"] = abs(r["residual"]) <= TOLERANCE
+    return factors, residuals
+
+
 def report(as_json: bool, local_only: bool = False) -> int:
     if local_only:
         rows, elsewhere, network_ok = _load(), 0, True
@@ -204,10 +287,19 @@ def report(as_json: bool, local_only: bool = False) -> int:
         rows, elsewhere, network_ok = _load_all(fetch=True)
     now = datetime.now(timezone.utc)
 
+    # Correct each row toward what the account was actually billed before any cap is compared
+    # against it. The caps are billed dollars; the ledger holds computed dollars. Comparing the
+    # second to the first was the mistake, and on grok-4.5 it overstated spend by a third — which
+    # errs safe on the cap and wastes a third of the window.
+    factors, residuals = _factors(rows)
+
+    def billed(row: dict) -> float:
+        return row["cost"] * factors.get(row["model"], 1.0)
+
     windows = []
     for label, span, cap in CAPS:
         cutoff = now - span
-        spent = sum(r["cost"] for r in rows
+        spent = sum(billed(r) for r in rows
                     if (at := _parse(r.get("at", ""))) and at >= cutoff)
         windows.append({
             "window": label,
@@ -219,9 +311,10 @@ def report(as_json: bool, local_only: bool = False) -> int:
 
     by_model: dict[str, dict] = {}
     for r in rows:
-        entry = by_model.setdefault(r["model"], {"dispatches": 0, "cost": 0.0})
+        entry = by_model.setdefault(r["model"], {"dispatches": 0, "cost": 0.0, "raw": 0.0})
         entry["dispatches"] += 1
-        entry["cost"] = round(entry["cost"] + r["cost"], 4)
+        entry["cost"] = round(entry["cost"] + billed(r), 4)
+        entry["raw"] = round(entry["raw"] + r["cost"], 4)
 
     worst = max((w["used_fraction"] for w in windows), default=0.0)
     verdict = "stop" if worst >= STOP_AT else "warn" if worst >= WARN_AT else "ok"
@@ -235,6 +328,9 @@ def report(as_json: bool, local_only: bool = False) -> int:
             "from_other_branches": elsewhere,
             "network_ok": network_ok,
             "ledger": str(LEDGER.relative_to(REPO)),
+            "factors": {m: round(f, 4) for m, f in factors.items()},
+            "calibration": residuals,
+            "tolerance": TOLERANCE,
         }, indent=2))
         return 0
 
@@ -253,10 +349,33 @@ def report(as_json: bool, local_only: bool = False) -> int:
               f"${w['spent']:>6.2f} / ${w['cap']:>5.2f}   ${w['remaining']:>6.2f} left")
     print()
     if by_model:
-        print("  by model:")
+        print("  by model (billed, with the relay's own figure beside it):")
         for model, entry in sorted(by_model.items(), key=lambda kv: -kv[1]["cost"]):
-            print(f"    {model:<34} {entry['dispatches']:>3} dispatches  ${entry['cost']:.4f}")
+            f = factors.get(model)
+            note = f"  (relay said ${entry['raw']:.2f}, x{f:.2f})" if f else "  (uncalibrated)"
+            print(f"    {model:<30} {entry['dispatches']:>3} dispatches  "
+                  f"${entry['cost']:.4f}{note}")
     print()
+
+    if residuals:
+        off = [r for r in residuals if not r["within_tolerance"]]
+        print(f"  calibrated against the console on {len({r['day'] for r in residuals})} day(s), "
+              f"tolerance {TOLERANCE:.0%}:")
+        if off:
+            for r in sorted(off, key=lambda r: -abs(r["residual"])):
+                print(f"    OUT  {r['day']}  {r['model'].split('/')[-1]:<14} "
+                      f"corrected ${r['corrected']:.2f} vs billed ${r['console']:.2f} "
+                      f"({r['residual']:+.0%})")
+            print("    A day outside tolerance means the correction has stopped holding for that")
+            print("    model. Investigate the dispatches on that day — do not widen the band.")
+        else:
+            print("    every calibrated day is inside tolerance after correction")
+        print()
+    else:
+        print("  NOT CALIBRATED — no console readings, so these are the relay's computed figures")
+        print("  and not billed dollars. On grok-4.5 that ran a third high. Add a reading to")
+        print(f"  {CALIBRATION.relative_to(REPO)} from the console.")
+        print()
     if verdict == "stop":
         print("  STOP — a cap is nearly spent. Finish what is in flight and do not start a new")
         print("  dispatch, or a long task will die halfway through. Check the console for truth.")

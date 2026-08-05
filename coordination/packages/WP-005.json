@@ -1,0 +1,28 @@
+{
+  "id": "WP-005",
+  "title": "Spike the Gemini Live API for Customer discovery",
+  "objective": "Learn whether a live voice channel is viable for Customer search before E3 commits to an architecture around it.",
+  "tasks": ["T084"],
+  "acceptance_criteria": [
+    "the spike answers the question it was scoped to ask, in writing",
+    "the throwaway code is thrown away, or an ADR explains why it stays",
+    "latency and cost are recorded, because those are what decide it"
+  ],
+  "dependencies": [],
+  "scope": {
+    "files": ["docs/ops/"],
+    "shared_files": []
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 5,
+  "spend_envelope_usd": 1.0,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "Explicitly throwaway. A spike that quietly becomes production is the failure mode; say so in the report rather than leaving it to be discovered. Phase 2 work — the coordinator should not assign it while Phase 1 tasks are open unless the founder asks.",
+  "created_at": "2026-08-05T20:00:00Z",
+  "updated_at": "2026-08-05T20:00:00Z"
+}

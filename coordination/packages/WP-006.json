@@ -1,0 +1,29 @@
+{
+  "id": "WP-006",
+  "title": "Store how a Cook wants to be addressed",
+  "objective": "Add the column the gendered-strings sweep reads from. Arabic marks gender on the second person and there is no neutral form, so Kafoo either asks or guesses.",
+  "tasks": ["T089"],
+  "acceptance_criteria": [
+    "a migration adds the column with RLS enabled in the same file",
+    "an authorization test proves a non-owner cannot read another Cook's stored form, and was seen to FAIL before the policy existed",
+    "the field is optional, and every string still renders when it is unset",
+    "business-rules.md's privacy questions are answered in the migration comment: why it is needed, how long it is kept, who reads it"
+  ],
+  "dependencies": [],
+  "scope": {
+    "files": ["supabase/migrations/", "packages/domain/lib/"],
+    "shared_files": ["supabase/tests/"]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 2,
+  "spend_envelope_usd": 1.5,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "Near auth and RLS, so it takes the expensive model. A new category of personal data: the coordinator must confirm the founder has approved collecting it before this is assigned. Shares supabase/tests/ with nothing currently open, but the plan(N) line at the top of each suite is a guaranteed conflict if a second package adds cases there.",
+  "created_at": "2026-08-05T20:00:00Z",
+  "updated_at": "2026-08-05T20:00:00Z"
+}

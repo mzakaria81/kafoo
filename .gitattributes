@@ -1,0 +1,12 @@
+# Append-only records that two sessions write concurrently.
+#
+# `union` keeps both sides' lines instead of raising a conflict, which is the correct resolution
+# for a file whose only operation is "add a line". It was not correct before there were two
+# sessions; on 2026-08-05 the spend ledger conflicted on an ordinary merge and had to be resolved
+# by hand with a throwaway dedupe script, which is exactly the sort of manual step that eventually
+# gets it wrong.
+#
+# Safe here because the reader already deduplicates by row identity, so a row union-merged twice
+# is counted once. Do NOT extend this to a file where a duplicated line changes the meaning.
+.claude/opencode-spend.jsonl merge=union
+.claude/opencode-calibration.jsonl merge=union

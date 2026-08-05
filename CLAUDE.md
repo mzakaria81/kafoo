@@ -108,6 +108,7 @@ supabase/migrations/ SQL. Generated names only.
 supabase/functions/  Edge Functions
 specs/               Per-epic spec, plan and tasks
 decisions/           ADRs. Read before proposing architecture changes.
+coordination/        Work packages, one JSON file each. How parallel sessions divide work.
 ```
 
 `packages/domain/` must not import `supabase_flutter`. If you need it there, the boundary is wrong.
@@ -254,6 +255,40 @@ hook-driven output-compression tools vendored into `.claude/`; the full reasonin
 Its subagent injection is scoped by `PONYTAIL_SUBAGENT_MATCHER` to implementation agents only.
 The review agents in `.claude/agents/` exist to object, and telling them to do less defeats them.
 
+## Working alongside another session
+
+Kafoo runs more than one Claude Code session at a time. **Read `coordination/README.md` before
+picking up any work.** The short version, and it is not optional:
+
+**One session is the coordinator; every other session is a worker.** If the founder is talking to
+you about planning, priorities or what to do next, you are the coordinator. Otherwise you are a
+worker. It is a role, not an identity — containers are destroyed after a period of inactivity, so
+no session is durable and the founder is the only continuous participant.
+
+**A worker never chooses its own work.** Work arrives as a work package in
+`coordination/packages/WP-###.json`, assigned by the coordinator. A worker owns its package end to
+end and updates the status of that package only. It does not create, split, reprioritise or assign
+packages, and it does not edit `specs/*/tasks.md` planning state.
+
+**The coordinator pulls `main` before proposing anything.** This whole directory exists because on
+2026-08-05 a session proposed the Cook's Meal list, asked the founder to approve two design
+decisions about it, and dispatched an implementer — while the identical screen sat merged in `main`,
+twenty-six minutes old. The task list it read was a local copy. **A stale plan is indistinguishable
+from a correct one until the merge.**
+
+**Never claim a task number from a local copy of `tasks.md`.** Two sessions each took `T097` the
+same day. The coordinator allocates ids; `scripts/validate-coordination.py` refuses duplicates for
+packages, but nothing can retroactively fix a task number two people have already used.
+
+**Declare what a package shares.** File-disjoint packages are not achievable here — every
+user-facing change touches both ARB files, and two workers adding pgTAP cases both edit the same
+`plan(N)` line. `scope.shared_files` is where that is admitted so the coordinator can serialise it.
+A package claiming to touch nothing shared is usually a package nobody checked.
+
+**A worker still stops and asks.** The stop-and-ask triggers below — a new screen, money, a new
+category of personal data, AI acting without approval — route to the founder. Owning a package end
+to end is not authority to decide those.
+
 ## Delegating implementation work
 
 **YOU MUST delegate implementation.** Writing production code directly is the exception, not the
@@ -367,6 +402,33 @@ of 2026-08-03. It cannot see spend from a laptop or another machine. The authori
 the OpenCode workspace console, which needs a browser credential that must not be put in a cloud
 environment: there is no secrets store, so anyone with access to the environment could read it, and
 a console session reaches billing rather than just model calls.
+
+**So the founder sends a screenshot of that console at the end of each day, and it is the only
+thing here that touches billed dollars.** He hovers a day's bar; the tooltip gives the exact figure
+per model. Record each reading in `.claude/opencode-calibration.jsonl`, one row per day per model,
+and commit it with the ledger. That gets the authoritative number into the repository without a
+billing-capable browser session ever reaching an environment with no secrets store.
+
+**Do not put calibration rows in the ledger.** They carry a cost figure, everything that reads the
+ledger sums cost figures, and the check would corrupt the number it exists to check.
+
+**The relay's `cost` is what the CLI computes, not what the account is billed, and the gap is
+per model rather than uniform.** Measured 2026-08-05 across four days:
+
+| Model | Ledger | Console | Drift |
+|---|---|---|---|
+| `qwen3.6-plus` | $4.24 | $4.36 | −2.7%, and within 1% on every single day |
+| `grok-4.5` | $7.28 | $5.35 | +36%, i.e. a third of the five-hour window spent on nothing |
+
+`report` now corrects per model from those readings before comparing anything to a cap, and prints
+the relay's own figure beside the corrected one so the correction is visible rather than silent.
+**Adding a day's reading is what keeps it accurate — an uncalibrated report says so in its output.**
+
+Founder's tolerance, 2026-08-05: **8% per day after correction.** Five of the seven day-and-model
+pairs measured land inside 1%. The two that do not are both `grok-4.5` on 02 and 03 August, the
+first two days this tooling was used at all, and they are reported as OUT rather than absorbed.
+**A day outside tolerance is a defect to investigate, never a reason to widen the band** — scaling
+a number that is wrong for a knowable reason only hides the reason.
 
 **`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
 two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every

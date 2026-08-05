@@ -1,0 +1,104 @@
+# Coordination
+
+Two or more Claude Code sessions work on Kafoo at once. This directory is how they avoid building
+the same thing twice.
+
+**They did, on 2026-08-05.** Two sessions each built the Cook's Meal list. One had merged it to
+`main` twenty-six minutes before the other proposed it, and nothing said so — the second session
+had asked the founder to approve design decisions that were already made and merged. The cost was
+small and the failure mode is not: **both sessions believed they owned the work, and there was no
+point at which either could have found out.**
+
+## Roles
+
+**One session is the coordinator. Every other session is a worker.** The coordinator is whichever
+session the founder is talking to about planning; it is a role, not an identity, because sessions
+run in containers that are destroyed after a period of inactivity. The founder is the only durable
+participant.
+
+**The coordinator alone** creates, splits, merges, prioritises, cancels and assigns work packages,
+and is the only one that moves a package to `ASSIGNED`. It owns `coordination/`, `specs/*/tasks.md`
+and `decisions/`.
+
+**A worker never chooses its own work.** It owns its assigned package end to end — design, backend,
+frontend, database, tests, documentation, verification — and updates the status of that package
+only. It does not touch planning files.
+
+## Work packages
+
+A package is a complete unit of work, not a task. `coordination/packages/WP-###.json`, **one file
+per package** — a single shared file would mean every status update by every worker rewrites the
+same lines, which is a conflict point built into the thing meant to prevent conflicts. A conflicted
+JSON file is also invalid, so every tool reading it breaks until a human intervenes.
+
+State lives in the JSON. **Reasoning lives in markdown** — `specs/*/tasks.md` carries why a check
+could not fail, what a mutation proved, which policy does which half of a rule. That prose is read
+by the founder and would not survive being flattened into JSON string fields.
+
+### Fields
+
+| Field | Meaning |
+|---|---|
+| `id` | `WP-###`. Must match the filename. |
+| `title`, `objective` | What and why, in a sentence each. |
+| `tasks` | The `T###` numbers in `specs/*/tasks.md` this package delivers. |
+| `acceptance_criteria` | How anyone tells it is done, without asking the author. |
+| `dependencies` | Package ids that must be `COMPLETED` first. |
+| `scope.files` | What this package expects to touch. |
+| `scope.shared_files` | What it touches that another package also might. Declared honestly. |
+| `execution_mode` | `PARALLEL` or `EXCLUSIVE`. |
+| `status` | The lifecycle below. |
+| `owner` | Exactly one, or `null` when `NOT_STARTED`. |
+| `priority` | Lower is sooner. |
+| `spend_envelope_usd` | What this package may spend on delegated dispatches. |
+| `suggested_model` | From the `opencode-go/` allowlist. The prefix is the billing boundary. |
+| `branch`, `pr` | So the coordinator can see state without asking. |
+| `blocked_reason` | Required when `BLOCKED`. A blocker nobody wrote down is not one. |
+| `updated_at` | Touched on every status change. Also how a dead worker is detected. |
+
+### Lifecycle
+
+```
+NOT_STARTED → ASSIGNED → IN_PROGRESS → READY_FOR_REVIEW → COMPLETED
+                              ↓
+                           BLOCKED
+```
+
+`ASSIGNED` is the coordinator's move. Everything after it is the owning worker's.
+
+### Execution mode
+
+`PARALLEL` is the default. `EXCLUSIVE` means nothing else runs while it is active — used for
+changes that touch files every other package touches. `WP-007` is the worked example: it rewrites
+both ARB files and about 56 call sites, and it changes `verify.sh`, which every other package
+depends on to know whether it passed.
+
+**Exclusivity solves file contention, not resource contention.** Two parallel packages still share
+the OpenCode spend caps, which is what the envelope is for.
+
+## The limit worth stating plainly
+
+**File-disjoint packages are not achievable in this repository, and pretending otherwise hides
+collisions rather than removing them.** Measured across everything committed since 1 August, the
+hotspots are `app_ar.arb` and `app_en.arb` with their three generated files, the spend ledger, the
+observation log, `verify.sh`, and the pgTAP suites — where two workers adding cases both edit the
+same `plan(N)` line.
+
+So packages declare `shared_files` and the coordinator serialises the ones that genuinely collide.
+The spend ledger and the calibration file are handled differently: `.gitattributes` gives them a
+union merge, because their only operation is "add a line".
+
+## What the gate enforces
+
+`scripts/validate-coordination.py`, run by `./scripts/verify.sh`. It refuses duplicate ids, a
+filename disagreeing with its id, an active package with no owner, a `NOT_STARTED` package that has
+one, `BLOCKED` with no reason, two active `EXCLUSIVE` packages, anything running beside an active
+`EXCLUSIVE`, a dependency that does not exist, a cycle, a model outside the `opencode-go/`
+allowlist, and a missing spend envelope.
+
+It **warns** rather than fails when a package has sat `IN_PROGRESS` for six hours: the worker has
+probably died with its container, and only the coordinator may reclaim it. Failing there would
+block every unrelated commit until someone tidied up.
+
+Every one of those rules was mutation-tested when it was written — broken on purpose, watched to go
+red, and put back.
