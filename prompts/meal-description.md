@@ -9,7 +9,9 @@ version: 3
 # for a second shape, and the rule it would have to enforce — a value with no basis is dropped, not
 # shown — is a trust rule. Two implementations of a trust rule is one more than can be kept honest.
 model_tier: fast
-last_evaluated: never # goldens land with T051; this becomes a date when they first run
+last_evaluated: 2026-08-05 # T098, first replay against a live model. Report and the three rules
+# it found unasserted: docs/ops/eval-meal-description.md and its findings companion. The date is
+# when it was measured, not a grade — that run had one failing check and three silent violations.
 ---
 
 # Meal description
