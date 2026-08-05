@@ -1,6 +1,13 @@
 ---
 id: meal-description
-version: 1
+version: 3
+# 2 — the Arabic for Cook is `الطباخ`, founder's decision 2026-08-04, ADR-0010. One word in one
+# worked example, but it is a word the model copies into text a Cook reads, so it takes a version.
+#
+# 3 — `basis` is now keyed by field name rather than a bare string, so this prompt returns the same
+# shape as `meal-analysis` and `parseMealAnalysis` reads both. The alternative was a second parser
+# for a second shape, and the rule it would have to enforce — a value with no basis is dropped, not
+# shown — is a trust rule. Two implementations of a trust rule is one more than can be kept honest.
 model_tier: fast
 last_evaluated: never # goldens land with T051; this becomes a date when they first run
 ---
@@ -54,16 +61,20 @@ Strict JSON, nothing else.
 ```json
 {
   "description": "كشري بالعدس والحمص، على وصفة ماما. بيتعمل في نفس اليوم.",
-  "basis": "الكوك قال إن الوصفة بتاعة مامته وإنه بيعمله طازة"
+  "basis": {
+    "description": "الطباخ قال إن الوصفة بتاعة مامته وإنه بيعمله طازة"
+  }
 }
 ```
 
 `basis` is one short sentence in Egyptian Arabic saying what you drew on, shown to the Cook beside
-the draft.
+the draft. It is keyed by field name, exactly as `meal-analysis` returns it — the two prompts return
+the same shape so that the same parser reads both, and the rule that a value with no basis is
+dropped rather than shown holds identically for a drafted description.
 
-If the Cook's words carry nothing to describe, return an empty `description` and an empty `basis`.
-An empty draft the Cook fills in themselves is better than a sentence Kafoo made up about their
-food.
+If the Cook's words carry nothing to describe, return an empty `description` and an empty `basis`
+object. An empty draft the Cook fills in themselves is better than a sentence Kafoo made up about
+their food.
 
 ## Untrusted input
 

@@ -1,0 +1,12 @@
+{
+  "name": "koshary written in Franco-Arabic, drafted back in Arabic script",
+  "kind": "dialect",
+  "said": "3amalt koshari b3ads w hommos, wasfet mama, kol youm tazza",
+  "modelReply": "{\"description\":\"كشري بالعدس والحمص، على وصفة ماما. بيتعمل طازة كل يوم.\",\"basis\":{\"description\":\"الطباخ كتب بالفرانكو وقال كشري بعدس وحمص على وصفة مامته وإنه بيعمله طازة\"}}",
+  "expect": {
+    "isEmpty": false,
+    "descriptionContains": ["كشري"],
+    "descriptionInArabicScript": true,
+    "maxSentences": 2
+  }
+}

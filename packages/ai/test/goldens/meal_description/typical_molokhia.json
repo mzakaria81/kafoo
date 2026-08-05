@@ -1,0 +1,11 @@
+{
+  "name": "molokhia, described in the Cook's own voice",
+  "kind": "typical",
+  "said": "عملت ملوخية بفراخ بلدي ورز، والتقلية بتاعتي بالتوم والكزبرة",
+  "modelReply": "{\"description\":\"ملوخية بفراخ بلدي ورز، والتقلية بتاعتي بالتوم والكزبرة.\",\"basis\":{\"description\":\"الطباخ قال ملوخية بفراخ بلدي ورز ووصف التقلية بتاعته\"}}",
+  "expect": {
+    "isEmpty": false,
+    "descriptionContains": ["ملوخية", "فراخ"],
+    "maxSentences": 2
+  }
+}

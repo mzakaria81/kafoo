@@ -76,30 +76,28 @@ interface Outcome {
 //
 // This is a signal, not a verdict. The `basis` text is printed in full in the report because the
 // judgement is a human one.
-const MSA_MARKERS: ReadonlyArray<{ term: string; note: string }> = [
-  { term: 'يحتوي', note: 'Egyptian: فيه' },
-  { term: 'تحتوي', note: 'Egyptian: فيها' },
-  { term: 'يعتبر', note: 'Egyptian: ده' },
-  { term: 'تعتبر', note: 'Egyptian: دي' },
-  { term: 'غالباً', note: 'MSA hedge' },
-  { term: 'لذا', note: 'MSA connective' },
-  { term: 'حيث', note: 'MSA connective' },
-  { term: 'يتم', note: 'MSA passive' },
-  { term: 'ليس', note: 'Egyptian: مش' },
-  { term: 'هذا', note: 'Egyptian: ده' },
-  { term: 'هذه', note: 'Egyptian: دي' },
-  { term: 'الذي', note: 'Egyptian: اللي' },
-  { term: 'التي', note: 'Egyptian: اللي' },
-  { term: 'دجاج', note: 'Egyptian: فراخ — named in the prompt' },
-  { term: 'أرز', note: 'Egyptian: رز — named in the prompt' },
-  { term: 'بندورة', note: 'Egyptian: طماطم — named in the prompt' },
-  { term: 'الطباخ', note: 'glossary: Cook is الكوك' },
-];
+// The lists live in packages/ai/test/goldens/register_markers.json so the
+// TypeScript replay and the Dart golden runner share one corpus. The comment
+// above explains why the markers are constructions rather than nouns.
+let _msaMarkers: ReadonlyArray<{ term: string; note: string }> | null = null;
+let _egyptianMarkers: readonly string[] | null = null;
 
-const EGYPTIAN_MARKERS: readonly string[] = [
-  'ده', 'دي', 'اللي', 'مش', 'فيه', 'فيها', 'كده', 'أوي', 'عشان', 'بتاع', 'بتاعة', 'دلوقتي',
-  'بيحتوي', 'بيتاكل', 'بتشير', 'بيبقى', 'بيتعمل',
-];
+function _registry(): {
+  msa: ReadonlyArray<{ term: string; note: string }>;
+  egyptian: readonly string[];
+} {
+  if (_msaMarkers === null) {
+    const raw = JSON.parse(
+      Deno.readTextFileSync('packages/ai/test/goldens/register_markers.json'),
+    ) as {
+      msa: ReadonlyArray<{ term: string; note: string }>;
+      egyptian: readonly string[];
+    };
+    _msaMarkers = raw.msa;
+    _egyptianMarkers = raw.egyptian;
+  }
+  return { msa: _msaMarkers!, egyptian: _egyptianMarkers! };
+}
 
 function collectStrings(value: unknown, into: string[]): void {
   if (typeof value === 'string') into.push(value);
@@ -111,22 +109,28 @@ function collectStrings(value: unknown, into: string[]): void {
 
 /// Space-anchored on purpose. A bare substring test would count بيحتوي (Egyptian) as يحتوي (MSA),
 /// which is the exact distinction being measured.
+///
+/// The optional `و` is a conjunction written joined to the next word, and leaving it out cost this
+/// check two real hits in the version 1 replay: `وتعتبر` in two fixtures went unreported, and one
+/// of them was scored "Modern Standard markers: none". Prefixes that change the register — the `ب`
+/// on بيحتوي — still must not be skipped, so only the conjunction is optional.
 function present(haystack: string, term: string): boolean {
-  return new RegExp(`(^|\\s)${term}(\\s|$|[،.)(])`).test(haystack);
+  return new RegExp(`(^|\\s)و?${term}(\\s|$|[،.)(])`).test(haystack);
 }
 
-function findRegisterMarkers(
+export function findRegisterMarkers(
   value: Record<string, unknown>,
 ): { msa: string[]; egyptian: string[] } {
   const texts: string[] = [];
   collectStrings(value, texts);
   const haystack = texts.join(' ');
+  const reg = _registry();
 
   return {
-    msa: MSA_MARKERS
+    msa: reg.msa
       .filter(({ term }) => present(haystack, term))
       .map(({ term, note }) => `${term} (${note})`),
-    egyptian: EGYPTIAN_MARKERS.filter((term) => present(haystack, term)),
+    egyptian: reg.egyptian.filter((term) => present(haystack, term)),
   };
 }
 

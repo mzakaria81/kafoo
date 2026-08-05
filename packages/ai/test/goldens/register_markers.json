@@ -1,0 +1,29 @@
+{
+  "note": "Two readers share this file: `scripts/replay-goldens.ts` (TypeScript, live model replay) and `packages/ai/test/meal_description_goldens_test.dart` (Dart, stub golden runner). Keeping one list means a drift between them is impossible — two answers to 'is this Egyptian' is worse than one.",
+  "matching": "A term matches only at a word boundary: start of string or a space before, and space/end/،/./(/) after. An optional Arabic conjunction و may sit directly in front of the term. NO OTHER PREFIX is optional — بيحتوي is Egyptian and must never count as the Modern Standard يحتوي.",
+  "history": "Both rules in `matching` are corrections, not design. The conjunction was not optional until 2026-08-05, so وتعتبر went unreported twice in the version 1 replay of meal-analysis — once carrying a whole fixture's verdict of 'Modern Standard markers: none'. And the entry for الكوك was the other way round until the same day: it flagged الطباخ and named الكوك as the fix, which the founder had settled in the opposite direction on 2026-08-04 (ADR-0010), so from meal-analysis version 2 on it would have flagged every correct reply. A check that is confidently wrong is worse than one that is silent, which is the whole reason this data has tests of its own.",
+  "msa": [
+    { "term": "يحتوي", "note": "Egyptian: فيه" },
+    { "term": "تحتوي", "note": "Egyptian: فيها" },
+    { "term": "يعتبر", "note": "Egyptian: ده" },
+    { "term": "تعتبر", "note": "Egyptian: دي" },
+    { "term": "غالباً", "note": "MSA hedge" },
+    { "term": "لذا", "note": "MSA connective" },
+    { "term": "حيث", "note": "MSA connective" },
+    { "term": "يتم", "note": "MSA passive" },
+    { "term": "ليس", "note": "Egyptian: مش" },
+    { "term": "هذا", "note": "Egyptian: ده" },
+    { "term": "هذه", "note": "Egyptian: دي" },
+    { "term": "الذي", "note": "Egyptian: اللي" },
+    { "term": "التي", "note": "Egyptian: اللي" },
+    { "term": "دجاج", "note": "Egyptian: فراخ — named in the prompt" },
+    { "term": "أرز", "note": "Egyptian: رز — named in the prompt" },
+    { "term": "بندورة", "note": "Egyptian: طماطم — named in the prompt" },
+    { "term": "بالإضافة", "note": "Egyptian: و / وكمان" },
+    { "term": "الكوك", "note": "glossary: Cook is الطباخ" }
+  ],
+  "egyptian": [
+    "ده", "دي", "اللي", "مش", "فيه", "فيها", "كده", "أوي", "عشان", "بتاع",
+    "بتاعة", "دلوقتي", "بيحتوي", "بيتاكل", "بتشير", "بيبقى", "بيتعمل"
+  ]
+}

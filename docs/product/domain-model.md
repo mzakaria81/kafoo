@@ -129,6 +129,18 @@ true. A Cook whose Meals are all drafts has never opened; a Cook who has taken e
 menu is closed. Both correctly return zero rows to everyone but the Cook, and the fix for "my
 kitchen disappeared" is to put a Meal back on the menu — never to widen the policy.
 
+**Two policies enforce that, not one, and the migration comment naming the kitchen policy "the
+whole of Kafoo's discovery rule" overstates its share.** The kitchen policy asks whether a
+published Meal exists; the meals policy decides which Meals the asker can see at all, and the
+`EXISTS` runs under it. So a signed-out person is refused twice over.
+
+Measured on 2026-08-05 rather than reasoned about. Widening either policy alone leaves
+`kitchen_discoverability_test.sql` fully green — each layer masks the other, so a single-mutation
+check reports a test that bites when it has not been given the chance to. Widening both together
+turns two assertions red. That is real defence in depth rather than an accident, and it is written
+down here because the next person to relax one of those policies will read the other one as
+belt-and-braces and be wrong about which belt is holding.
+
 ## Entity fields
 
 Fields below are the domain-meaningful ones. Every table additionally carries

@@ -122,6 +122,21 @@ jobs:
         if: steps.detect.outputs.buildable == 'true'
         run: melos bootstrap
 
+      # Deno, for the same reason ci.yml installs it: the Edge Functions are Deno and three of the
+      # gate's checks cannot run without it — `deno check`, the Edge Function unit tests, and the
+      # prompt bundle drift check that catches a prompt edit never recompiled into the deployed
+      # bundle. This job has run the gate since it was written and has never had Deno, so all three
+      # skipped and reported ok on every release.
+      #
+      # It went from silent to loud on 2026-08-05, when verify.sh started failing rather than
+      # skipping under CI, and every deploy since has failed here. That is the check working as
+      # intended: the release was already missing them and nobody could see it.
+      - name: Set up Deno
+        if: steps.detect.outputs.buildable == 'true'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       # A release is not the place to discover a missing RLS policy.
       - name: Run the gate
         if: steps.detect.outputs.buildable == 'true'
@@ -252,6 +267,21 @@ jobs:
       - name: Bootstrap workspace
         if: steps.detect.outputs.buildable == 'true'
         run: melos bootstrap
+
+      # Deno, for the same reason ci.yml installs it: the Edge Functions are Deno and three of the
+      # gate's checks cannot run without it — `deno check`, the Edge Function unit tests, and the
+      # prompt bundle drift check that catches a prompt edit never recompiled into the deployed
+      # bundle. This job has run the gate since it was written and has never had Deno, so all three
+      # skipped and reported ok on every release.
+      #
+      # It went from silent to loud on 2026-08-05, when verify.sh started failing rather than
+      # skipping under CI, and every deploy since has failed here. That is the check working as
+      # intended: the release was already missing them and nobody could see it.
+      - name: Set up Deno
+        if: steps.detect.outputs.buildable == 'true'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       # A release is not the place to discover a missing RLS policy.
       - name: Run the gate

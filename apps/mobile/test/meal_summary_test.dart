@@ -42,14 +42,14 @@ const _price = '50';
 const _fullAnalysisReply =
     '{"ingredients":["عدس","رز","مكرونة"],"calories":850,"allergens":["جلوتين"],'
     '"cuisine":"egyptian","category":"main",'
-    '"basis":{"ingredients":"من وصف الكوك","calories":"تقدير لطبق كامل",'
+    '"basis":{"ingredients":"من وصف الطباخ","calories":"تقدير لطبق كامل",'
     '"allergens":"المكرونة فيها قمح","cuisine":"كشري مصري",'
     '"category":"طبق رئيسي"}}';
 
 /// Same as full, but no allergens — that estimate must not be required.
 const _noAllergensReply = '{"ingredients":["عدس","رز"],"calories":850,'
     '"cuisine":"egyptian","category":"main",'
-    '"basis":{"ingredients":"من وصف الكوك","calories":"تقدير لطبق كامل",'
+    '"basis":{"ingredients":"من وصف الطباخ","calories":"تقدير لطبق كامل",'
     '"cuisine":"كشري مصري","category":"طبق رئيسي"}}';
 
 /// Parse the JSON analysis fixture so tests read values from it, never retype.
@@ -393,7 +393,7 @@ void main() {
     // fixture, so assert the unique basis strings and that the category row
     // carries the shared phrase at least once.
     expect(find.text('كشري مصري'), findsOneWidget);
-    expect(find.text('من وصف الكوك'), findsOneWidget);
+    expect(find.text('من وصف الطباخ'), findsOneWidget);
     expect(find.text('تقدير لطبق كامل'), findsOneWidget);
     expect(find.text('المكرونة فيها قمح'), findsOneWidget);
     expect(find.text('طبق رئيسي'), findsWidgets);

@@ -1,0 +1,11 @@
+{
+  "name": "hawawshi, and the Cook said almost nothing",
+  "kind": "typical",
+  "said": "حواوشي لحمة مفرومة في عيش بلدي",
+  "modelReply": "{\"description\":\"حواوشي لحمة مفرومة في عيش بلدي.\",\"basis\":{\"description\":\"الطباخ مقالش غير اسم الأكلة والمكونات\"}}",
+  "expect": {
+    "isEmpty": false,
+    "descriptionContains": ["حواوشي"],
+    "maxSentences": 1
+  }
+}

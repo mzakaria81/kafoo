@@ -1,0 +1,9 @@
+{
+  "name": "nothing to describe",
+  "kind": "empty",
+  "said": "ااااا .... ??? hello 123",
+  "modelReply": "{\"description\":\"\",\"basis\":{}}",
+  "expect": {
+    "isEmpty": true
+  }
+}

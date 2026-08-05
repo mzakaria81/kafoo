@@ -150,13 +150,56 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   register check tested only the three noun pairs, so it reported all eight clean — a detector that
   can only say "clean" is worse than none, because it certifies the thing it cannot see.
 
-- [ ] T088 **Teach the prompt the register it already asks for, then re-replay.** T086's finding.
-  The prompt gives noun pairs (`فراخ` not `دجاج`) and no sentence pairs, so the model matches the
-  nouns and misses the register. Add worked `basis` examples in spoken Egyptian and a short
-  do-not-write list (`تحتوي على`, `يعتبر`, `غالباً ما`, `لذا`), bump `version` to 2, regenerate
-  `supabase/functions/_shared/prompts.ts`, and re-run `scripts/replay-goldens.ts`.
-  **Needs the founder to write or approve the Egyptian example sentences** — the whole point is a
-  register nobody who is not Egyptian should be inventing
+- [x] T088 **Teach the prompt the register it already asks for, then re-replay — DONE 2026-08-05.**
+  T086's finding. Version 1 gave noun pairs (`فراخ` not `دجاج`) and no sentence pairs, so the model
+  matched the nouns and missed the register. Version 2 adds a nine-row do-not-write table, seven
+  worked `basis` rewrites, and the rule that the model writes about the Meal rather than to the
+  Cook. T094 and T095 are folded in, so the corpus was replayed once rather than three times.
+
+  **Five of eight replies carried Modern Standard markers before; one does now.** The one left is
+  `دي وجبة مشبعة وتعتبر طبق رئيسي` on the burger fixture — Egyptian everywhere except the verb.
+  Six of the remaining seven carry Egyptian markers; the eighth is the garbage fixture, which
+  correctly returns nothing to score. Full report: `docs/ops/eval-meal-analysis.md`.
+
+  **The seven rewrites are still the founder's to confirm.** They are rewrites of sentences the
+  model actually produced, not invented copy, and they are the one part of this that a non-Egyptian
+  should not be the last reader of. They are listed for line-by-line review in the session that
+  landed this; nothing merges to `main` until he has read them.
+
+  **Latency also moved, and nobody asked it to: 864–1814 ms, median 1199 ms.** Version 1 was
+  779–2615 ms with a tail outside the 2-second voice budget. All eight are now inside it. One run
+  is not a measurement — this does not close T075 — but it is the direction to expect.
+
+  **The register detector was wrong in two ways, and a replay could not have told anyone.** It
+  flagged `الطباخ` as the error and named `الكوك` as the fix, which is backwards since the founder
+  settled the word on 2026-08-04 — from version 2 on it would have flagged every correct reply. And
+  its marker test was anchored on a space, so an Arabic conjunction written joined to the next word
+  hid the marker behind it: `وتعتبر` went unreported twice in the version 1 replay, once on a
+  fixture whose verdict came out as "Modern Standard markers: none". The one MSA hit in this replay
+  is a `وتعتبر`, so without the fix version 2 would have scored a clean sweep it did not earn.
+
+  Both are now covered by `scripts/register_markers_test.ts`, which runs in the gate — the `find`
+  in `verify.sh` was widened from `supabase/functions` to include `scripts`. Mutation-checked in
+  both directions: removing the conjunction turns three cases red, flipping the word turns one red.
+
+- [x] T094 **Never address the Cook in the second person — DONE 2026-08-05, folded into T088.**
+  Arabic marks gender on the second person, so every `you` forces a guess about whether this Cook is
+  a man or a woman and there is no neutral form to fall back on. The prompt now requires third
+  person about the Meal, which removes the guess rather than making it well. This is what keeps
+  model output gender-free by construction, so T089–T092 never have to pass a preference into a
+  model
+
+- [x] T095 **The Arabic word for Cook is `الطباخ` — DONE 2026-08-05, folded into T088.**
+  Founder decision, 2026-08-04 (ADR-0010). The task said one word in `prompts/meal-analysis.md`; it
+  was in nine places. `prompts/meal-description.md` carried it too and took a `version` bump of its
+  own, six golden fixtures recorded it in their stub replies, and two widget tests asserted on it.
+
+  The new `arabic vocabulary` step in `scripts/verify.sh` fails on it across `apps`, `packages`,
+  `prompts` and `supabase`. The existing `vocabulary` step could never have caught any of this —
+  it greps English words, and every occurrence was inside an Arabic string. `docs/` is deliberately
+  not swept: `docs/ops/eval-meal-analysis.md` is a transcript of what a model returned, and editing
+  the record to match the decision would be falsifying the measurement. Mutation-checked by putting
+  the old word back into a fixture and watching the step go red
 
 ### The conversation
 
@@ -382,8 +425,28 @@ estimate.
 **Independent test**: Publish correcting nothing and confirm every AI-derived value is labelled an
 estimate. Correct one and confirm it becomes the Cook's.
 
-- [ ] T045 [P] [US2] Add the estimate and provenance strings to `app_ar.arb` then `app_en.arb` — "the AI Assistant estimated this", and the basis for each
-- [ ] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the `basis` the function returned (FR-013). On the screen, not in a tooltip
+- [x] T045 [P] [US2] Add the estimate and provenance strings to `app_ar.arb` then `app_en.arb` — "the
+  AI Assistant estimated this", and the basis for each — **DONE, ticked 2026-08-05.** Six keys in
+  both locales: `mealSummaryEstimatesTitle`, `mealSummaryEstimatesNotice`, `mealSummaryEstimateBadge`,
+  `mealSummaryApprove`, `mealSummaryApproved`, `mealSummaryNoEstimates`.
+
+  Built during T037 and never ticked. Verified rather than assumed — the box is checked because the
+  keys are in both ARB files and rendered, not because the work felt done.
+
+  **`aiEstimateNotice` is a seventh key with no call site, and it is being left alone.** It reads as
+  the Customer-facing wording of the same idea, which is T048's job and belongs to another session.
+  Deleting a string somebody is about to use is a worse outcome than an unused key, so it is recorded
+  here instead. If T048 lands without using it, delete it there
+- [x] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the
+  `basis` the function returned (FR-013). On the screen, not in a tooltip — **DONE, ticked
+  2026-08-05.** `EstimateRow` renders the basis as a plain `Text` under the value, and the summary
+  loops over `MealEstimateFields.presentIn(analysis)`, so the set of rows is derived from what the
+  AI Assistant actually returned rather than from a hand-written list that could fall behind it.
+
+  "Every" is the load-bearing word and it is structural here: adding a sixth suggestion to
+  `MealAnalysis` without adding it to `presentIn` leaves it unrendered, so that function is the one
+  place to look. Covered by the T050 tests, which assert the badge and the notice by row rather than
+  page-wide
 - [x] T047 [US2] Make each estimate correctable in one action, and confirm the correction reaches the database as the Cook's — verifying the T017 trigger from the client side — **DONE 2026-08-05.** The one-tap correction already existed; what was missing was proof of which VALUE each act sends, which is the only thing the trigger can see. Four tests now pin it: approving sends the AI Assistant's figure unchanged, correcting sends the Cook's, for calories and for allergens. The allergen correction is typed with the Arabic comma `،`, because that is what a Cook's keyboard produces and a split that only handled the Latin one would swallow a whole list into a single string
 
   **Doing this found the trigger getting the distinction backwards, and it was not a rare case —
@@ -411,7 +474,57 @@ estimate. Correct one and confirm it becomes the Cook's.
   saying "estimate" over a figure the Cook typed. So there is a matching test that a corrected value
   loses the badge, and that correcting one row does not clear the badge on the others. Both
   mutation-checked
-- [ ] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is conversational Egyptian, not Modern Standard. This is the first Arabic in Kafoo a model wrote rather than a person
+- [x] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is
+  conversational Egyptian, not Modern Standard — **DONE 2026-08-05.** Eight fixtures in
+  `packages/ai/test/goldens/meal_description/`, twelve tests in
+  `packages/ai/test/meal_description_goldens_test.dart`.
+
+  **Unblocked by T088, and it was blocked for a reason worth keeping.** Written while five of eight
+  `meal-analysis` replies read as Modern Standard, the only assertion that could have passed is one
+  weak enough not to measure the register — a test written to the bug.
+
+  **The prompt returned a shape no parser could read.** `meal-description` put its reason in a bare
+  string while `meal-analysis` keys it by field, so `MealAnalysis.description` has existed and been
+  unreachable since it was declared. Version 3 returns the sibling's shape and `parseMealAnalysis`
+  reads both. Bending a prompt to suit a parser needs a better reason than tidiness and has one: a
+  value with no stated reason is dropped rather than shown, which is a trust rule, and two
+  implementations of a trust rule is one more than can be kept honest.
+
+  **The marker lists are now data, in `packages/ai/test/goldens/register_markers.json`.** Dart
+  cannot import a TypeScript array, and a second hand-written list would drift from the first — two
+  answers to "is this Egyptian" is worse than one. The TypeScript replay and the Dart runner read
+  the same file, and each has a test pinning the two anchoring rules (`بيحتوي` is not `يحتوي`;
+  `وتعتبر` is `تعتبر`) so a re-implementation that drifts goes red.
+
+  **The register assertion is per-fixture; the Egyptian-marker count is corpus-level, deliberately.**
+  Zero Modern Standard markers is demanded of every description and every basis. A positive Egyptian
+  marker is demanded of only four fixtures out of eight, because `حواوشي لحمة مفرومة في عيش بلدي` is
+  entirely natural and contains none of the listed tokens — per-fixture would push an author to bend
+  real sentences around a word list. Four is exactly what the corpus carries, so the assertion still
+  bites.
+
+  **Three delegated assertions were rewritten because they could not fail.** `descriptionNotContains`,
+  `descriptionInArabicScript` and `maxSentences` each skipped silently when the parser dropped the
+  description — and the fixtures leaning on the first are the adversarial pair, where a vacuous pass
+  reports "no gluten-free claim was written" about a draft that does not exist. They now demand a
+  description first.
+
+  Mutation-checked: a Modern Standard verb in a description names the marker and quotes the
+  sentence; removing one Egyptian marker from the shared file drops the corpus count below four.
+
+- [ ] T098 **Replay `meal-description` against a real model, as T086 did for `meal-analysis`.**
+  Numbered T097 when it was written on 2026-08-05 and renumbered the same day: another session had
+  already merged a different T097. Two sessions appending to one task list will keep colliding while
+  the next free number is guessed from a local copy — pull `main` before claiming one.
+  T051 covers the parser and the assertions; goldens run against a stub, so nothing yet measures
+  whether the *prompt* produces Egyptian. `last_evaluated` on `prompts/meal-description.md` is still
+  `never`, and it is the only prompt whose output a Customer reads verbatim.
+
+  `scripts/replay-goldens.ts` is hardcoded to `meal-analysis` — prompt id, goldens directory, report
+  path, schema and scoring. Generalising it is the work; the register detector is already shared and
+  needs no change. Split out of T051 rather than folded in, because "add a golden case" does not
+  authorise rewriting the eval harness. Rate limit is 15 requests per minute on the free tier and
+  `replay-goldens.ts` refuses to run below 4000 ms spacing
 
 ---
 
@@ -429,6 +542,15 @@ unchanged.
 - [x] T054 [US4] Implement making a Meal unavailable and available again in one action each, emitting `MealUpdated` with `changed`. `setStatus` writes the `status` column and nothing else — a test asserts no other write accompanied it, because "nothing about it is lost" is the acceptance criterion. `changed: 'availability'` is a fixed vocabulary word, never free text
 - [x] T055 [US4] Tell the Cook when taking their last available Meal off the menu makes their kitchen unfindable — correct, and surprising enough that it must be visible rather than discovered. One confirmation, and **only** on the last one: an ordinary reversible change gets no dialog. The rule is the pure `isLastMealOnOffer` in `packages/domain/`. Mutation-checked — removing the confirmation turns the test red
 - [x] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody. **Already covered**: `kitchen_discoverability_test.sql` case 28 — "a kitchen with everything taken off the menu is closed, and nobody finds it" — green. Confirmed rather than duplicated
+
+  **Mutation-checked on 2026-08-05, and the first two attempts could not fail it.** Widening the
+  kitchen policy to accept an unavailable Meal left the suite green; so did widening the meals read
+  policy on its own. Neither meant the test was weak — the rule is enforced twice. The kitchen
+  policy asks whether a published Meal exists, and that `EXISTS` runs under the meals policy, which
+  decides what the asker can see at all, so each layer masks the other and one mutation proves
+  nothing either way. Widening both together turns this case and the whole-surface count red.
+  `docs/product/domain-model.md` now records which policy does which half, because the next person
+  to relax one will read the other as belt-and-braces and be wrong about which belt is holding
 
 ---
 
@@ -664,11 +786,5 @@ converting along with them — accepted, not overlooked.
 - [ ] T093 Extend the localization parity check. It compares key presence between locales and nothing
   else, so a `select` converted in Arabic and missed in English, or one missing its `other` branch,
   passes the gate today and fails at generation. The sweep must fix the check, not trust it
-- [ ] T094 Instruct `prompts/meal-analysis.md` never to address the Cook in the second person, bump
-  `version`, and re-replay with `scripts/replay-goldens.ts`. This keeps model output gender-free by
-  construction rather than passing a preference into the model. Fold into T088 if that is still open
-- [ ] T095 **The Arabic word for Cook is `الطباخ`** — founder decision, 2026-08-04. The ARB strings
-  are already right; `prompts/meal-analysis.md` says `الكوك` and must change. That is a semantic
-  prompt change, so it bumps `version` and forces a re-evaluation — **fold it into T088** and replay
-  the corpus once rather than twice. Add `الكوك` to the vocabulary check in `scripts/verify.sh` so
-  it cannot come back
+- [x] T094 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.
+- [x] T095 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.

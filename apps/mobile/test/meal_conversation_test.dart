@@ -83,7 +83,7 @@ class _DeferredAiProvider implements AiProvider {
 const _analysisReply =
     '{"ingredients":["عدس","رز"],"calories":850,"allergens":["جلوتين"],'
     '"cuisine":"egyptian","category":"main",'
-    '"basis":{"ingredients":"من وصف الكوك","calories":"تقدير لطبق كامل",'
+    '"basis":{"ingredients":"من وصف الطباخ","calories":"تقدير لطبق كامل",'
     '"allergens":"المكرونة فيها قمح","cuisine":"كشري مصري",'
     '"category":"طبق رئيسي"}}';
 

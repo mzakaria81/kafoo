@@ -168,13 +168,19 @@ run "edge functions" bash -c '
 # the author reasonably concludes their new suite passed. Caught exactly that way on 2026-08-02
 # with ten registry tests sitting unstaged on disk. A gate that silently ignores uncommitted work
 # is worse than one that has not been written, because it answers.
+#
+# `scripts/` is swept alongside `supabase/functions/` because the register detector in
+# replay-goldens.ts lives there and is the one piece of that script that can be wrong in silence.
+# It was, until 2026-08-05: it held the pre-ADR-0010 answer for the Arabic word for Cook, and its
+# marker test could not see a marker behind an Arabic conjunction. Neither shows up in a replay,
+# because a replay only reports what the detector found.
 run "edge function tests" bash -c '
-  files=$(find supabase/functions -name "*_test.ts" -type f 2>/dev/null | sort)
+  files=$(find supabase/functions scripts -name "*_test.ts" -type f 2>/dev/null | sort)
   [ -n "${files}" ] || { echo "   no edge function unit tests yet — skipping"; exit 0; }
   command -v deno >/dev/null || {
     skip_or_fail "deno not on PATH (run scripts/install-toolchain.sh)"; exit $?; }
   # shellcheck disable=SC2086
-  out=$(deno test --quiet --allow-env ${files} 2>&1) || {
+  out=$(deno test --quiet --allow-env --allow-read ${files} 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"connection"*|*"dns error"*)
         skip_or_fail "no network for remote imports"; exit $? ;;
@@ -276,6 +282,31 @@ run "vocabulary" bash -c '
     --include="*.dart" --include="*.sql" --include="*.ts" \
     apps packages supabase 2>/dev/null || true)
   if [ -n "$hits" ]; then echo "$hits"; exit 1; fi'
+
+# The Arabic word for Cook is الطباخ — founder decision, 2026-08-04 (ADR-0010). الكوك was in the
+# prompts, in six golden fixtures and in two widget tests, and a model copies whichever word the
+# prompt uses straight into text a Cook reads. The English vocabulary check above cannot see any of
+# it, because every one of those occurrences is inside an Arabic string.
+#
+# docs/ is deliberately not swept. docs/ops/eval-meal-analysis.md is a transcript of what a model
+# actually returned, and rewriting the record to match the decision would be falsifying the
+# measurement this whole task exists to act on.
+#
+# register_markers.json is exempt for the same reason one level in: it is the list of words the
+# register detector looks FOR, so the banned word is its content rather than its usage. A check
+# that cannot describe what it forbids is a check nobody can maintain. The exemption is one named
+# file, not a directory, so a second file cannot quietly inherit it.
+run "arabic vocabulary" bash -c '
+  hits=$(grep -rn "الكوك" \
+    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.json" --include="*.arb" \
+    --include="*.md" \
+    apps packages prompts supabase 2>/dev/null \
+    | grep -v "^packages/ai/test/goldens/register_markers.json:" || true)
+  if [ -n "$hits" ]; then
+    echo "$hits"
+    echo "   The Arabic for Cook is الطباخ, not الكوك — ADR-0010."
+    exit 1
+  fi'
 
 # ADR-0005 Amendment 1: switching model providers must be a configuration change with no code
 # diff at all. That claim is only true while a model name lives in exactly two places — the Edge
