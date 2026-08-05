@@ -907,6 +907,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الأكلة بقت على المنيو.'**
   String get mealPublishedConfirmation;
+
+  /// Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040).
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه معندكش مطبخ'**
+  String get mealNeedsKitchenTitle;
+
+  /// Body text explaining why a Kitchen Profile is needed before a Meal can be offered.
+  ///
+  /// In ar, this message translates to:
+  /// **'قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.'**
+  String get mealNeedsKitchenBody;
+
+  /// Button that opens the Kitchen Profile conversation so the Cook can create one.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعمل مطبخي'**
+  String get mealNeedsKitchenAction;
+
+  /// Shown when the Kitchen Profile existence check fails (network or server error).
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نتأكد من مطبخك. جرب تاني.'**
+  String get mealKitchenCheckError;
+
+  /// Button that re-runs the Kitchen Profile existence check.
+  ///
+  /// In ar, this message translates to:
+  /// **'جرب تاني'**
+  String get mealKitchenCheckRetry;
 }
 
 class _AppLocalizationsDelegate

@@ -554,5 +554,25 @@
   "mealPublishedConfirmation": "This Meal is on the menu now.",
   "@mealPublishedConfirmation": {
     "description": "Confirms the Meal is now on offer."
+  },
+  "mealNeedsKitchenTitle": "You don't have a kitchen yet",
+  "@mealNeedsKitchenTitle": {
+    "description": "Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040)."
+  },
+  "mealNeedsKitchenBody": "Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.",
+  "@mealNeedsKitchenBody": {
+    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered."
+  },
+  "mealNeedsKitchenAction": "Set up my kitchen",
+  "@mealNeedsKitchenAction": {
+    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one."
+  },
+  "mealKitchenCheckError": "We couldn't check your kitchen. Try again.",
+  "@mealKitchenCheckError": {
+    "description": "Shown when the Kitchen Profile existence check fails (network or server error)."
+  },
+  "mealKitchenCheckRetry": "Try again",
+  "@mealKitchenCheckRetry": {
+    "description": "Button that re-runs the Kitchen Profile existence check."
   }
 }

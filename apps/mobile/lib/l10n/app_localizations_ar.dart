@@ -445,4 +445,20 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealPublishedConfirmation => 'الأكلة بقت على المنيو.';
+
+  @override
+  String get mealNeedsKitchenTitle => 'لسه معندكش مطبخ';
+
+  @override
+  String get mealNeedsKitchenBody =>
+      'قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.';
+
+  @override
+  String get mealNeedsKitchenAction => 'اعمل مطبخي';
+
+  @override
+  String get mealKitchenCheckError => 'مقدرناش نتأكد من مطبخك. جرب تاني.';
+
+  @override
+  String get mealKitchenCheckRetry => 'جرب تاني';
 }

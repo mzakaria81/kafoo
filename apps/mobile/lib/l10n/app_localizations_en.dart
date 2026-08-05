@@ -456,4 +456,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealPublishedConfirmation => 'This Meal is on the menu now.';
+
+  @override
+  String get mealNeedsKitchenTitle => 'You don\'t have a kitchen yet';
+
+  @override
+  String get mealNeedsKitchenBody =>
+      'Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.';
+
+  @override
+  String get mealNeedsKitchenAction => 'Set up my kitchen';
+
+  @override
+  String get mealKitchenCheckError =>
+      'We couldn\'t check your kitchen. Try again.';
+
+  @override
+  String get mealKitchenCheckRetry => 'Try again';
 }

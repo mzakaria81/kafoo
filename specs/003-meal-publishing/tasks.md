@@ -315,7 +315,19 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   cuisines, in Arabic, on the screen the design is most explicitly conversational — would not.
   Supersedes T049, which asks for the same thing from the US2 side
 - [x] T039 [US1] Emit `ConversationStarted`, `ConversationStepCompleted` with `step`, and `ConversationCompleted`, all carrying `kind: meal` and `input` — the same family as E1, not a second idea — **DONE 2026-08-05.** `ConversationStarted` carries `speech_locale` as E1 does, because a bare `input: voice` cannot answer whether Egyptian Arabic was actually used. Declining the photo emits a step event too: a Cook who says no has answered that question, and without the event the funnel shows a drop-off that never happened. `ConversationCompleted` is emitted from the summary on a successful publish only — a conversation that ended in a failed write did not complete, and counting it would report a publish rate higher than Cooks actually experience
-- [ ] T040 [US1] Send a Cook with no Kitchen Profile to create one first (FR-017 in the UI; the trigger from T018 is the real guard)
+- [x] T040 [US1] Send a Cook with no Kitchen Profile to create one first (FR-017 in the UI; the trigger from T018 is the real guard) — **DONE 2026-08-05.** A new `MealPublishEntry` widget wraps the conversation and checks first, rather than a check bolted inside `MealConversationScreen`: fifteen existing tests construct that screen directly, and putting the check inside it would have failed every one of them for a gate none of them are about
+
+  **A failed check is not "no Kitchen Profile".** Treating the two the same would send a Cook who
+  already has a kitchen to make a second one, which the unique constraint on `cook_id` then rejects
+  — an error they cannot act on, and the exact failure this task exists to prevent. There is a test
+  for it, mutation-checked by making the failure branch fall through to the create-a-kitchen screen
+
+  **One branch is read rather than run, and it is written down in the code.** Returning from the
+  Kitchen Profile conversation with a saved profile cannot be driven in a widget test, because that
+  conversation offers a recovery email immediately afterwards through a default
+  `SupabaseAccountRepository` it does not accept as an argument, so the test reaches an
+  uninitialised Supabase before it can assert anything. Making that injectable is a change to the
+  identity feature, not to this gate
 - [ ] T041 [US1] Upload the photo to `meal-photos/{uid}/{meal_id}.jpg`, and let a Cook finish without one rather than losing the conversation
 - [x] T042 [P] [US1] Add a widget test asserting no screen shows two unanswered questions (SC-002) — **DONE 2026-08-04** alongside T031
 - [x] T043 [P] [US1] Add a test asserting an abandoned conversation leaves a draft and **nothing on offer** — **DONE 2026-08-05.** Asserts the draft survives, `publish` was never called, and neither `MealPublished` nor `ConversationCompleted` was emitted
