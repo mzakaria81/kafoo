@@ -1702,3 +1702,59 @@ usually the common one, which is why the defect got through.
 **Principle:** An optional-parameter update helper silently conflates "not supplied" with "supplied
 as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
 asking for it gets no error, no warning, and the old value.
+
+### Observation 65: A mutation test whose mutation silently fails reports "check is asleep"
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-001 — proving verify.sh's `rls coverage` step does real work, by removing an RLS line and watching the step go red
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Mutation testing / seeing a check fail
+
+**Issue:** The mutation script used an invalid grep flag (`-vipP`; `-p` does not exist). grep exited
+non-zero and wrote an empty file, so the mutation did not remove one line — it destroyed the whole
+migration. The check then correctly reported green, because a file with no `CREATE TABLE` has
+nothing to require RLS for. The script printed "RESULT: green <-- BAD: the check is asleep",
+which is exactly the conclusion a reader would act on, and it was wrong in the most expensive
+direction: it accuses a working check of being broken. The grep usage error was visible in the
+output but scrolled above the verdict.
+
+**Suggested improvement:** A mutation test must assert that the mutation itself took effect before
+trusting the verdict — diff the mutated artifact against the original and fail loudly if the change
+is not exactly what was intended (one line removed, not a file emptied). Add this to the
+"seen to fail" guidance: the red run proves nothing unless you also know WHAT went red and why.
+
+**Principle:** A negative test proves nothing unless the negative condition is verified to have
+been created. An unverified mutation makes both outcomes uninformative: green may mean the check is
+asleep, or that the mutation never happened — and those have opposite remedies.
+
+### Observation 66: A delegated implementer confirms the brief's errors instead of catching them
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-001 — delegating E2 documentation updates to OpenCode with a fact-dense brief
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Writing the brief / reviewing the result
+
+**Issue:** The brief carried two wrong facts, both taken from a stale in-repo source rather than the
+authoritative one: an assertion number read from `tasks.md` (the suite had grown, so the number had
+moved), and a decision attributed to the wrong option because the task list's headline was written
+before the decision changed (the ADR recorded the opposite). The brief explicitly instructed the
+implementer to trust the repository over the brief and to report contradictions. It reported
+"None found. The repository confirmed every fact in the brief," and listed the facts it had
+verified — all of which were the easy, countable ones (file counts, check counts). Both errors
+survived into the diff and were caught only by the orchestrator's own review against primary
+sources.
+
+**Suggested improvement:** A "trust the repo over this brief" instruction is not a verification
+mechanism — it produces a confirmation, not a check. Where a brief states a fact the implementer
+could verify, name the file it must be verified against and require the observed value to be
+quoted back in the report ("state the assertion's text, not just its number"). Facts sourced from a
+derived or narrative document (a task list, a changelog) should be marked as such in the brief so
+both parties know which claims are second-hand.
+
+**Principle:** Asking a delegate to check your facts yields agreement, not verification, unless the
+report must contain the evidence rather than the verdict. Require the observation, not the
+conclusion — and treat facts copied from a narrative summary as unverified until read at the source.
