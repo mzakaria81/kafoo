@@ -1672,3 +1672,33 @@ unambiguous; no skill friction, corrections, or workflow gaps.
 
 **Principle:** A clean brief that names types, tests, and forbidden files leaves little for
 task-observer to harvest — that is success, not a missed observation.
+
+### Observation 64: A copyWith that cannot express null makes "clear this field" a silent no-op
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, resuming a half-finished Meal draft (T097)
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Reviewing delegated code; regression-test design
+
+**Issue:** A state class's `copyWith` used the common `field ?? this.field` idiom for most fields
+and a sentinel default for two others. New code called `copyWith(analysis: null)` intending to clear
+a stale value; because that field used the `??` form, the call compiled, read naturally, and did
+nothing. The neighbouring fields in the same call — which used non-null empty collections — WERE
+cleared, so the object ended up in a state no code path intended and no reviewer would predict.
+
+The tests written alongside the change passed, because the same method went on to trigger a fresh
+computation that overwrote the stale value in every case the tests exercised. The bug survived only
+on the path where that follow-up did not run. It was found by reading the `copyWith` signature, not
+by any test.
+
+**Suggested improvement:** When reviewing or writing a call that passes null to `copyWith` (or any
+partial-update helper), check the parameter's declaration before trusting the call: `?? this.x`
+cannot express "set to null", so the call is either a no-op or a lie. When adding a regression test
+for a clear-this-field bug, pick the input where no later write masks the field — the masked path is
+usually the common one, which is why the defect got through.
+
+**Principle:** An optional-parameter update helper silently conflates "not supplied" with "supplied
+as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
+asking for it gets no error, no warning, and the old value.
