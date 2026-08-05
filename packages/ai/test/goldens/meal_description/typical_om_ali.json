@@ -1,0 +1,11 @@
+{
+  "name": "om ali, cooked to order",
+  "kind": "typical",
+  "said": "أم علي باللبن والمكسرات، بعملها لما حد يطلبها عشان تطلع سخنة",
+  "modelReply": "{\"description\":\"أم علي باللبن والمكسرات. بعملها وقت الطلب عشان تطلع سخنة.\",\"basis\":{\"description\":\"الطباخ قال إنه بيعملها لما حد يطلبها عشان تطلع سخنة\"}}",
+  "expect": {
+    "isEmpty": false,
+    "descriptionContains": ["أم علي", "عشان"],
+    "maxSentences": 2
+  }
+}

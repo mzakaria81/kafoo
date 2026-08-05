@@ -1,0 +1,11 @@
+{
+  "name": "burger, transliterated English in Arabic script",
+  "kind": "dialect",
+  "said": "برجر لحمة مع الصوص بتاعي وبطاطس، الصوص ده سري",
+  "modelReply": "{\"description\":\"برجر لحمة بالصوص بتاعي وبطاطس. الصوص ده وصفة مبقولهاش لحد.\",\"basis\":{\"description\":\"الطباخ قال برجر لحمة وبطاطس وإن الصوص بتاعه سري\"}}",
+  "expect": {
+    "isEmpty": false,
+    "descriptionContains": ["برجر", "ده"],
+    "maxSentences": 2
+  }
+}
