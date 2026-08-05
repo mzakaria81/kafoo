@@ -362,10 +362,7 @@ run "localization parity" bash -c '
   ar=apps/mobile/lib/l10n/app_ar.arb
   en=apps/mobile/lib/l10n/app_en.arb
   [ -f "$ar" ] && [ -f "$en" ] || { echo "   arb files not present yet — skipping"; exit 0; }
-  missing=$(comm -13 \
-    <(jq -r "keys[]" "$ar" | grep -v "^@" | sort) \
-    <(jq -r "keys[]" "$en" | grep -v "^@" | sort))
-  if [ -n "$missing" ]; then echo "   missing Arabic keys:"; echo "$missing"; exit 1; fi'
+  python3 scripts/check-l10n-parity.py'
 
 # A hook that points at a file which is not there fails SILENTLY. Claude Code runs the command,
 # the command is not found, and the session continues as though the hook had chosen to do nothing.
