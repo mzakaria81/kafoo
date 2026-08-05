@@ -6,6 +6,20 @@
 /// - photo_path is optional — a Cook can publish without a photo.
 library;
 
+/// Which grammatical form Kafoo uses when it addresses a Cook.
+///
+/// Arabic conjugates the second person and has no neutral form, so the app
+/// either asks or guesses. These name the **verb ending**, not the person:
+/// ADR-0010 chose to store a form of address rather than a gender precisely
+/// because the narrower field cannot later be repurposed for ranking or
+/// advertising.
+///
+/// Null means the Cook has not been asked. Every Cook-facing string must
+/// still render — the Cook is asked during Kitchen Profile creation from
+/// T090, and until then, and for anyone who predates that question, the
+/// unset form is what shows.
+enum AddressForm { masculine, feminine }
+
 final class KitchenProfile {
   const KitchenProfile({
     required this.id,
@@ -15,6 +29,7 @@ final class KitchenProfile {
     required this.area,
     required this.deliveryTerms,
     this.photoPath,
+    this.addressForm,
   });
 
   final String id;
@@ -24,6 +39,7 @@ final class KitchenProfile {
   final String area;
   final String deliveryTerms;
   final String? photoPath;
+  final AddressForm? addressForm;
 }
 
 /// Mutable draft of a [KitchenProfile] held in memory during the conversation.
