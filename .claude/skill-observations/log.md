@@ -1772,3 +1772,32 @@ both parties know which claims are second-hand.
 **Principle:** Asking a delegate to check your facts yields agreement, not verification, unless the
 report must contain the evidence rather than the verdict. Require the observation, not the
 conclusion — and treat facts copied from a narrative summary as unverified until read at the source.
+
+### Observation 68: A reused local database silently runs the suites against a stale schema
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-001 — merging main into a branch after a parallel worker landed a migration, then re-running the authorization suites to confirm a documented assertion count
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Running an authorization suite locally
+
+**Issue:** `scripts/local-db.sh start` returns early with "already running" when a cluster is up, so
+it never applies migrations that landed since the cluster was created. After merging a parallel
+worker's migration, `local-db.sh test` **exited 0** and reported 69 passing assertions against a
+schema missing the new column. The true count was 76. Nothing warned; the run looked identical to a
+correct one, and the only reason the discrepancy surfaced was that a documented number had been
+computed independently from the suites' own `plan(N)` lines and did not match. A second run — after
+the earlier one had left the cluster in a partly-failed state — did surface
+`column "address_form" does not exist`, but a first run on a stale cluster is silently green.
+
+**Suggested improvement:** A local test harness that caches expensive setup must detect staleness
+rather than assume freshness — compare the applied-migration set against the migrations on disk and
+either apply the difference or refuse to run. Where that is not done, guidance should say to
+recreate the database after any merge, and to cross-check the observed assertion count against the
+suites' declared plans rather than trusting the exit code.
+
+**Principle:** A cached environment turns "the tests passed" into "the tests passed against
+whatever this environment happens to contain". Exit code alone cannot distinguish the two — only an
+independently derived expectation of what should have run can, which is why a declared plan count is
+worth checking against the observed one.
