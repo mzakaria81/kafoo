@@ -130,12 +130,9 @@ class _MealConversationScreenState
       // out of step with, and correcting a value simply rebuilds this.
       //
       // Nothing is written by arriving here. The draft already exists (T034)
-      // and stays `draft`; onConfirm is where T038 puts it on offer.
-      return MealSummaryScreen(
-        onConfirm: () {
-          // T038 publishes here.
-        },
-      );
+      // and stays `draft` until the Cook approves estimates and publishes
+      // from the summary.
+      return const MealSummaryScreen();
     }
 
     final isPhoto = step.id == MealStepId.photo;

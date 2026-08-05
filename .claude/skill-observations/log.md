@@ -1531,3 +1531,18 @@ listener by default.
 **Principle:** An autoDispose provider with no listener is disposed before
 async completions land; tests must keep a subscription or the completion
 path is never exercised.
+
+### Observation 58: Publishing blocked without manual cuisine/category path when AI fails
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** T038 + estimate approval on Meal summary
+**Skill:** New skill candidate: none — product gap for orchestrator
+**Type:** internal
+**Phase/Area:** Meal publishing / FR-014
+
+**Issue:** When analysis produces nothing, allEstimatesApproved is vacuously true but draft.isComplete is false (no cuisine/category). Publish stays disabled and the Cook cannot finish. FR-014 requires a path when the AI Assistant is unavailable; inventing defaults is forbidden.
+
+**Suggested improvement:** Separate task for hand-entry of cuisine and category when estimates are absent (T049 territory). Do not relax DB constraints or invent 'other'.
+
+**Principle:** Vacuous approval of zero estimates is not the same as a complete Meal — completeness and approval are independent gates.

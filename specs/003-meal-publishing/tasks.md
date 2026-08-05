@@ -270,7 +270,41 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   And correcting the dish persisted nothing: `_persistAnswer` returned success without writing, on
   reasoning ("title already stored by createDraft") that is true only for the first answer and never
   for a correction. Also mutation-checked
-- [ ] T038 [US1] Write the Meal on confirmation, set `published_at`, and emit `MealPublished`
+- [x] T038 [US1] Write the Meal on confirmation, set `published_at`, and emit `MealPublished` — **DONE 2026-08-04, together with the estimate-approval half of US2, because neither works alone.**
+
+  **T038 could not be built as planned, and that is a defect in the plan rather than the code.** The
+  database refuses to move a Meal out of `draft` without cuisine and category; both come from the AI
+  Assistant, and nothing writes them until a Cook approves them — which the plan scheduled for US2,
+  *after* this. Proved against a real Postgres before any code was written and pinned as case 21b of
+  `meals_lifecycle_test.sql`, so it cannot regress quietly. The app's own suite could never have
+  caught it: those tests drive a fake repository with no triggers, which would report a cheerful
+  success for a Meal the real database rejects.
+
+  **Founder rule, 2026-08-04, stricter than the written spec**: *every AI-generated value must be
+  clearly marked as an estimate with an explanation of how it was derived, and the Cook must
+  explicitly approve or edit each one before a Meal can be published.* The spec asked only that
+  estimates be correctable. Publishing is now blocked until every estimate present has been dealt
+  with, and the Cook is told why rather than left guessing.
+
+  Editing counts as approving — a Cook who corrects a value has engaged with it more than one who
+  tapped approve. Only estimates the analysis actually produced require a decision; a dish the model
+  said nothing about does not become unpublishable. Each approval is its own write, because each is
+  its own decision, and `published_at` is left to the database trigger so two sources cannot disagree.
+
+  Two things the implementer got right that the brief did not ask for: `canPublish` also requires
+  `draft.isComplete`, mirroring the database rule rather than trusting the fake, and a fresh analysis
+  clears prior approvals so a "yes" cannot survive onto a value that has since changed.
+
+  **A test that was not testing what it claimed.** The double-tap case passed with the controller's
+  re-publish guard removed, because the screen has its own flag and was blocking the second tap. Two
+  layers of defence, one untested — and the untested one is what a later UI rewrite deletes.
+  Publishing twice reaches a Customer, so it now has a controller-level test, mutation-checked.
+
+- [ ] T096 **FR-014: let a Cook publish when the AI Assistant is unavailable.** Found while building
+  T038. With no analysis there is no cuisine and no category, so the database refuses the Meal and a
+  Cook whose model call failed cannot offer their food at all. FR-014 says they must be able to.
+  Needs a way to choose those two by hand — deliberately NOT bodged with a default, because a Meal
+  labelled with a cuisine nobody chose is worse than one that could not be published
 - [ ] T039 [US1] Emit `ConversationStarted`, `ConversationStepCompleted` with `step`, and `ConversationCompleted`, all carrying `kind: meal` and `input` — the same family as E1, not a second idea
 - [ ] T040 [US1] Send a Cook with no Kitchen Profile to create one first (FR-017 in the UI; the trigger from T018 is the real guard)
 - [ ] T041 [US1] Upload the photo to `meal-photos/{uid}/{meal_id}.jpg`, and let a Cook finish without one rather than losing the conversation

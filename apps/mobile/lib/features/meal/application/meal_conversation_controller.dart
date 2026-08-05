@@ -8,6 +8,7 @@ import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
 import '../data/ai_provider.dart';
 import '../data/meal_repository.dart';
+import 'meal_estimate_fields.dart';
 
 part 'meal_conversation_controller.g.dart';
 
@@ -69,8 +70,8 @@ class MealConversationState {
 ///
 /// Out of scope for this controller (later tasks):
 /// - The FR-029 photo disclosure behaviour (T036)
-/// - The summary screen (T037), publishing (T038), conversation analytics (T039),
-///   no-Kitchen-Profile redirect (T040), photo upload UI (T041)
+/// - Conversation analytics (T039), no-Kitchen-Profile redirect (T040),
+///   photo upload UI (T041)
 @riverpod
 class MealConversationController extends _$MealConversationController {
   MealRepository get _repository => ref.read(mealRepositoryProvider);
@@ -79,10 +80,44 @@ class MealConversationController extends _$MealConversationController {
   /// Monotonic id so a late reply from an earlier analysis is dropped.
   int _analysisRequestId = 0;
 
+  /// Guards against a double tap putting the Meal on offer twice.
+  bool _publishInFlight = false;
+
   @override
   MealConversationState build() => MealConversationState(
         draft: MealDraft(),
       );
+
+  /// Every estimate the current analysis produced that still needs a decision.
+  List<String> get pendingEstimateFields {
+    final analysis = state.analysis;
+    if (analysis == null) return const [];
+    return MealEstimateFields.presentIn(analysis)
+        .where((field) => state.approvals[field] != true)
+        .toList(growable: false);
+  }
+
+  /// True when every field the analysis produced has been approved or corrected.
+  ///
+  /// An empty or missing analysis has nothing to approve. Publishing may still
+  /// fail at the database if cuisine and category were never set — that is
+  /// intentional; inventing defaults is out of scope (FR-014 needs a manual
+  /// path that is a separate task).
+  bool get allEstimatesApproved {
+    if (state.analysisInFlight) return false;
+    final analysis = state.analysis;
+    if (analysis == null || analysis.isEmpty) return true;
+    return MealEstimateFields.presentIn(analysis)
+        .every((field) => state.approvals[field] == true);
+  }
+
+  /// Whether the Meal may go on offer from the summary.
+  ///
+  /// Approvals alone are not enough: the draft must carry cuisine and category
+  /// (written only when those estimates are approved or corrected), which is
+  /// what the database enforces on the way out of `draft`.
+  bool get canPublish =>
+      allEstimatesApproved && state.draft.isComplete && !_publishInFlight;
 
   /// The next unanswered [MealStep], or null when all four are done.
   MealStep? get currentStep {
@@ -234,10 +269,13 @@ class MealConversationController extends _$MealConversationController {
         );
         switch (parsed) {
           case Success(value: final analysis):
+            // A new analysis replaces the old one; prior approvals were for
+            // different values and must not silently carry over.
             state = state.copyWith(
               analysis: analysis,
               analysisInFlight: false,
               analysisError: null,
+              approvals: const {},
             );
           case Failure(error: final err):
             state = state.copyWith(
@@ -250,6 +288,135 @@ class MealConversationController extends _$MealConversationController {
           analysisInFlight: false,
           analysisError: err,
         );
+    }
+  }
+
+  /// Writes one AI-derived value to the draft and marks it approved.
+  ///
+  /// This is the human approval step: before it, nothing AI-derived reaches the
+  /// database; after it, the Cook has said yes to that specific value.
+  Future<bool> approveEstimate(String field) async {
+    final analysis = state.analysis;
+    if (analysis == null) return false;
+    final value = _suggestedValue(analysis, field);
+    if (value == null) return false;
+    return _writeEstimate(field, value, markApproved: true);
+  }
+
+  /// Persists a Cook correction and marks that field approved.
+  ///
+  /// Editing counts as approving: a Cook who corrected a value has engaged
+  /// with it more than one who tapped approve.
+  Future<bool> correctEstimate(String field, Object value) async {
+    return _writeEstimate(field, value, markApproved: true);
+  }
+
+  /// Puts the Meal on offer. Emits [EventNames.mealPublished] once on success.
+  ///
+  /// Does not set `published_at` — a database trigger owns that moment.
+  Future<bool> publish() async {
+    if (_publishInFlight) return false;
+    if (!canPublish) return false;
+
+    final mealId = state.draft.mealId;
+    if (mealId == null) return false;
+
+    _publishInFlight = true;
+    state = state.copyWith(error: null);
+
+    final result = await _repository.publish(mealId);
+    if (!ref.mounted) {
+      _publishInFlight = false;
+      return false;
+    }
+
+    switch (result) {
+      case Success():
+        // Leave _publishInFlight true so a second tap cannot re-publish.
+        unawaited(emitEvent(EventNames.mealPublished));
+        state = state.copyWith(error: null);
+        return true;
+      case Failure(error: final err):
+        _publishInFlight = false;
+        state = state.copyWith(error: err);
+        return false;
+    }
+  }
+
+  Object? _suggestedValue(MealAnalysis analysis, String field) {
+    return switch (field) {
+      MealEstimateFields.cuisine => analysis.cuisine?.value,
+      MealEstimateFields.category => analysis.category?.value,
+      MealEstimateFields.ingredients => analysis.ingredients?.value,
+      MealEstimateFields.calories => analysis.calories?.value,
+      MealEstimateFields.allergens => analysis.allergens?.value,
+      _ => null,
+    };
+  }
+
+  Future<bool> _writeEstimate(
+    String field,
+    Object value, {
+    required bool markApproved,
+  }) async {
+    final mealId = state.draft.mealId;
+    if (mealId == null) return false;
+
+    state = state.copyWith(error: null);
+
+    final Result<Meal, AppError> result;
+    switch (field) {
+      case MealEstimateFields.cuisine:
+        if (value is! Cuisine) return false;
+        result = await _repository.updateDraft(mealId: mealId, cuisine: value);
+      case MealEstimateFields.category:
+        if (value is! MealCategory) return false;
+        result = await _repository.updateDraft(mealId: mealId, category: value);
+      case MealEstimateFields.ingredients:
+        if (value is! List<String>) return false;
+        result =
+            await _repository.updateDraft(mealId: mealId, ingredients: value);
+      case MealEstimateFields.calories:
+        if (value is! int) return false;
+        result = await _repository.updateDraft(mealId: mealId, calories: value);
+      case MealEstimateFields.allergens:
+        if (value is! List<String>) return false;
+        result =
+            await _repository.updateDraft(mealId: mealId, allergens: value);
+      default:
+        return false;
+    }
+
+    if (!ref.mounted) return false;
+
+    switch (result) {
+      case Success():
+        _applyToDraft(field, value);
+        if (markApproved) {
+          final next = Map<String, bool>.from(state.approvals)..[field] = true;
+          state = state.copyWith(approvals: next);
+        } else {
+          state = state.copyWith();
+        }
+        return true;
+      case Failure(error: final err):
+        state = state.copyWith(error: err);
+        return false;
+    }
+  }
+
+  void _applyToDraft(String field, Object value) {
+    switch (field) {
+      case MealEstimateFields.cuisine:
+        state.draft.cuisine = value as Cuisine;
+      case MealEstimateFields.category:
+        state.draft.category = value as MealCategory;
+      case MealEstimateFields.ingredients:
+        state.draft.ingredients = value as List<String>;
+      case MealEstimateFields.calories:
+        state.draft.calories = value as int;
+      case MealEstimateFields.allergens:
+        state.draft.allergens = value as List<String>;
     }
   }
 }
