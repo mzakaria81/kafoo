@@ -434,7 +434,23 @@ async function runAnalysisPhase(
     // Parse SSE frame
     let responseType = "unknown";
     let errorCode: string | null = null;
+    // A failure detected BEFORE the provider is called (auth, validation, ownership, a missing
+    // provider credential) is an ordinary status code with a plain JSON body — index.ts only opens
+    // a stream once the provider has been reached. Parsing SSE alone left those runs labelled
+    // "unknown" with a dash for the error, which is how twelve failed calls once got as far as a
+    // PASS verdict in this report.
     const dataMatch = bodyText.match(/^data:\s*(\{.*\})/m);
+    if (!dataMatch) {
+      try {
+        const plain = JSON.parse(bodyText) as Record<string, unknown>;
+        if (typeof plain.error === "string") {
+          responseType = "error";
+          errorCode = plain.error;
+        }
+      } catch {
+        // fall through to the SSE handling below
+      }
+    }
     if (dataMatch) {
       try {
         const parsed = JSON.parse(dataMatch[1]) as Record<string, unknown>;
@@ -956,27 +972,93 @@ function generateReport(
   );
   lines.push("");
 
-  // Phase 1 summary
-  const analysisElapsed = analysisRuns.map((r) => r.elapsedMs);
+  // Phase 1 summary.
+  //
+  // ONLY runs that actually produced an analysis count. A call that 502s is fast, and averaging it
+  // in makes the number better the more often the feature is broken — this report printed
+  // "Verdict: PASS" over twelve consecutive HTTP 502s before this filter existed. A failed run is
+  // not a fast run.
+  const okAnalysis = analysisRuns.filter((r) => r.responseType === "analysis");
+  const failedAnalysis = analysisRuns.filter((r) =>
+    r.responseType !== "analysis"
+  );
+  const analysisElapsed = okAnalysis.map((r) => r.elapsedMs);
   const aStats = stats(analysisElapsed);
   const aBudget = 2000;
   const aVerdict = aStats.median <= aBudget ? "PASS" : "OVER";
-  const aOver = analysisRuns.filter((r) => r.elapsedMs > aBudget).length;
+  const aOver = okAnalysis.filter((r) => r.elapsedMs > aBudget).length;
   const persistStats = stats(analysisRuns.map((r) => r.persistMs));
-  const nStats = stats(analysisRuns.map((r) => r.analyzeMs));
+  const nStats = stats(okAnalysis.map((r) => r.analyzeMs));
 
   lines.push("## Description-finished → first estimate");
   lines.push("");
-  if (analysisRuns.length === 0) {
+  if (okAnalysis.length === 0) {
     lines.push(
-      "**NOT MEASURED in this run.** Zero runs completed, so there is no number here \u2014 not a",
+      `**NOT MEASURED in this run.** ${analysisRuns.length} run(s) were attempted and none returned`,
     );
     lines.push(
-      "fast one and not a slow one. Anything printed from an empty sample would be an artefact of",
+      "an analysis, so there is no number here \u2014 not a fast one and not a slow one. A call that",
     );
     lines.push(
-      "the arithmetic rather than a measurement, which is the failure this section refuses to make.",
+      "fails is not a call that is quick, and averaging failures in would make this figure improve",
     );
+    lines.push("the more broken the feature was.");
+    if (failedAnalysis.length > 0) {
+      lines.push("");
+      lines.push("How they failed:");
+      lines.push("");
+      const byCode = new Map<string, number>();
+      for (const r of failedAnalysis) {
+        const key = `HTTP ${r.status}${
+          r.errorCode ? ` \u2014 ${r.errorCode}` : ""
+        }`;
+        byCode.set(key, (byCode.get(key) ?? 0) + 1);
+      }
+      for (const [key, count] of byCode) {
+        lines.push(`- ${count} run(s): ${key}`);
+      }
+      lines.push("");
+      lines.push(
+        "The persist half of the span still completed on every run, so it is reported below on its",
+      );
+      lines.push(
+        "own. It is one half of a number, and it is labelled as one half.",
+      );
+      lines.push("");
+      lines.push(
+        `- **Persisting the description**: median ${
+          persistStats.median.toFixed(1)
+        } ms across ${analysisRuns.length} runs (${persistStats.min}\u2013${persistStats.max} ms)`,
+      );
+
+      // The failed calls are not wasted. Everything before the point of failure still ran, so their
+      // timings measure that prefix — for a provider_misconfigured failure, that is the Edge
+      // Function's auth verification and Meal ownership check with no model call in it.
+      const failStats = stats(failedAnalysis.map((r) => r.analyzeMs));
+      lines.push(
+        `- **The failed call itself**: median ${
+          failStats.median.toFixed(1)
+        } ms across ${failedAnalysis.length} runs (${failStats.min}\u2013${failStats.max} ms). This`,
+      );
+      lines.push(
+        "  is not the analysis time. It is how long the Edge Function took to reach the point where",
+      );
+      lines.push(
+        "  it gave up, which for these failures is everything before the model call.",
+      );
+      lines.push("");
+      lines.push(
+        "| Run | Fixture | Persist (ms) | Failed call (ms) | HTTP | Error |",
+      );
+      lines.push("|---|---|---|---|---|---|");
+      for (const r of analysisRuns) {
+        lines.push(
+          `| ${r.run} | ${r.fixture} | ${r.persistMs} | ${r.analyzeMs} | ${r.status} | ${
+            r.errorCode ?? "\u2014"
+          } |`,
+        );
+      }
+    }
     lines.push("");
   } else {
     lines.push(
