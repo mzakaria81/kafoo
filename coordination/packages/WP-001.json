@@ -21,8 +21,8 @@
     "shared_files": []
   },
   "execution_mode": "PARALLEL",
-  "status": "READY_FOR_REVIEW",
-  "owner": "worker-a",
+  "status": "COMPLETED",
+  "owner": null,
   "priority": 1,
   "spend_envelope_usd": 0.5,
   "suggested_model": "opencode-go/qwen3.6-plus",
@@ -31,5 +31,5 @@
   "blocked_reason": null,
   "notes": "Documentation only. Touches no file another open package touches, which is why it is safe to run alongside anything.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T18:11:40Z"
+  "updated_at": "2026-08-05T18:45:00Z"
 }
