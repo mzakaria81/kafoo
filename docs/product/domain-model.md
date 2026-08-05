@@ -148,7 +148,22 @@ Fields below are the domain-meaningful ones. Every table additionally carries
 column, per `.claude/rules/supabase.md`.
 
 ### Kitchen Profile
-Display name · story · area · delivery terms · photo · `cook_id` (owner).
+Display name · story · area · delivery terms · photo · `cook_id` (owner) · form of address.
+
+**Form of address** is `masculine` | `feminine` | unset, and it names the grammatical form of the
+verb rather than the person. Arabic conjugates the second person and has no neutral form, so a
+product that addresses a Cook at all has already chosen one; ADR-0010 decided to ask rather than
+keep guessing. It is deliberately not a gender: the narrower field cannot be repurposed for ranking
+or advertising, and it is the only version of this field defensible at the visibility it needs.
+
+It is readable wherever the Kitchen Profile is — which, per Discoverability below, includes
+anonymous visitors of a kitchen with food on offer. That is required rather than incidental: two
+Customer-facing strings describe a Cook and need the **Cook's** form, not the reader's. Only the
+owning Cook may write it.
+
+Unset is legal and permanent as a state. The Cook is asked during Kitchen Profile creation from
+T090, and the ICU `select` in the ARB files carries an `other` branch regardless — an unset Cook
+reads that branch rather than being guessed at.
 
 ### Meal
 `cook_id` (owner) · title · description · price · cuisine · category ·
@@ -251,6 +266,10 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
   for advertising or ranking outside the Customer's own session, and never shared with a Cook
   beyond what a specific Order requires.
 - **Voice recordings are transcribed and discarded.** Raw audio is not persisted without an ADR.
+- **A Cook's form of address is a grammatical field, not a demographic one.** It records which verb
+  ending to use and nothing about the person. It is visible to anyone who can see the kitchen, kept
+  for the life of the account, and removed with it by cascade. Storing a gender instead would carry
+  the same visibility with none of the same justification — see ADR-0010 before proposing one.
 
 ## Change log
 
@@ -259,3 +278,4 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
 | 2026-07-26 | Initial model, extracted from `.claude/rules/business-rules.md` and the constitution. |
 | 2026-07-30 | E1: added the Person shape (identity vs credential, one account holds both roles) and the derived-discoverability rule for Kitchen Profile. Invariants 11 and 12 added. |
 | 2026-07-31 | Settled E1's Open Question 2: a phone credential expires with dormancy while the Person does not. Invariant 13 added. ADR-0007. |
+| 2026-08-05 | Kitchen Profile gained a form of address — grammatical, not demographic, readable wherever the kitchen is and writable only by its Cook. ADR-0010, T089. |
