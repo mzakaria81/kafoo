@@ -203,13 +203,13 @@ Feminine proposals are Egyptian Arabic, conversational Cairo register.
 
 | verdict | count |
 |---|---|
-| CONVERT | 86 |
+| CONVERT | 83 |
 | COOK-FORM | 4 |
-| IDENTICAL | 28 |
-| N/A | 61 |
+| IDENTICAL | 22 |
+| N/A | 70 |
 | **Total keys** | **179** |
 
-ADR-0010’s “56 of 94” was an earlier snapshot of the file; the file has grown (E2 Meal strings). Actionable for the form-of-address sweep: **CONVERT 86 + COOK-FORM 4 = 90**.
+ADR-0010’s “56 of 94” was an earlier snapshot of the file; the file has grown (E2 Meal strings). Actionable for the form-of-address sweep: **CONVERT 83 + COOK-FORM 4 = 87**.
 
 ---
 
