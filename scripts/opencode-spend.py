@@ -18,11 +18,19 @@ have. This ledger is a record of what WE spent, which approximates the account t
 delegated coding is the sole consumer of the subscription. The founder confirmed that on
 2026-08-03. If that ever stops being true, this under-reports and the gap is silent.
 
+WHY IT READS OTHER BRANCHES. The caps are per account, not per branch and not per session. Two
+Claude Code sessions working in parallel each have their own checkout, so a report that read only
+the local file would show each session roughly half the real spend — and both would print "OK to
+dispatch" while jointly over a cap. So `report` also reads this file out of every remote-tracking
+ref and unions the rows, deduplicating on the relay session id. That makes a committed and pushed
+row visible to the other session, and an uncommitted one invisible: push after every dispatch.
+
 USAGE
 
     scripts/opencode-spend.py record <path to a relay result.json or its directory>
     scripts/opencode-spend.py report            # human-readable, before dispatching
     scripts/opencode-spend.py report --json     # machine-readable
+    scripts/opencode-spend.py report --local    # skip the fetch and the other branches
 
 Append-only. One JSON object per line, never rewritten, so two sessions writing at once cannot
 destroy each other's rows — the same reason the observation log is appended rather than edited.
@@ -31,12 +39,14 @@ destroy each other's rows — the same reason the observation log is appended ra
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 LEDGER = REPO / ".claude" / "opencode-spend.jsonl"
+LEDGER_PATH_IN_GIT = ".claude/opencode-spend.jsonl"
 
 # https://opencode.ai/docs/go/ — read 2026-08-03.
 #
@@ -54,21 +64,94 @@ WARN_AT = 0.70  # fraction of a cap that turns the report yellow
 STOP_AT = 0.90  # ...and red
 
 
-def _load() -> list[dict]:
-    if not LEDGER.exists():
-        return []
+def _parse_rows(text: str, origin: str) -> list[dict]:
     rows = []
-    for line in LEDGER.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         line = line.strip()
         if not line:
             continue
         try:
-            rows.append(json.loads(line))
+            row = json.loads(line)
         except json.JSONDecodeError:
             # One unreadable row must not blind the whole report. Skipping it under-reports, which
             # is the safe direction, and the count below makes the skip visible rather than silent.
-            print(f"warning: skipping unparseable ledger row: {line[:80]}", file=sys.stderr)
+            print(f"warning: skipping unparseable ledger row in {origin}: {line[:80]}",
+                  file=sys.stderr)
+            continue
+        row["_origin"] = origin
+        rows.append(row)
     return rows
+
+
+def _load() -> list[dict]:
+    if not LEDGER.exists():
+        return []
+    return _parse_rows(LEDGER.read_text(encoding="utf-8"), "local")
+
+
+def _git(*args: str, timeout: int = 30) -> str | None:
+    """Run a git command, returning its stdout or None if it failed for any reason.
+
+    Every caller treats failure as "no extra rows". A report that cannot reach the network must
+    still print — it simply sees less spend, and says so, rather than refusing to answer.
+    """
+    try:
+        done = subprocess.run(("git", *args), cwd=REPO, capture_output=True,
+                              text=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def _identity(row: dict) -> tuple:
+    """What makes two ledger rows the same dispatch across two branches.
+
+    The relay session id is the real key and `record` already refuses to write a duplicate of one.
+    A row without a session id — a relay that died before it had one — falls back to the fields
+    that would have to collide by coincidence.
+    """
+    session = row.get("session")
+    if session:
+        return ("session", session)
+    return ("fallback", row.get("at"), row.get("model"), row.get("cost"))
+
+
+def _remote_rows(fetch: bool) -> tuple[list[dict], bool]:
+    """Ledger rows committed on branches other than this one. Returns (rows, network_ok)."""
+    network_ok = True
+    if fetch:
+        # Without this, a session started before the other one pushed would never see its rows.
+        network_ok = _git("fetch", "--quiet", "--all", timeout=60) is not None
+
+    refs = _git("for-each-ref", "--format=%(refname)", "refs/remotes")
+    if refs is None:
+        return [], False
+
+    rows = []
+    for ref in refs.split():
+        if ref.endswith("/HEAD"):
+            continue
+        blob = _git("show", f"{ref}:{LEDGER_PATH_IN_GIT}")
+        if blob:
+            rows.extend(_parse_rows(blob, ref))
+    return rows, network_ok
+
+
+def _load_all(fetch: bool) -> tuple[list[dict], int, bool]:
+    """Local rows unioned with every remote branch's. Returns (rows, from_other_branches, net_ok)."""
+    rows = _load()
+    seen = {_identity(r) for r in rows}
+
+    remote, network_ok = _remote_rows(fetch)
+    elsewhere = 0
+    for row in remote:
+        key = _identity(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(row)
+        elsewhere += 1
+    return rows, elsewhere, network_ok
 
 
 def record(target: str) -> int:
@@ -114,8 +197,11 @@ def _parse(stamp: str) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
-def report(as_json: bool) -> int:
-    rows = _load()
+def report(as_json: bool, local_only: bool = False) -> int:
+    if local_only:
+        rows, elsewhere, network_ok = _load(), 0, True
+    else:
+        rows, elsewhere, network_ok = _load_all(fetch=True)
     now = datetime.now(timezone.utc)
 
     windows = []
@@ -146,12 +232,18 @@ def report(as_json: bool) -> int:
             "windows": windows,
             "by_model": by_model,
             "dispatches": len(rows),
+            "from_other_branches": elsewhere,
+            "network_ok": network_ok,
             "ledger": str(LEDGER.relative_to(REPO)),
         }, indent=2))
         return 0
 
     print("OpenCode Go spend — delegated work only, not an account reading")
-    print(f"  ledger: {LEDGER.relative_to(REPO)}  ({len(rows)} dispatches)")
+    seen_elsewhere = f", {elsewhere} from other branches" if elsewhere else ""
+    print(f"  ledger: {LEDGER.relative_to(REPO)}  ({len(rows)} dispatches{seen_elsewhere})")
+    if not network_ok and not local_only:
+        print("  WARNING: could not reach the remote, so a parallel session's spend is invisible.")
+        print("  Treat every cap below as HALF of what it says.")
     print()
     for w in windows:
         bar_len = 24
@@ -184,7 +276,8 @@ def main() -> int:
     if command == "record" and len(sys.argv) == 3:
         return record(sys.argv[2])
     if command == "report":
-        return report("--json" in sys.argv[2:])
+        flags = sys.argv[2:]
+        return report("--json" in flags, local_only="--local" in flags)
     print(__doc__)
     return 2
 
