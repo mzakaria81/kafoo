@@ -554,5 +554,26 @@
   "mealPublishedConfirmation": "This Meal is on the menu now.",
   "@mealPublishedConfirmation": {
     "description": "Confirms the Meal is now on offer."
+  },
+  "publicMealPriceValue": "{price} EGP",
+  "@publicMealPriceValue": {
+    "description": "The price of the whole Meal on the Customer's public view. The price is passed through as the exact string stored in the database — never reformatted, never rounded.",
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "publicMealOpenKitchen": "See the kitchen",
+  "@publicMealOpenKitchen": {
+    "description": "Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025)."
+  },
+  "publicMealCaloriesUnknown": "Calories not worked out",
+  "@publicMealCaloriesUnknown": {
+    "description": "Shown when a Meal carries no calorie figure. A missing estimate is stated, never rendered as an empty row or a zero."
+  },
+  "publicMealAllergensUnknown": "No allergens listed. If you have an allergy, ask the Cook.",
+  "@publicMealAllergensUnknown": {
+    "description": "Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear."
+  },
+  "publicMealNutritionFromCook": "These figures are the Cook's own.",
+  "@publicMealNutritionFromCook": {
+    "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate."
   }
 }

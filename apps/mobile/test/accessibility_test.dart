@@ -8,6 +8,7 @@ import 'package:kafoo_mobile/features/identity/presentation/remove_account_scree
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/kitchen_profile_screen.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/public_kitchen_view.dart';
+import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
 import 'support/fake_account_repository.dart';
@@ -20,6 +21,21 @@ const _profile = KitchenProfile(
   story: 'بنطبخ أكل بيتي',
   area: 'المعادي',
   deliveryTerms: 'توصيل في ساعة',
+);
+
+const _meal = Meal(
+  id: 'test-meal-id',
+  cookId: 'test-meal-cook',
+  title: 'كشري',
+  description: 'عدس ورز ومكرونة',
+  price: '35.00',
+  cuisine: Cuisine.egyptian,
+  category: MealCategory.main,
+  status: MealStatus.published,
+  nutritionSource: NutritionSource.ai,
+  ingredients: ['عدس', 'رز', 'مكرونة'],
+  calories: 520,
+  allergens: ['جلوتين'],
 );
 
 Widget _testApp(Widget child, {double textScale = 1.0}) {
@@ -53,6 +69,10 @@ Map<String, Widget> _screens() => {
         repository: FakeKitchenProfileRepository(existing: _profile),
       ),
       'public kitchen': const PublicKitchenView(profile: _profile),
+      // onOpenKitchen is supplied so the Kitchen Profile link exists. It is
+      // the only interactive widget on this screen, so without it the
+      // tap-target sweep below would pass by having nothing to measure.
+      'public meal': PublicMealView(meal: _meal, onOpenKitchen: () {}),
     };
 
 void main() {

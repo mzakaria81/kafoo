@@ -456,4 +456,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealPublishedConfirmation => 'This Meal is on the menu now.';
+
+  @override
+  String publicMealPriceValue(String price) {
+    return '$price EGP';
+  }
+
+  @override
+  String get publicMealOpenKitchen => 'See the kitchen';
+
+  @override
+  String get publicMealCaloriesUnknown => 'Calories not worked out';
+
+  @override
+  String get publicMealAllergensUnknown =>
+      'No allergens listed. If you have an allergy, ask the Cook.';
+
+  @override
+  String get publicMealNutritionFromCook =>
+      'These figures are the Cook\'s own.';
 }

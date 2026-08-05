@@ -445,4 +445,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealPublishedConfirmation => 'الأكلة بقت على المنيو.';
+
+  @override
+  String publicMealPriceValue(String price) {
+    return '$price جنيه';
+  }
+
+  @override
+  String get publicMealOpenKitchen => 'شوف المطبخ';
+
+  @override
+  String get publicMealCaloriesUnknown => 'السعرات مش متحسبة';
+
+  @override
+  String get publicMealAllergensUnknown =>
+      'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل الطباخ.';
+
+  @override
+  String get publicMealNutritionFromCook => 'الأرقام دي من الطباخ نفسه.';
 }

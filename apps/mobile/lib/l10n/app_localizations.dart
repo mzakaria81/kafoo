@@ -907,6 +907,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الأكلة بقت على المنيو.'**
   String get mealPublishedConfirmation;
+
+  /// The price of the whole Meal on the Customer's public view. The price is passed through as the exact string stored in the database — never reformatted, never rounded.
+  ///
+  /// In ar, this message translates to:
+  /// **'{price} جنيه'**
+  String publicMealPriceValue(String price);
+
+  /// Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025).
+  ///
+  /// In ar, this message translates to:
+  /// **'شوف المطبخ'**
+  String get publicMealOpenKitchen;
+
+  /// Shown when a Meal carries no calorie figure. A missing estimate is stated, never rendered as an empty row or a zero.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعرات مش متحسبة'**
+  String get publicMealCaloriesUnknown;
+
+  /// Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل الطباخ.'**
+  String get publicMealAllergensUnknown;
+
+  /// Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأرقام دي من الطباخ نفسه.'**
+  String get publicMealNutritionFromCook;
 }
 
 class _AppLocalizationsDelegate
