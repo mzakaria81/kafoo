@@ -146,344 +146,106 @@ function stats(
 }
 
 // ---------------------------------------------------------------------------
-// Minimal baseline JPEG encoder for a solid gray image
+// A valid image of known dimensions, for measuring image input cost
 //
-// The image is a flat colour — token cost is a function of dimensions, not content.
-// Gray = 128 (mid-gray), so after level-shift all pixel values are 0, all DCT
-// coefficients are 0, and every 8×8 block encodes as DC(cat 0) + EOB = 6 bits.
-// No 0xFF bytes appear in the scan data, so no byte stuffing is needed.
+// PNG rather than JPEG, and that is a deliberate substitution worth knowing about. The Cook's app
+// uploads JPEG (`photo_picker.dart`: maxWidth 1600, imageQuality 85), and the first version of this
+// hand-rolled a baseline JPEG encoder — 330 lines of Huffman bit-packing that the provider then
+// rejected with "Unable to process input image". Debugging a bespoke encoder is not what this
+// script is for.
+//
+// PNG is correct by construction here because the platform supplies the hard part: DEFLATE comes
+// from CompressionStream, and the rest is four length-prefixed chunks and a CRC.
+//
+// THE ASSUMPTION THIS CARRIES: the provider counts image tokens from the decoded dimensions, not
+// from the encoded bytes, so a 1600×1200 PNG and a 1600×1200 JPEG cost the same input tokens. That
+// is stated in the report as an assumption rather than a measurement, because this script did not
+// measure a JPEG. If it ever matters to a decision, upload one real photo through the app and
+// compare — do not refine the guess.
+//
+// The image is a flat colour. Token cost is a function of dimensions, and Kafoo's rules forbid
+// synthetic food imagery, so a grey rectangle is both sufficient and the only defensible choice.
 // ---------------------------------------------------------------------------
 
-function createSolidGrayJpeg(width: number, height: number): Uint8Array {
-  const mcuW = Math.ceil(width / 8);
-  const mcuH = Math.ceil(height / 8);
-  const numBlocks = mcuW * mcuH;
-  const totalBits = numBlocks * 6;
-  const scanBytes = Math.ceil(totalBits / 8);
-
-  // Build scan data: each block = DC(cat 0) "00" + EOB "1010" = "001010"
-  const scanData = new Uint8Array(scanBytes);
-  let bitPos = 0;
-  for (let i = 0; i < numBlocks; i++) {
-    const pattern = 0b001010; // 6 bits
-    for (let b = 5; b >= 0; b--) {
-      const byteIdx = Math.floor(bitPos / 8);
-      const bitIdx = 7 - (bitPos % 8);
-      if (byteIdx < scanBytes) {
-        scanData[byteIdx] |= ((pattern >> b) & 1) << bitIdx;
-      }
-      bitPos++;
+function crc32(bytes: Uint8Array): number {
+  let crc = 0xFFFFFFFF;
+  for (const b of bytes) {
+    crc ^= b;
+    for (let k = 0; k < 8; k++) {
+      crc = crc & 1 ? (crc >>> 1) ^ 0xEDB88320 : crc >>> 1;
     }
   }
-  // Pad remaining bits with 1s (JPEG convention)
-  if (bitPos % 8 !== 0) {
-    const padBits = 8 - (bitPos % 8);
-    const lastByte = Math.floor(bitPos / 8);
-    if (lastByte < scanBytes) {
-      for (let b = 0; b < padBits; b++) {
-        scanData[lastByte] |= 1 << (7 - b);
-      }
-    }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function u32(value: number): Uint8Array {
+  return new Uint8Array([
+    (value >>> 24) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 8) & 0xFF,
+    value & 0xFF,
+  ]);
+}
+
+function pngChunk(type: string, data: Uint8Array): Uint8Array {
+  const typeBytes = new TextEncoder().encode(type);
+  const body = new Uint8Array(typeBytes.length + data.length);
+  body.set(typeBytes, 0);
+  body.set(data, typeBytes.length);
+  const out = new Uint8Array(4 + body.length + 4);
+  out.set(u32(data.length), 0);
+  out.set(body, 4);
+  out.set(u32(crc32(body)), 4 + body.length);
+  return out;
+}
+
+async function deflate(raw: Uint8Array): Promise<Uint8Array> {
+  const source = new ReadableStream<Uint8Array<ArrayBuffer>>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(raw));
+      controller.close();
+    },
+  });
+  const stream = source.pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/// A flat mid-grey PNG of exactly [width] x [height].
+async function createSolidGrayPng(
+  width: number,
+  height: number,
+): Promise<Uint8Array> {
+  // 8-bit greyscale, one filter byte (0 = None) per scanline.
+  const raw = new Uint8Array(height * (1 + width));
+  for (let y = 0; y < height; y++) {
+    const row = y * (1 + width);
+    raw[row] = 0;
+    raw.fill(128, row + 1, row + 1 + width);
   }
 
-  // Quantization table: all 1s (valid, and irrelevant for a solid-gray image)
-  const dqtValues = new Uint8Array(64).fill(1);
+  const ihdr = new Uint8Array(13);
+  ihdr.set(u32(width), 0);
+  ihdr.set(u32(height), 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 0; // colour type 0 = greyscale
+  ihdr[10] = 0; // deflate
+  ihdr[11] = 0; // adaptive filtering
+  ihdr[12] = 0; // no interlace
 
-  // Standard JPEG DC Huffman table 0
-  const dcBits = new Uint8Array([
-    0,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    0,
-    0,
-    0,
-    0,
-    0,
-  ]);
-  const dcVals = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-
-  // Standard JPEG AC Huffman table 0
-  const acBits = new Uint8Array([
-    0,
-    2,
-    1,
-    3,
-    3,
-    2,
-    4,
-    3,
-    5,
-    5,
-    4,
-    4,
-    0,
-    0,
-    1,
-    125,
-  ]);
-  const acVals = new Uint8Array([
-    0x01,
-    0x02,
-    0x03,
-    0x00,
-    0x04,
-    0x11,
-    0x05,
-    0x12,
-    0x21,
-    0x31,
-    0x41,
-    0x06,
-    0x13,
-    0x51,
-    0x61,
-    0x07,
-    0x22,
-    0x71,
-    0x14,
-    0x32,
-    0x81,
-    0x91,
-    0xA1,
-    0x08,
-    0x23,
-    0x42,
-    0xB1,
-    0xC1,
-    0x15,
-    0x52,
-    0xD1,
-    0xF0,
-    0x24,
-    0x33,
-    0x62,
-    0x72,
-    0x82,
-    0x09,
-    0x0A,
-    0x16,
-    0x17,
-    0x18,
-    0x19,
-    0x1A,
-    0x25,
-    0x26,
-    0x27,
-    0x28,
-    0x29,
-    0x2A,
-    0x34,
-    0x35,
-    0x36,
-    0x37,
-    0x38,
-    0x39,
-    0x3A,
-    0x43,
-    0x44,
-    0x45,
-    0x46,
-    0x47,
-    0x48,
-    0x49,
-    0x4A,
-    0x53,
-    0x54,
-    0x55,
-    0x56,
-    0x57,
-    0x58,
-    0x59,
-    0x5A,
-    0x63,
-    0x64,
-    0x65,
-    0x66,
-    0x67,
-    0x68,
-    0x69,
-    0x6A,
-    0x73,
-    0x74,
-    0x75,
-    0x76,
-    0x77,
-    0x78,
-    0x79,
-    0x7A,
-    0x83,
-    0x84,
-    0x85,
-    0x86,
-    0x87,
-    0x88,
-    0x89,
-    0x8A,
-    0x92,
-    0x93,
-    0x94,
-    0x95,
-    0x96,
-    0x97,
-    0x98,
-    0x99,
-    0x9A,
-    0xA2,
-    0xA3,
-    0xA4,
-    0xA5,
-    0xA6,
-    0xA7,
-    0xA8,
-    0xA9,
-    0xAA,
-    0xB2,
-    0xB3,
-    0xB4,
-    0xB5,
-    0xB6,
-    0xB7,
-    0xB8,
-    0xB9,
-    0xBA,
-    0xC2,
-    0xC3,
-    0xC4,
-    0xC5,
-    0xC6,
-    0xC7,
-    0xC8,
-    0xC9,
-    0xCA,
-    0xD2,
-    0xD3,
-    0xD4,
-    0xD5,
-    0xD6,
-    0xD7,
-    0xD8,
-    0xD9,
-    0xDA,
-    0xE1,
-    0xE2,
-    0xE3,
-    0xE4,
-    0xE5,
-    0xE6,
-    0xE7,
-    0xE8,
-    0xE9,
-    0xEA,
-    0xF1,
-    0xF2,
-    0xF3,
-    0xF4,
-    0xF5,
-    0xF6,
-    0xF7,
-    0xF8,
-    0xF9,
-    0xFA,
-  ]);
-
-  function u16(n: number): [number, number] {
-    return [(n >> 8) & 0xFF, n & 0xFF];
-  }
-
-  const parts: Uint8Array[] = [];
-
-  // SOI
-  parts.push(new Uint8Array([0xFF, 0xD8]));
-
-  // APP0 / JFIF
-  parts.push(
-    new Uint8Array([
-      0xFF,
-      0xE0,
-      0x00,
-      0x10,
-      0x4A,
-      0x46,
-      0x49,
-      0x46,
-      0x00,
-      0x01,
-      0x01,
-      0x00,
-      0x00,
-      0x01,
-      0x00,
-      0x01,
-      0x00,
-      0x00,
-    ]),
-  );
-
-  // DQT (table 0, 8-bit)
-  const dqtLen = 1 + 64 + 2; // table info + values + length field
-  parts.push(new Uint8Array([0xFF, 0xDB, ...u16(dqtLen), 0x00, ...dqtValues]));
-
-  // SOF0 (baseline, grayscale)
-  const [hh, hl] = u16(height);
-  const [wh, wl] = u16(width);
-  parts.push(
-    new Uint8Array([
-      0xFF,
-      0xC0,
-      0x00,
-      0x11,
-      0x08,
-      hh,
-      hl,
-      wh,
-      wl,
-      0x01,
-      0x01,
-      0x11,
-      0x00,
-    ]),
-  );
-
-  // DHT — DC table 0
-  const dcDataLen = 1 + dcBits.length + dcVals.length + 2;
-  parts.push(
-    new Uint8Array([0xFF, 0xC4, ...u16(dcDataLen), 0x00, ...dcBits, ...dcVals]),
-  );
-
-  // DHT — AC table 0
-  const acDataLen = 1 + acBits.length + acVals.length + 2;
-  parts.push(
-    new Uint8Array([0xFF, 0xC4, ...u16(acDataLen), 0x10, ...acBits, ...acVals]),
-  );
-
-  // SOS (1 component)
-  parts.push(
-    new Uint8Array([0xFF, 0xDA, 0x00, 0x0C, 0x01, 0x00, 0x00, 0x3F, 0x00]),
-  );
-
-  // Scan data
-  parts.push(scanData);
-
-  // EOI
-  parts.push(new Uint8Array([0xFF, 0xD9]));
-
-  // Concatenate
-  const total = parts.reduce((s, p) => s + p.length, 0);
-  const result = new Uint8Array(total);
-  let off = 0;
+  const parts = [
+    new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", await deflate(raw)),
+    pngChunk("IEND", new Uint8Array(0)),
+  ];
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let at = 0;
   for (const p of parts) {
-    result.set(p, off);
-    off += p.length;
+    out.set(p, at);
+    at += p.length;
   }
-  return result;
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -889,83 +651,95 @@ async function runCostPhase(
         } tokens`,
       );
     }
+
+    // Image cost: one call carrying a flat-colour image at the dimensions the app uploads.
+    //
+    // INSIDE the try, so the wrapped fetch is still installed. An earlier version restored the
+    // original fetch just above this line, and the image call ran unwrapped: it succeeded, it was
+    // timed, and its usage object came back `{}` — a measurement that looked like a result and
+    // carried no number. The restore belongs after every call this phase makes, not after the
+    // loop.
+    console.error(
+      "  Phase 3 image call: measuring token cost of a 1600×1200 flat-colour image",
+    );
+    try {
+      const pngBytes = await createSolidGrayPng(1600, 1200);
+      // Chunked: String.fromCharCode(...bytes) blows the argument limit on a 1600×1200 image.
+      let binary = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < pngBytes.length; i += chunk) {
+        binary += String.fromCharCode(...pngBytes.subarray(i, i + chunk));
+      }
+      const base64 = btoa(binary);
+      const image: ModelImage = { base64, mediaType: "image/png" };
+
+      const imgFixture = fixtures[0]; // use first fixture's text + the image
+      const imgRequest: ModelRequest = {
+        system: prompt.body,
+        user: imgFixture.said,
+        image,
+        model: resolved.model,
+        maxTokens: MAX_TOKENS,
+        responseSchema: MEAL_ANALYSIS_SCHEMA,
+      };
+
+      captured.length = 0; // reset capture
+      const t0 = performance.now();
+      await resolved.adapter.complete(imgRequest, resolved.apiKey);
+      const elapsed = Math.round(performance.now() - t0);
+
+      const raw = captured[0] ?? {};
+      const usage = raw.usageMetadata ?? raw.usage ?? {};
+      const promptTokens = extractToken(usage, [
+        "promptTokenCount",
+        "prompt_tokens",
+        "input_tokens",
+      ]);
+      const outputTokens = extractToken(usage, [
+        "candidatesTokenCount",
+        "completion_tokens",
+        "output_tokens",
+      ]);
+      const thinkingTokens = extractToken(usage, [
+        "thoughtsTokenCount",
+        "reasoning_tokens",
+        "thinking_tokens",
+      ]);
+      const totalTokens = extractToken(usage, [
+        "totalTokenCount",
+        "total_tokens",
+      ]);
+
+      results.push({
+        fixture: "IMAGE: 1600×1200 solid gray (flat colour, not food)",
+        promptTokens,
+        outputTokens,
+        thinkingTokens,
+        totalTokens,
+        elapsedMs: elapsed,
+        rawUsage: usage as Record<string, unknown>,
+      });
+      console.error(
+        `  Phase 3 image call → ${elapsed} ms, ${totalTokens ?? "?"} tokens`,
+      );
+    } catch (err) {
+      console.error(
+        `  Phase 3 image call FAILED: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      results.push({
+        fixture: "IMAGE: 1600×1200 solid gray (flat colour, not food)",
+        promptTokens: null,
+        outputTokens: null,
+        thinkingTokens: null,
+        totalTokens: null,
+        elapsedMs: 0,
+        rawUsage: { error: err instanceof Error ? err.message : String(err) },
+      });
+    }
   } finally {
     globalThis.fetch = originalFetch;
-  }
-
-  // Image cost: one call with a solid-color JPEG
-  console.error(
-    "  Phase 3 image call: measuring token cost of a 1600×1200 flat-colour image",
-  );
-  try {
-    const jpegBytes = createSolidGrayJpeg(1600, 1200);
-    const base64 = btoa(String.fromCharCode(...jpegBytes));
-    const image: ModelImage = { base64, mediaType: "image/jpeg" };
-
-    const imgFixture = fixtures[0]; // use first fixture's text + the image
-    const imgRequest: ModelRequest = {
-      system: prompt.body,
-      user: imgFixture.said,
-      image,
-      model: resolved.model,
-      maxTokens: MAX_TOKENS,
-      responseSchema: MEAL_ANALYSIS_SCHEMA,
-    };
-
-    captured.length = 0; // reset capture
-    const t0 = performance.now();
-    await resolved.adapter.complete(imgRequest, resolved.apiKey);
-    const elapsed = Math.round(performance.now() - t0);
-
-    const raw = captured[0] ?? {};
-    const usage = raw.usageMetadata ?? raw.usage ?? {};
-    const promptTokens = extractToken(usage, [
-      "promptTokenCount",
-      "prompt_tokens",
-      "input_tokens",
-    ]);
-    const outputTokens = extractToken(usage, [
-      "candidatesTokenCount",
-      "completion_tokens",
-      "output_tokens",
-    ]);
-    const thinkingTokens = extractToken(usage, [
-      "thoughtsTokenCount",
-      "reasoning_tokens",
-      "thinking_tokens",
-    ]);
-    const totalTokens = extractToken(usage, [
-      "totalTokenCount",
-      "total_tokens",
-    ]);
-
-    results.push({
-      fixture: "IMAGE: 1600×1200 solid gray (flat colour, not food)",
-      promptTokens,
-      outputTokens,
-      thinkingTokens,
-      totalTokens,
-      elapsedMs: elapsed,
-      rawUsage: usage as Record<string, unknown>,
-    });
-    console.error(
-      `  Phase 3 image call → ${elapsed} ms, ${totalTokens ?? "?"} tokens`,
-    );
-  } catch (err) {
-    console.error(
-      `  Phase 3 image call FAILED: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    );
-    results.push({
-      fixture: "IMAGE: 1600×1200 solid gray (flat colour, not food)",
-      promptTokens: null,
-      outputTokens: null,
-      thinkingTokens: null,
-      totalTokens: null,
-      elapsedMs: 0,
-      rawUsage: { error: err instanceof Error ? err.message : String(err) },
-    });
   }
 
   return results;
@@ -1099,8 +873,16 @@ function generateReport(
   lines.push(
     `- **Model tier**: fast, resolved by the registry (the fast tier as the registry resolved it)`,
   );
-  lines.push(`- **Analysis runs**: ${runs}`);
-  lines.push(`- **Publish runs**: ${runs}`);
+  lines.push(
+    `- **Analysis runs**: ${analysisRuns.length}${
+      analysisRuns.length === 0 ? " (phase did not run)" : ""
+    }`,
+  );
+  lines.push(
+    `- **Publish runs**: ${publishRuns.length}${
+      publishRuns.length === 0 ? " (phase did not run)" : ""
+    }`,
+  );
   lines.push(
     `- **Cost runs**: ${
       costRuns.filter((r) => !r.fixture.startsWith("IMAGE:")).length
@@ -1115,10 +897,16 @@ function generateReport(
   lines.push("## How this was measured");
   lines.push("");
   lines.push(
-    "**Description-finished → first estimate:** The timer starts immediately before the",
+    "**Description-finished → first estimate:** Two round trips, both timed. The app persists the",
   );
   lines.push(
-    "HTTPS POST to the `analyze-meal` Edge Function and stops after the response body is",
+    "description and only starts the analysis once that write succeeds, so the Cook waits for both:",
+  );
+  lines.push(
+    "the PostgREST PATCH that stores the description, then the HTTPS POST to the `analyze-meal`",
+  );
+  lines.push(
+    "Edge Function. The clock starts before the PATCH and stops after the analysis body is",
   );
   lines.push(
     "read to completion. This includes the full network round trip, the Edge Function",
@@ -1179,60 +967,75 @@ function generateReport(
 
   lines.push("## Description-finished → first estimate");
   lines.push("");
-  lines.push(
-    "The span is two round trips, not one. The app persists the description and only starts the",
-  );
-  lines.push(
-    "analysis once that write succeeds, so a Cook waits for both. They are reported separately",
-  );
-  lines.push("below because they have different fixes if this ever goes over.");
-  lines.push("");
-  lines.push(`- **Runs**: ${runs}`);
-  lines.push(`- **Minimum**: ${aStats.min} ms`);
-  lines.push(`- **Median**: ${aStats.median.toFixed(1)} ms`);
-  lines.push(`- **Maximum**: ${aStats.max} ms`);
-  lines.push(`- **Mean**: ${aStats.mean.toFixed(1)} ms`);
-  lines.push(`- **Budget**: ${aBudget} ms`);
-  lines.push(
-    `- **Verdict**: **${aVerdict}** — median ${aStats.median.toFixed(1)} ms ${
-      aVerdict === "PASS" ? "is within" : "exceeds"
-    } the ${aBudget} ms budget across ${runs} runs.`,
-  );
-  lines.push(
-    `- **Runs over budget**: ${aOver} of ${runs}${
-      aOver === 0
-        ? "" // nothing to qualify
-        : ` — a median inside the budget does not mean every Cook is inside it, and ${aOver} of these would have waited longer than ${aBudget} ms.`
-    }`,
-  );
-  lines.push("");
-  lines.push("Where the time goes, across the same runs:");
-  lines.push("");
-  lines.push(
-    `- **Persisting the description**: median ${
-      persistStats.median.toFixed(1)
-    } ms (${persistStats.min}–${persistStats.max} ms)`,
-  );
-  lines.push(
-    `- **The analysis call**: median ${
-      nStats.median.toFixed(1)
-    } ms (${nStats.min}–${nStats.max} ms)`,
-  );
-  lines.push("");
-
-  // Phase 1 per-run table
-  lines.push(
-    "| Run | Fixture | Persist (ms) | Analyse (ms) | Total (ms) | HTTP | Response | Error |",
-  );
-  lines.push("|---|---|---|---|---|---|---|---|");
-  for (const r of analysisRuns) {
+  if (analysisRuns.length === 0) {
     lines.push(
-      `| ${r.run} | ${r.fixture} | ${r.persistMs} | ${r.analyzeMs} | ${r.elapsedMs} | ${r.status} | ${r.responseType} | ${
-        r.errorCode ?? "—"
-      } |`,
+      "**NOT MEASURED in this run.** Zero runs completed, so there is no number here \u2014 not a",
     );
+    lines.push(
+      "fast one and not a slow one. Anything printed from an empty sample would be an artefact of",
+    );
+    lines.push(
+      "the arithmetic rather than a measurement, which is the failure this section refuses to make.",
+    );
+    lines.push("");
+  } else {
+    lines.push(
+      "The span is two round trips, not one. The app persists the description and only starts the",
+    );
+    lines.push(
+      "analysis once that write succeeds, so a Cook waits for both. They are reported separately",
+    );
+    lines.push(
+      "below because they have different fixes if this ever goes over.",
+    );
+    lines.push("");
+    lines.push(`- **Runs**: ${runs}`);
+    lines.push(`- **Minimum**: ${aStats.min} ms`);
+    lines.push(`- **Median**: ${aStats.median.toFixed(1)} ms`);
+    lines.push(`- **Maximum**: ${aStats.max} ms`);
+    lines.push(`- **Mean**: ${aStats.mean.toFixed(1)} ms`);
+    lines.push(`- **Budget**: ${aBudget} ms`);
+    lines.push(
+      `- **Verdict**: **${aVerdict}** — median ${aStats.median.toFixed(1)} ms ${
+        aVerdict === "PASS" ? "is within" : "exceeds"
+      } the ${aBudget} ms budget across ${runs} runs.`,
+    );
+    lines.push(
+      `- **Runs over budget**: ${aOver} of ${runs}${
+        aOver === 0
+          ? "" // nothing to qualify
+          : ` — a median inside the budget does not mean every Cook is inside it, and ${aOver} of these would have waited longer than ${aBudget} ms.`
+      }`,
+    );
+    lines.push("");
+    lines.push("Where the time goes, across the same runs:");
+    lines.push("");
+    lines.push(
+      `- **Persisting the description**: median ${
+        persistStats.median.toFixed(1)
+      } ms (${persistStats.min}–${persistStats.max} ms)`,
+    );
+    lines.push(
+      `- **The analysis call**: median ${
+        nStats.median.toFixed(1)
+      } ms (${nStats.min}–${nStats.max} ms)`,
+    );
+    lines.push("");
+
+    // Phase 1 per-run table
+    lines.push(
+      "| Run | Fixture | Persist (ms) | Analyse (ms) | Total (ms) | HTTP | Response | Error |",
+    );
+    lines.push("|---|---|---|---|---|---|---|---|");
+    for (const r of analysisRuns) {
+      lines.push(
+        `| ${r.run} | ${r.fixture} | ${r.persistMs} | ${r.analyzeMs} | ${r.elapsedMs} | ${r.status} | ${r.responseType} | ${
+          r.errorCode ?? "—"
+        } |`,
+      );
+    }
+    lines.push("");
   }
-  lines.push("");
 
   // Phase 2 summary
   const publishElapsed = publishRuns.map((r) => r.elapsedMs);
@@ -1242,28 +1045,38 @@ function generateReport(
 
   lines.push("## Confirm → on-offer");
   lines.push("");
-  lines.push(`- **Runs**: ${runs}`);
-  lines.push(`- **Minimum**: ${pStats.min} ms`);
-  lines.push(`- **Median**: ${pStats.median.toFixed(1)} ms`);
-  lines.push(`- **Maximum**: ${pStats.max} ms`);
-  lines.push(`- **Mean**: ${pStats.mean.toFixed(1)} ms`);
-  lines.push(`- **Budget**: ${pBudget} ms`);
-  lines.push(
-    `- **Verdict**: **${pVerdict}** — median ${pStats.median.toFixed(1)} ms ${
-      pVerdict === "PASS" ? "is within" : "exceeds"
-    } the ${pBudget} ms budget across ${runs} runs.`,
-  );
-  lines.push("");
-
-  // Phase 2 per-run table
-  lines.push("| Run | Meal id (prefix) | Elapsed (ms) | HTTP |");
-  lines.push("|---|---|---|---|");
-  for (const r of publishRuns) {
+  if (publishRuns.length === 0) {
     lines.push(
-      `| ${r.run} | ${r.mealId.slice(0, 8)}… | ${r.elapsedMs} | ${r.status} |`,
+      "**NOT MEASURED in this run.** Zero runs completed, so there is no number here. See the note",
     );
+    lines.push("above \u2014 an empty sample is not a fast result.");
+    lines.push("");
+  } else {
+    lines.push(`- **Runs**: ${runs}`);
+    lines.push(`- **Minimum**: ${pStats.min} ms`);
+    lines.push(`- **Median**: ${pStats.median.toFixed(1)} ms`);
+    lines.push(`- **Maximum**: ${pStats.max} ms`);
+    lines.push(`- **Mean**: ${pStats.mean.toFixed(1)} ms`);
+    lines.push(`- **Budget**: ${pBudget} ms`);
+    lines.push(
+      `- **Verdict**: **${pVerdict}** — median ${pStats.median.toFixed(1)} ms ${
+        pVerdict === "PASS" ? "is within" : "exceeds"
+      } the ${pBudget} ms budget across ${runs} runs.`,
+    );
+    lines.push("");
+
+    // Phase 2 per-run table
+    lines.push("| Run | Meal id (prefix) | Elapsed (ms) | HTTP |");
+    lines.push("|---|---|---|---|");
+    for (const r of publishRuns) {
+      lines.push(
+        `| ${r.run} | ${
+          r.mealId.slice(0, 8)
+        }… | ${r.elapsedMs} | ${r.status} |`,
+      );
+    }
+    lines.push("");
   }
-  lines.push("");
 
   // Phase 3 — cost
   const textRuns = costRuns.filter((r) => !r.fixture.startsWith("IMAGE:"));
@@ -1417,6 +1230,53 @@ function generateReport(
   }
 
   // What this does not tell you
+  lines.push("## Alongside this: E1's per-verification cost, still open");
+  lines.push("");
+  lines.push(
+    "**This script did not measure it, and the figures below are list prices rather than",
+  );
+  lines.push(
+    "measurements.** They are here because a per-Meal cost is only half of what a Cook costs to",
+  );
+  lines.push("serve, and the other half is larger.");
+  lines.push("");
+  lines.push(
+    "Signing in is phone OTP (`sign_in_screen.dart` calls `signInWithOtp(phone:)`), delivered by",
+  );
+  lines.push(
+    "Twilio Verify per E1's research. Published list prices, read on 2026-08-05:",
+  );
+  lines.push("");
+  lines.push(
+    "- Twilio Verify: **$0.05 per successful verification**, plus channel fees",
+  );
+  lines.push("- Twilio SMS to Egypt: **$0.3959 per message**");
+  lines.push(
+    "- So roughly **$0.45 per successful sign-in**, and a resend costs another message",
+  );
+  lines.push("");
+  lines.push(
+    "Set against the measured Meal cost, that is the number that decides things: **one sign-in",
+  );
+  lines.push(
+    "costs about as much as 550 published Meals without a photo, or 225 with one.** Publishing",
+  );
+  lines.push("Meals is close to free. Letting people sign in is not.");
+  lines.push("");
+  lines.push(
+    "This does not close E1's T073, and should not be recorded as though it had. A list price is",
+  );
+  lines.push(
+    "not a delivered message: E1's research asks for real per-verification cost into Egyptian",
+  );
+  lines.push(
+    "networks, which needs a real handset on a real Egyptian network — the same spike that answers",
+  );
+  lines.push(
+    "whether sender-ID registration lets the message arrive at all. An undelivered SMS can still",
+  );
+  lines.push("be billed.");
+  lines.push("");
   lines.push("## What this does not tell you");
   lines.push("");
   lines.push(
@@ -1513,6 +1373,19 @@ async function main(): Promise<void> {
   const noTeardown = Deno.args.includes("--no-teardown");
   const dryRun = Deno.args.includes("--dry-run");
 
+  // --only=cost runs Phase 3 alone: it talks to the model provider and touches no database, so it
+  // still produces a real number when the Supabase side is unavailable. Added because it was:
+  // on 2026-08-05 the live project had no table privileges (see the grant migration) and the two
+  // latency phases could not run, while the cost figure could. Half a measurement reported
+  // honestly beats waiting for all of it.
+  const onlyArg = Deno.args.find((a) => a.startsWith("--only="));
+  const only = onlyArg ? onlyArg.slice("--only=".length) : null;
+  if (only !== null && only !== "cost") {
+    console.error(`--only accepts "cost" only, got "${only}"`);
+    Deno.exit(2);
+  }
+  const costOnly = only === "cost";
+
   const runsArg = Deno.args.find((a) => a.startsWith("--runs="));
   const runs = runsArg ? Number(runsArg.slice("--runs=".length)) : DEFAULT_RUNS;
   if (!Number.isFinite(runs) || runs < 1 || !Number.isInteger(runs)) {
@@ -1603,49 +1476,59 @@ async function main(): Promise<void> {
   let cook: CookCtx | null = null;
 
   try {
-    // Phase 0
-    console.error("Phase 0: creating throwaway Cook...");
-    cook = await createCook(supabaseUrl, serviceRoleKey, publishableKey);
-    console.error(
-      `  Cook created: ${cook.userEmail} (id: ${cook.userId.slice(0, 8)}…)`,
-    );
+    let analysisRuns: AnalysisRun[] = [];
+    let publishRuns: PublishRun[] = [];
 
-    console.error("  Creating Kitchen Profile...");
-    await createKitchenProfile(
-      supabaseUrl,
-      publishableKey,
-      cook.userJwt,
-      cook.userId,
-    );
-    console.error("  Kitchen Profile created.");
-    console.error("");
+    if (costOnly) {
+      console.error(
+        "--only=cost: skipping Phases 0-2. No Cook is created and no row is written.",
+      );
+      console.error("");
+    } else {
+      // Phase 0
+      console.error("Phase 0: creating throwaway Cook...");
+      cook = await createCook(supabaseUrl, serviceRoleKey, publishableKey);
+      console.error(
+        `  Cook created: ${cook.userEmail} (id: ${cook.userId.slice(0, 8)}…)`,
+      );
 
-    // Phase 1
-    console.error(
-      `Phase 1: description-finished → first estimate (${runs} runs)...`,
-    );
-    const analysisRuns = await runAnalysisPhase(
-      supabaseUrl,
-      publishableKey,
-      cook.userJwt,
-      cook.userId,
-      testFixtures,
-      runs,
-    );
-    console.error("");
+      console.error("  Creating Kitchen Profile...");
+      await createKitchenProfile(
+        supabaseUrl,
+        publishableKey,
+        cook.userJwt,
+        cook.userId,
+      );
+      console.error("  Kitchen Profile created.");
+      console.error("");
 
-    // Phase 2
-    console.error(`Phase 2: confirm → on-offer (${runs} runs)...`);
-    const publishRuns = await runPublishPhase(
-      supabaseUrl,
-      publishableKey,
-      cook.userJwt,
-      cook.userId,
-      testFixtures,
-      runs,
-    );
-    for (const r of publishRuns) allMealIds.push(r.mealId);
-    console.error("");
+      // Phase 1
+      console.error(
+        `Phase 1: description-finished → first estimate (${runs} runs)...`,
+      );
+      analysisRuns = await runAnalysisPhase(
+        supabaseUrl,
+        publishableKey,
+        cook.userJwt,
+        cook.userId,
+        testFixtures,
+        runs,
+      );
+      console.error("");
+
+      // Phase 2
+      console.error(`Phase 2: confirm → on-offer (${runs} runs)...`);
+      publishRuns = await runPublishPhase(
+        supabaseUrl,
+        publishableKey,
+        cook.userJwt,
+        cook.userId,
+        testFixtures,
+        runs,
+      );
+      for (const r of publishRuns) allMealIds.push(r.mealId);
+      console.error("");
+    }
 
     // Phase 3
     console.error(
