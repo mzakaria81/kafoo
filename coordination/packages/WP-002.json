@@ -2,7 +2,10 @@
   "id": "WP-002",
   "title": "Measure E2's two performance numbers and the per-Meal model cost",
   "objective": "Replace three estimates with measurements the founder can decide on: how long a Cook waits, and what one published Meal costs to run.",
-  "tasks": ["T075", "T076"],
+  "tasks": [
+    "T075",
+    "T076"
+  ],
   "acceptance_criteria": [
     "description-finished to first estimate is measured against the 2s budget, with the method recorded",
     "confirm to on-offer is measured against the 3s budget, with the method recorded",
@@ -11,12 +14,16 @@
   ],
   "dependencies": [],
   "scope": {
-    "files": ["docs/ops/"],
-    "shared_files": ["apps/mobile/lib/features/meal/"]
+    "files": [
+      "docs/ops/"
+    ],
+    "shared_files": [
+      "apps/mobile/lib/features/meal/"
+    ]
   },
   "execution_mode": "PARALLEL",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "ASSIGNED",
+  "owner": "worker-b",
   "priority": 1,
   "spend_envelope_usd": 0.5,
   "suggested_model": "opencode-go/qwen3.6-plus",
@@ -25,5 +32,5 @@
   "blocked_reason": null,
   "notes": "The numbers are the founder's to act on, not the worker's. Measure and report; do not change a budget or optimise against it without asking. May need temporary instrumentation in the Meal feature — declared as shared because WP-004 also touches apps/mobile.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T20:00:00Z"
+  "updated_at": "2026-08-05T17:34:20Z"
 }

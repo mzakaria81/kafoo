@@ -2,7 +2,9 @@
   "id": "WP-003",
   "title": "Replay meal-description against a real model",
   "objective": "Measure the prompt that writes the one sentence a Customer reads, rather than the parser around it. It is the only prompt whose output reaches a Customer verbatim and it has never been scored.",
-  "tasks": ["T098"],
+  "tasks": [
+    "T098"
+  ],
   "acceptance_criteria": [
     "scripts/replay-goldens.ts is generalised beyond the single prompt it is hardcoded to, without changing what it measures for meal-analysis",
     "the eight meal_description fixtures replay against the live fast-tier model",
@@ -11,12 +13,18 @@
   ],
   "dependencies": [],
   "scope": {
-    "files": ["scripts/replay-goldens.ts", "prompts/meal-description.md", "docs/ops/"],
-    "shared_files": ["packages/ai/test/goldens/register_markers.json"]
+    "files": [
+      "scripts/replay-goldens.ts",
+      "prompts/meal-description.md",
+      "docs/ops/"
+    ],
+    "shared_files": [
+      "packages/ai/test/goldens/register_markers.json"
+    ]
   },
   "execution_mode": "PARALLEL",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "ASSIGNED",
+  "owner": "worker-c",
   "priority": 3,
   "spend_envelope_usd": 1.0,
   "suggested_model": "opencode-go/grok-4.5",
@@ -25,5 +33,5 @@
   "blocked_reason": null,
   "notes": "Gemini free tier is 15 requests per minute and the script refuses to run below 4000ms spacing. Do not fire it repeatedly. Nothing in the app calls meal-description yet, so this measures a component that is not installed — the coordinator may reasonably hold it until something does.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T20:00:00Z"
+  "updated_at": "2026-08-05T17:34:20Z"
 }
