@@ -25,3 +25,5 @@
 {"at": "2026-08-05T13:26:09.147Z", "model": "opencode-go/qwen3.6-plus", "cost": 0.515449, "status": "completed", "session": "ses_02df3d90fffeY5hS1YnTimAD9R", "files": 9}
 {"at": "2026-08-05T18:17:36.614Z", "model": "opencode-go/qwen3.6-plus", "cost": 0.335585, "status": "completed", "session": "ses_02ce8b794ffejYEmZ3xS9buK9s", "files": 5}
 {"at": "2026-08-05T18:19:13.241Z", "model": "opencode-go/qwen3.6-plus", "cost": 0.251949, "status": "completed", "session": "ses_02ce1a7feffeDZdXC0wr97roah", "files": 5}
+{"at": "2026-08-05T17:55:33.909Z", "model": "opencode-go/qwen3.6-plus", "cost": 0.121757, "status": "completed", "session": "ses_02cf4567dffeJ2q4buG5z1jZrk", "files": 3}
+{"at": "2026-08-05T18:09:24.985Z", "model": "opencode-go/grok-4.5", "cost": 0.370268, "status": "completed", "session": "ses_02ce5737fffeLn2c1nWmYyOCwk", "files": 2}

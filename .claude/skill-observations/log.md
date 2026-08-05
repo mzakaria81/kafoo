@@ -1703,7 +1703,105 @@ usually the common one, which is why the defect got through.
 as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
 asking for it gets no error, no warning, and the old value.
 
-### Observation 65: A test stand-in that supplies what production lacks hides the gap it exists to catch
+### Observation 65: A negative authorization test can be masked by a sibling policy, and passes for the wrong reason
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Adding a column to an existing table whose row-level security already had four policies, and writing the test proving a non-owner cannot write it.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Verifying that a test seen to fail was seen to fail for the right reason
+
+**Issue:** The negative test was written first and confirmed failing before the column existed, which satisfied the usual "seen to fail" discipline. It then passed once the column landed. But the failure it had been seen to produce was "column does not exist" — not "the write was refused" — and those are different properties. Mutation-testing the policy it named revealed the test still passed with that policy fully open: a *different* policy on the same table hid the row from the attacker, so the write never reached the policy under test. The fixture was the cause — it used a resource in a state where the claimed guard is never the operative one. The same file already carried a comment warning that this exact masking would begin once a related change shipped, and it had shipped.
+
+**Suggested improvement:** In the section on confirming a test fails first, distinguish *failing because the thing under test is absent* from *failing because the guard under test refuses*. The first is necessary and not sufficient. Add: after the implementation lands, mutate the specific guard the test names and confirm the test goes red; if it stays green, the test is measuring something else, and the usual cause is a fixture in a state where a sibling guard does the work. Name the remedy — move or duplicate the test onto a fixture where the named guard is the only thing standing in the way.
+
+**Principle:** "Seen to fail" is only evidence when the failure has the same cause as the property being claimed. A test that fails because the feature is missing has not yet demonstrated it can fail because the feature is wrong — and where several guards overlap, the only proof is to break the specific one the test names and watch that test, alone, go red.
+### Observation 66: A mutation test whose mutation silently fails reports "check is asleep"
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-001 — proving verify.sh's `rls coverage` step does real work, by removing an RLS line and watching the step go red
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Mutation testing / seeing a check fail
+
+**Issue:** The mutation script used an invalid grep flag (`-vipP`; `-p` does not exist). grep exited
+non-zero and wrote an empty file, so the mutation did not remove one line — it destroyed the whole
+migration. The check then correctly reported green, because a file with no `CREATE TABLE` has
+nothing to require RLS for. The script printed "RESULT: green <-- BAD: the check is asleep",
+which is exactly the conclusion a reader would act on, and it was wrong in the most expensive
+direction: it accuses a working check of being broken. The grep usage error was visible in the
+output but scrolled above the verdict.
+
+**Suggested improvement:** A mutation test must assert that the mutation itself took effect before
+trusting the verdict — diff the mutated artifact against the original and fail loudly if the change
+is not exactly what was intended (one line removed, not a file emptied). Add this to the
+"seen to fail" guidance: the red run proves nothing unless you also know WHAT went red and why.
+
+**Principle:** A negative test proves nothing unless the negative condition is verified to have
+been created. An unverified mutation makes both outcomes uninformative: green may mean the check is
+asleep, or that the mutation never happened — and those have opposite remedies.
+
+### Observation 67: A delegated implementer confirms the brief's errors instead of catching them
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-001 — delegating E2 documentation updates to OpenCode with a fact-dense brief
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Writing the brief / reviewing the result
+
+**Issue:** The brief carried two wrong facts, both taken from a stale in-repo source rather than the
+authoritative one: an assertion number read from `tasks.md` (the suite had grown, so the number had
+moved), and a decision attributed to the wrong option because the task list's headline was written
+before the decision changed (the ADR recorded the opposite). The brief explicitly instructed the
+implementer to trust the repository over the brief and to report contradictions. It reported
+"None found. The repository confirmed every fact in the brief," and listed the facts it had
+verified — all of which were the easy, countable ones (file counts, check counts). Both errors
+survived into the diff and were caught only by the orchestrator's own review against primary
+sources.
+
+**Suggested improvement:** A "trust the repo over this brief" instruction is not a verification
+mechanism — it produces a confirmation, not a check. Where a brief states a fact the implementer
+could verify, name the file it must be verified against and require the observed value to be
+quoted back in the report ("state the assertion's text, not just its number"). Facts sourced from a
+derived or narrative document (a task list, a changelog) should be marked as such in the brief so
+both parties know which claims are second-hand.
+
+**Principle:** Asking a delegate to check your facts yields agreement, not verification, unless the
+report must contain the evidence rather than the verdict. Require the observation, not the
+conclusion — and treat facts copied from a narrative summary as unverified until read at the source.
+
+### Observation 68: A reused local database silently runs the suites against a stale schema
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-001 — merging main into a branch after a parallel worker landed a migration, then re-running the authorization suites to confirm a documented assertion count
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Running an authorization suite locally
+
+**Issue:** `scripts/local-db.sh start` returns early with "already running" when a cluster is up, so
+it never applies migrations that landed since the cluster was created. After merging a parallel
+worker's migration, `local-db.sh test` **exited 0** and reported 69 passing assertions against a
+schema missing the new column. The true count was 76. Nothing warned; the run looked identical to a
+correct one, and the only reason the discrepancy surfaced was that a documented number had been
+computed independently from the suites' own `plan(N)` lines and did not match. A second run — after
+the earlier one had left the cluster in a partly-failed state — did surface
+`column "address_form" does not exist`, but a first run on a stale cluster is silently green.
+
+**Suggested improvement:** A local test harness that caches expensive setup must detect staleness
+rather than assume freshness — compare the applied-migration set against the migrations on disk and
+either apply the difference or refuse to run. Where that is not done, guidance should say to
+recreate the database after any merge, and to cross-check the observed assertion count against the
+suites' declared plans rather than trusting the exit code.
+
+**Principle:** A cached environment turns "the tests passed" into "the tests passed against
+whatever this environment happens to contain". Exit code alone cannot distinguish the two — only an
+independently derived expectation of what should have run can, which is why a declared plan count is
+worth checking against the observed one.
+### Observation 69: A test stand-in that supplies what production lacks hides the gap it exists to catch
 
 **Status:** OPEN
 **Date:** 2026-08-05
@@ -1733,7 +1831,7 @@ double supplies that the real system does not is invisible to every test that us
 correctness of a double is never testable from inside the suite it serves. It must be established
 by observing the real system, and that observation has a date on it.
 
-### Observation 66: A latency measurement must gate on success, or failure reads as speed
+### Observation 70: A latency measurement must gate on success, or failure reads as speed
 
 **Status:** OPEN
 **Date:** 2026-08-05
