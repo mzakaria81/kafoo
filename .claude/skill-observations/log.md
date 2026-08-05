@@ -1702,3 +1702,33 @@ usually the common one, which is why the defect got through.
 **Principle:** An optional-parameter update helper silently conflates "not supplied" with "supplied
 as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
 asking for it gets no error, no warning, and the old value.
+
+### Observation 65: A test stand-in that supplies what production lacks hides the gap it exists to catch
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-002 — measuring E2's two performance timings against the live Supabase project
+**Skill:** New skill candidate: verifying-a-stand-in
+**Type:** open-source
+**Phase/Area:** Test harness design; the boundary between a local substitute and the real system
+
+**Issue:** The local database harness bootstrapped its own environment with a blanket
+`ALTER DEFAULT PRIVILEGES ... GRANT ALL ON TABLES`, justified by a comment asserting the hosted
+platform grants those privileges by default. It does not, on this project. So the harness was
+supplying a layer production did not have. Every authorization suite was green while the deployed
+database refused every read and write from every application role with `42501 permission denied` —
+the product was unusable in production and nothing in the test suite could say so. It was found only
+by making a real call against the real deployment for an unrelated reason (a latency measurement),
+not by any check that existed.
+
+**Suggested improvement:** A harness that stands in for a real system should carry, per stand-in, a
+recorded answer to "what evidence says the real system behaves this way, and when was it checked?"
+A stand-in justified by an assumption rather than an observation is a defect generator: it can only
+ever make the suite greener than reality. Two concrete practices: (1) every stand-in line names its
+evidence and its date, and (2) at least one probe runs against the real system periodically, because
+a stand-in cannot audit itself by construction.
+
+**Principle:** A test double can only fail in one direction — toward false confidence. Anything a
+double supplies that the real system does not is invisible to every test that uses it, so the
+correctness of a double is never testable from inside the suite it serves. It must be established
+by observing the real system, and that observation has a date on it.
