@@ -391,7 +391,7 @@ estimate. Correct one and confirm it becomes the Cook's.
   the AI Assistant's own number onto a column that held nothing, which the trigger read as a change.
   So every published Meal was labelled as a figure a person had checked, and a Customer avoiding
   gluten would have read a guess as verified fact. Proved against a real Postgres before anything
-  was changed, fixed in `20260805120825_fix_nutrition_source_on_first_write.sql`, and covered by
+  was changed, fixed in `20260805120815_fix_nutrition_source_on_first_write.sql`, and covered by
   cases 26 to 29
 
   **The allergen half of that fix was nearly a no-op.** `allergens` is `NOT NULL DEFAULT '{}'`, so
