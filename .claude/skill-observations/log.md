@@ -1601,3 +1601,29 @@ coverage.
 **Principle:** A "nothing is wrong" assertion over a collection is vacuously true when the
 collection is empty. Any such check needs a companion non-emptiness assertion, or it degrades from
 a test into a report of how the fixture was built.
+
+### Observation 61: A multi-clause requirement can be half-covered by tasks with nothing flagging the rest
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, building US4/US5/US7 (Meal availability, retirement, editing)
+**Skill:** speckit-tasks
+**Type:** open-source
+**Phase/Area:** Requirement-to-task traceability
+
+**Issue:** One requirement in the spec carries three clauses: a Cook must be able to (a) see every
+draft, (b) delete any of them, and (c) resume a draft rather than starting again. Clauses (a) and
+(b) each have a task. Clause (c) has no task anywhere in the epic — a full-text search for the verb
+returns nothing. Because the requirement id is cited by the two tasks that do exist, every
+traceability check passes: the requirement looks covered. It was found only by reading the
+requirement's own text while writing an implementation brief, not by any check.
+
+**Suggested improvement:** When generating tasks, split a requirement containing multiple MUST
+clauses into its clauses first and map each clause to a task, rather than mapping the requirement id
+as a unit. Where a clause is deliberately deferred, it needs a task that says so — a deferral with
+no record is indistinguishable from an omission, and the citation of the requirement id by sibling
+tasks actively hides it.
+
+**Principle:** Coverage measured at the granularity of the requirement id is coarser than the
+requirement. A multi-clause requirement cited by any task reads as satisfied, so the uncovered
+clauses are invisible to exactly the check meant to find them.
