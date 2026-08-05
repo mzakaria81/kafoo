@@ -663,5 +663,17 @@
   "mealDeleteDraftConfirm": "Delete it",
   "@mealDeleteDraftConfirm": {
     "description": "Confirmation button on the draft-deletion dialog."
+  },
+  "mealEditTitle": "Edit the Meal",
+  "@mealEditTitle": {
+    "description": "Heading on the Meal edit screen."
+  },
+  "mealEditSaved": "Changed.",
+  "@mealEditSaved": {
+    "description": "Brief confirmation shown after a single-field change on the Meal edit screen."
+  },
+  "mealEditNoChange": "Nothing changed.",
+  "@mealEditNoChange": {
+    "description": "Shown when a Cook closes an edit row without changing anything."
   }
 }

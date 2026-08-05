@@ -545,4 +545,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealDeleteDraftConfirm => 'Delete it';
+
+  @override
+  String get mealEditTitle => 'Edit the Meal';
+
+  @override
+  String get mealEditSaved => 'Changed.';
+
+  @override
+  String get mealEditNoChange => 'Nothing changed.';
 }

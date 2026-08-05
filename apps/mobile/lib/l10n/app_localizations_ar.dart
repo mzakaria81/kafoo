@@ -532,4 +532,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealDeleteDraftConfirm => 'امسحها';
+
+  @override
+  String get mealEditTitle => 'عدّل الأكلة';
+
+  @override
+  String get mealEditSaved => 'اتغيّرت.';
+
+  @override
+  String get mealEditNoChange => 'مافيش حاجة اتغيّرت.';
 }

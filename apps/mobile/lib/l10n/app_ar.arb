@@ -663,5 +663,17 @@
   "mealDeleteDraftConfirm": "امسحها",
   "@mealDeleteDraftConfirm": {
     "description": "Confirmation button on the draft-deletion dialog."
+  },
+  "mealEditTitle": "عدّل الأكلة",
+  "@mealEditTitle": {
+    "description": "Heading on the Meal edit screen."
+  },
+  "mealEditSaved": "اتغيّرت.",
+  "@mealEditSaved": {
+    "description": "Brief confirmation shown after a single-field change on the Meal edit screen."
+  },
+  "mealEditNoChange": "مافيش حاجة اتغيّرت.",
+  "@mealEditNoChange": {
+    "description": "Shown when a Cook closes an edit row without changing anything."
   }
 }

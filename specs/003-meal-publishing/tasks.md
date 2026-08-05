@@ -399,10 +399,10 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 **Independent test**: Change each part in turn; each takes effect and nothing else moves.
 
-- [ ] T066 [P] [US7] Add the edit strings to `app_ar.arb` and `app_en.arb`
-- [ ] T067 [US7] Build editing in `apps/mobile/lib/features/meal/presentation/meal_edit_screen.dart`, one detail at a time in keeping with the conversation rather than reverting to a seven-field form
-- [ ] T068 [US7] Keep the previous version visible to readers until a change is confirmed
-- [ ] T069 [US7] Emit `MealUpdated` with `changed`, distinguishing a price change from a typo
+- [x] T066 [P] [US7] Add the edit strings to `app_ar.arb` and `app_en.arb` — three keys. The Change control and the error reuse `convEdit` and `mealSaveError` rather than adding near-duplicates
+- [x] T067 [US7] Build editing in `apps/mobile/lib/features/meal/presentation/meal_edit_screen.dart`, one detail at a time in keeping with the conversation rather than reverting to a seven-field form. It reuses the summary's `SummaryRow` — a row that becomes a field in place — so there is no form, and **at most one row is in edit state at a time**: opening a second abandons the first without writing it. **Editable fields are exactly title, description and price, and that is a `MealEditField` enum rather than a convention.** Calories and allergens are deliberately absent: the `derive_nutrition_source` trigger sets the source to `cook` on any update that changes them, so a screen that sent the whole Meal back would silently relabel an AI estimate as a figure the Cook stands behind. A test asserts no write from this screen ever carries an analysed field
+- [x] T068 [US7] Keep the previous version visible to readers until a change is confirmed. There is no autosave, no save-on-blur and no "save all" — one detail, confirmed, written. The test asserts the repository received **nothing** while an edit was in progress, which is the guarantee stated from the reader's side
+- [x] T069 [US7] Emit `MealUpdated` with `changed`, distinguishing a price change from a typo. `changed` is the field name — `title`, `description`, `price` — never anything the Cook typed. A commit of an unchanged or empty value writes nothing and emits nothing, so opening a row and closing it does not appear in the funnel as an edit
 
 ---
 

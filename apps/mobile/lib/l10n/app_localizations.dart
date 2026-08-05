@@ -1069,6 +1069,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'امسحها'**
   String get mealDeleteDraftConfirm;
+
+  /// Heading on the Meal edit screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'عدّل الأكلة'**
+  String get mealEditTitle;
+
+  /// Brief confirmation shown after a single-field change on the Meal edit screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتغيّرت.'**
+  String get mealEditSaved;
+
+  /// Shown when a Cook closes an edit row without changing anything.
+  ///
+  /// In ar, this message translates to:
+  /// **'مافيش حاجة اتغيّرت.'**
+  String get mealEditNoChange;
 }
 
 class _AppLocalizationsDelegate

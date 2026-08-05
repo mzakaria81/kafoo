@@ -10,6 +10,7 @@ import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart'
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/kitchen_profile_screen.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/public_kitchen_view.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_edit_screen.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
@@ -86,6 +87,14 @@ Map<String, Widget> _screens() => {
           ),
         ],
         child: const MyMealsScreen(),
+      ),
+      'meal edit': ProviderScope(
+        overrides: [
+          mealRepositoryProvider.overrideWithValue(
+            FakeMealRepository(existing: _meal),
+          ),
+        ],
+        child: const MealEditScreen(meal: _meal),
       ),
     };
 
