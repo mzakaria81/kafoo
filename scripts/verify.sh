@@ -19,6 +19,24 @@ run() {
 
 echo "kafoo verify"
 
+# A skipped check prints "ok". On a laptop without the toolchain that is a
+# kindness; in CI it is indistinguishable from a check that ran and passed, and
+# that is exactly how three Deno checks reported ok on every pull request from the
+# day they were written while never once type-checking the only code in Kafoo that
+# talks to a model provider. Nobody was told. The gate said PASS.
+#
+# So skipping stays allowed locally and is fatal in CI. GitHub Actions sets CI=true.
+skip_or_fail() {
+  if [ -n "${CI:-}" ]; then
+    echo "   $1 — and in CI a skip is a check reporting ok without running"
+    return 1
+  fi
+  echo "   $1 — skipping"
+  return 0
+}
+export -f skip_or_fail
+
+
 # Dart/Flutter steps skip cleanly until the workspace is scaffolded, the same
 # way "localization parity" skips before the ARB files exist. They activate on
 # the `workspace:` key in the root pubspec.yaml, which is what makes this a Dart
@@ -117,12 +135,12 @@ run "edge functions" bash -c '
   files=$(find supabase/functions -name "*.ts" -type f 2>/dev/null | sort)
   [ -n "${files}" ] || { echo "   no edge functions yet — skipping"; exit 0; }
   command -v deno >/dev/null || {
-    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+    skip_or_fail "deno not on PATH (run scripts/install-toolchain.sh)"; exit $?; }
   # shellcheck disable=SC2086
   out=$(deno check ${files} 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"Import .* failed"*|*"connection"*|*"dns error"*)
-        echo "   no network for remote imports — skipping"; exit 0 ;;
+        skip_or_fail "no network for remote imports"; exit $? ;;
       *) printf "%s\n" "${out}" >&2; exit 1 ;;
     esac
   }
@@ -154,12 +172,12 @@ run "edge function tests" bash -c '
   files=$(find supabase/functions -name "*_test.ts" -type f 2>/dev/null | sort)
   [ -n "${files}" ] || { echo "   no edge function unit tests yet — skipping"; exit 0; }
   command -v deno >/dev/null || {
-    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+    skip_or_fail "deno not on PATH (run scripts/install-toolchain.sh)"; exit $?; }
   # shellcheck disable=SC2086
   out=$(deno test --quiet --allow-env ${files} 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"connection"*|*"dns error"*)
-        echo "   no network for remote imports — skipping"; exit 0 ;;
+        skip_or_fail "no network for remote imports"; exit $? ;;
       *) printf "%s\n" "${out}" >&2; exit 1 ;;
     esac
   }
@@ -176,7 +194,7 @@ run "edge function tests" bash -c '
 # to show for a file it is not yet tracking. Content is the question; ask it directly.
 run "prompt bundle drift" bash -c '
   command -v deno >/dev/null || {
-    echo "   deno not on PATH — skipping (run scripts/install-toolchain.sh)"; exit 0; }
+    skip_or_fail "deno not on PATH (run scripts/install-toolchain.sh)"; exit $?; }
   ls prompts/*.md >/dev/null 2>&1 || {
     echo "   no prompts yet — skipping"; exit 0; }
   deno run --allow-read scripts/generate-prompts.ts --check >/dev/null'

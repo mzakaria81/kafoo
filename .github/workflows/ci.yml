@@ -26,6 +26,20 @@ jobs:
           channel: stable
           cache: true
 
+      # Edge Functions are Deno, and without it the three checks that cover them —
+      # `deno check`, their unit tests, and prompt bundle drift — skipped and
+      # reported ok on every pull request since the gate was written. The only code
+      # in Kafoo that talks to a model provider was type-checked nowhere but a
+      # developer's laptop. verify.sh now fails rather than skips when CI is set, so
+      # this step going missing is loud instead of silent.
+      #
+      # Major version pinned; scripts/install-toolchain.sh takes the latest 2.x, so
+      # the two track each other rather than drifting apart.
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Activate melos
         run: dart pub global activate melos
 
