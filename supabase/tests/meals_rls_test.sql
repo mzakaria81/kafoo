@@ -37,7 +37,7 @@
 -- ────────────────────────────────────────────────────────────────────────────────────────────────
 
 BEGIN;
-SELECT plan(19);
+SELECT plan(23);
 
 SELECT tests.create_supabase_user('owner@test.kafoo');
 SELECT tests.create_supabase_user('other@test.kafoo');
@@ -279,6 +279,81 @@ SELECT is(
   (SELECT nutrition_source FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000013'),
   'cook',
   'an insert is the Cook confirming, so the source is stored as sent'
+);
+
+-- 26. THE CASE THE TRIGGER USED TO GET BACKWARDS, and the reason it is written down here rather
+--     than left to the app.
+--
+--     A Cook cannot publish without approving every estimate, and approving writes the AI
+--     Assistant's own number onto a row that held nothing. To the first version of this trigger
+--     that read as a change, so EVERY published Meal came out labelled as a figure a person had
+--     verified. A Customer avoiding gluten would have read a guess as a checked fact, which is the
+--     one direction docs/product/domain-model.md says this field must never fail in.
+--
+--     Approving is not verifying. Only a figure that REPLACES a stored one is the Cook's.
+INSERT INTO public.meals
+  (id, cook_id, title, description, price, cuisine, category)
+VALUES
+  ('aaaaaaaa-0000-4000-8000-000000000014', tests.user_id('owner@test.kafoo'),
+   'ملوخية', 'ملوخية بالفراخ', 90.00, 'egyptian', 'main');
+
+UPDATE public.meals
+  SET calories = 800, allergens = ARRAY['جلوتين']
+  WHERE id = 'aaaaaaaa-0000-4000-8000-000000000014';
+
+SELECT is(
+  (SELECT nutrition_source FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000014'),
+  'ai',
+  'approving an estimate unchanged leaves the figure the AI Assistant''s'
+);
+
+-- 27. And the correction that follows it still promotes, so the fix above did not simply switch
+--     the trigger off. This is the pair: 26 says approving is not verifying, 27 says correcting is.
+UPDATE public.meals
+  SET calories = 650
+  WHERE id = 'aaaaaaaa-0000-4000-8000-000000000014';
+
+SELECT is(
+  (SELECT nutrition_source FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000014'),
+  'cook',
+  'correcting a stored figure still makes it the Cook''s own'
+);
+
+-- 28. Allergens say "nothing here yet" differently from calories, and the difference nearly made
+--     the fix above a no-op on the column where being wrong hurts someone.
+--
+--     `allergens` is `NOT NULL DEFAULT '{}'`, so a draft nobody has answered holds an empty array
+--     rather than a null. A first version of the trigger tested `OLD.allergens IS NOT NULL`, which
+--     is true for every row that has ever existed — the allergen half would have gone on promoting
+--     exactly as before while the calorie half was fixed, and nothing would have said so. Absence
+--     for this column is an empty list.
+INSERT INTO public.meals
+  (id, cook_id, title, description, price, cuisine, category)
+VALUES
+  ('aaaaaaaa-0000-4000-8000-000000000015', tests.user_id('owner@test.kafoo'),
+   'رز باللبن', 'حلو بلدي', 30.00, 'egyptian', 'dessert');
+
+UPDATE public.meals
+  SET allergens = ARRAY['ألبان']
+  WHERE id = 'aaaaaaaa-0000-4000-8000-000000000015';
+
+SELECT is(
+  (SELECT nutrition_source FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000015'),
+  'ai',
+  'approving an allergen list onto an empty one leaves it the AI Assistant''s'
+);
+
+-- 29. And correcting a list that already said something still promotes — including emptying it,
+--     which is the change a Cook makes when the AI Assistant warned about something that is not in
+--     the food. That claim is the Cook's, and it must not read as a guess.
+UPDATE public.meals
+  SET allergens = ARRAY[]::text[]
+  WHERE id = 'aaaaaaaa-0000-4000-8000-000000000015';
+
+SELECT is(
+  (SELECT nutrition_source FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000015'),
+  'cook',
+  'clearing an allergen list the Cook disagrees with is the Cook''s own answer'
 );
 
 SELECT tests.clear_authentication();

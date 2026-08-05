@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
@@ -32,6 +33,7 @@ class MealConversationState {
     this.analysisInFlight = false,
     this.analysisError,
     this.approvals = const {},
+    this.corrections = const {},
     this.error,
   });
 
@@ -44,6 +46,17 @@ class MealConversationState {
   /// Separate from [error]: a model failure must never look like a save failure.
   final AppError? analysisError;
   final Map<String, bool> approvals;
+
+  /// Fields the Cook REPLACED rather than approved.
+  ///
+  /// Separate from [approvals] because correcting a value also approves it, so
+  /// one map cannot answer "whose figure is this". The summary needs that
+  /// answer: an approved estimate is still the AI Assistant's guess and keeps
+  /// its badge, and a corrected one is the Cook's own and loses it. The
+  /// database draws the same line in `derive_nutrition_source` by comparing
+  /// what arrives against what is stored.
+  final Set<String> corrections;
+
   final AppError? error;
 
   MealConversationState copyWith({
@@ -52,6 +65,7 @@ class MealConversationState {
     bool? analysisInFlight,
     Object? analysisError = _undefined,
     Map<String, bool>? approvals,
+    Set<String>? corrections,
     Object? error = _undefined,
   }) =>
       MealConversationState(
@@ -62,6 +76,7 @@ class MealConversationState {
             ? this.analysisError
             : analysisError as AppError?,
         approvals: approvals ?? this.approvals,
+        corrections: corrections ?? this.corrections,
         error: error == _undefined ? this.error : error as AppError?,
       );
 }
@@ -130,6 +145,40 @@ class MealConversationController extends _$MealConversationController {
     return nextUnansweredMealStep(steps);
   }
 
+  /// The next fallback question, or null when none is needed.
+  ///
+  /// Asked only after the four real questions, never while an estimate might
+  /// still arrive, and only for fields the analysis did not supply. Trigger is
+  /// the missing value, not [MealConversationState.analysisError] — a successful
+  /// analysis with no cuisine leaves the Cook just as stuck.
+  MealFallbackStepId? get currentFallbackStep {
+    if (currentStep != null) return null;
+    if (state.analysisInFlight) return null;
+
+    final analysis = state.analysis;
+    final cuisineNeeded =
+        state.draft.cuisine == null && analysis?.cuisine == null;
+    final categoryNeeded =
+        state.draft.category == null && analysis?.category == null;
+
+    return nextUnansweredMealFallbackStep(
+      cuisineNeeded: cuisineNeeded,
+      categoryNeeded: categoryNeeded,
+    );
+  }
+
+  /// Records a Cook answer to a fallback question (cuisine or category).
+  ///
+  /// These are the Cook's own values, not AI estimates — so they are written
+  /// with [markApproved] false and never enter [MealConversationState.approvals].
+  Future<bool> answerFallback(MealFallbackStepId step, Object value) {
+    final field = switch (step) {
+      MealFallbackStepId.cuisine => MealEstimateFields.cuisine,
+      MealFallbackStepId.category => MealEstimateFields.category,
+    };
+    return _writeEstimate(field, value, markApproved: false);
+  }
+
   /// Records an answer for the given step.
   ///
   /// First answer creates the draft and emits [EventNames.mealDrafted] once.
@@ -180,6 +229,29 @@ class MealConversationController extends _$MealConversationController {
   void declinePhoto() {
     state.draft.photoResolved = true;
     state = state.copyWith();
+  }
+
+  /// Uploads a photo and records it as the answer to the photo step.
+  ///
+  /// Returns true when the photo was stored and the step advanced. On a
+  /// failed upload the state carries the error and the Cook stays on the
+  /// photo question — a photo that would not upload must not cost them the
+  /// conversation.
+  Future<bool> attachPhoto(Uint8List bytes) async {
+    final mealId = state.draft.mealId;
+    if (mealId == null) return false;
+
+    state = state.copyWith(error: null);
+    final result = await _repository.uploadPhoto(mealId: mealId, bytes: bytes);
+    if (!ref.mounted) return false;
+
+    switch (result) {
+      case Success(value: final path):
+        return answer(MealStepId.photo, path);
+      case Failure(error: final err):
+        state = state.copyWith(error: err);
+        return false;
+    }
   }
 
   Future<Result<Object?, AppError>> _persistAnswer(
@@ -276,6 +348,7 @@ class MealConversationController extends _$MealConversationController {
               analysisInFlight: false,
               analysisError: null,
               approvals: const {},
+              corrections: const {},
             );
           case Failure(error: final err):
             state = state.copyWith(
@@ -308,7 +381,8 @@ class MealConversationController extends _$MealConversationController {
   /// Editing counts as approving: a Cook who corrected a value has engaged
   /// with it more than one who tapped approve.
   Future<bool> correctEstimate(String field, Object value) async {
-    return _writeEstimate(field, value, markApproved: true);
+    return _writeEstimate(field, value,
+        markApproved: true, markCorrected: true);
   }
 
   /// Puts the Meal on offer. Emits [EventNames.mealPublished] once on success.
@@ -358,6 +432,7 @@ class MealConversationController extends _$MealConversationController {
     String field,
     Object value, {
     required bool markApproved,
+    bool markCorrected = false,
   }) async {
     final mealId = state.draft.mealId;
     if (mealId == null) return false;
@@ -392,12 +467,14 @@ class MealConversationController extends _$MealConversationController {
     switch (result) {
       case Success():
         _applyToDraft(field, value);
-        if (markApproved) {
-          final next = Map<String, bool>.from(state.approvals)..[field] = true;
-          state = state.copyWith(approvals: next);
-        } else {
-          state = state.copyWith();
-        }
+        state = state.copyWith(
+          approvals: markApproved
+              ? (Map<String, bool>.from(state.approvals)..[field] = true)
+              : null,
+          corrections: markCorrected
+              ? (Set<String>.from(state.corrections)..add(field))
+              : null,
+        );
         return true;
       case Failure(error: final err):
         state = state.copyWith(error: err);

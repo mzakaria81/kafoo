@@ -378,6 +378,10 @@
   "@mealConvPhotoSkip": {
     "description": "Button that declines the photo and continues the conversation."
   },
+  "mealConvPhotoAdd": "ضيف صورة للأكلة",
+  "@mealConvPhotoAdd": {
+    "description": "Button to attach a photo to a Meal during the conversation (T041)."
+  },
   "mealConvPromptPrice": "بتبيعها بكام؟",
   "@mealConvPromptPrice": {
     "description": "Fourth question: the price of the whole Meal."
@@ -385,6 +389,26 @@
   "mealConvHintPrice": "سعر الطبق كامل بالجنيه",
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealConvFallbackNotice": "المساعد مقدرش يعرف نوع الأكلة، فمحتاج أسألك سؤالين كمان.",
+  "@mealConvFallbackNotice": {
+    "description": "Notice before fallback cuisine/category questions when the AI Assistant could not estimate them (T096/FR-014)."
+  },
+  "mealConvPromptCuisine": "الأكلة دي من أنهي مطبخ؟",
+  "@mealConvPromptCuisine": {
+    "description": "Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing."
+  },
+  "mealConvHintCuisine": "اختار اللي أقرب لأكلتك",
+  "@mealConvHintCuisine": {
+    "description": "Hint below the fallback cuisine question."
+  },
+  "mealConvPromptCategory": "ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟",
+  "@mealConvPromptCategory": {
+    "description": "Fallback question: what sort of dish it is, asked only when the estimate is missing."
+  },
+  "mealConvHintCategory": "اختار اللي أقرب",
+  "@mealConvHintCategory": {
+    "description": "Hint below the fallback category question."
   },
   "mealSummaryTitle": "ده اللي قلته عن الأكلة",
   "@mealSummaryTitle": {
@@ -554,5 +578,25 @@
   "mealPublishedConfirmation": "الأكلة بقت على المنيو.",
   "@mealPublishedConfirmation": {
     "description": "Confirms the Meal is now on offer."
+  },
+  "mealNeedsKitchenTitle": "لسه معندكش مطبخ",
+  "@mealNeedsKitchenTitle": {
+    "description": "Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040)."
+  },
+  "mealNeedsKitchenBody": "قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.",
+  "@mealNeedsKitchenBody": {
+    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered."
+  },
+  "mealNeedsKitchenAction": "اعمل مطبخي",
+  "@mealNeedsKitchenAction": {
+    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one."
+  },
+  "mealKitchenCheckError": "مقدرناش نتأكد من مطبخك. جرب تاني.",
+  "@mealKitchenCheckError": {
+    "description": "Shown when the Kitchen Profile existence check fails (network or server error)."
+  },
+  "mealKitchenCheckRetry": "جرب تاني",
+  "@mealKitchenCheckRetry": {
+    "description": "Button that re-runs the Kitchen Profile existence check."
   }
 }

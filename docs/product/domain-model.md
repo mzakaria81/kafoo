@@ -147,11 +147,33 @@ Calories and allergens are AI estimates until a Cook **changes** them. They are 
 as verified fact, and `nutrition_source` is what the UI reads to decide how to label them.
 
 **`nutrition_source` is derived, never accepted from a client.** A trigger sets it to `cook` when
-an update actually changes the calories or the allergens, and leaves it alone otherwise. Approving
-an estimate without editing it does not make it verified — that distinction is the whole of the
-"AI suggests, humans approve" rule, and a client allowed to assert the field could erase it. The
-one exception is INSERT, where there is no previous value to compare against and the Cook is the
-one confirming.
+an update REPLACES a calorie figure or an allergen list that was already stored, and leaves it
+alone otherwise. Approving an estimate without editing it does not make it verified — that
+distinction is the whole of the "AI suggests, humans approve" rule, and a client allowed to assert
+the field could erase it. The one exception is INSERT, where there is no previous value to compare
+against and the Cook is the one confirming.
+
+**The word "replaces" is doing work, and it was wrong in the code until 2026-08-05.** The trigger
+promoted on any change, and approving an estimate writes the AI Assistant's own number onto a
+column that held nothing — which is a change. Since a Cook cannot publish without approving every
+estimate, *every* published Meal came out labelled as a figure a person had checked. The rule this
+paragraph already described was right; the implementation did not honour it. Cases 26 to 29 in
+`supabase/tests/meals_rls_test.sql` now hold it, and the migration comment records the one
+inaccuracy the fix accepts: a Cook's own figure written into an empty column reads as an estimate,
+because the database cannot tell that write apart from an approval without believing the client.
+
+**Absence is spelled differently on the two columns.** `calories` is nullable, so absence is NULL.
+`allergens` is `NOT NULL DEFAULT '{}'`, so a draft nobody has answered holds an empty list — a null
+check on it is true for every row that has ever existed and would silently leave the allergen half
+of the trigger behaving as before. Emptying a list that had something in it still counts as the
+Cook's own answer: disagreeing with a warning is a claim a person makes.
+
+**Two surfaces read this distinction, at different moments.** A Customer reading a published Meal
+reads the column. The Cook's summary screen, mid-conversation, reads the conversation's own record
+of which fields were replaced — the draft has not been read back at that point, and waiting for a
+round trip to decide whether to show a badge would show the wrong one first. They must agree, and
+the test pair in `apps/mobile/test/meal_summary_test.dart` ("approved estimates keep their badge",
+"a corrected estimate stops reading as one") is what holds the client half to it.
 
 **`published_at` is the first time a Meal went on offer**, set by trigger and never overwritten. A
 Meal taken off the menu and put back has been made available again, not republished.

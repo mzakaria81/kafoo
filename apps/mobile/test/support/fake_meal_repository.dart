@@ -44,13 +44,17 @@ class FakeUpdateDraftCall {
 /// Records every write it is asked to make, so a test can assert which writes
 /// happened — and, more usefully, that none did.
 class FakeMealRepository implements MealRepository {
-  FakeMealRepository({this.existing, this.failOperations = false});
+  FakeMealRepository(
+      {this.existing, this.failOperations = false, this.failUploads = false});
 
   /// What operations return. Null entries are created on demand.
   Meal? existing;
 
   /// When true, all mutating operations fail.
   bool failOperations;
+
+  /// When true, [uploadPhoto] fails independently of [failOperations].
+  bool failUploads;
 
   int createDraftCalls = 0;
   int updateDraftCalls = 0;
@@ -170,7 +174,7 @@ class FakeMealRepository implements MealRepository {
     required Uint8List bytes,
   }) async {
     uploadPhotoCalls++;
-    if (failOperations) {
+    if (failOperations || failUploads) {
       return const Failure(AppError(messageKey: 'mealPhotoError'));
     }
     lastUploadedMealId = mealId;

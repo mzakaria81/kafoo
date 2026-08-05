@@ -650,6 +650,12 @@ abstract class AppLocalizations {
   /// **'كمّل من غير صورة'**
   String get mealConvPhotoSkip;
 
+  /// Button to attach a photo to a Meal during the conversation (T041).
+  ///
+  /// In ar, this message translates to:
+  /// **'ضيف صورة للأكلة'**
+  String get mealConvPhotoAdd;
+
   /// Fourth question: the price of the whole Meal.
   ///
   /// In ar, this message translates to:
@@ -661,6 +667,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سعر الطبق كامل بالجنيه'**
   String get mealConvHintPrice;
+
+  /// Notice before fallback cuisine/category questions when the AI Assistant could not estimate them (T096/FR-014).
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد مقدرش يعرف نوع الأكلة، فمحتاج أسألك سؤالين كمان.'**
+  String get mealConvFallbackNotice;
+
+  /// Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة دي من أنهي مطبخ؟'**
+  String get mealConvPromptCuisine;
+
+  /// Hint below the fallback cuisine question.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار اللي أقرب لأكلتك'**
+  String get mealConvHintCuisine;
+
+  /// Fallback question: what sort of dish it is, asked only when the estimate is missing.
+  ///
+  /// In ar, this message translates to:
+  /// **'ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟'**
+  String get mealConvPromptCategory;
+
+  /// Hint below the fallback category question.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار اللي أقرب'**
+  String get mealConvHintCategory;
 
   /// Heading of the Meal summary, shown before anything is on offer.
   ///
@@ -907,6 +943,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الأكلة بقت على المنيو.'**
   String get mealPublishedConfirmation;
+
+  /// Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040).
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه معندكش مطبخ'**
+  String get mealNeedsKitchenTitle;
+
+  /// Body text explaining why a Kitchen Profile is needed before a Meal can be offered.
+  ///
+  /// In ar, this message translates to:
+  /// **'قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.'**
+  String get mealNeedsKitchenBody;
+
+  /// Button that opens the Kitchen Profile conversation so the Cook can create one.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعمل مطبخي'**
+  String get mealNeedsKitchenAction;
+
+  /// Shown when the Kitchen Profile existence check fails (network or server error).
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نتأكد من مطبخك. جرب تاني.'**
+  String get mealKitchenCheckError;
+
+  /// Button that re-runs the Kitchen Profile existence check.
+  ///
+  /// In ar, this message translates to:
+  /// **'جرب تاني'**
+  String get mealKitchenCheckRetry;
 }
 
 class _AppLocalizationsDelegate

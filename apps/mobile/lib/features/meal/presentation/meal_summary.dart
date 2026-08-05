@@ -10,6 +10,7 @@ import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/meal_estimate_fields.dart';
+import 'meal_enum_labels.dart';
 import 'meal_estimate_display.dart';
 import 'meal_estimate_rows.dart';
 import 'meal_summary_rows.dart';
@@ -206,6 +207,19 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
               onEdit: () => _beginCookEdit(MealStepId.price, draft.price ?? ''),
               onCommit: () => _commitCookEdit(MealStepId.price),
             ),
+            // Cook-owned cuisine/category from the fallback path only — shown
+            // when the draft has the value and the analysis offered no estimate.
+            // No estimate badge: these are what the Cook stated, not guesses.
+            if (draft.cuisine != null && analysis?.cuisine == null)
+              SummaryRow(
+                label: l10n.mealSummaryLabelCuisine,
+                value: cuisineLabel(l10n, draft.cuisine!),
+              ),
+            if (draft.category != null && analysis?.category == null)
+              SummaryRow(
+                label: l10n.mealSummaryLabelCategory,
+                value: mealCategoryLabel(l10n, draft.category!),
+              ),
             const SizedBox(height: KafooSpacing.lg),
             Text(l10n.mealSummaryEstimatesTitle,
                 style: theme.textTheme.titleMedium),
@@ -234,6 +248,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                   displayValue: estimateDisplay(l10n, state, field),
                   basis: estimateBasis(analysis!, field),
                   approved: state.approvals[field] == true,
+                  isCookOwn: state.corrections.contains(field),
                   editing: _editingEstimateField == field,
                   controller: _editController,
                   editLabel: l10n.convEdit,

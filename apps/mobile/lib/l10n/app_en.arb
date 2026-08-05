@@ -378,6 +378,10 @@
   "@mealConvPhotoSkip": {
     "description": "Button that declines the photo and continues the conversation."
   },
+  "mealConvPhotoAdd": "Add a photo of the Meal",
+  "@mealConvPhotoAdd": {
+    "description": "Button to attach a photo to a Meal during the conversation (T041)."
+  },
   "mealConvPromptPrice": "What do you sell it for?",
   "@mealConvPromptPrice": {
     "description": "Fourth question: the price of the whole Meal."
@@ -385,6 +389,26 @@
   "mealConvHintPrice": "The price of the whole dish, in pounds",
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealConvFallbackNotice": "The AI Assistant couldn't work out what kind of food this is, so there are two more questions.",
+  "@mealConvFallbackNotice": {
+    "description": "Notice before fallback cuisine/category questions when the AI Assistant could not estimate them (T096/FR-014)."
+  },
+  "mealConvPromptCuisine": "Which kind of cooking is this Meal?",
+  "@mealConvPromptCuisine": {
+    "description": "Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing."
+  },
+  "mealConvHintCuisine": "Pick the closest one",
+  "@mealConvHintCuisine": {
+    "description": "Hint below the fallback cuisine question."
+  },
+  "mealConvPromptCategory": "And what sort of dish is it? A main, a dessert, a soup?",
+  "@mealConvPromptCategory": {
+    "description": "Fallback question: what sort of dish it is, asked only when the estimate is missing."
+  },
+  "mealConvHintCategory": "Pick the closest one",
+  "@mealConvHintCategory": {
+    "description": "Hint below the fallback category question."
   },
   "mealSummaryTitle": "Here is what you told me about this Meal",
   "@mealSummaryTitle": {
@@ -554,5 +578,25 @@
   "mealPublishedConfirmation": "This Meal is on the menu now.",
   "@mealPublishedConfirmation": {
     "description": "Confirms the Meal is now on offer."
+  },
+  "mealNeedsKitchenTitle": "You don't have a kitchen yet",
+  "@mealNeedsKitchenTitle": {
+    "description": "Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040)."
+  },
+  "mealNeedsKitchenBody": "Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.",
+  "@mealNeedsKitchenBody": {
+    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered."
+  },
+  "mealNeedsKitchenAction": "Set up my kitchen",
+  "@mealNeedsKitchenAction": {
+    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one."
+  },
+  "mealKitchenCheckError": "We couldn't check your kitchen. Try again.",
+  "@mealKitchenCheckError": {
+    "description": "Shown when the Kitchen Profile existence check fails (network or server error)."
+  },
+  "mealKitchenCheckRetry": "Try again",
+  "@mealKitchenCheckRetry": {
+    "description": "Button that re-runs the Kitchen Profile existence check."
   }
 }

@@ -323,10 +323,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mealConvPhotoSkip => 'Continue without a photo';
 
   @override
+  String get mealConvPhotoAdd => 'Add a photo of the Meal';
+
+  @override
   String get mealConvPromptPrice => 'What do you sell it for?';
 
   @override
   String get mealConvHintPrice => 'The price of the whole dish, in pounds';
+
+  @override
+  String get mealConvFallbackNotice =>
+      'The AI Assistant couldn\'t work out what kind of food this is, so there are two more questions.';
+
+  @override
+  String get mealConvPromptCuisine => 'Which kind of cooking is this Meal?';
+
+  @override
+  String get mealConvHintCuisine => 'Pick the closest one';
+
+  @override
+  String get mealConvPromptCategory =>
+      'And what sort of dish is it? A main, a dessert, a soup?';
+
+  @override
+  String get mealConvHintCategory => 'Pick the closest one';
 
   @override
   String get mealSummaryTitle => 'Here is what you told me about this Meal';
@@ -456,4 +476,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealPublishedConfirmation => 'This Meal is on the menu now.';
+
+  @override
+  String get mealNeedsKitchenTitle => 'You don\'t have a kitchen yet';
+
+  @override
+  String get mealNeedsKitchenBody =>
+      'Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.';
+
+  @override
+  String get mealNeedsKitchenAction => 'Set up my kitchen';
+
+  @override
+  String get mealKitchenCheckError =>
+      'We couldn\'t check your kitchen. Try again.';
+
+  @override
+  String get mealKitchenCheckRetry => 'Try again';
 }
