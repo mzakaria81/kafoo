@@ -314,10 +314,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealConvPhotoSkip => 'كمّل من غير صورة';
 
   @override
+  String get mealConvPhotoAdd => 'ضيف صورة للأكلة';
+
+  @override
   String get mealConvPromptPrice => 'بتبيعها بكام؟';
 
   @override
   String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
+
+  @override
+  String get mealConvFallbackNotice =>
+      'المساعد مقدرش يعرف نوع الأكلة، فمحتاج أسألك سؤالين كمان.';
+
+  @override
+  String get mealConvPromptCuisine => 'الأكلة دي من أنهي مطبخ؟';
+
+  @override
+  String get mealConvHintCuisine => 'اختار اللي أقرب لأكلتك';
+
+  @override
+  String get mealConvPromptCategory => 'ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟';
+
+  @override
+  String get mealConvHintCategory => 'اختار اللي أقرب';
 
   @override
   String get mealSummaryTitle => 'ده اللي قلته عن الأكلة';
@@ -541,4 +560,20 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealEditNoChange => 'مافيش حاجة اتغيّرت.';
+
+  @override
+  String get mealNeedsKitchenTitle => 'لسه معندكش مطبخ';
+
+  @override
+  String get mealNeedsKitchenBody =>
+      'قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.';
+
+  @override
+  String get mealNeedsKitchenAction => 'اعمل مطبخي';
+
+  @override
+  String get mealKitchenCheckError => 'مقدرناش نتأكد من مطبخك. جرب تاني.';
+
+  @override
+  String get mealKitchenCheckRetry => 'جرب تاني';
 }

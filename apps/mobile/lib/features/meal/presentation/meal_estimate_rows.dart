@@ -18,6 +18,7 @@ class EstimateRow extends StatelessWidget {
     required this.displayValue,
     required this.basis,
     required this.approved,
+    required this.isCookOwn,
     required this.editing,
     required this.controller,
     required this.editLabel,
@@ -41,6 +42,14 @@ class EstimateRow extends StatelessWidget {
   final String displayValue;
   final String basis;
   final bool approved;
+
+  /// True once the Cook has REPLACED this value, which is the only thing that
+  /// stops it being an estimate. Approving it unchanged does not: a Cook who
+  /// tapped yes to the AI Assistant's figure has agreed with a guess, not
+  /// weighed the food, and dropping the badge there would show a Customer a
+  /// guess as a checked fact. The database draws the same line — see
+  /// supabase/migrations/20260805120815_fix_nutrition_source_on_first_write.sql.
+  final bool isCookOwn;
   final bool editing;
   final TextEditingController controller;
   final String editLabel;
@@ -80,7 +89,7 @@ class EstimateRow extends StatelessWidget {
                       ?.copyWith(color: theme.colorScheme.outline),
                 ),
               ),
-              if (!approved)
+              if (!isCookOwn)
                 Container(
                   padding: const EdgeInsetsDirectional.symmetric(
                     horizontal: KafooSpacing.sm,

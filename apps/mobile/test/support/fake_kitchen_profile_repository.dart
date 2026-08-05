@@ -6,10 +6,14 @@ import 'package:kafoo_mobile/features/kitchen_profile/data/kitchen_profile_repos
 /// Records every write it is asked to make, so a test can assert which writes
 /// happened — and, more usefully, that none did.
 class FakeKitchenProfileRepository implements KitchenProfileRepository {
-  FakeKitchenProfileRepository({this.existing, this.failUpdates = false});
+  FakeKitchenProfileRepository(
+      {this.existing, this.failUpdates = false, this.failFindMine = false});
 
   /// What [findMine] returns. Null means this person owns no kitchen yet.
   KitchenProfile? existing;
+
+  /// When true, [findMine] returns a Failure.
+  bool failFindMine;
 
   /// When true, [updateField] fails — the case where the previous version must
   /// remain what the Cook sees.
@@ -20,8 +24,12 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
   int updateCalls = 0;
 
   @override
-  Future<Result<KitchenProfile?, AppError>> findMine() async =>
-      Success(existing);
+  Future<Result<KitchenProfile?, AppError>> findMine() async {
+    if (failFindMine) {
+      return const Failure(AppError(messageKey: 'kitchenConvSaveError'));
+    }
+    return Success(existing);
+  }
 
   @override
   Future<Result<KitchenProfile, AppError>> create({
