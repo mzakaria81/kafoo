@@ -475,4 +475,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publicMealNutritionFromCook =>
       'These figures are the Cook\'s own.';
+
+  @override
+  String get myMealsTitle => 'My Meals';
+
+  @override
+  String get myMealsEmpty => 'No Meals yet. Start one.';
+
+  @override
+  String get myMealsStatusDraft => 'Draft';
+
+  @override
+  String get myMealsStatusPublished => 'On the menu';
+
+  @override
+  String get myMealsStatusUnavailable => 'Not available right now';
+
+  @override
+  String get myMealsStatusArchived => 'Retired';
+
+  @override
+  String get mealMakeUnavailable => 'Take it off the menu';
+
+  @override
+  String get mealMakeAvailable => 'Put it back on the menu';
+
+  @override
+  String get mealLastOnOfferWarning =>
+      'This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.';
+
+  @override
+  String get mealLastOnOfferConfirm => 'Take it off anyway';
+
+  @override
+  String get mealLastOnOfferCancel => 'Leave it on the menu';
+
+  @override
+  String get mealLoadError => 'We could not load your Meals. Try again.';
+
+  @override
+  String get mealAvailabilityError =>
+      'We could not change the Meal. Try again.';
+
+  @override
+  String get mealDeleteError => 'We could not delete the draft. Try again.';
+
+  @override
+  String get mealLoadRetry => 'Try again';
 }

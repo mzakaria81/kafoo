@@ -575,5 +575,65 @@
   "publicMealNutritionFromCook": "الأرقام دي من الطباخ نفسه.",
   "@publicMealNutritionFromCook": {
     "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate."
+  },
+  "myMealsTitle": "أكلاتي",
+  "@myMealsTitle": {
+    "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
+  },
+  "myMealsEmpty": "لسه مافيش أكلات. ابدأ واحدة.",
+  "@myMealsEmpty": {
+    "description": "Shown when the Cook has no Meals at any status."
+  },
+  "myMealsStatusDraft": "مسودة",
+  "@myMealsStatusDraft": {
+    "description": "Status word for a Meal still in draft, not yet on offer."
+  },
+  "myMealsStatusPublished": "على المنيو",
+  "@myMealsStatusPublished": {
+    "description": "Status word for a Meal on offer and visible to Customers."
+  },
+  "myMealsStatusUnavailable": "مش متاحة دلوقتي",
+  "@myMealsStatusUnavailable": {
+    "description": "Status word for a Meal temporarily off the menu."
+  },
+  "myMealsStatusArchived": "اتشالت خلاص",
+  "@myMealsStatusArchived": {
+    "description": "Status word for a Meal retired permanently."
+  },
+  "mealMakeUnavailable": "شيلها من المنيو",
+  "@mealMakeUnavailable": {
+    "description": "Action a Cook takes to take a published Meal off the menu."
+  },
+  "mealMakeAvailable": "رجّعها للمنيو",
+  "@mealMakeAvailable": {
+    "description": "Action a Cook takes to put an unavailable Meal back on the menu."
+  },
+  "mealLastOnOfferWarning": "دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما ترجّع حاجة.",
+  "@mealLastOnOfferWarning": {
+    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable."
+  },
+  "mealLastOnOfferConfirm": "شيلها برضه",
+  "@mealLastOnOfferConfirm": {
+    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu."
+  },
+  "mealLastOnOfferCancel": "سيبها زي ما هي",
+  "@mealLastOnOfferCancel": {
+    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu."
+  },
+  "mealLoadError": "مانفعش نجيب أكلاتك. جرب تاني.",
+  "@mealLoadError": {
+    "description": "Shown when fetching the Cook's own Meals fails."
+  },
+  "mealAvailabilityError": "مانفعش نغير حالة الأكلة. جرب تاني.",
+  "@mealAvailabilityError": {
+    "description": "Shown when changing a Meal's status fails."
+  },
+  "mealDeleteError": "مانفعش نمسح المسودة. جرب تاني.",
+  "@mealDeleteError": {
+    "description": "Shown when deleting a draft Meal fails."
+  },
+  "mealLoadRetry": "حاول تاني",
+  "@mealLoadRetry": {
+    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
   }
 }

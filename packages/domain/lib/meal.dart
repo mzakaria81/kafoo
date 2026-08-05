@@ -300,3 +300,19 @@ final class MealDraft {
   static bool _isPresent(String? value) =>
       value != null && value.trim().isNotEmpty;
 }
+
+/// Whether taking [meal] off the menu would leave its Cook with nothing on
+/// offer — and therefore with a kitchen nobody can find.
+///
+/// This is the rule that surprises Cooks: discoverability follows from having
+/// food actually on offer, so a Cook who takes down their last Meal closes
+/// their kitchen. Correct, and the reason it must be said before it happens
+/// rather than discovered afterwards.
+bool isLastMealOnOffer(Iterable<Meal> meals, Meal meal) {
+  if (meal.status != MealStatus.published) return false;
+  final publishedCount =
+      meals.where((m) => m.status == MealStatus.published).length;
+  if (publishedCount != 1) return false;
+  return meals.where((m) => m.status == MealStatus.published).single.id ==
+      meal.id;
+}

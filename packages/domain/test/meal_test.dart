@@ -177,4 +177,74 @@ void main() {
       expect(analysis.cuisine!.basis, isNotEmpty);
     });
   });
+
+  group('isLastMealOnOffer', () {
+    const _meal = Meal(
+      id: 'm1',
+      cookId: 'c1',
+      title: 'كشري',
+      description: 'عدس ورز',
+      price: '35',
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      status: MealStatus.published,
+      nutritionSource: NutritionSource.ai,
+    );
+
+    test('true when the Meal is the only published one', () {
+      expect(isLastMealOnOffer([_meal], _meal), isTrue);
+    });
+
+    test('false when the Cook has two published Meals', () {
+      const other = Meal(
+        id: 'm2',
+        cookId: 'c1',
+        title: 'محشي',
+        description: 'ورق عنب',
+        price: '50',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.published,
+        nutritionSource: NutritionSource.ai,
+      );
+
+      expect(isLastMealOnOffer([_meal, other], _meal), isFalse);
+    });
+
+    test('false when the Meal is already unavailable', () {
+      const unavailable = Meal(
+        id: 'm1',
+        cookId: 'c1',
+        title: 'كشري',
+        description: 'عدس ورز',
+        price: '35',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.unavailable,
+        nutritionSource: NutritionSource.ai,
+      );
+
+      expect(isLastMealOnOffer([unavailable], unavailable), isFalse);
+    });
+
+    test('false for an empty list', () {
+      expect(isLastMealOnOffer([], _meal), isFalse);
+    });
+
+    test('false when the Meal id is not in the list', () {
+      const other = Meal(
+        id: 'm2',
+        cookId: 'c1',
+        title: 'محشي',
+        description: 'ورق عنب',
+        price: '50',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.published,
+        nutritionSource: NutritionSource.ai,
+      );
+
+      expect(isLastMealOnOffer([other], _meal), isFalse);
+    });
+  });
 }

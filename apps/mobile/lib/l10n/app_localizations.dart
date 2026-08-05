@@ -937,6 +937,96 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الأرقام دي من الطباخ نفسه.'**
   String get publicMealNutritionFromCook;
+
+  /// Heading on the Cook's own list of Meals, showing every status including drafts.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلاتي'**
+  String get myMealsTitle;
+
+  /// Shown when the Cook has no Meals at any status.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه مافيش أكلات. ابدأ واحدة.'**
+  String get myMealsEmpty;
+
+  /// Status word for a Meal still in draft, not yet on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة'**
+  String get myMealsStatusDraft;
+
+  /// Status word for a Meal on offer and visible to Customers.
+  ///
+  /// In ar, this message translates to:
+  /// **'على المنيو'**
+  String get myMealsStatusPublished;
+
+  /// Status word for a Meal temporarily off the menu.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش متاحة دلوقتي'**
+  String get myMealsStatusUnavailable;
+
+  /// Status word for a Meal retired permanently.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتشالت خلاص'**
+  String get myMealsStatusArchived;
+
+  /// Action a Cook takes to take a published Meal off the menu.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلها من المنيو'**
+  String get mealMakeUnavailable;
+
+  /// Action a Cook takes to put an unavailable Meal back on the menu.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجّعها للمنيو'**
+  String get mealMakeAvailable;
+
+  /// Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable.
+  ///
+  /// In ar, this message translates to:
+  /// **'دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما ترجّع حاجة.'**
+  String get mealLastOnOfferWarning;
+
+  /// Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلها برضه'**
+  String get mealLastOnOfferConfirm;
+
+  /// Cancel button on the last-Meal warning dialog — leaves the Meal on the menu.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيبها زي ما هي'**
+  String get mealLastOnOfferCancel;
+
+  /// Shown when fetching the Cook's own Meals fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مانفعش نجيب أكلاتك. جرب تاني.'**
+  String get mealLoadError;
+
+  /// Shown when changing a Meal's status fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مانفعش نغير حالة الأكلة. جرب تاني.'**
+  String get mealAvailabilityError;
+
+  /// Shown when deleting a draft Meal fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مانفعش نمسح المسودة. جرب تاني.'**
+  String get mealDeleteError;
+
+  /// Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says "continue" is copy rot.
+  ///
+  /// In ar, this message translates to:
+  /// **'حاول تاني'**
+  String get mealLoadRetry;
 }
 
 class _AppLocalizationsDelegate

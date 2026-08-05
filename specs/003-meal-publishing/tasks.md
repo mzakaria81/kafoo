@@ -356,11 +356,11 @@ estimate. Correct one and confirm it becomes the Cook's.
 **Independent test**: Take a Meal off the menu, confirm nobody finds it, put it back, confirm it is
 unchanged.
 
-- [ ] T052 [P] [US4] Add the availability strings to `app_ar.arb` and `app_en.arb`
-- [ ] T053 [US4] Build the Cook's own Meal list in `apps/mobile/lib/features/meal/presentation/my_meals_screen.dart`, showing every status including drafts (FR-033)
-- [ ] T054 [US4] Implement making a Meal unavailable and available again in one action each, emitting `MealUpdated` with `changed`
-- [ ] T055 [US4] Tell the Cook when taking their last available Meal off the menu makes their kitchen unfindable — correct, and surprising enough that it must be visible rather than discovered
-- [ ] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody
+- [x] T052 [P] [US4] Add the availability strings to `app_ar.arb` and `app_en.arb` — fourteen keys, Arabic written first, appended to both files
+- [x] T053 [US4] Build the Cook's own Meal list in `apps/mobile/lib/features/meal/presentation/my_meals_screen.dart`, showing every status including drafts (FR-033). Backed by `my_meals_controller.dart` and three new repository methods (`myMeals`, `setStatus`, `deleteDraft`). **Loading is a state of its own, not `meals.isEmpty`** — the first cut rendered "no Meals yet, start one" for the whole of the first load, telling a Cook with a full menu their work was gone. A test now holds that shut. **FR-033's third clause — resuming a draft rather than starting again — has no task anywhere in E2 and is NOT built here.** See T097
+- [x] T054 [US4] Implement making a Meal unavailable and available again in one action each, emitting `MealUpdated` with `changed`. `setStatus` writes the `status` column and nothing else — a test asserts no other write accompanied it, because "nothing about it is lost" is the acceptance criterion. `changed: 'availability'` is a fixed vocabulary word, never free text
+- [x] T055 [US4] Tell the Cook when taking their last available Meal off the menu makes their kitchen unfindable — correct, and surprising enough that it must be visible rather than discovered. One confirmation, and **only** on the last one: an ordinary reversible change gets no dialog. The rule is the pure `isLastMealOnOffer` in `packages/domain/`. Mutation-checked — removing the confirmation turns the test red
+- [x] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody. **Already covered**: `kitchen_discoverability_test.sql` case 28 — "a kitchen with everything taken off the menu is closed, and nobody finds it" — green. Confirmed rather than duplicated
 
 ---
 
@@ -415,6 +415,7 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 - [x] T074 [P] Confirm semantic labels and ≥48dp tap targets on every new screen — the `accessibility-reviewer` agent carries the checklist. The public Meal view joins the `accessibility_test.dart` sweep for all three checks (RTL, ≥48dp, no clipping at 200% text scale), **with `onOpenKitchen` supplied** — it is the screen's only interactive widget, so without it the tap-target sweep would have passed by having nothing to measure
 - [ ] T075 **Measure and record two numbers**: description-finished to first estimate (budget 2s), and confirm to on-offer (budget 3s). E1 left its launch baseline unmeasured and the budget is still unverified a feature later — do not repeat that
 - [ ] T076 Measure the cost of one published Meal against the chosen provider and put the figure to the founder, alongside E1's still-open per-verification cost (T073 in E1)
+- [ ] T097 **Let a Cook resume a draft rather than starting again.** FR-033's third clause, and it had no task anywhere in this epic until 2026-08-05. The other two clauses — see every draft, delete any of them — are T053 and T060, and because both cite FR-033 the requirement read as covered by every traceability check. Resuming means restoring a half-finished conversation from a persisted draft, which is why it is its own task and not a line inside T053
 - [ ] T077 Extend `specs/003-meal-publishing/quickstart.md` if anything built here diverged from it
 - [ ] T078 Update `docs/HANDOFF.md` — Database, Features and Edge Functions rows all change
 - [ ] T079 Run `./scripts/verify.sh` and confirm it passes with codegen drift and RLS coverage both doing real work (Definition of Done item 1)

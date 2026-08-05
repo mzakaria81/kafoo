@@ -32,3 +32,11 @@ String mealCategoryLabel(AppLocalizations l10n, MealCategory category) =>
       MealCategory.drink => l10n.categoryDrink,
       MealCategory.other => l10n.categoryOther,
     };
+
+String mealStatusLabel(AppLocalizations l10n, MealStatus status) =>
+    switch (status) {
+      MealStatus.draft => l10n.myMealsStatusDraft,
+      MealStatus.published => l10n.myMealsStatusPublished,
+      MealStatus.unavailable => l10n.myMealsStatusUnavailable,
+      MealStatus.archived => l10n.myMealsStatusArchived,
+    };

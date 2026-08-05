@@ -60,6 +60,26 @@ abstract interface class MealRepository {
     required String mealId,
     required Uint8List bytes,
   });
+
+  /// Every Meal belonging to the signed-in Cook, at every status.
+  ///
+  /// RLS is what scopes this to the caller — the "cook reads own meals" policy.
+  /// Newest first, so the Meal a Cook was just working on is at the top.
+  Future<Result<List<Meal>, AppError>> myMeals();
+
+  // ponytail: overlaps with publish(String) — publish should fold into
+  // setStatus once the publishing flow is free to change.
+  Future<Result<Meal, AppError>> setStatus({
+    required String mealId,
+    required MealStatus next,
+  });
+
+  /// Deletes a draft outright.
+  ///
+  /// Drafts only. Anything that has been on offer is archived instead — the
+  /// DELETE policy enforces this, and a Meal a Customer may have ordered must
+  /// never disappear.
+  Future<Result<void, AppError>> deleteDraft(String mealId);
 }
 
 /// The only layer that touches Supabase for Meals.
@@ -186,6 +206,59 @@ class SupabaseMealRepository implements MealRepository {
       return Success(path);
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealPhotoError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<List<Meal>, AppError>> myMeals() async {
+    try {
+      final uid = _uid;
+      if (uid == null) {
+        return const Failure(AppError(messageKey: 'mealLoadError'));
+      }
+      final rows = (await _client
+          .from(_table)
+          .select()
+          .order('created_at', ascending: false)) as List;
+      return Success(rows.cast<Map<String, dynamic>>().map(_fromRow).toList());
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'mealLoadError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<Meal, AppError>> setStatus({
+    required String mealId,
+    required MealStatus next,
+  }) async {
+    try {
+      final uid = _uid;
+      if (uid == null) {
+        return const Failure(AppError(messageKey: 'mealAvailabilityError'));
+      }
+      final row = await _client
+          .from(_table)
+          .update({'status': next.wireName})
+          .eq('id', mealId)
+          .select()
+          .single();
+      return Success(_fromRow(row));
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'mealAvailabilityError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<void, AppError>> deleteDraft(String mealId) async {
+    try {
+      final uid = _uid;
+      if (uid == null) {
+        return const Failure(AppError(messageKey: 'mealDeleteError'));
+      }
+      await _client.from(_table).delete().eq('id', mealId);
+      return const Success(null);
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'mealDeleteError', cause: e));
     }
   }
 

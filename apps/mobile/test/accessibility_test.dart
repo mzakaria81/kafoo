@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/identity/presentation/change_phone_screen.dart';
@@ -8,11 +9,14 @@ import 'package:kafoo_mobile/features/identity/presentation/remove_account_scree
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/kitchen_profile_screen.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/public_kitchen_view.dart';
+import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
+import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
 import 'support/fake_account_repository.dart';
 import 'support/fake_kitchen_profile_repository.dart';
+import 'support/fake_meal_repository.dart';
 
 const _profile = KitchenProfile(
   id: 'test-id',
@@ -73,6 +77,16 @@ Map<String, Widget> _screens() => {
       // the only interactive widget on this screen, so without it the
       // tap-target sweep below would pass by having nothing to measure.
       'public meal': PublicMealView(meal: _meal, onOpenKitchen: () {}),
+      // A published Meal so the availability control exists for tap-target
+      // measurement — the only interactive widget on this screen.
+      'my meals': ProviderScope(
+        overrides: [
+          mealRepositoryProvider.overrideWithValue(
+            FakeMealRepository(meals: [_meal]),
+          ),
+        ],
+        child: const MyMealsScreen(),
+      ),
     };
 
 void main() {

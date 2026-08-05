@@ -575,5 +575,65 @@
   "publicMealNutritionFromCook": "These figures are the Cook's own.",
   "@publicMealNutritionFromCook": {
     "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate."
+  },
+  "myMealsTitle": "My Meals",
+  "@myMealsTitle": {
+    "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
+  },
+  "myMealsEmpty": "No Meals yet. Start one.",
+  "@myMealsEmpty": {
+    "description": "Shown when the Cook has no Meals at any status."
+  },
+  "myMealsStatusDraft": "Draft",
+  "@myMealsStatusDraft": {
+    "description": "Status word for a Meal still in draft, not yet on offer."
+  },
+  "myMealsStatusPublished": "On the menu",
+  "@myMealsStatusPublished": {
+    "description": "Status word for a Meal on offer and visible to Customers."
+  },
+  "myMealsStatusUnavailable": "Not available right now",
+  "@myMealsStatusUnavailable": {
+    "description": "Status word for a Meal temporarily off the menu."
+  },
+  "myMealsStatusArchived": "Retired",
+  "@myMealsStatusArchived": {
+    "description": "Status word for a Meal retired permanently."
+  },
+  "mealMakeUnavailable": "Take it off the menu",
+  "@mealMakeUnavailable": {
+    "description": "Action a Cook takes to take a published Meal off the menu."
+  },
+  "mealMakeAvailable": "Put it back on the menu",
+  "@mealMakeAvailable": {
+    "description": "Action a Cook takes to put an unavailable Meal back on the menu."
+  },
+  "mealLastOnOfferWarning": "This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.",
+  "@mealLastOnOfferWarning": {
+    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable."
+  },
+  "mealLastOnOfferConfirm": "Take it off anyway",
+  "@mealLastOnOfferConfirm": {
+    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu."
+  },
+  "mealLastOnOfferCancel": "Leave it on the menu",
+  "@mealLastOnOfferCancel": {
+    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu."
+  },
+  "mealLoadError": "We could not load your Meals. Try again.",
+  "@mealLoadError": {
+    "description": "Shown when fetching the Cook's own Meals fails."
+  },
+  "mealAvailabilityError": "We could not change the Meal. Try again.",
+  "@mealAvailabilityError": {
+    "description": "Shown when changing a Meal's status fails."
+  },
+  "mealDeleteError": "We could not delete the draft. Try again.",
+  "@mealDeleteError": {
+    "description": "Shown when deleting a draft Meal fails."
+  },
+  "mealLoadRetry": "Try again",
+  "@mealLoadRetry": {
+    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
   }
 }
