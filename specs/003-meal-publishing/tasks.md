@@ -425,8 +425,28 @@ estimate.
 **Independent test**: Publish correcting nothing and confirm every AI-derived value is labelled an
 estimate. Correct one and confirm it becomes the Cook's.
 
-- [ ] T045 [P] [US2] Add the estimate and provenance strings to `app_ar.arb` then `app_en.arb` — "the AI Assistant estimated this", and the basis for each
-- [ ] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the `basis` the function returned (FR-013). On the screen, not in a tooltip
+- [x] T045 [P] [US2] Add the estimate and provenance strings to `app_ar.arb` then `app_en.arb` — "the
+  AI Assistant estimated this", and the basis for each — **DONE, ticked 2026-08-05.** Six keys in
+  both locales: `mealSummaryEstimatesTitle`, `mealSummaryEstimatesNotice`, `mealSummaryEstimateBadge`,
+  `mealSummaryApprove`, `mealSummaryApproved`, `mealSummaryNoEstimates`.
+
+  Built during T037 and never ticked. Verified rather than assumed — the box is checked because the
+  keys are in both ARB files and rendered, not because the work felt done.
+
+  **`aiEstimateNotice` is a seventh key with no call site, and it is being left alone.** It reads as
+  the Customer-facing wording of the same idea, which is T048's job and belongs to another session.
+  Deleting a string somebody is about to use is a worse outcome than an unused key, so it is recorded
+  here instead. If T048 lands without using it, delete it there
+- [x] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the
+  `basis` the function returned (FR-013). On the screen, not in a tooltip — **DONE, ticked
+  2026-08-05.** `EstimateRow` renders the basis as a plain `Text` under the value, and the summary
+  loops over `MealEstimateFields.presentIn(analysis)`, so the set of rows is derived from what the
+  AI Assistant actually returned rather than from a hand-written list that could fall behind it.
+
+  "Every" is the load-bearing word and it is structural here: adding a sixth suggestion to
+  `MealAnalysis` without adding it to `presentIn` leaves it unrendered, so that function is the one
+  place to look. Covered by the T050 tests, which assert the badge and the notice by row rather than
+  page-wide
 - [x] T047 [US2] Make each estimate correctable in one action, and confirm the correction reaches the database as the Cook's — verifying the T017 trigger from the client side — **DONE 2026-08-05.** The one-tap correction already existed; what was missing was proof of which VALUE each act sends, which is the only thing the trigger can see. Four tests now pin it: approving sends the AI Assistant's figure unchanged, correcting sends the Cook's, for calories and for allergens. The allergen correction is typed with the Arabic comma `،`, because that is what a Cook's keyboard produces and a split that only handled the Latin one would swallow a whole list into a single string
 
   **Doing this found the trigger getting the distinction backwards, and it was not a rare case —
