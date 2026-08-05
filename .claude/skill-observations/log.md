@@ -1702,3 +1702,56 @@ usually the common one, which is why the defect got through.
 **Principle:** An optional-parameter update helper silently conflates "not supplied" with "supplied
 as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
 asking for it gets no error, no warning, and the old value.
+
+### Observation 65: Pin a measuring instrument's output before refactoring it
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-003 — generalising a live-model eval harness from one prompt to two, where
+the acceptance criterion was "without changing what it measures for the existing prompt"
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Writing the brief / Review
+
+**Issue:** The instrument scores non-deterministic model output, so re-running it before and after a
+refactor cannot prove equivalence — the outputs legitimately differ every run. The brief instead
+required the implementer to extract the recorded inputs from the last committed report and assert
+the refactored code reproduces the recorded verdicts exactly. That turned an unprovable claim into a
+deterministic test costing nothing to run. The orchestrator then re-extracted the same baseline
+independently and replayed it, rather than trusting the implementer's own pin values.
+
+**Suggested improvement:** Add to the brief-writing reference: when delegating a refactor of code
+whose output is non-deterministic or expensive to produce, name the committed artefact that records
+a previous output and require the change to reproduce it from the recorded inputs. Add to the review
+checklist: when an implementer supplies its own regression fixture, re-derive that fixture from the
+source of truth independently — an implementer that transcribed the expectation from its own new
+code has written a tautology, and it looks identical to a passing pin.
+
+**Principle:** A refactor of a measuring instrument cannot be validated by re-measuring; it is
+validated by replaying recorded inputs and demanding the recorded verdicts. And a regression fixture
+supplied by the party that wrote the change must be re-derived from the source of truth by the
+reviewer, or it may be pinning the new behaviour rather than the old.
+
+### Observation 66: A re-evaluation is not a prompt change, and the checklist conflates them
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-003 — recording the first live eval of an existing prompt, changing only its
+`last_evaluated` field
+**Skill:** ship-check
+**Type:** internal
+**Phase/Area:** Section 4, "AI changes"
+
+**Issue:** Section 4 reads "The prompt file's `version` was bumped **and** `last_evaluated`
+updated" as a single conjoined item. The task was purely to measure an unchanged prompt, so only
+`last_evaluated` legitimately moved. Read literally the checklist demands a version bump, which
+would falsely signal to every later reader that the prompt's words changed — the opposite of what
+the version field is for. The item cannot be honestly ticked or honestly failed.
+
+**Suggested improvement:** Split the item in two: (a) if the prompt's text changed semantically,
+`version` was bumped; (b) `last_evaluated` reflects the most recent eval, whether or not the text
+changed. Note explicitly that a re-evaluation of unchanged text updates only the date.
+
+**Principle:** A checklist item that conjoins two independently-true conditions with "and" cannot be
+answered for the case where one applies and the other does not — and the failure mode is not a
+blocked check but a reviewer performing the unnecessary half to make the line tick.
