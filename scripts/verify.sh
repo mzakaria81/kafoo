@@ -180,7 +180,7 @@ run "edge function tests" bash -c '
   command -v deno >/dev/null || {
     skip_or_fail "deno not on PATH (run scripts/install-toolchain.sh)"; exit $?; }
   # shellcheck disable=SC2086
-  out=$(deno test --quiet --allow-env ${files} 2>&1) || {
+  out=$(deno test --quiet --allow-env --allow-read ${files} 2>&1) || {
     case "${out}" in
       *"error sending request"*|*"connection"*|*"dns error"*)
         skip_or_fail "no network for remote imports"; exit $? ;;
@@ -291,11 +291,17 @@ run "vocabulary" bash -c '
 # docs/ is deliberately not swept. docs/ops/eval-meal-analysis.md is a transcript of what a model
 # actually returned, and rewriting the record to match the decision would be falsifying the
 # measurement this whole task exists to act on.
+#
+# register_markers.json is exempt for the same reason one level in: it is the list of words the
+# register detector looks FOR, so the banned word is its content rather than its usage. A check
+# that cannot describe what it forbids is a check nobody can maintain. The exemption is one named
+# file, not a directory, so a second file cannot quietly inherit it.
 run "arabic vocabulary" bash -c '
   hits=$(grep -rn "الكوك" \
     --include="*.dart" --include="*.sql" --include="*.ts" --include="*.json" --include="*.arb" \
     --include="*.md" \
-    apps packages prompts supabase 2>/dev/null || true)
+    apps packages prompts supabase 2>/dev/null \
+    | grep -v "^packages/ai/test/goldens/register_markers.json:" || true)
   if [ -n "$hits" ]; then
     echo "$hits"
     echo "   The Arabic for Cook is الطباخ, not الكوك — ADR-0010."

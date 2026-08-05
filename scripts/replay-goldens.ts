@@ -76,35 +76,28 @@ interface Outcome {
 //
 // This is a signal, not a verdict. The `basis` text is printed in full in the report because the
 // judgement is a human one.
-const MSA_MARKERS: ReadonlyArray<{ term: string; note: string }> = [
-  { term: 'يحتوي', note: 'Egyptian: فيه' },
-  { term: 'تحتوي', note: 'Egyptian: فيها' },
-  { term: 'يعتبر', note: 'Egyptian: ده' },
-  { term: 'تعتبر', note: 'Egyptian: دي' },
-  { term: 'غالباً', note: 'MSA hedge' },
-  { term: 'لذا', note: 'MSA connective' },
-  { term: 'حيث', note: 'MSA connective' },
-  { term: 'يتم', note: 'MSA passive' },
-  { term: 'ليس', note: 'Egyptian: مش' },
-  { term: 'هذا', note: 'Egyptian: ده' },
-  { term: 'هذه', note: 'Egyptian: دي' },
-  { term: 'الذي', note: 'Egyptian: اللي' },
-  { term: 'التي', note: 'Egyptian: اللي' },
-  { term: 'دجاج', note: 'Egyptian: فراخ — named in the prompt' },
-  { term: 'أرز', note: 'Egyptian: رز — named in the prompt' },
-  { term: 'بندورة', note: 'Egyptian: طماطم — named in the prompt' },
-  { term: 'بالإضافة', note: 'Egyptian: و / وكمان' },
-  // Was the other way round until 2026-08-05, and would have flagged every correct reply from here
-  // on. The founder settled the word on 2026-08-04 (ADR-0010): Cook is الطباخ. The detector kept
-  // the old answer, which is the failure mode this whole block was written to avoid — a check that
-  // is confidently wrong is worse than one that is silent.
-  { term: 'الكوك', note: 'glossary: Cook is الطباخ' },
-];
+// The lists live in packages/ai/test/goldens/register_markers.json so the
+// TypeScript replay and the Dart golden runner share one corpus. The comment
+// above explains why the markers are constructions rather than nouns.
+let _msaMarkers: ReadonlyArray<{ term: string; note: string }> | null = null;
+let _egyptianMarkers: readonly string[] | null = null;
 
-const EGYPTIAN_MARKERS: readonly string[] = [
-  'ده', 'دي', 'اللي', 'مش', 'فيه', 'فيها', 'كده', 'أوي', 'عشان', 'بتاع', 'بتاعة', 'دلوقتي',
-  'بيحتوي', 'بيتاكل', 'بتشير', 'بيبقى', 'بيتعمل',
-];
+function _registry(): {
+  msa: ReadonlyArray<{ term: string; note: string }>;
+  egyptian: readonly string[];
+} {
+  if (_msaMarkers === null) {
+    const raw = JSON.parse(
+      Deno.readTextFileSync('packages/ai/test/goldens/register_markers.json'),
+    ) as {
+      msa: ReadonlyArray<{ term: string; note: string }>;
+      egyptian: readonly string[];
+    };
+    _msaMarkers = raw.msa;
+    _egyptianMarkers = raw.egyptian;
+  }
+  return { msa: _msaMarkers!, egyptian: _egyptianMarkers! };
+}
 
 function collectStrings(value: unknown, into: string[]): void {
   if (typeof value === 'string') into.push(value);
@@ -131,12 +124,13 @@ export function findRegisterMarkers(
   const texts: string[] = [];
   collectStrings(value, texts);
   const haystack = texts.join(' ');
+  const reg = _registry();
 
   return {
-    msa: MSA_MARKERS
+    msa: reg.msa
       .filter(({ term }) => present(haystack, term))
       .map(({ term, note }) => `${term} (${note})`),
-    egyptian: EGYPTIAN_MARKERS.filter((term) => present(haystack, term)),
+    egyptian: reg.egyptian.filter((term) => present(haystack, term)),
   };
 }
 

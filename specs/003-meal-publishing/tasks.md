@@ -454,18 +454,54 @@ estimate. Correct one and confirm it becomes the Cook's.
   saying "estimate" over a figure the Cook typed. So there is a matching test that a corrected value
   loses the badge, and that correcting one row does not clear the badge on the others. Both
   mutation-checked
-- [ ] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is conversational Egyptian, not Modern Standard. This is the first Arabic in Kafoo a model wrote rather than a person
+- [x] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is
+  conversational Egyptian, not Modern Standard — **DONE 2026-08-05.** Eight fixtures in
+  `packages/ai/test/goldens/meal_description/`, twelve tests in
+  `packages/ai/test/meal_description_goldens_test.dart`.
 
-  **Unblocked by T088 on 2026-08-05, and it was blocked for a reason worth keeping.** Written while
-  five of eight replies read as Modern Standard, the only assertion that could have passed is one
-  weak enough not to measure the register — a test written to the bug. `meal-analysis` now scores
-  one MSA marker in eight, so an assertion this test would fail on is finally worth writing.
+  **Unblocked by T088, and it was blocked for a reason worth keeping.** Written while five of eight
+  `meal-analysis` replies read as Modern Standard, the only assertion that could have passed is one
+  weak enough not to measure the register — a test written to the bug.
 
-  Two things this task inherits rather than invents. The register detector and its marker lists are
-  in `scripts/replay-goldens.ts`, exported and tested — use them rather than writing a second
-  Egyptian-versus-Standard heuristic. And `meal-description` has never been replayed against a real
-  model at all (`last_evaluated: never`), so its first eval measures a prompt nobody has scored,
-  not a regression against a baseline
+  **The prompt returned a shape no parser could read.** `meal-description` put its reason in a bare
+  string while `meal-analysis` keys it by field, so `MealAnalysis.description` has existed and been
+  unreachable since it was declared. Version 3 returns the sibling's shape and `parseMealAnalysis`
+  reads both. Bending a prompt to suit a parser needs a better reason than tidiness and has one: a
+  value with no stated reason is dropped rather than shown, which is a trust rule, and two
+  implementations of a trust rule is one more than can be kept honest.
+
+  **The marker lists are now data, in `packages/ai/test/goldens/register_markers.json`.** Dart
+  cannot import a TypeScript array, and a second hand-written list would drift from the first — two
+  answers to "is this Egyptian" is worse than one. The TypeScript replay and the Dart runner read
+  the same file, and each has a test pinning the two anchoring rules (`بيحتوي` is not `يحتوي`;
+  `وتعتبر` is `تعتبر`) so a re-implementation that drifts goes red.
+
+  **The register assertion is per-fixture; the Egyptian-marker count is corpus-level, deliberately.**
+  Zero Modern Standard markers is demanded of every description and every basis. A positive Egyptian
+  marker is demanded of only four fixtures out of eight, because `حواوشي لحمة مفرومة في عيش بلدي` is
+  entirely natural and contains none of the listed tokens — per-fixture would push an author to bend
+  real sentences around a word list. Four is exactly what the corpus carries, so the assertion still
+  bites.
+
+  **Three delegated assertions were rewritten because they could not fail.** `descriptionNotContains`,
+  `descriptionInArabicScript` and `maxSentences` each skipped silently when the parser dropped the
+  description — and the fixtures leaning on the first are the adversarial pair, where a vacuous pass
+  reports "no gluten-free claim was written" about a draft that does not exist. They now demand a
+  description first.
+
+  Mutation-checked: a Modern Standard verb in a description names the marker and quotes the
+  sentence; removing one Egyptian marker from the shared file drops the corpus count below four.
+
+- [ ] T097 **Replay `meal-description` against a real model, as T086 did for `meal-analysis`.**
+  T051 covers the parser and the assertions; goldens run against a stub, so nothing yet measures
+  whether the *prompt* produces Egyptian. `last_evaluated` on `prompts/meal-description.md` is still
+  `never`, and it is the only prompt whose output a Customer reads verbatim.
+
+  `scripts/replay-goldens.ts` is hardcoded to `meal-analysis` — prompt id, goldens directory, report
+  path, schema and scoring. Generalising it is the work; the register detector is already shared and
+  needs no change. Split out of T051 rather than folded in, because "add a golden case" does not
+  authorise rewriting the eval harness. Rate limit is 15 requests per minute on the free tier and
+  `replay-goldens.ts` refuses to run below 4000 ms spacing
 
 ---
 
