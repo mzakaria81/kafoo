@@ -1,0 +1,28 @@
+{
+  "id": "WP-004",
+  "title": "Measure on-device Egyptian Arabic transcription",
+  "objective": "Find out whether voice input actually works in Egyptian Arabic on a real handset, which decides whether the voice-first premise holds or needs a server-side fallback.",
+  "tasks": ["T083"],
+  "acceptance_criteria": [
+    "the instrumented corpus runs against real on-device recognition and produces a word error rate",
+    "the result is recorded in docs/ops/measuring-transcription.md with the device and locale it was measured on",
+    "a failure is reported as a finding, not worked around by silently widening what counts as correct"
+  ],
+  "dependencies": [],
+  "scope": {
+    "files": ["docs/ops/measuring-transcription.md", "docs/ops/transcription-corpus.json"],
+    "shared_files": ["apps/mobile/lib/features/conversation/"]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 4,
+  "spend_envelope_usd": 0.5,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "Already instrumented on 2026-08-03; what is missing is a run on real hardware. That may need the founder, since a container has no microphone. Shares apps/mobile with WP-002.",
+  "created_at": "2026-08-05T20:00:00Z",
+  "updated_at": "2026-08-05T20:00:00Z"
+}

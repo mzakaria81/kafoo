@@ -5,6 +5,18 @@ description: "Task list for E2 — Meal Publishing"
 
 # Tasks: Meal Publishing
 
+**Work is assigned as packages, not as tasks — see `coordination/`.** A task number here says what
+must be true; a work package in `coordination/packages/` says who is doing it, what it may spend,
+and what else it collides with. The thirteen tasks still open in this file are grouped into
+WP-001 to WP-007.
+
+**This file is the reasoning; the packages are the state.** Do not move the evidence blocks below
+into JSON — they are why a check could not fail, what a mutation proved, and which of two policies
+does which half of a rule. They are read by a person.
+
+**Only the coordinator edits planning state here**, and only after pulling `main`. Two sessions
+each took the number T097 on 2026-08-05 by reading a local copy.
+
 **Input**: Design documents from `specs/003-meal-publishing/`
 
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),

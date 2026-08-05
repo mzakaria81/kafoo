@@ -108,6 +108,7 @@ supabase/migrations/ SQL. Generated names only.
 supabase/functions/  Edge Functions
 specs/               Per-epic spec, plan and tasks
 decisions/           ADRs. Read before proposing architecture changes.
+coordination/        Work packages, one JSON file each. How parallel sessions divide work.
 ```
 
 `packages/domain/` must not import `supabase_flutter`. If you need it there, the boundary is wrong.
@@ -253,6 +254,40 @@ hook-driven output-compression tools vendored into `.claude/`; the full reasonin
 
 Its subagent injection is scoped by `PONYTAIL_SUBAGENT_MATCHER` to implementation agents only.
 The review agents in `.claude/agents/` exist to object, and telling them to do less defeats them.
+
+## Working alongside another session
+
+Kafoo runs more than one Claude Code session at a time. **Read `coordination/README.md` before
+picking up any work.** The short version, and it is not optional:
+
+**One session is the coordinator; every other session is a worker.** If the founder is talking to
+you about planning, priorities or what to do next, you are the coordinator. Otherwise you are a
+worker. It is a role, not an identity — containers are destroyed after a period of inactivity, so
+no session is durable and the founder is the only continuous participant.
+
+**A worker never chooses its own work.** Work arrives as a work package in
+`coordination/packages/WP-###.json`, assigned by the coordinator. A worker owns its package end to
+end and updates the status of that package only. It does not create, split, reprioritise or assign
+packages, and it does not edit `specs/*/tasks.md` planning state.
+
+**The coordinator pulls `main` before proposing anything.** This whole directory exists because on
+2026-08-05 a session proposed the Cook's Meal list, asked the founder to approve two design
+decisions about it, and dispatched an implementer — while the identical screen sat merged in `main`,
+twenty-six minutes old. The task list it read was a local copy. **A stale plan is indistinguishable
+from a correct one until the merge.**
+
+**Never claim a task number from a local copy of `tasks.md`.** Two sessions each took `T097` the
+same day. The coordinator allocates ids; `scripts/validate-coordination.py` refuses duplicates for
+packages, but nothing can retroactively fix a task number two people have already used.
+
+**Declare what a package shares.** File-disjoint packages are not achievable here — every
+user-facing change touches both ARB files, and two workers adding pgTAP cases both edit the same
+`plan(N)` line. `scope.shared_files` is where that is admitted so the coordinator can serialise it.
+A package claiming to touch nothing shared is usually a package nobody checked.
+
+**A worker still stops and asks.** The stop-and-ask triggers below — a new screen, money, a new
+category of personal data, AI acting without approval — route to the founder. Owning a package end
+to end is not authority to decide those.
 
 ## Delegating implementation work
 

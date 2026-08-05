@@ -1,0 +1,28 @@
+{
+  "id": "WP-001",
+  "title": "Close out E2's documentation",
+  "objective": "Bring the written record level with what E2 actually shipped, so someone with none of this context can verify the epic by hand.",
+  "tasks": ["T077", "T078", "T079"],
+  "acceptance_criteria": [
+    "specs/003-meal-publishing/quickstart.md verifies the feature as built, including anything that diverged from the plan",
+    "docs/HANDOFF.md is correct on the Database, Features and Edge Functions rows",
+    "./scripts/verify.sh passes with codegen drift and RLS coverage both doing real work, not skipping"
+  ],
+  "dependencies": [],
+  "scope": {
+    "files": ["specs/003-meal-publishing/quickstart.md", "docs/HANDOFF.md"],
+    "shared_files": []
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 1,
+  "spend_envelope_usd": 0.5,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "Documentation only. Touches no file another open package touches, which is why it is safe to run alongside anything.",
+  "created_at": "2026-08-05T20:00:00Z",
+  "updated_at": "2026-08-05T20:00:00Z"
+}
