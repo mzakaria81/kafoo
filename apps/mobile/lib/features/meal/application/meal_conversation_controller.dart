@@ -61,7 +61,13 @@ class MealConversationState {
 
   MealConversationState copyWith({
     MealDraft? draft,
-    MealAnalysis? analysis,
+    // Sentinel-guarded, like analysisError and error below, because clearing
+    // this is a real operation: resume() must drop the previous Meal's
+    // estimates. With `analysis ?? this.analysis` the clear silently did
+    // nothing, so a resumed draft carried the last dish's suggested allergens
+    // and a Cook approving them would have written another dish's guesses onto
+    // this Meal.
+    Object? analysis = _undefined,
     bool? analysisInFlight,
     Object? analysisError = _undefined,
     Map<String, bool>? approvals,
@@ -70,7 +76,8 @@ class MealConversationState {
   }) =>
       MealConversationState(
         draft: draft ?? this.draft,
-        analysis: analysis ?? this.analysis,
+        analysis:
+            analysis == _undefined ? this.analysis : analysis as MealAnalysis?,
         analysisInFlight: analysisInFlight ?? this.analysisInFlight,
         analysisError: analysisError == _undefined
             ? this.analysisError
@@ -165,6 +172,57 @@ class MealConversationController extends _$MealConversationController {
       cuisineNeeded: cuisineNeeded,
       categoryNeeded: categoryNeeded,
     );
+  }
+
+  /// Seeds the conversation from a stored draft so the Cook can carry on where
+  /// they left off.
+  ///
+  /// Does nothing when [meal] is not a draft — a published, unavailable or
+  /// archived Meal is not something this conversation composes, and editing one
+  /// that is on offer is a different screen. The state is left untouched.
+  void resume(CookMeal meal) {
+    if (meal.status != MealStatus.draft) return;
+
+    final draft = state.draft;
+    draft.mealId = meal.id;
+    draft.title = meal.title;
+    draft.description = meal.description;
+    draft.price = meal.price;
+    draft.cuisine = meal.cuisine;
+    draft.category = meal.category;
+    draft.ingredients = meal.ingredients;
+    draft.calories = meal.calories;
+    draft.allergens = meal.allergens;
+    draft.photoPath = meal.photoPath;
+    // A draft with no photo path is asked the photo question again. Declining
+    // a photo is not persisted anywhere, so "declined" and "not asked yet" are
+    // indistinguishable in the stored row — and asking once more costs a Cook
+    // one tap, where skipping would silently deny a photo to someone who wanted
+    // one.
+    draft.photoResolved = meal.photoPath != null;
+
+    // Clear conversation-local state that must not carry over. A stale approval
+    // would let a Meal be published against estimates nobody approved. Increment
+    // the analysis request id so any in-flight reply from the previous Meal is
+    // dropped.
+    _analysisRequestId++;
+    state = state.copyWith(
+      approvals: const {},
+      corrections: const {},
+      analysis: null,
+      analysisInFlight: false,
+      analysisError: null,
+      error: null,
+    );
+
+    // Start analysis if the draft already has a description, the same way
+    // answering the description step does. Without this a Cook who resumes a
+    // draft that has a description but no cuisine or category is stuck: they
+    // cannot publish (the database requires both) and nothing would offer them
+    // the estimates that supply them.
+    if (meal.description != null) {
+      _startAnalysis(photoPath: meal.photoPath);
+    }
   }
 
   /// Records a Cook answer to a fallback question (cuisine or category).

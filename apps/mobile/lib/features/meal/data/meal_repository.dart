@@ -60,6 +60,30 @@ abstract interface class MealRepository {
     required String mealId,
     required Uint8List bytes,
   });
+
+  /// Every Meal belonging to the signed-in Cook, at every status.
+  ///
+  /// Returns [CookMeal] rather than [Meal] because a draft may be half-answered
+  /// — the conversation persists each answer as it arrives. [Meal] models a
+  /// complete offer and cannot represent that row.
+  ///
+  /// RLS is what scopes this to the caller — the "cook reads own meals" policy.
+  /// Newest first, so the Meal a Cook was just working on is at the top.
+  Future<Result<List<CookMeal>, AppError>> myMeals();
+
+  // ponytail: overlaps with publish(String) — publish should fold into
+  // setStatus once the publishing flow is free to change.
+  Future<Result<CookMeal, AppError>> setStatus({
+    required String mealId,
+    required MealStatus next,
+  });
+
+  /// Deletes a draft outright.
+  ///
+  /// Drafts only. Anything that has been on offer is archived instead — the
+  /// DELETE policy enforces this, and a Meal a Customer may have ordered must
+  /// never disappear.
+  Future<Result<void, AppError>> deleteDraft(String mealId);
 }
 
 /// The only layer that touches Supabase for Meals.
@@ -189,6 +213,61 @@ class SupabaseMealRepository implements MealRepository {
     }
   }
 
+  @override
+  Future<Result<List<CookMeal>, AppError>> myMeals() async {
+    try {
+      final uid = _uid;
+      if (uid == null) {
+        return const Failure(AppError(messageKey: 'mealLoadError'));
+      }
+      final rows = (await _client
+          .from(_table)
+          .select()
+          .order('created_at', ascending: false)) as List;
+      return Success(
+        rows.cast<Map<String, dynamic>>().map(_cookMealFromRow).toList(),
+      );
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'mealLoadError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<CookMeal, AppError>> setStatus({
+    required String mealId,
+    required MealStatus next,
+  }) async {
+    try {
+      final uid = _uid;
+      if (uid == null) {
+        return const Failure(AppError(messageKey: 'mealAvailabilityError'));
+      }
+      final row = await _client
+          .from(_table)
+          .update({'status': next.wireName})
+          .eq('id', mealId)
+          .select()
+          .single();
+      return Success(_cookMealFromRow(row));
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'mealAvailabilityError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<void, AppError>> deleteDraft(String mealId) async {
+    try {
+      final uid = _uid;
+      if (uid == null) {
+        return const Failure(AppError(messageKey: 'mealDeleteError'));
+      }
+      await _client.from(_table).delete().eq('id', mealId);
+      return const Success(null);
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'mealDeleteError', cause: e));
+    }
+  }
+
   Meal _fromRow(Map<String, dynamic> row) {
     return Meal(
       id: row['id'] as String,
@@ -212,6 +291,37 @@ class SupabaseMealRepository implements MealRepository {
       ingredients: (row['ingredients'] as List).cast<String>(),
       calories: row['calories'] as int?,
       allergens: (row['allergens'] as List).cast<String>(),
+      nutritionSource: NutritionSource.fromWireName(
+        row['nutrition_source'] as String,
+      ),
+      photoPath: row['photo_path'] as String?,
+      publishedAt: row['published_at'] == null
+          ? null
+          : DateTime.parse(row['published_at'] as String),
+    );
+  }
+
+  /// Maps a row that may still be a half-answered draft.
+  ///
+  /// Nullable columns stay nullable. A null price stays null rather than
+  /// becoming the string `"null"`.
+  CookMeal _cookMealFromRow(Map<String, dynamic> row) {
+    final cuisineRaw = row['cuisine'] as String?;
+    final categoryRaw = row['category'] as String?;
+    return CookMeal(
+      id: row['id'] as String,
+      cookId: row['cook_id'] as String,
+      title: row['title'] as String?,
+      description: row['description'] as String?,
+      price: row['price']?.toString(),
+      cuisine: cuisineRaw == null ? null : Cuisine.tryFromWireName(cuisineRaw),
+      category: categoryRaw == null
+          ? null
+          : MealCategory.tryFromWireName(categoryRaw),
+      status: MealStatus.fromWireName(row['status'] as String),
+      ingredients: (row['ingredients'] as List?)?.cast<String>() ?? const [],
+      calories: row['calories'] as int?,
+      allergens: (row['allergens'] as List?)?.cast<String>() ?? const [],
       nutritionSource: NutritionSource.fromWireName(
         row['nutrition_source'] as String,
       ),

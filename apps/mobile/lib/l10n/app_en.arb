@@ -579,6 +579,127 @@
   "@mealPublishedConfirmation": {
     "description": "Confirms the Meal is now on offer."
   },
+  "publicMealPriceValue": "{price} EGP",
+  "@publicMealPriceValue": {
+    "description": "The price of the whole Meal on the Customer's public view. The price is passed through as the exact string stored in the database — never reformatted, never rounded.",
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "publicMealOpenKitchen": "See the kitchen",
+  "@publicMealOpenKitchen": {
+    "description": "Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025)."
+  },
+  "publicMealCaloriesUnknown": "Calories not worked out",
+  "@publicMealCaloriesUnknown": {
+    "description": "Shown when a Meal carries no calorie figure. A missing estimate is stated, never rendered as an empty row or a zero."
+  },
+  "publicMealAllergensUnknown": "No allergens listed. If you have an allergy, ask the Cook.",
+  "@publicMealAllergensUnknown": {
+    "description": "Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear."
+  },
+  "publicMealNutritionFromCook": "These figures are the Cook's own.",
+  "@publicMealNutritionFromCook": {
+    "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate."
+  },
+  "myMealsTitle": "My Meals",
+  "@myMealsTitle": {
+    "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
+  },
+  "myMealsEmpty": "No Meals yet. Start one.",
+  "@myMealsEmpty": {
+    "description": "Shown when the Cook has no Meals at any status."
+  },
+  "myMealsStatusDraft": "Draft",
+  "@myMealsStatusDraft": {
+    "description": "Status word for a Meal still in draft, not yet on offer."
+  },
+  "myMealsStatusPublished": "On the menu",
+  "@myMealsStatusPublished": {
+    "description": "Status word for a Meal on offer and visible to Customers."
+  },
+  "myMealsStatusUnavailable": "Not available right now",
+  "@myMealsStatusUnavailable": {
+    "description": "Status word for a Meal temporarily off the menu."
+  },
+  "myMealsStatusArchived": "Retired",
+  "@myMealsStatusArchived": {
+    "description": "Status word for a Meal retired permanently."
+  },
+  "mealMakeUnavailable": "Take it off the menu",
+  "@mealMakeUnavailable": {
+    "description": "Action a Cook takes to take a published Meal off the menu."
+  },
+  "mealMakeAvailable": "Put it back on the menu",
+  "@mealMakeAvailable": {
+    "description": "Action a Cook takes to put an unavailable Meal back on the menu."
+  },
+  "mealLastOnOfferWarning": "This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.",
+  "@mealLastOnOfferWarning": {
+    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable."
+  },
+  "mealLastOnOfferConfirm": "Take it off anyway",
+  "@mealLastOnOfferConfirm": {
+    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu."
+  },
+  "mealLastOnOfferCancel": "Leave it on the menu",
+  "@mealLastOnOfferCancel": {
+    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu."
+  },
+  "mealLoadError": "We could not load your Meals. Try again.",
+  "@mealLoadError": {
+    "description": "Shown when fetching the Cook's own Meals fails."
+  },
+  "mealAvailabilityError": "We could not change the Meal. Try again.",
+  "@mealAvailabilityError": {
+    "description": "Shown when changing a Meal's status fails."
+  },
+  "mealDeleteError": "We could not delete the draft. Try again.",
+  "@mealDeleteError": {
+    "description": "Shown when deleting a draft Meal fails."
+  },
+  "mealLoadRetry": "Try again",
+  "@mealLoadRetry": {
+    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
+  },
+  "mealRetire": "Retire it permanently",
+  "@mealRetire": {
+    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row."
+  },
+  "mealRetireWarning": "This Meal comes off the menu for good and can never go back on. It stays in your list, but nobody else will see it again.",
+  "@mealRetireWarning": {
+    "description": "Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list."
+  },
+  "mealRetireConfirm": "Retire it permanently",
+  "@mealRetireConfirm": {
+    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle."
+  },
+  "mealRetireCancel": "Leave it as it is",
+  "@mealRetireCancel": {
+    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status."
+  },
+  "mealDeleteDraft": "Delete the draft",
+  "@mealDeleteDraft": {
+    "description": "Action a Cook takes to delete a draft Meal that was never on offer."
+  },
+  "mealDeleteDraftWarning": "This draft will be deleted for good and cannot be brought back.",
+  "@mealDeleteDraftWarning": {
+    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good."
+  },
+  "mealDeleteDraftConfirm": "Delete it",
+  "@mealDeleteDraftConfirm": {
+    "description": "Confirmation button on the draft-deletion dialog."
+  },
+  "mealEditTitle": "Edit the Meal",
+  "@mealEditTitle": {
+    "description": "Heading on the Meal edit screen."
+  },
+  "mealEditSaved": "Changed.",
+  "@mealEditSaved": {
+    "description": "Brief confirmation shown after a single-field change on the Meal edit screen."
+  },
+  "mealEditNoChange": "Nothing changed.",
+  "@mealEditNoChange": {
+    "description": "Shown when a Cook closes an edit row without changing anything."
+  },
   "mealNeedsKitchenTitle": "You don't have a kitchen yet",
   "@mealNeedsKitchenTitle": {
     "description": "Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040)."
@@ -599,64 +720,16 @@
   "@mealKitchenCheckRetry": {
     "description": "Button that re-runs the Kitchen Profile existence check."
   },
-  "myMealsTitle": "My Meals",
-  "@myMealsTitle": {
-    "description": "Title of the Cook's own list of Meals, showing every status."
+  "myMealsNoPriceYet": "No price yet",
+  "@myMealsNoPriceYet": {
+    "description": "Shown on a draft Meal in the Cook's list when the price question has not been answered yet."
   },
-  "myMealsEmpty": "Nothing here yet.",
-  "@myMealsEmpty": {
-    "description": "Shown when the Cook has no Meals at all, not even a draft."
+  "myMealsUntitledDraft": "Untitled draft",
+  "@myMealsUntitledDraft": {
+    "description": "Shown in place of a draft's dish name when the Cook has not answered the first question yet. The schema allows a title-less row, so the list must render one rather than break on it."
   },
-  "myMealsStartAction": "Offer a Meal",
-  "@myMealsStartAction": {
-    "description": "Action that starts the Meal publishing conversation."
-  },
-  "myMealsLoadError": "We couldn't load your Meals. Try again.",
-  "@myMealsLoadError": {
-    "description": "Shown when loading the Cook's own Meals fails."
-  },
-  "mealStatusDraft": "Draft",
-  "@mealStatusDraft": {
-    "description": "Status label for a Meal the Cook began and has not put on offer."
-  },
-  "mealStatusPublished": "On the menu",
-  "@mealStatusPublished": {
-    "description": "Status label for a Meal on offer."
-  },
-  "mealStatusUnavailable": "Off the menu for now",
-  "@mealStatusUnavailable": {
-    "description": "Status label for a Meal taken off the menu and expected back."
-  },
-  "mealStatusArchived": "Retired",
-  "@mealStatusArchived": {
-    "description": "Status label for a Meal retired for good. Refined by US5 if needed."
-  },
-  "mealTakeOffMenu": "Take off the menu",
-  "@mealTakeOffMenu": {
-    "description": "Action that makes a published Meal unavailable."
-  },
-  "mealPutBackOnMenu": "Put back on the menu",
-  "@mealPutBackOnMenu": {
-    "description": "Action that makes an unavailable Meal available again."
-  },
-  "mealAvailabilityError": "We couldn't change the Meal. Try again.",
-  "@mealAvailabilityError": {
-    "description": "Shown when changing a Meal's availability fails."
-  },
-  "mealLastOnMenuTitle": "This is your last Meal on the menu",
-  "@mealLastOnMenuTitle": {
-    "description": "Title of the confirmation shown only when taking off the Cook's last available Meal."
-  },
-  "mealLastOnMenuBody": "If you take it off, nobody will find your kitchen until you put a Meal back.",
-  "@mealLastOnMenuBody": {
-    "description": "Explains that the kitchen stops being findable while the Cook has nothing on offer."
-  },
-  "mealLastOnMenuConfirm": "Take it off anyway",
-  "@mealLastOnMenuConfirm": {
-    "description": "Confirms taking off the last available Meal. Neutral, not discouraging."
-  },
-  "mealLastOnMenuCancel": "Keep it on the menu",
-  "@mealLastOnMenuCancel": {
-    "description": "Cancels taking off the last available Meal."
+  "mealResumeDraft": "Carry on with this Meal",
+  "@mealResumeDraft": {
+    "description": "Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one."
   }
 }

@@ -13,6 +13,7 @@ import 'package:kafoo_mobile/features/conversation/application/photo_picker.dart
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
 import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
+import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
@@ -1322,5 +1323,300 @@ void main() {
         }
       }
     });
+  });
+
+  // --- T097: Resume a draft -------------------------------------------------
+
+  group('T097: resume a draft', () {
+    const _fullDraft = CookMeal(
+      id: 'm-full',
+      cookId: 'c1',
+      title: 'كشري',
+      description: 'عدس ورز ومكرونة',
+      price: '40',
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+      ingredients: ['عدس', 'رز'],
+      calories: 850,
+      allergens: ['جلوتين'],
+      photoPath: 'meal-photos/c1/m-full.jpg',
+    );
+
+    const _titleOnlyDraft = CookMeal(
+      id: 'm-title',
+      cookId: 'c1',
+      title: 'ملوخية',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+
+    const _titleDescDraft = CookMeal(
+      id: 'm-td',
+      cookId: 'c1',
+      title: 'فتة',
+      description: 'فتة باللحمة',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+
+    const _noPhotoDraft = CookMeal(
+      id: 'm-nophoto',
+      cookId: 'c1',
+      title: 'كشري',
+      description: 'عدس ورز',
+      price: '35',
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+
+    test('resuming seeds every stored answer', () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo, ai: _stubAi('{}'));
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      controller.resume(_fullDraft);
+
+      final draft = container.read(mealConversationControllerProvider).draft;
+      expect(draft.mealId, _fullDraft.id);
+      expect(draft.title, _fullDraft.title);
+      expect(draft.description, _fullDraft.description);
+      expect(draft.price, _fullDraft.price);
+      expect(draft.cuisine, _fullDraft.cuisine);
+      expect(draft.category, _fullDraft.category);
+      expect(draft.ingredients, _fullDraft.ingredients);
+      expect(draft.calories, _fullDraft.calories);
+      expect(draft.allergens, _fullDraft.allergens);
+      expect(draft.photoPath, _fullDraft.photoPath);
+      expect(draft.photoResolved, isTrue);
+    });
+
+    test('resuming asks the next unanswered question, not the first', () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo, ai: _stubAi('{}'));
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      // Title only → description step
+      controller.resume(_titleOnlyDraft);
+      expect(controller.currentStep?.id, MealStepId.description);
+
+      // Title + description → photo step
+      final container2 = _container(repo: repo, ai: _stubAi('{}'));
+      addTearDown(container2.dispose);
+      final controller2 =
+          container2.read(mealConversationControllerProvider.notifier);
+      controller2.resume(_titleDescDraft);
+      expect(controller2.currentStep?.id, MealStepId.photo);
+
+      // Everything answered → no step
+      final container3 = _container(repo: repo, ai: _stubAi('{}'));
+      addTearDown(container3.dispose);
+      final controller3 =
+          container3.read(mealConversationControllerProvider.notifier);
+      controller3.resume(_fullDraft);
+      expect(controller3.currentStep, isNull);
+    });
+
+    test('a draft with no photo path is asked about the photo again', () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo, ai: _stubAi('{}'));
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      controller.resume(_noPhotoDraft);
+
+      final draft = container.read(mealConversationControllerProvider).draft;
+      expect(draft.photoResolved, isFalse);
+      expect(controller.currentStep?.id, MealStepId.photo);
+    });
+
+    test('resuming does not carry over approvals or a previous analysis',
+        () async {
+      final repo = FakeMealRepository();
+      final ai = _DeferredAiProvider();
+      final container = _container(repo: repo, ai: ai);
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      // Build up through the normal flow — analysis is in flight but not yet
+      // completed.
+      await controller.answer(MealStepId.dish, 'كشري');
+      await controller.answer(MealStepId.description, 'عدس ورز');
+
+      final inFlight = container.read(mealConversationControllerProvider);
+      expect(inFlight.analysisInFlight, isTrue);
+      expect(inFlight.analysis, isNull);
+
+      // Manually set approvals and corrections as though a prior analysis had
+      // landed and been approved.
+      controller.state = inFlight.copyWith(
+        approvals: {MealEstimateFields.cuisine: true},
+        corrections: {MealEstimateFields.calories},
+      );
+
+      // Resume a different draft — clears everything.
+      controller.resume(_titleOnlyDraft);
+
+      final afterState = container.read(mealConversationControllerProvider);
+      expect(afterState.approvals, isEmpty);
+      expect(afterState.corrections, isEmpty);
+      expect(afterState.analysis, isNull);
+      expect(afterState.analysisError, isNull);
+      expect(afterState.error, isNull);
+
+      // Now let the old analysis complete — it must not overwrite the cleared
+      // state because the request id has advanced.
+      ai.completers[0].complete(
+        const Success(AiResponse(text: _analysisReply, modelId: 'stale')),
+      );
+      await pumpEventQueue();
+
+      final finalState = container.read(mealConversationControllerProvider);
+      expect(finalState.analysis, isNull,
+          reason: 'a stale analysis must not land after resume');
+      expect(finalState.approvals, isEmpty);
+    });
+
+    test('resume refuses a Meal that is not a draft', () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo, ai: _stubAi('{}'));
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      final beforeDraft =
+          container.read(mealConversationControllerProvider).draft;
+
+      // Published
+      controller.resume(const CookMeal(
+        id: 'm-pub',
+        cookId: 'c1',
+        title: 'كشري',
+        description: 'عدس ورز',
+        price: '35',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.published,
+        nutritionSource: NutritionSource.ai,
+      ));
+      expect(
+        container.read(mealConversationControllerProvider).draft.mealId,
+        isNull,
+        reason: 'published Meal must not seed the conversation',
+      );
+      expect(
+        container.read(mealConversationControllerProvider).draft.mealId,
+        beforeDraft.mealId,
+        reason: 'state must be unchanged for a published Meal',
+      );
+
+      // Unavailable
+      controller.resume(const CookMeal(
+        id: 'm-unavail',
+        cookId: 'c1',
+        title: 'محشي',
+        description: 'ورق عنب',
+        price: '50',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.unavailable,
+        nutritionSource: NutritionSource.ai,
+      ));
+      expect(
+        container.read(mealConversationControllerProvider).draft.mealId,
+        isNull,
+        reason: 'unavailable Meal must not seed the conversation',
+      );
+
+      // Archived
+      controller.resume(const CookMeal(
+        id: 'm-arch',
+        cookId: 'c1',
+        title: 'فتة',
+        description: 'فتة باللحمة',
+        price: '60',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.archived,
+        nutritionSource: NutritionSource.ai,
+      ));
+      expect(
+        container.read(mealConversationControllerProvider).draft.mealId,
+        isNull,
+        reason: 'archived Meal must not seed the conversation',
+      );
+    });
+
+    test('resuming a draft that has a description starts analysis', () async {
+      final repo = FakeMealRepository();
+      final ai = _DeferredAiProvider();
+      final container = _container(repo: repo, ai: ai);
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      controller.resume(_titleDescDraft);
+
+      expect(ai.requests, hasLength(1));
+      expect(ai.requests.single.promptId, 'meal-analysis');
+      expect(
+        container.read(mealConversationControllerProvider).analysisInFlight,
+        isTrue,
+      );
+    });
+  });
+
+  // The clear that was not a clear.
+  //
+  // resume() asked copyWith to drop the previous Meal's analysis, and copyWith
+  // read `analysis ?? this.analysis` — so passing null kept the old one. The
+  // approvals beside it WERE cleared, which made the failure worse rather than
+  // visible: the Cook would be shown another dish's suggested allergens as
+  // estimates awaiting approval, and approving them writes those guesses onto
+  // this Meal.
+  //
+  // Resumed with a draft that has NO description, because that is the case the
+  // bug survived: with a description, resume starts a fresh analysis and the
+  // stale one is overwritten before anyone could see it.
+  test("resuming drops the previous Meal's estimates", () async {
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    // A real analysis for one dish.
+    await controller.answer(MealStepId.dish, 'ملوخية');
+    await controller.answer(MealStepId.description, 'ملوخية بالفراخ');
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      container.read(mealConversationControllerProvider).analysis,
+      isNotNull,
+      reason: 'the test needs a stale analysis to exist before resuming',
+    );
+
+    // Now carry on with a different, barely-started draft.
+    const titleOnlyDraft = CookMeal(
+      id: 'draft-with-no-description',
+      cookId: 'c1',
+      title: 'كشري',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    controller.resume(titleOnlyDraft);
+
+    final state = container.read(mealConversationControllerProvider);
+    expect(state.analysis, isNull);
+    expect(state.approvals, isEmpty);
+    expect(state.draft.mealId, 'draft-with-no-description');
   });
 }

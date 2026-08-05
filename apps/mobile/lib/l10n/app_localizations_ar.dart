@@ -466,6 +466,102 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealPublishedConfirmation => 'الأكلة بقت على المنيو.';
 
   @override
+  String publicMealPriceValue(String price) {
+    return '$price جنيه';
+  }
+
+  @override
+  String get publicMealOpenKitchen => 'شوف المطبخ';
+
+  @override
+  String get publicMealCaloriesUnknown => 'السعرات مش متحسبة';
+
+  @override
+  String get publicMealAllergensUnknown =>
+      'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل الطباخ.';
+
+  @override
+  String get publicMealNutritionFromCook => 'الأرقام دي من الطباخ نفسه.';
+
+  @override
+  String get myMealsTitle => 'أكلاتي';
+
+  @override
+  String get myMealsEmpty => 'لسه مافيش أكلات. ابدأ واحدة.';
+
+  @override
+  String get myMealsStatusDraft => 'مسودة';
+
+  @override
+  String get myMealsStatusPublished => 'على المنيو';
+
+  @override
+  String get myMealsStatusUnavailable => 'مش متاحة دلوقتي';
+
+  @override
+  String get myMealsStatusArchived => 'اتشالت خلاص';
+
+  @override
+  String get mealMakeUnavailable => 'شيلها من المنيو';
+
+  @override
+  String get mealMakeAvailable => 'رجّعها للمنيو';
+
+  @override
+  String get mealLastOnOfferWarning =>
+      'دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما ترجّع حاجة.';
+
+  @override
+  String get mealLastOnOfferConfirm => 'شيلها برضه';
+
+  @override
+  String get mealLastOnOfferCancel => 'سيبها زي ما هي';
+
+  @override
+  String get mealLoadError => 'مانفعش نجيب أكلاتك. جرب تاني.';
+
+  @override
+  String get mealAvailabilityError => 'مانفعش نغير حالة الأكلة. جرب تاني.';
+
+  @override
+  String get mealDeleteError => 'مانفعش نمسح المسودة. جرب تاني.';
+
+  @override
+  String get mealLoadRetry => 'حاول تاني';
+
+  @override
+  String get mealRetire => 'شيلها نهائي';
+
+  @override
+  String get mealRetireWarning =>
+      'الأكلة دي هتتشال من المنيو نهائي ومش هترجع تاني أبداً. هتفضل محفوظة في قايمتك بس محدش تاني هيشوفها.';
+
+  @override
+  String get mealRetireConfirm => 'شيلها نهائي';
+
+  @override
+  String get mealRetireCancel => 'سيبها زي ما هي';
+
+  @override
+  String get mealDeleteDraft => 'امسح المسودة';
+
+  @override
+  String get mealDeleteDraftWarning =>
+      'المسودة دي هتتمسح خالص ومش هتقدر ترجعها.';
+
+  @override
+  String get mealDeleteDraftConfirm => 'امسحها';
+
+  @override
+  String get mealEditTitle => 'عدّل الأكلة';
+
+  @override
+  String get mealEditSaved => 'اتغيّرت.';
+
+  @override
+  String get mealEditNoChange => 'مافيش حاجة اتغيّرت.';
+
+  @override
   String get mealNeedsKitchenTitle => 'لسه معندكش مطبخ';
 
   @override
@@ -482,48 +578,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealKitchenCheckRetry => 'جرب تاني';
 
   @override
-  String get myMealsTitle => 'أكلاتي';
+  String get myMealsNoPriceYet => 'لسه من غير سعر';
 
   @override
-  String get myMealsEmpty => 'لسه مفيش أكلات هنا.';
+  String get myMealsUntitledDraft => 'مسودة من غير اسم';
 
   @override
-  String get myMealsStartAction => 'اعرض أكلة';
-
-  @override
-  String get myMealsLoadError => 'مقدرناش نجيب أكلاتك. جرب تاني.';
-
-  @override
-  String get mealStatusDraft => 'مسودة';
-
-  @override
-  String get mealStatusPublished => 'على المنيو';
-
-  @override
-  String get mealStatusUnavailable => 'مش على المنيو دلوقتي';
-
-  @override
-  String get mealStatusArchived => 'متشالة خلاص';
-
-  @override
-  String get mealTakeOffMenu => 'شيلها من المنيو';
-
-  @override
-  String get mealPutBackOnMenu => 'رجّعها للمنيو';
-
-  @override
-  String get mealAvailabilityError => 'مقدرناش نغيّر الأكلة. جرب تاني.';
-
-  @override
-  String get mealLastOnMenuTitle => 'دي آخر أكلة على المنيو';
-
-  @override
-  String get mealLastOnMenuBody =>
-      'لو شيلتها، مطبخك مش هيبان لحد، لحد ما ترجّع أكلة تاني.';
-
-  @override
-  String get mealLastOnMenuConfirm => 'شيلها برضه';
-
-  @override
-  String get mealLastOnMenuCancel => 'سيبها على المنيو';
+  String get mealResumeDraft => 'كمّل الأكلة دي';
 }
