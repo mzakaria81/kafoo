@@ -323,6 +323,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
 
   @override
+  String get mealConvFallbackNotice =>
+      'المساعد مقدرش يعرف نوع الأكلة، فمحتاج أسألك سؤالين كمان.';
+
+  @override
+  String get mealConvPromptCuisine => 'الأكلة دي من أنهي مطبخ؟';
+
+  @override
+  String get mealConvHintCuisine => 'اختار اللي أقرب لأكلتك';
+
+  @override
+  String get mealConvPromptCategory => 'ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟';
+
+  @override
+  String get mealConvHintCategory => 'اختار اللي أقرب';
+
+  @override
   String get mealSummaryTitle => 'ده اللي قلته عن الأكلة';
 
   @override

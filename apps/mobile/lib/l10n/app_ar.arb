@@ -390,6 +390,26 @@
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
   },
+  "mealConvFallbackNotice": "المساعد مقدرش يعرف نوع الأكلة، فمحتاج أسألك سؤالين كمان.",
+  "@mealConvFallbackNotice": {
+    "description": "Notice before fallback cuisine/category questions when the AI Assistant could not estimate them (T096/FR-014)."
+  },
+  "mealConvPromptCuisine": "الأكلة دي من أنهي مطبخ؟",
+  "@mealConvPromptCuisine": {
+    "description": "Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing."
+  },
+  "mealConvHintCuisine": "اختار اللي أقرب لأكلتك",
+  "@mealConvHintCuisine": {
+    "description": "Hint below the fallback cuisine question."
+  },
+  "mealConvPromptCategory": "ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟",
+  "@mealConvPromptCategory": {
+    "description": "Fallback question: what sort of dish it is, asked only when the estimate is missing."
+  },
+  "mealConvHintCategory": "اختار اللي أقرب",
+  "@mealConvHintCategory": {
+    "description": "Hint below the fallback category question."
+  },
   "mealSummaryTitle": "ده اللي قلته عن الأكلة",
   "@mealSummaryTitle": {
     "description": "Heading of the Meal summary, shown before anything is on offer."

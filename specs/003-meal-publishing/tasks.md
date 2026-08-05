@@ -300,7 +300,7 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   layers of defence, one untested — and the untested one is what a later UI rewrite deletes.
   Publishing twice reaches a Customer, so it now has a controller-level test, mutation-checked.
 
-- [ ] T096 **FR-014: let a Cook publish when the AI Assistant is unavailable.** Found while building
+- [x] T096 **FR-014: let a Cook publish when the AI Assistant is unavailable — DONE 2026-08-05.** Found while building
   T038. With no analysis there is no cuisine and no category, so the database refuses the Meal and a
   Cook whose model call failed cannot offer their food at all. FR-014 says they must be able to.
   Needs a way to choose those two by hand — deliberately NOT bodged with a default, because a Meal
@@ -314,6 +314,27 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   keeps the fallback a conversation rather than a form, which the alternative — two dropdowns of ten
   cuisines, in Arabic, on the screen the design is most explicitly conversational — would not.
   Supersedes T049, which asks for the same thing from the US2 side
+
+  **Built as a second enum, not two more `MealStepId` values.** `MealFallbackStepId` sits beside
+  `MealStepId` in `packages/domain/lib/meal_step.dart`, so T044's "exactly four values" test keeps
+  passing untouched — which is the point of that test: the main sequence did not grow, a fallback
+  was added
+
+  **The trigger is the missing value, not the error.** An analysis that returned successfully with
+  no cuisine in it leaves a Cook exactly as stuck as one that failed outright, and FR-014 is about
+  the Cook being able to publish. So the questions fire when the draft has no value AND the analysis
+  offers no estimate for it — mutation-checked by dropping the estimate half of that condition,
+  which makes the normal path ask questions it should not
+
+  **The summary now shows what the Cook chose, without the `تقدير` badge.** Without this a Cook
+  would confirm a Meal without seeing the two answers they had just given. The rows are display-only
+  rather than editable: re-picking from an enum is a different control from correcting free text,
+  and SC-004's one-tap correction is about the latter
+
+  **The assertion that publish is disabled became the assertion that it is enabled.** The summary
+  test used to assert `onPressed` was null, because a Meal with no cuisine could not go on offer.
+  It now asserts `isNotNull`, with the reason recorded in the test — the delegated diff had replaced
+  it with "the button exists", which would have passed whether or not the feature worked
 - [x] T039 [US1] Emit `ConversationStarted`, `ConversationStepCompleted` with `step`, and `ConversationCompleted`, all carrying `kind: meal` and `input` — the same family as E1, not a second idea — **DONE 2026-08-05.** `ConversationStarted` carries `speech_locale` as E1 does, because a bare `input: voice` cannot answer whether Egyptian Arabic was actually used. Declining the photo emits a step event too: a Cook who says no has answered that question, and without the event the funnel shows a drop-off that never happened. `ConversationCompleted` is emitted from the summary on a successful publish only — a conversation that ended in a failed write did not complete, and counting it would report a publish rate higher than Cooks actually experience
 - [x] T040 [US1] Send a Cook with no Kitchen Profile to create one first (FR-017 in the UI; the trigger from T018 is the real guard) — **DONE 2026-08-05.** A new `MealPublishEntry` widget wraps the conversation and checks first, rather than a check bolted inside `MealConversationScreen`: fifteen existing tests construct that screen directly, and putting the check inside it would have failed every one of them for a gate none of them are about
 
@@ -365,7 +386,7 @@ estimate. Correct one and confirm it becomes the Cook's.
 - [ ] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the `basis` the function returned (FR-013). On the screen, not in a tooltip
 - [ ] T047 [US2] Make each estimate correctable in one action, and confirm the correction reaches the database as the Cook's — verifying the T017 trigger from the client side
 - [ ] T048 [US2] Present calories and allergens as estimates wherever they appear, including to a Customer reading a published Meal — FR-012 is not only about the summary screen
-- [ ] T049 [US2] Handle the AI Assistant being unreachable so a Cook still publishes, with the fields left to them (FR-014, SC-005) — **the same requirement as T096, which carries the founder's decision on how.** Build it once, there
+- [x] T049 [US2] Handle the AI Assistant being unreachable so a Cook still publishes, with the fields left to them (FR-014, SC-005) — **the same requirement as T096, which carries the founder's decision on how.** Build it once, there
 - [ ] T050 [P] [US2] Add a widget test asserting an approved-but-unchanged estimate is still labelled as the AI Assistant's after publishing — the distinction most easily lost
 - [ ] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is conversational Egyptian, not Modern Standard. This is the first Arabic in Kafoo a model wrote rather than a person
 

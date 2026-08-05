@@ -11,11 +11,11 @@ class SummaryRow extends StatelessWidget {
   const SummaryRow({
     required this.label,
     required this.value,
-    required this.editing,
-    required this.controller,
-    required this.editLabel,
-    required this.onEdit,
-    required this.onCommit,
+    this.editing = false,
+    this.controller,
+    this.editLabel,
+    this.onEdit,
+    this.onCommit,
     this.multiline = false,
     super.key,
   });
@@ -23,11 +23,13 @@ class SummaryRow extends StatelessWidget {
   final String label;
   final String value;
   final bool editing;
-  final TextEditingController controller;
-  final String editLabel;
-  final VoidCallback onEdit;
-  final VoidCallback onCommit;
+  final TextEditingController? controller;
+  final String? editLabel;
+  final VoidCallback? onEdit;
+  final VoidCallback? onCommit;
   final bool multiline;
+
+  bool get _editable => onEdit != null;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class SummaryRow extends StatelessWidget {
                 ?.copyWith(color: theme.colorScheme.outline),
           ),
           const SizedBox(height: KafooSpacing.xs),
-          if (editing)
+          if (editing && controller != null && onCommit != null)
             Row(
               children: [
                 Expanded(
@@ -53,7 +55,7 @@ class SummaryRow extends StatelessWidget {
                     autofocus: true,
                     maxLines: multiline ? 4 : 1,
                     textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => onCommit(),
+                    onSubmitted: (_) => onCommit!(),
                   ),
                 ),
                 IconButton(
@@ -75,20 +77,21 @@ class SummaryRow extends StatelessWidget {
                 Expanded(
                   child: Text(value, style: theme.textTheme.bodyLarge),
                 ),
-                TextButton(
-                  onPressed: onEdit,
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(
-                      KafooSpacing.minTapTarget,
-                      KafooSpacing.minTapTarget,
+                if (_editable)
+                  TextButton(
+                    onPressed: onEdit,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(
+                        KafooSpacing.minTapTarget,
+                        KafooSpacing.minTapTarget,
+                      ),
+                    ),
+                    child: Semantics(
+                      button: true,
+                      label: '${editLabel!}: $label',
+                      child: Text(editLabel!),
                     ),
                   ),
-                  child: Semantics(
-                    button: true,
-                    label: '$editLabel: $label',
-                    child: Text(editLabel),
-                  ),
-                ),
               ],
             ),
         ],

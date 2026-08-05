@@ -16,6 +16,8 @@ import 'package:kafoo_mobile/features/meal/application/meal_conversation_control
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_fallback_question.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_summary.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
 import 'support/fake_meal_repository.dart';
@@ -176,14 +178,28 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
     await tester.enterText(find.byType(TextField), '50');
     await tester.tap(find.byType(FilledButton));
-    // pump, not pumpAndSettle: with every step answered the screen shows the
-    // T037 placeholder spinner, which animates forever and never settles.
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    // All four answered — no question left on screen.
+    // Analysis failed (unstubbed AI) → fallback cuisine, still one question.
+    expect(find.byType(ConversationQuestion), findsOneWidget);
+    expect(find.text(l10n.mealConvPromptCuisine), findsOneWidget);
+    expect(find.text(l10n.mealConvPromptCategory), findsNothing);
+    await tester.tap(find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ConversationQuestion), findsOneWidget);
+    expect(find.text(l10n.mealConvPromptCategory), findsOneWidget);
+    expect(find.text(l10n.mealConvPromptCuisine), findsNothing);
+    await tester.tap(find.widgetWithText(OutlinedButton, l10n.categoryMain));
+    await tester.pumpAndSettle();
+
+    // Summary — no question left.
     expect(find.byType(ConversationQuestion), findsNothing);
     expect(repo.createDraftCalls, 1);
-    expect(repo.updateDraftCalls, 2);
+    // Description and price from the four questions, cuisine and category
+    // from the two fallbacks. The count is asserted rather than dropped: it
+    // is what catches a step that writes twice or not at all.
+    expect(repo.updateDraftCalls, 4);
     expect(
       repo.updateDraftArgs.map((c) => c.description).whereType<String>(),
       ['عدس ورز ومكرونة'],
@@ -649,9 +665,13 @@ void main() {
   testWidgets('declining photo reaches price and completes the conversation',
       (tester) async {
     final repo = FakeMealRepository();
+    // A full analysis, so the two fallback questions never fire and this test
+    // stays about what its name says: declining the photo ends the
+    // conversation rather than looping.
     await tester.pumpWidget(_testApp(
       MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
       repo: repo,
+      ai: _stubAi(_analysisReply),
     ));
     await tester.pumpAndSettle();
 
@@ -670,10 +690,10 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
     expect(find.byType(OutlinedButton), findsNothing);
 
-    // Answer price — conversation completes (no question left).
+    // Answer price — conversation completes, no question left.
     await tester.enterText(find.byType(TextField), '50');
     await tester.tap(find.byType(FilledButton));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(ConversationQuestion), findsNothing);
     expect(
@@ -961,6 +981,170 @@ void main() {
           .where((e) => e.name == EventNames.conversationCompleted)
           .toList();
       expect(completed, isEmpty);
+    });
+  });
+
+  // --- T096: Fallback cuisine/category when estimates are missing -----------
+
+  group('T096: fallback cuisine and category', () {
+    Future<void> _answerFour(WidgetTester tester) async {
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '50');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+    }
+
+    /// Analysis with category only — cuisine missing.
+    const _categoryOnlyReply =
+        '{"ingredients":["عدس"],"calories":800,"allergens":["جلوتين"],'
+        '"category":"main",'
+        '"basis":{"ingredients":"من الوصف","calories":"تقدير",'
+        '"allergens":"قمح","category":"طبق رئيسي"}}';
+
+    testWidgets(
+        'analysis failed: Cook is asked cuisine then category and can publish',
+        (tester) async {
+      final repo = FakeMealRepository();
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+        ai: _stubAi(),
+      ));
+      await tester.pumpAndSettle();
+      await _answerFour(tester);
+
+      // Cuisine question on screen; category not yet.
+      expect(find.text(l10n.mealConvPromptCuisine), findsOneWidget);
+      expect(find.text(l10n.mealConvPromptCategory), findsNothing);
+      expect(find.byType(ConversationQuestion), findsOneWidget);
+      expect(find.byType(MealFallbackQuestion), findsOneWidget);
+
+      await tester
+          .tap(find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian));
+      await tester.pumpAndSettle();
+
+      // Category next; cuisine gone.
+      expect(find.text(l10n.mealConvPromptCategory), findsOneWidget);
+      expect(find.text(l10n.mealConvPromptCuisine), findsNothing);
+      expect(find.byType(ConversationQuestion), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, l10n.categoryMain));
+      await tester.pumpAndSettle();
+
+      // Summary reached.
+      expect(find.byType(MealSummaryScreen), findsOneWidget);
+      expect(find.text(l10n.mealConvPromptCuisine), findsNothing);
+      expect(find.text(l10n.mealConvPromptCategory), findsNothing);
+
+      // Publish reaches the repository (SC-005).
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MealSummaryScreen)),
+      );
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+      expect(controller.canPublish, isTrue);
+      final published = await controller.publish();
+      expect(published, isTrue);
+      expect(repo.publishCalls, 1);
+    });
+
+    testWidgets(
+        'analysis succeeded: summary is reached with no fallback questions',
+        (tester) async {
+      final repo = FakeMealRepository();
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+        ai: _stubAi(_analysisReply),
+      ));
+      await tester.pumpAndSettle();
+      await _answerFour(tester);
+
+      expect(find.byType(MealSummaryScreen), findsOneWidget);
+      expect(find.text(l10n.mealConvPromptCuisine), findsNothing);
+      expect(find.text(l10n.mealConvPromptCategory), findsNothing);
+      expect(find.text(l10n.mealConvFallbackNotice), findsNothing);
+      expect(find.byType(MealFallbackQuestion), findsNothing);
+    });
+
+    testWidgets('one missing field asks only that question', (tester) async {
+      final repo = FakeMealRepository();
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+        ai: _stubAi(_categoryOnlyReply),
+      ));
+      await tester.pumpAndSettle();
+      await _answerFour(tester);
+
+      expect(find.text(l10n.mealConvPromptCuisine), findsOneWidget);
+      expect(find.text(l10n.mealConvPromptCategory), findsNothing);
+
+      await tester
+          .tap(find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian));
+      await tester.pumpAndSettle();
+
+      // Category came from analysis — skip straight to summary.
+      expect(find.byType(MealSummaryScreen), findsOneWidget);
+      expect(find.text(l10n.mealConvPromptCategory), findsNothing);
+    });
+
+    testWidgets(
+        'fallback answers emit ConversationStepCompleted without the answer',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+      addTearDown(() => debugEventRecorder = null);
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+        ai: _stubAi(),
+      ));
+      await tester.pumpAndSettle();
+      await _answerFour(tester);
+
+      await tester
+          .tap(find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, l10n.categoryMain));
+      await tester.pumpAndSettle();
+
+      final completed = events
+          .where((e) => e.name == EventNames.conversationStepCompleted)
+          .toList();
+      final cuisineEvents =
+          completed.where((e) => e.attributes['step'] == 'cuisine').toList();
+      final categoryEvents =
+          completed.where((e) => e.attributes['step'] == 'category').toList();
+      expect(cuisineEvents, hasLength(1));
+      expect(categoryEvents, hasLength(1));
+      expect(cuisineEvents.single.attributes['kind'], 'meal');
+      expect(cuisineEvents.single.attributes['input'], 'typed');
+      expect(categoryEvents.single.attributes['kind'], 'meal');
+      expect(categoryEvents.single.attributes['input'], 'typed');
+
+      // FR-037: no attribute is the chosen enum wire name or any Cook answer.
+      for (final event in [...cuisineEvents, ...categoryEvents]) {
+        for (final value in event.attributes.values) {
+          if (value is String) {
+            expect(value, isNot(equals('egyptian')));
+            expect(value, isNot(equals('main')));
+            expect(value, isNot(equals(l10n.cuisineEgyptian)));
+            expect(value, isNot(equals(l10n.categoryMain)));
+          }
+        }
+      }
     });
   });
 

@@ -668,6 +668,36 @@ abstract class AppLocalizations {
   /// **'سعر الطبق كامل بالجنيه'**
   String get mealConvHintPrice;
 
+  /// Notice before fallback cuisine/category questions when the AI Assistant could not estimate them (T096/FR-014).
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد مقدرش يعرف نوع الأكلة، فمحتاج أسألك سؤالين كمان.'**
+  String get mealConvFallbackNotice;
+
+  /// Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة دي من أنهي مطبخ؟'**
+  String get mealConvPromptCuisine;
+
+  /// Hint below the fallback cuisine question.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار اللي أقرب لأكلتك'**
+  String get mealConvHintCuisine;
+
+  /// Fallback question: what sort of dish it is, asked only when the estimate is missing.
+  ///
+  /// In ar, this message translates to:
+  /// **'ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟'**
+  String get mealConvPromptCategory;
+
+  /// Hint below the fallback category question.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار اللي أقرب'**
+  String get mealConvHintCategory;
+
   /// Heading of the Meal summary, shown before anything is on offer.
   ///
   /// In ar, this message translates to:

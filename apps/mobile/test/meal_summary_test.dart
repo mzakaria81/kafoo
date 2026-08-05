@@ -73,11 +73,13 @@ Widget _app(FakeMealRepository repo, {AiProvider? ai}) => ProviderScope(
     );
 
 /// Walks the whole conversation, so the summary is reached the way a Cook
-/// reaches it.
+/// reaches it. When the analysis left cuisine/category blank, answers the
+/// fallback questions so the summary is actually on screen.
 Future<void> _reachSummary(
   WidgetTester tester,
   FakeMealRepository repo, {
   AiProvider? ai,
+  AppLocalizations? l10n,
 }) async {
   await tester.pumpWidget(_app(repo, ai: ai));
   await tester.pumpAndSettle();
@@ -97,6 +99,24 @@ Future<void> _reachSummary(
   await tester.enterText(find.byType(TextField), _price);
   await tester.tap(find.byType(FilledButton));
   await tester.pumpAndSettle();
+
+  // Fallback path (T096): analysis missing cuisine/category.
+  if (l10n != null &&
+      find.text(l10n.mealConvPromptCuisine).evaluate().isNotEmpty) {
+    final choice = find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian);
+    await tester.ensureVisible(choice);
+    await tester.pumpAndSettle();
+    await tester.tap(choice);
+    await tester.pumpAndSettle();
+  }
+  if (l10n != null &&
+      find.text(l10n.mealConvPromptCategory).evaluate().isNotEmpty) {
+    final choice = find.widgetWithText(OutlinedButton, l10n.categoryMain);
+    await tester.ensureVisible(choice);
+    await tester.pumpAndSettle();
+    await tester.tap(choice);
+    await tester.pumpAndSettle();
+  }
 }
 
 Finder _rowFor(String label) => find.ancestor(
@@ -196,7 +216,7 @@ void main() {
 
   testWidgets('the summary shows every answer the Cook gave', (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
 
     expect(find.byType(MealSummaryScreen), findsOneWidget);
     expect(find.text(l10n.mealSummaryTitle), findsOneWidget);
@@ -208,7 +228,7 @@ void main() {
   testWidgets('a declined photo reads as a choice, not an empty row',
       (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
 
     expect(find.text(l10n.mealSummaryNoPhoto), findsOneWidget);
   });
@@ -218,10 +238,11 @@ void main() {
   testWidgets('each value is one tap from being editable (SC-004)',
       (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
 
-    // Three correctable Cook-answer rows. Estimates are absent without analysis.
-    expect(find.byType(SummaryRow), findsNWidgets(3));
+    // Three editable Cook-answer rows (dish/description/price). Fallback
+    // cuisine/category are display-only — they are not free text.
+    expect(find.byType(SummaryRow), findsNWidgets(5));
     expect(find.byType(PhotoRow), findsOneWidget);
 
     expect(find.byType(TextField), findsNothing);
@@ -237,7 +258,7 @@ void main() {
 
   testWidgets('correcting the dish persists it', (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
     final before = repo.updateDraftCalls;
 
     await _correct(tester, l10n.mealSummaryLabelDish, 'كشري بالعدس');
@@ -249,7 +270,7 @@ void main() {
 
   testWidgets('correcting the description persists it', (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
     final before = repo.updateDraftCalls;
 
     await _correct(tester, l10n.mealSummaryLabelDescription, 'عدس ورز وبصل');
@@ -260,7 +281,7 @@ void main() {
 
   testWidgets('correcting the price persists it', (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
     final before = repo.updateDraftCalls;
 
     await _correct(tester, l10n.mealSummaryLabelPrice, '65');
@@ -278,7 +299,7 @@ void main() {
   testWidgets('a correction reaches the controller, not only the database',
       (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
 
     await _correct(tester, l10n.mealSummaryLabelPrice, '65');
 
@@ -292,20 +313,27 @@ void main() {
     );
   });
 
-  // Without analysis there is nothing to approve and the draft has no cuisine
-  // or category, so publish stays disabled rather than inventing defaults.
+  // Reaching the summary never auto-publishes — the Cook must confirm.
   testWidgets('reaching the summary puts nothing on offer', (tester) async {
+    await _tallSurface(tester);
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
 
     expect(repo.publishCalls, 0);
+    expect(find.byType(MealSummaryScreen), findsOneWidget);
     expect(find.text(l10n.mealSummaryNoEstimates), findsOneWidget);
 
+    // Confirm is now ENABLED, and that is the point of T096: before the
+    // fallback questions existed this assertion was `isNull`, because a Meal
+    // with no cuisine and no category could not go on offer at all. It is
+    // enabled because the Cook supplied both, not because a default was
+    // invented — and it is still the Cook's tap that publishes, which is why
+    // publishCalls is asserted on either side of it (FR-014, SC-005).
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
     );
-    expect(button.onPressed, isNull,
-        reason: 'no cuisine/category means the Meal cannot go on offer');
+    expect(button.onPressed, isNotNull,
+        reason: 'a Cook who answered the fallback questions can publish');
 
     expect(repo.publishCalls, 0);
   });
@@ -315,7 +343,7 @@ void main() {
   testWidgets('an empty correction writes nothing and keeps the value',
       (tester) async {
     final repo = FakeMealRepository();
-    await _reachSummary(tester, repo);
+    await _reachSummary(tester, repo, l10n: l10n);
     final before = repo.updateDraftCalls;
 
     await tester.tap(
@@ -711,5 +739,50 @@ void main() {
       isEmpty,
     );
     expect(find.text(l10n.mealPublishError), findsOneWidget);
+  });
+
+  // --- T096: fallback answers on the summary --------------------------------
+
+  testWidgets(
+      'fallback cuisine and category on summary are not labelled as estimates',
+      (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    // Unstubbed AI → analysis fails → fallback path.
+    await _reachSummary(tester, repo, l10n: l10n);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MealSummaryScreen), findsOneWidget);
+    expect(find.text(l10n.mealSummaryLabelCuisine), findsOneWidget);
+    expect(find.text(l10n.mealSummaryLabelCategory), findsOneWidget);
+    expect(find.text(l10n.cuisineEgyptian), findsOneWidget);
+    expect(find.text(l10n.categoryMain), findsOneWidget);
+
+    // Badge must not appear on those Cook-owned rows. With no analysis there
+    // are no estimate rows at all, so the badge must be entirely absent.
+    expect(find.text(l10n.mealSummaryEstimateBadge), findsNothing);
+
+    final cuisineRow = find.ancestor(
+      of: find.text(l10n.mealSummaryLabelCuisine),
+      matching: find.byType(SummaryRow),
+    );
+    final categoryRow = find.ancestor(
+      of: find.text(l10n.mealSummaryLabelCategory),
+      matching: find.byType(SummaryRow),
+    );
+    expect(
+      find.descendant(
+        of: cuisineRow,
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: categoryRow,
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsNothing,
+    );
   });
 }

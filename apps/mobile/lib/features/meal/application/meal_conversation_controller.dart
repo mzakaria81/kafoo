@@ -131,6 +131,40 @@ class MealConversationController extends _$MealConversationController {
     return nextUnansweredMealStep(steps);
   }
 
+  /// The next fallback question, or null when none is needed.
+  ///
+  /// Asked only after the four real questions, never while an estimate might
+  /// still arrive, and only for fields the analysis did not supply. Trigger is
+  /// the missing value, not [MealConversationState.analysisError] — a successful
+  /// analysis with no cuisine leaves the Cook just as stuck.
+  MealFallbackStepId? get currentFallbackStep {
+    if (currentStep != null) return null;
+    if (state.analysisInFlight) return null;
+
+    final analysis = state.analysis;
+    final cuisineNeeded =
+        state.draft.cuisine == null && analysis?.cuisine == null;
+    final categoryNeeded =
+        state.draft.category == null && analysis?.category == null;
+
+    return nextUnansweredMealFallbackStep(
+      cuisineNeeded: cuisineNeeded,
+      categoryNeeded: categoryNeeded,
+    );
+  }
+
+  /// Records a Cook answer to a fallback question (cuisine or category).
+  ///
+  /// These are the Cook's own values, not AI estimates — so they are written
+  /// with [markApproved] false and never enter [MealConversationState.approvals].
+  Future<bool> answerFallback(MealFallbackStepId step, Object value) {
+    final field = switch (step) {
+      MealFallbackStepId.cuisine => MealEstimateFields.cuisine,
+      MealFallbackStepId.category => MealEstimateFields.category,
+    };
+    return _writeEstimate(field, value, markApproved: false);
+  }
+
   /// Records an answer for the given step.
   ///
   /// First answer creates the draft and emits [EventNames.mealDrafted] once.

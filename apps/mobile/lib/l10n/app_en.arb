@@ -390,6 +390,26 @@
   "@mealConvHintPrice": {
     "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
   },
+  "mealConvFallbackNotice": "The AI Assistant couldn't work out what kind of food this is, so there are two more questions.",
+  "@mealConvFallbackNotice": {
+    "description": "Notice before fallback cuisine/category questions when the AI Assistant could not estimate them (T096/FR-014)."
+  },
+  "mealConvPromptCuisine": "Which kind of cooking is this Meal?",
+  "@mealConvPromptCuisine": {
+    "description": "Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing."
+  },
+  "mealConvHintCuisine": "Pick the closest one",
+  "@mealConvHintCuisine": {
+    "description": "Hint below the fallback cuisine question."
+  },
+  "mealConvPromptCategory": "And what sort of dish is it? A main, a dessert, a soup?",
+  "@mealConvPromptCategory": {
+    "description": "Fallback question: what sort of dish it is, asked only when the estimate is missing."
+  },
+  "mealConvHintCategory": "Pick the closest one",
+  "@mealConvHintCategory": {
+    "description": "Hint below the fallback category question."
+  },
   "mealSummaryTitle": "Here is what you told me about this Meal",
   "@mealSummaryTitle": {
     "description": "Heading of the Meal summary, shown before anything is on offer."

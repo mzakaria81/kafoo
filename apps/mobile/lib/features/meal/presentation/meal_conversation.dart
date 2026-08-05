@@ -13,6 +13,7 @@ import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../../conversation/presentation/voice_button.dart';
 import '../application/meal_conversation_controller.dart';
+import 'meal_fallback_question.dart';
 import 'meal_summary.dart';
 
 /// The Meal conversation screen.
@@ -190,6 +191,15 @@ class _MealConversationScreenState
     final step = _currentStep;
 
     if (step == null) {
+      final fallback = ref
+          .read(mealConversationControllerProvider.notifier)
+          .currentFallbackStep;
+      if (fallback != null) {
+        return MealFallbackQuestion(
+          step: fallback,
+          error: state.error,
+        );
+      }
       // Rendered in place rather than pushed as a route.
       //
       // The first version pushed the summary from build() behind a one-shot

@@ -332,6 +332,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mealConvHintPrice => 'The price of the whole dish, in pounds';
 
   @override
+  String get mealConvFallbackNotice =>
+      'The AI Assistant couldn\'t work out what kind of food this is, so there are two more questions.';
+
+  @override
+  String get mealConvPromptCuisine => 'Which kind of cooking is this Meal?';
+
+  @override
+  String get mealConvHintCuisine => 'Pick the closest one';
+
+  @override
+  String get mealConvPromptCategory =>
+      'And what sort of dish is it? A main, a dessert, a soup?';
+
+  @override
+  String get mealConvHintCategory => 'Pick the closest one';
+
+  @override
   String get mealSummaryTitle => 'Here is what you told me about this Meal';
 
   @override

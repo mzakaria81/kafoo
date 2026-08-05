@@ -101,4 +101,32 @@ MealStep? nextUnansweredMealStep(List<MealStep> steps) {
 bool canBeginAnalysis({required String? dish, required String? description}) =>
     _isPresent(dish) && _isPresent(description);
 
+/// The questions asked only when the AI Assistant could not supply the
+/// answer. Deliberately separate from [MealStepId]: the Meal conversation
+/// is four questions long, and these two exist because a fallback was
+/// needed, not because the sequence grew.
+enum MealFallbackStepId {
+  cuisine,
+  category;
+
+  /// Stable identifier for `ConversationStepCompleted.step`.
+  String get wireName => switch (this) {
+        MealFallbackStepId.cuisine => 'cuisine',
+        MealFallbackStepId.category => 'category',
+      };
+}
+
+/// Next fallback question, or null when neither is needed.
+///
+/// The caller decides what "needed" means — that depends on the analysis,
+/// which is not a domain-package concept. Cuisine before category.
+MealFallbackStepId? nextUnansweredMealFallbackStep({
+  required bool cuisineNeeded,
+  required bool categoryNeeded,
+}) {
+  if (cuisineNeeded) return MealFallbackStepId.cuisine;
+  if (categoryNeeded) return MealFallbackStepId.category;
+  return null;
+}
+
 bool _isPresent(String? value) => value != null && value.trim().isNotEmpty;
