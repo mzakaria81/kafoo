@@ -38,6 +38,27 @@ class _UnavailableVoiceInput extends VoiceInput {
   Future<void> cancel() async {}
 }
 
+/// Voice available with Egyptian Arabic locale.
+class _EgyptianVoiceInput extends VoiceInput {
+  @override
+  Future<bool> initialize() async => true;
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  String? get resolvedLocaleId => 'ar-EG';
+
+  @override
+  bool get isListening => false;
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Future<void> cancel() async {}
+}
+
 /// Completes only when a test releases each call — drives in-flight and race
 /// cases that [StubAiProvider] cannot, because it answers immediately.
 class _DeferredAiProvider implements AiProvider {
@@ -716,5 +737,228 @@ void main() {
     // Still only one request, and it never carried photo_path.
     expect(ai.requests, hasLength(1));
     expect(ai.requests.single.variables.containsKey('photo_path'), isFalse);
+  });
+
+  // --- T039: Meal conversation analytics -------------------------------------
+
+  group('Meal conversation analytics (T039)', () {
+    setUp(() {
+      debugEventRecorder = (_, __) {};
+    });
+    tearDown(() => debugEventRecorder = null);
+
+    testWidgets('ConversationStarted emitted once with voice available',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _EgyptianVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      final started = events
+          .where((e) => e.name == EventNames.conversationStarted)
+          .toList();
+      expect(started, hasLength(1));
+      expect(started.single.attributes['kind'], 'meal');
+      expect(started.single.attributes['input'], 'voice');
+      expect(started.single.attributes['speech_locale'], 'ar-EG');
+    });
+
+    testWidgets('ConversationStarted carries typed/none when voice unavailable',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      final started = events
+          .where((e) => e.name == EventNames.conversationStarted)
+          .toList();
+      expect(started, hasLength(1));
+      expect(started.single.attributes['kind'], 'meal');
+      expect(started.single.attributes['input'], 'typed');
+      expect(started.single.attributes['speech_locale'], 'none');
+    });
+
+    testWidgets(
+        'ConversationStepCompleted emitted once per answered step with correct wire name',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Answer dish
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Answer description
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Decline photo
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+
+      // Answer price
+      await tester.enterText(find.byType(TextField), '50');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+
+      final completed = events
+          .where((e) => e.name == EventNames.conversationStepCompleted)
+          .toList();
+      expect(completed, hasLength(4));
+      expect(completed[0].attributes['step'], 'dish');
+      expect(completed[1].attributes['step'], 'description');
+      expect(completed[2].attributes['step'], 'photo');
+      expect(completed[3].attributes['step'], 'price');
+      expect(completed.every((e) => e.attributes['kind'] == 'meal'), isTrue);
+    });
+
+    testWidgets('declining photo emits ConversationStepCompleted',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Reach photo step
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Decline photo
+      await tester.tap(find.text(l10n.mealConvPhotoSkip));
+      await tester.pumpAndSettle();
+
+      final photoEvents = events
+          .where((e) =>
+              e.name == EventNames.conversationStepCompleted &&
+              e.attributes['step'] == 'photo')
+          .toList();
+      expect(photoEvents, hasLength(1));
+      expect(photoEvents.single.attributes['input'], 'typed');
+    });
+
+    testWidgets('FR-037: no conversation event carries what the Cook typed',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      // Use distinctive values that would be easy to spot if leaked
+      const dishAnswer = '🍲_SECRET_DISH_42';
+      const descAnswer = '📝_SECRET_DESC_99';
+      const priceAnswer = '🪙_SECRET_PRICE_77';
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), dishAnswer);
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), descAnswer);
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), priceAnswer);
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+
+      for (final event in events) {
+        for (final value in event.attributes.values) {
+          if (value is String) {
+            expect(value.contains('SECRET_DISH'), isFalse,
+                reason: '${event.name} leaked dish answer');
+            expect(value.contains('SECRET_DESC'), isFalse,
+                reason: '${event.name} leaked description answer');
+            expect(value.contains('SECRET_PRICE'), isFalse,
+                reason: '${event.name} leaked price answer');
+          }
+        }
+      }
+    });
+
+    // --- T043: Abandoned conversation leaves draft, nothing on offer ---------
+
+    testWidgets('T043: abandoned conversation leaves draft and never publishes',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Answer dish and description only — then abandon
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Do NOT answer photo or price — just leave
+
+      // A draft was created
+      expect(repo.createDraftCalls, 1);
+      // Only description update (photo not yet reached)
+      expect(repo.updateDraftCalls, 1);
+      // Publish was NEVER called
+      expect(repo.publishCalls, 0);
+
+      // No MealPublished, no ConversationCompleted
+      final published =
+          events.where((e) => e.name == EventNames.mealPublished).toList();
+      expect(published, isEmpty);
+      final completed = events
+          .where((e) => e.name == EventNames.conversationCompleted)
+          .toList();
+      expect(completed, isEmpty);
+    });
   });
 }
