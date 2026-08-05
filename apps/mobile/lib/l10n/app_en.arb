@@ -635,5 +635,33 @@
   "mealLoadRetry": "Try again",
   "@mealLoadRetry": {
     "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
+  },
+  "mealRetire": "Retire it permanently",
+  "@mealRetire": {
+    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row."
+  },
+  "mealRetireWarning": "This Meal comes off the menu for good and can never go back on. It stays in your list, but nobody else will see it again.",
+  "@mealRetireWarning": {
+    "description": "Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list."
+  },
+  "mealRetireConfirm": "Retire it permanently",
+  "@mealRetireConfirm": {
+    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle."
+  },
+  "mealRetireCancel": "Leave it as it is",
+  "@mealRetireCancel": {
+    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status."
+  },
+  "mealDeleteDraft": "Delete the draft",
+  "@mealDeleteDraft": {
+    "description": "Action a Cook takes to delete a draft Meal that was never on offer."
+  },
+  "mealDeleteDraftWarning": "This draft will be deleted for good and cannot be brought back.",
+  "@mealDeleteDraftWarning": {
+    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good."
+  },
+  "mealDeleteDraftConfirm": "Delete it",
+  "@mealDeleteDraftConfirm": {
+    "description": "Confirmation button on the draft-deletion dialog."
   }
 }

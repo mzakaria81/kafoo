@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
+import 'package:kafoo_mobile/features/meal/application/my_meals_controller.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
@@ -294,5 +295,198 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.mealAvailabilityError), findsOneWidget);
+  });
+
+  testWidgets(
+      'retiring takes one confirmation, and writes nothing until it is given',
+      (tester) async {
+    final repo = FakeMealRepository(meals: [_published]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    final firstRow = find.byType(MyMealRow).first;
+    await tester.tap(
+      find.descendant(
+        of: firstRow,
+        matching: find.text(l10n.mealRetire),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealRetireWarning), findsOneWidget);
+    expect(repo.setStatusArgs, isEmpty);
+
+    await tester.tap(find.text(l10n.mealRetireCancel));
+    await tester.pumpAndSettle();
+    expect(repo.setStatusArgs, isEmpty);
+
+    await tester.tap(
+      find.descendant(
+        of: firstRow,
+        matching: find.text(l10n.mealRetire),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.mealRetireConfirm),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repo.setStatusArgs, hasLength(1));
+    expect(repo.setStatusArgs.single.mealId, _published.id);
+    expect(repo.setStatusArgs.single.next, MealStatus.archived);
+  });
+
+  testWidgets('retiring emits MealArchived, and does not emit MealUpdated',
+      (tester) async {
+    final repo = FakeMealRepository(
+      meals: [
+        _published,
+        const Meal(
+          id: 'm-pub-2',
+          cookId: 'c1',
+          title: 'محشي',
+          description: 'ورق عنب',
+          price: '50',
+          cuisine: Cuisine.egyptian,
+          category: MealCategory.main,
+          status: MealStatus.published,
+          nutritionSource: NutritionSource.ai,
+        ),
+      ],
+    );
+    final events = <({String name, Map<String, Object> attributes})>[];
+    debugEventRecorder = (name, attributes) {
+      events.add((name: name, attributes: attributes));
+    };
+
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    final firstRow = find.byType(MyMealRow).first;
+    await tester.tap(
+      find.descendant(
+        of: firstRow,
+        matching: find.text(l10n.mealRetire),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.mealRetireConfirm),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final archived =
+        events.where((e) => e.name == EventNames.mealArchived).toList();
+    expect(archived, hasLength(1));
+    expect(archived.single.attributes, isEmpty);
+
+    final updated =
+        events.where((e) => e.name == EventNames.mealUpdated).toList();
+    expect(updated, isEmpty);
+  });
+
+  testWidgets('a retired Meal offers no route back', (tester) async {
+    final repo = FakeMealRepository(meals: [_archived]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealMakeUnavailable), findsNothing);
+    expect(find.text(l10n.mealMakeAvailable), findsNothing);
+    expect(find.text(l10n.mealRetire), findsNothing);
+    expect(find.text(l10n.mealDeleteDraft), findsNothing);
+  });
+
+  test(
+      'the controller refuses an illegal transition without calling the repository',
+      () async {
+    final repo = FakeMealRepository(meals: [_archived]);
+    final container = ProviderContainer(
+      overrides: [mealRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(myMealsControllerProvider.notifier);
+    final result = await controller.setStatus(_archived, MealStatus.published);
+
+    expect(result, isFalse);
+    expect(repo.setStatusArgs, isEmpty);
+  });
+
+  testWidgets('only a draft offers deletion', (tester) async {
+    final repo = FakeMealRepository(
+      meals: [_draft, _published, _unavailable, _archived],
+    );
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealDeleteDraft), findsOneWidget);
+
+    final deleteButton = find.text(l10n.mealDeleteDraft);
+    final draftRow = find.byType(MyMealRow).first;
+    expect(
+      find.descendant(of: draftRow, matching: deleteButton),
+      findsOneWidget,
+    );
+
+    for (final mealLabel in [
+      l10n.myMealsStatusPublished,
+      l10n.myMealsStatusUnavailable,
+      l10n.myMealsStatusArchived,
+    ]) {
+      final rowFinder = find.ancestor(
+        of: find.text(mealLabel),
+        matching: find.byType(MyMealRow),
+      );
+      expect(
+        find.descendant(of: rowFinder, matching: deleteButton),
+        findsNothing,
+      );
+    }
+  });
+
+  testWidgets(
+      'deleting a draft takes one confirmation and deletes the right one',
+      (tester) async {
+    final repo = FakeMealRepository(meals: [_draft]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(repo.lastDeletedMealId, isNull);
+
+    await tester.tap(find.text(l10n.mealDeleteDraft));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealDeleteDraftWarning), findsOneWidget);
+    expect(repo.lastDeletedMealId, isNull);
+
+    await tester.tap(find.text(l10n.mealDeleteDraftConfirm));
+    await tester.pumpAndSettle();
+
+    expect(repo.lastDeletedMealId, _draft.id);
+  });
+
+  testWidgets('deleting a draft emits no event at all', (tester) async {
+    final repo = FakeMealRepository(meals: [_draft]);
+    final events = <({String name, Map<String, Object> attributes})>[];
+    debugEventRecorder = (name, attributes) {
+      events.add((name: name, attributes: attributes));
+    };
+
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.mealDeleteDraft));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.mealDeleteDraftConfirm));
+    await tester.pumpAndSettle();
+
+    expect(events, isEmpty);
   });
 }

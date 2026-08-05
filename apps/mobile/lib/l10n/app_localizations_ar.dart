@@ -509,4 +509,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealLoadRetry => 'حاول تاني';
+
+  @override
+  String get mealRetire => 'شيلها نهائي';
+
+  @override
+  String get mealRetireWarning =>
+      'الأكلة دي هتتشال من المنيو نهائي ومش هترجع تاني أبداً. هتفضل محفوظة في قايمتك بس محدش تاني هيشوفها.';
+
+  @override
+  String get mealRetireConfirm => 'شيلها نهائي';
+
+  @override
+  String get mealRetireCancel => 'سيبها زي ما هي';
+
+  @override
+  String get mealDeleteDraft => 'امسح المسودة';
+
+  @override
+  String get mealDeleteDraftWarning =>
+      'المسودة دي هتتمسح خالص ومش هتقدر ترجعها.';
+
+  @override
+  String get mealDeleteDraftConfirm => 'امسحها';
 }

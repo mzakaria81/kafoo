@@ -635,5 +635,33 @@
   "mealLoadRetry": "حاول تاني",
   "@mealLoadRetry": {
     "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
+  },
+  "mealRetire": "شيلها نهائي",
+  "@mealRetire": {
+    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row."
+  },
+  "mealRetireWarning": "الأكلة دي هتتشال من المنيو نهائي ومش هترجع تاني أبداً. هتفضل محفوظة في قايمتك بس محدش تاني هيشوفها.",
+  "@mealRetireWarning": {
+    "description": "Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list."
+  },
+  "mealRetireConfirm": "شيلها نهائي",
+  "@mealRetireConfirm": {
+    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle."
+  },
+  "mealRetireCancel": "سيبها زي ما هي",
+  "@mealRetireCancel": {
+    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status."
+  },
+  "mealDeleteDraft": "امسح المسودة",
+  "@mealDeleteDraft": {
+    "description": "Action a Cook takes to delete a draft Meal that was never on offer."
+  },
+  "mealDeleteDraftWarning": "المسودة دي هتتمسح خالص ومش هتقدر ترجعها.",
+  "@mealDeleteDraftWarning": {
+    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good."
+  },
+  "mealDeleteDraftConfirm": "امسحها",
+  "@mealDeleteDraftConfirm": {
+    "description": "Confirmation button on the draft-deletion dialog."
   }
 }

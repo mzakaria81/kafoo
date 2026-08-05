@@ -78,6 +78,8 @@ class MyMealsController extends _$MyMealsController {
             EventNames.mealUpdated,
             attributes: {'changed': 'availability'},
           ));
+        } else if (next == MealStatus.archived) {
+          unawaited(emitEvent(EventNames.mealArchived));
         }
         return true;
       case Failure(error: final err):

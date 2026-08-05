@@ -522,4 +522,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealLoadRetry => 'Try again';
+
+  @override
+  String get mealRetire => 'Retire it permanently';
+
+  @override
+  String get mealRetireWarning =>
+      'This Meal comes off the menu for good and can never go back on. It stays in your list, but nobody else will see it again.';
+
+  @override
+  String get mealRetireConfirm => 'Retire it permanently';
+
+  @override
+  String get mealRetireCancel => 'Leave it as it is';
+
+  @override
+  String get mealDeleteDraft => 'Delete the draft';
+
+  @override
+  String get mealDeleteDraftWarning =>
+      'This draft will be deleted for good and cannot be brought back.';
+
+  @override
+  String get mealDeleteDraftConfirm => 'Delete it';
 }

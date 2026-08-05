@@ -1027,6 +1027,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حاول تاني'**
   String get mealLoadRetry;
+
+  /// Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلها نهائي'**
+  String get mealRetire;
+
+  /// Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة دي هتتشال من المنيو نهائي ومش هترجع تاني أبداً. هتفضل محفوظة في قايمتك بس محدش تاني هيشوفها.'**
+  String get mealRetireWarning;
+
+  /// Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلها نهائي'**
+  String get mealRetireConfirm;
+
+  /// Cancel button on the retirement dialog — leaves the Meal at its current status.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيبها زي ما هي'**
+  String get mealRetireCancel;
+
+  /// Action a Cook takes to delete a draft Meal that was never on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'امسح المسودة'**
+  String get mealDeleteDraft;
+
+  /// Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good.
+  ///
+  /// In ar, this message translates to:
+  /// **'المسودة دي هتتمسح خالص ومش هتقدر ترجعها.'**
+  String get mealDeleteDraftWarning;
+
+  /// Confirmation button on the draft-deletion dialog.
+  ///
+  /// In ar, this message translates to:
+  /// **'امسحها'**
+  String get mealDeleteDraftConfirm;
 }
 
 class _AppLocalizationsDelegate

@@ -169,43 +169,104 @@ class MyMealRow extends ConsumerWidget {
     MyMealsController controller,
     AppLocalizations l10n,
   ) {
-    return switch (meal.status) {
-      MealStatus.published => _AvailabilityAction(
-          meal: meal,
-          label: l10n.mealMakeUnavailable,
-          next: MealStatus.unavailable,
-          isLast: controller.wouldCloseKitchen(meal),
-        ),
-      MealStatus.unavailable => _AvailabilityAction(
-          meal: meal,
-          label: l10n.mealMakeAvailable,
-          next: MealStatus.published,
-          isLast: false,
-        ),
-      MealStatus.draft || MealStatus.archived => const SizedBox.shrink(),
+    final retire = _MealAction(
+      label: l10n.mealRetire,
+      mealTitle: meal.title,
+      // Retirement is always confirmed. It is the one action on this screen
+      // that cannot be undone by taking the same action again.
+      warning: l10n.mealRetireWarning,
+      confirmLabel: l10n.mealRetireConfirm,
+      cancelLabel: l10n.mealRetireCancel,
+      onConfirmed: () => controller.setStatus(meal, MealStatus.archived),
+    );
+
+    final actions = switch (meal.status) {
+      MealStatus.published => [
+          _MealAction(
+            label: l10n.mealMakeUnavailable,
+            mealTitle: meal.title,
+            // Only when this is the Cook's last Meal on offer. Taking any
+            // other one off the menu is ordinary and reversible, and putting a
+            // dialog in front of it teaches Cooks to dismiss dialogs.
+            warning: controller.wouldCloseKitchen(meal)
+                ? l10n.mealLastOnOfferWarning
+                : null,
+            confirmLabel: l10n.mealLastOnOfferConfirm,
+            cancelLabel: l10n.mealLastOnOfferCancel,
+            onConfirmed: () =>
+                controller.setStatus(meal, MealStatus.unavailable),
+          ),
+          retire,
+        ],
+      MealStatus.unavailable => [
+          _MealAction(
+            label: l10n.mealMakeAvailable,
+            mealTitle: meal.title,
+            // Putting a Meal back on the menu never closes a kitchen.
+            warning: null,
+            confirmLabel: l10n.mealLastOnOfferConfirm,
+            cancelLabel: l10n.mealLastOnOfferCancel,
+            onConfirmed: () => controller.setStatus(meal, MealStatus.published),
+          ),
+          retire,
+        ],
+      MealStatus.draft => [
+          _MealAction(
+            label: l10n.mealDeleteDraft,
+            mealTitle: meal.title,
+            warning: l10n.mealDeleteDraftWarning,
+            confirmLabel: l10n.mealDeleteDraftConfirm,
+            cancelLabel: l10n.mealRetireCancel,
+            onConfirmed: () => controller.deleteDraft(meal),
+          ),
+        ],
+      // A retired Meal offers nothing. Not a disabled control — an absent one.
+      MealStatus.archived => const <Widget>[],
     };
+
+    return actions.isEmpty
+        ? const SizedBox.shrink()
+        : Wrap(
+            spacing: KafooSpacing.sm,
+            runSpacing: KafooSpacing.xs,
+            children: actions,
+          );
   }
 }
 
-class _AvailabilityAction extends ConsumerWidget {
-  const _AvailabilityAction({
-    required this.meal,
+/// One action on a Meal row: a button, and the confirmation it does or does
+/// not need.
+///
+/// One widget rather than three near-identical ones. The three actions on this
+/// screen — take off the menu, put back on, retire, delete a draft — differ
+/// only in their words and in what they finally call, and a copy per action is
+/// three places to forget the 48dp floor or the screen-reader label.
+///
+/// [warning] is what decides whether a confirmation appears at all. Null means
+/// act immediately: an ordinary reversible change must not be gated behind a
+/// dialog, because a Cook trained to dismiss dialogs will dismiss the one that
+/// mattered.
+class _MealAction extends StatelessWidget {
+  const _MealAction({
     required this.label,
-    required this.next,
-    required this.isLast,
+    required this.mealTitle,
+    required this.warning,
+    required this.confirmLabel,
+    required this.cancelLabel,
+    required this.onConfirmed,
   });
 
-  final Meal meal;
   final String label;
-  final MealStatus next;
-  final bool isLast;
+  final String mealTitle;
+  final String? warning;
+  final String confirmLabel;
+  final String cancelLabel;
+  final Future<void> Function() onConfirmed;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(myMealsControllerProvider.notifier);
-
+  Widget build(BuildContext context) {
     return TextButton(
-      onPressed: () => _onTap(context, controller),
+      onPressed: () => _onTap(context),
       style: TextButton.styleFrom(
         minimumSize: const Size(
           KafooSpacing.minTapTarget,
@@ -214,37 +275,35 @@ class _AvailabilityAction extends ConsumerWidget {
       ),
       child: Semantics(
         button: true,
-        label: '$label: ${meal.title}',
+        // Names the Meal, so a Cook using a screen reader hears which one this
+        // acts on rather than four identical "take it off the menu" buttons.
+        label: '$label: $mealTitle',
         child: Text(label),
       ),
     );
   }
 
-  Future<void> _onTap(
-    BuildContext context,
-    MyMealsController controller,
-  ) async {
-    if (isLast) {
-      final l10n = AppLocalizations.of(context);
+  Future<void> _onTap(BuildContext context) async {
+    final message = warning;
+    if (message != null) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          content: Text(l10n.mealLastOnOfferWarning),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.mealLastOnOfferCancel),
+              child: Text(cancelLabel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.mealLastOnOfferConfirm),
+              child: Text(confirmLabel),
             ),
           ],
         ),
       );
       if (confirmed != true) return;
     }
-
-    await controller.setStatus(meal, next);
+    await onConfirmed();
   }
 }

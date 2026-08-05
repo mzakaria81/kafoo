@@ -371,11 +371,11 @@ unchanged.
 **Independent test**: Retire a Meal, confirm it cannot return by any route, confirm it is still
 readable to its Cook.
 
-- [ ] T057 [P] [US5] Add the retirement strings to `app_ar.arb` and `app_en.arb` — plain, and clear that it is permanent
-- [ ] T058 [US5] Implement retiring with one confirmation, emitting `MealArchived`
-- [ ] T059 [US5] Keep a retired Meal readable to its Cook and absent from every other surface (FR-020)
-- [ ] T060 [US5] Implement deleting a **draft**, and confirm the same action is unavailable for anything that has been on offer — archiving is what that is for
-- [ ] T061 [P] [US5] Add a test asserting a retired Meal cannot be republished from the UI, backing the T016 trigger
+- [x] T057 [P] [US5] Add the retirement strings to `app_ar.arb` and `app_en.arb` — plain, and clear that it is permanent. The warning says the Meal never comes back AND that it stays in the Cook's own list, because "permanent" without that second half reads as deletion
+- [x] T058 [US5] Implement retiring with one confirmation, emitting `MealArchived`. One confirmation, not two, and no typed-word ceremony — the action is serious but not rare, and an interface a Cook has to fight stops being trusted. Mutation-checked: removing the confirmation turns the suite red. `MealArchived` carries no attributes and does **not** also emit `MealUpdated`; a test asserts both the event that fires and the one that must not
+- [x] T059 [US5] Keep a retired Meal readable to its Cook and absent from every other surface (FR-020). The database half was already green (`meals_rls_test.sql` cases 1 and 6). The client half: an archived Meal renders in the Cook's own list with its title, price and status, and offers **no** control of any kind — not a disabled one, an absent one. No filter, no tab, no "show retired" toggle; a retired Meal sitting in the list with nothing to do to it is the clearest statement of what happened
+- [x] T060 [US5] Implement deleting a **draft**, and confirm the same action is unavailable for anything that has been on offer — archiving is what that is for. Gated on `MealStatus.isDeletable` rather than a hand-written status check, so the Dart and the DELETE policy cannot drift apart. Deleting a draft emits nothing — no event exists for it and inventing one is forbidden — and a test asserts the recorder stayed empty
+- [x] T061 [P] [US5] Add a test asserting a retired Meal cannot be republished from the UI, backing the T016 trigger. Two tests, because one would have been theatre: the archived row renders no control, **and** the controller refuses `archived → published` without calling the repository at all. A guard that only hides a button is not a guard — the second test proves the refusal survives a caller that never saw the button. The database remains the real guard (`meals_lifecycle_test.sql` cases 18 and 19, green)
 
 ---
 
