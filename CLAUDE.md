@@ -344,11 +344,18 @@ python3 scripts/opencode-spend.py report          # BEFORE dispatching. Obey the
 python3 scripts/opencode-spend.py record <relay-result-dir>   # AFTER every relay, pass or fail
 ```
 
-Then **commit `.claude/opencode-spend.jsonl`**. It is append-only, one row per dispatch, and it
-lives in the repository for the same reason the observation log does: cloud containers are
-destroyed after each session, so an uncommitted ledger is a ledger that resets to zero against a
-cap that does not. `opencode stats` cannot do this job — it reads the container's local database
-and starts empty every time.
+Then **commit AND push `.claude/opencode-spend.jsonl`, immediately, not at the end of the session**.
+It is append-only, one row per dispatch, and it lives in the repository for the same reason the
+observation log does: cloud containers are destroyed after each session, so an uncommitted ledger
+is a ledger that resets to zero against a cap that does not. `opencode stats` cannot do this job —
+it reads the container's local database and starts empty every time.
+
+Push immediately because **the caps are per account and `report` reads every remote branch**, not
+just this checkout. Two parallel sessions each see the other's spend only through what has been
+pushed, so a row sitting uncommitted is a row the other session will dispatch straight through. The
+report says how many rows it found elsewhere, and warns if it could not reach the remote — that
+warning means halve every cap, because you are seeing at most your own half. `--local` skips the
+fetch and is for debugging only; it is not a faster `report`, it is a blind one.
 
 The report prints `OK`, `WARN` at 70% of any window, or `STOP` at 90%. `WARN` means send the next
 task down the model table. `STOP` means finish what is in flight and start nothing new: the failure
