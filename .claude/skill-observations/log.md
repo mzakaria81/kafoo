@@ -1627,3 +1627,31 @@ tasks actively hides it.
 **Principle:** Coverage measured at the granularity of the requirement id is coarser than the
 requirement. A multi-clause requirement cited by any task reads as satisfied, so the uncovered
 clauses are invisible to exactly the check meant to find them.
+
+### Observation 62: Sequential delegation accumulates duplication no single brief can see
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, three user stories delegated as three briefs against the same screen
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Reviewing a delegated diff — the review checklist
+
+**Issue:** Three briefs extended one screen in sequence. Each implementer saw the current tree and
+followed its brief correctly, and each diff was individually clean. The second added a widget
+closely modelled on one the first had written; the third would have added a fourth. By the end there
+were three near-identical button-plus-confirmation-dialog widgets differing only in their strings and
+in the call they finally made, in a file well past the project's own file-length guideline. No single
+diff contained the duplication — it existed only between diffs, so a reviewer checking each change
+against its brief would never see it.
+
+**Suggested improvement:** Add to the review step: when a delegated change extends a file an earlier
+delegation created, diff against the state before the FIRST delegation in the series, not just
+against the immediately preceding commit. Better, state in the later brief which existing widget or
+helper the new work is expected to reuse, so the implementer is told to extend rather than left to
+infer from a neighbour it will naturally copy.
+
+**Principle:** An implementer with no memory of previous rounds re-derives what it sees rather than
+generalising it. Reviewing each increment against its own brief cannot detect this, because the
+defect is not in any increment — it is in their sum. Duplication across delegations needs a review
+window wider than one delegation.
