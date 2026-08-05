@@ -179,7 +179,7 @@ void main() {
   });
 
   group('isLastMealOnOffer', () {
-    const _meal = Meal(
+    const _meal = CookMeal(
       id: 'm1',
       cookId: 'c1',
       title: 'كشري',
@@ -196,7 +196,7 @@ void main() {
     });
 
     test('false when the Cook has two published Meals', () {
-      const other = Meal(
+      const other = CookMeal(
         id: 'm2',
         cookId: 'c1',
         title: 'محشي',
@@ -212,7 +212,7 @@ void main() {
     });
 
     test('false when the Meal is already unavailable', () {
-      const unavailable = Meal(
+      const unavailable = CookMeal(
         id: 'm1',
         cookId: 'c1',
         title: 'كشري',
@@ -232,7 +232,7 @@ void main() {
     });
 
     test('false when the Meal id is not in the list', () {
-      const other = Meal(
+      const other = CookMeal(
         id: 'm2',
         cookId: 'c1',
         title: 'محشي',
@@ -245,6 +245,110 @@ void main() {
       );
 
       expect(isLastMealOnOffer([other], _meal), isFalse);
+    });
+  });
+
+  group('CookMeal', () {
+    const complete = CookMeal(
+      id: 'm1',
+      cookId: 'c1',
+      title: 'كشري',
+      description: 'عدس ورز',
+      price: '35',
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      status: MealStatus.published,
+      nutritionSource: NutritionSource.ai,
+      ingredients: ['عدس', 'رز'],
+      allergens: ['جلوتين'],
+      calories: 520,
+      photoPath: 'c1/m1.jpg',
+    );
+
+    test('a complete CookMeal yields a Meal whose every field matches', () {
+      final meal = complete.asMeal;
+      expect(meal, isNotNull);
+      expect(meal!.id, complete.id);
+      expect(meal.cookId, complete.cookId);
+      expect(meal.title, complete.title);
+      expect(meal.description, complete.description);
+      expect(meal.price, complete.price);
+      expect(meal.cuisine, complete.cuisine);
+      expect(meal.category, complete.category);
+      expect(meal.status, complete.status);
+      expect(meal.nutritionSource, complete.nutritionSource);
+      expect(meal.ingredients, complete.ingredients);
+      expect(meal.allergens, complete.allergens);
+      expect(meal.calories, complete.calories);
+      expect(meal.photoPath, complete.photoPath);
+      expect(meal.publishedAt, complete.publishedAt);
+      expect(complete.isComplete, isTrue);
+    });
+
+    test('missing description is incomplete and asMeal is null', () {
+      const missing = CookMeal(
+        id: 'm1',
+        cookId: 'c1',
+        title: 'كشري',
+        price: '35',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.draft,
+        nutritionSource: NutritionSource.ai,
+      );
+      expect(missing.isComplete, isFalse);
+      expect(missing.asMeal, isNull);
+    });
+
+    test('missing price is incomplete and asMeal is null', () {
+      const missing = CookMeal(
+        id: 'm1',
+        cookId: 'c1',
+        title: 'كشري',
+        description: 'عدس ورز',
+        cuisine: Cuisine.egyptian,
+        category: MealCategory.main,
+        status: MealStatus.draft,
+        nutritionSource: NutritionSource.ai,
+      );
+      expect(missing.isComplete, isFalse);
+      expect(missing.asMeal, isNull);
+    });
+
+    test('missing cuisine is incomplete and asMeal is null', () {
+      const missing = CookMeal(
+        id: 'm1',
+        cookId: 'c1',
+        title: 'كشري',
+        description: 'عدس ورز',
+        price: '35',
+        category: MealCategory.main,
+        status: MealStatus.draft,
+        nutritionSource: NutritionSource.ai,
+      );
+      expect(missing.isComplete, isFalse);
+      expect(missing.asMeal, isNull);
+    });
+
+    test('missing category is incomplete and asMeal is null', () {
+      const missing = CookMeal(
+        id: 'm1',
+        cookId: 'c1',
+        title: 'كشري',
+        description: 'عدس ورز',
+        price: '35',
+        cuisine: Cuisine.egyptian,
+        status: MealStatus.draft,
+        nutritionSource: NutritionSource.ai,
+      );
+      expect(missing.isComplete, isFalse);
+      expect(missing.asMeal, isNull);
+    });
+
+    test('a published CookMeal is complete', () {
+      expect(complete.status, MealStatus.published);
+      expect(complete.isComplete, isTrue);
+      expect(complete.asMeal, isNotNull);
     });
   });
 }

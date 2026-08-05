@@ -16,7 +16,7 @@ class MyMealsState {
     this.loading = true,
   });
 
-  final List<Meal> meals;
+  final List<CookMeal> meals;
   final AppError? error;
 
   /// True until the first load answers.
@@ -28,7 +28,7 @@ class MyMealsState {
   final bool loading;
 
   MyMealsState copyWith({
-    List<Meal>? meals,
+    List<CookMeal>? meals,
     Object? error = _undefined,
     bool? loading,
   }) =>
@@ -62,8 +62,8 @@ class MyMealsController extends _$MyMealsController {
     }
   }
 
-  Future<bool> setStatus(Meal meal, MealStatus next) async {
-    if (!meal.canTransitionTo(next)) return false;
+  Future<bool> setStatus(CookMeal meal, MealStatus next) async {
+    if (!meal.status.canTransitionTo(next)) return false;
 
     final result = await _repository.setStatus(
       mealId: meal.id,
@@ -88,7 +88,7 @@ class MyMealsController extends _$MyMealsController {
     }
   }
 
-  Future<bool> deleteDraft(Meal meal) async {
+  Future<bool> deleteDraft(CookMeal meal) async {
     if (!meal.status.isDeletable) return false;
 
     final result = await _repository.deleteDraft(meal.id);
@@ -106,5 +106,5 @@ class MyMealsController extends _$MyMealsController {
   /// Whether taking [meal] off the menu would leave the Cook's kitchen
   /// unfindable. Named for the consequence rather than the count, because the
   /// consequence is what the Cook has to be told.
-  bool wouldCloseKitchen(Meal meal) => isLastMealOnOffer(state.meals, meal);
+  bool wouldCloseKitchen(CookMeal meal) => isLastMealOnOffer(state.meals, meal);
 }

@@ -131,23 +131,35 @@ class _InlineError extends StatelessWidget {
 class MyMealRow extends ConsumerWidget {
   const MyMealRow({required this.meal, super.key});
 
-  final Meal meal;
+  final CookMeal meal;
+
+  /// The dish name, or what to call a draft that has none.
+  ///
+  /// The schema permits a title-less row, so the list names one rather than
+  /// rendering a blank that reads as something broken. Also used as the
+  /// screen-reader suffix on every action, so a Cook hears which Meal an
+  /// action applies to even before the first question is answered.
+  String _title(AppLocalizations l10n) =>
+      meal.title ?? l10n.myMealsUntitledDraft;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final controller = ref.read(myMealsControllerProvider.notifier);
+    final price = meal.price;
 
     return Padding(
       padding: const EdgeInsetsDirectional.only(bottom: KafooSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(meal.title, style: theme.textTheme.bodyLarge),
+          Text(_title(l10n), style: theme.textTheme.bodyLarge),
           const SizedBox(height: KafooSpacing.xs),
           Text(
-            l10n.publicMealPriceValue(meal.price),
+            price == null
+                ? l10n.myMealsNoPriceYet
+                : l10n.publicMealPriceValue(price),
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: KafooSpacing.xs),
@@ -171,7 +183,7 @@ class MyMealRow extends ConsumerWidget {
   ) {
     final retire = _MealAction(
       label: l10n.mealRetire,
-      mealTitle: meal.title,
+      mealTitle: _title(l10n),
       // Retirement is always confirmed. It is the one action on this screen
       // that cannot be undone by taking the same action again.
       warning: l10n.mealRetireWarning,
@@ -184,7 +196,7 @@ class MyMealRow extends ConsumerWidget {
       MealStatus.published => [
           _MealAction(
             label: l10n.mealMakeUnavailable,
-            mealTitle: meal.title,
+            mealTitle: _title(l10n),
             // Only when this is the Cook's last Meal on offer. Taking any
             // other one off the menu is ordinary and reversible, and putting a
             // dialog in front of it teaches Cooks to dismiss dialogs.
@@ -201,7 +213,7 @@ class MyMealRow extends ConsumerWidget {
       MealStatus.unavailable => [
           _MealAction(
             label: l10n.mealMakeAvailable,
-            mealTitle: meal.title,
+            mealTitle: _title(l10n),
             // Putting a Meal back on the menu never closes a kitchen.
             warning: null,
             confirmLabel: l10n.mealLastOnOfferConfirm,
@@ -213,7 +225,7 @@ class MyMealRow extends ConsumerWidget {
       MealStatus.draft => [
           _MealAction(
             label: l10n.mealDeleteDraft,
-            mealTitle: meal.title,
+            mealTitle: _title(l10n),
             warning: l10n.mealDeleteDraftWarning,
             confirmLabel: l10n.mealDeleteDraftConfirm,
             cancelLabel: l10n.mealRetireCancel,

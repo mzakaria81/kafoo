@@ -591,4 +591,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealKitchenCheckRetry => 'Try again';
+
+  @override
+  String get myMealsNoPriceYet => 'No price yet';
+
+  @override
+  String get myMealsUntitledDraft => 'Untitled draft';
 }

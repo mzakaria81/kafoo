@@ -12,7 +12,7 @@ import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
 import 'support/fake_meal_repository.dart';
 
-const _draft = Meal(
+const _draft = CookMeal(
   id: 'm-draft',
   cookId: 'c1',
   title: 'كشري مسودة',
@@ -24,7 +24,15 @@ const _draft = Meal(
   nutritionSource: NutritionSource.ai,
 );
 
-const _published = Meal(
+const _halfDraft = CookMeal(
+  id: 'm-half',
+  cookId: 'c1',
+  title: 'ملوخية نص',
+  status: MealStatus.draft,
+  nutritionSource: NutritionSource.ai,
+);
+
+const _published = CookMeal(
   id: 'm-pub',
   cookId: 'c1',
   title: 'كشري',
@@ -36,7 +44,7 @@ const _published = Meal(
   nutritionSource: NutritionSource.ai,
 );
 
-const _unavailable = Meal(
+const _unavailable = CookMeal(
   id: 'm-unavail',
   cookId: 'c1',
   title: 'محشي',
@@ -48,7 +56,7 @@ const _unavailable = Meal(
   nutritionSource: NutritionSource.ai,
 );
 
-const _archived = Meal(
+const _archived = CookMeal(
   id: 'm-arch',
   cookId: 'c1',
   title: 'فتة',
@@ -57,6 +65,18 @@ const _archived = Meal(
   cuisine: Cuisine.egyptian,
   category: MealCategory.main,
   status: MealStatus.archived,
+  nutritionSource: NutritionSource.ai,
+);
+
+const _publishedSecond = CookMeal(
+  id: 'm-pub-2',
+  cookId: 'c1',
+  title: 'محشي',
+  description: 'ورق عنب',
+  price: '50',
+  cuisine: Cuisine.egyptian,
+  category: MealCategory.main,
+  status: MealStatus.published,
   nutritionSource: NutritionSource.ai,
 );
 
@@ -109,7 +129,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.myMealsEmpty), findsNothing);
-    expect(find.text(_published.title), findsOneWidget);
+    expect(find.text(_published.title!), findsOneWidget);
   });
 
   testWidgets('a Cook with no Meals is told so, once the load has answered',
@@ -159,20 +179,7 @@ void main() {
       'taking an ordinary Meal off the menu writes the new status and nothing else',
       (tester) async {
     final repo = FakeMealRepository(
-      meals: [
-        _published,
-        const Meal(
-          id: 'm-pub-2',
-          cookId: 'c1',
-          title: 'محشي',
-          description: 'ورق عنب',
-          price: '50',
-          cuisine: Cuisine.egyptian,
-          category: MealCategory.main,
-          status: MealStatus.published,
-          nutritionSource: NutritionSource.ai,
-        ),
-      ],
+      meals: [_published, _publishedSecond],
     );
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
@@ -223,20 +230,7 @@ void main() {
       'the availability change emits MealUpdated with changed = availability',
       (tester) async {
     final repo = FakeMealRepository(
-      meals: [
-        _published,
-        const Meal(
-          id: 'm-pub-2',
-          cookId: 'c1',
-          title: 'محشي',
-          description: 'ورق عنب',
-          price: '50',
-          cuisine: Cuisine.egyptian,
-          category: MealCategory.main,
-          status: MealStatus.published,
-          nutritionSource: NutritionSource.ai,
-        ),
-      ],
+      meals: [_published, _publishedSecond],
     );
     final events = <({String name, Map<String, Object> attributes})>[];
     debugEventRecorder = (name, attributes) {
@@ -263,20 +257,7 @@ void main() {
 
   testWidgets('a failed change tells the Cook, in Arabic', (tester) async {
     final repo = FakeMealRepository(
-      meals: [
-        _published,
-        const Meal(
-          id: 'm-pub-2',
-          cookId: 'c1',
-          title: 'محشي',
-          description: 'ورق عنب',
-          price: '50',
-          cuisine: Cuisine.egyptian,
-          category: MealCategory.main,
-          status: MealStatus.published,
-          nutritionSource: NutritionSource.ai,
-        ),
-      ],
+      meals: [_published, _publishedSecond],
     );
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
@@ -343,20 +324,7 @@ void main() {
   testWidgets('retiring emits MealArchived, and does not emit MealUpdated',
       (tester) async {
     final repo = FakeMealRepository(
-      meals: [
-        _published,
-        const Meal(
-          id: 'm-pub-2',
-          cookId: 'c1',
-          title: 'محشي',
-          description: 'ورق عنب',
-          price: '50',
-          cuisine: Cuisine.egyptian,
-          category: MealCategory.main,
-          status: MealStatus.published,
-          nutritionSource: NutritionSource.ai,
-        ),
-      ],
+      meals: [_published, _publishedSecond],
     );
     final events = <({String name, Map<String, Object> attributes})>[];
     debugEventRecorder = (name, attributes) {
@@ -488,5 +456,77 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(events, isEmpty);
+  });
+
+  // The defect this catches: a half-answered draft used to throw inside
+  // _fromRow, turn the whole load into mealLoadError, and hide every Meal.
+  testWidgets('a half-answered draft renders instead of breaking the list',
+      (tester) async {
+    final repo = FakeMealRepository(meals: [_halfDraft, _published]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_halfDraft.title!), findsOneWidget);
+    expect(find.text(_published.title!), findsOneWidget);
+    expect(find.text(l10n.myMealsStatusDraft), findsOneWidget);
+    expect(find.text(l10n.myMealsStatusPublished), findsOneWidget);
+    expect(find.text(l10n.mealLoadError), findsNothing);
+    expect(find.byType(MyMealRow), findsNWidgets(2));
+  });
+
+  testWidgets('a draft with no price says so rather than rendering "null"',
+      (tester) async {
+    final repo = FakeMealRepository(meals: [_halfDraft]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.myMealsNoPriceYet), findsOneWidget);
+
+    final texts = tester.widgetList<Text>(find.byType(Text));
+    for (final text in texts) {
+      final data = text.data ?? text.textSpan?.toPlainText() ?? '';
+      expect(data.contains('null'), isFalse, reason: 'found "null" in: $data');
+    }
+  });
+
+  testWidgets(
+      'a half-answered draft offers deletion but no availability action',
+      (tester) async {
+    final repo = FakeMealRepository(meals: [_halfDraft]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealDeleteDraft), findsOneWidget);
+    expect(find.text(l10n.mealMakeUnavailable), findsNothing);
+    expect(find.text(l10n.mealMakeAvailable), findsNothing);
+    expect(find.text(l10n.mealRetire), findsNothing);
+  });
+
+  // The schema dropped NOT NULL from title along with the other four answers,
+  // so a title-less row is possible even though today's only insert path always
+  // supplies one. The row mapper must not be able to throw on ANY column: it
+  // runs over every row, so one bad cast takes down the Cook's whole list
+  // rather than the single entry it could not read.
+  testWidgets('a draft with no title yet is named, not left blank',
+      (tester) async {
+    const untitled = CookMeal(
+      id: 'm-untitled',
+      cookId: 'c1',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    final repo = FakeMealRepository(meals: [untitled, _published]);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.myMealsUntitledDraft), findsOneWidget);
+    expect(find.text(l10n.mealLoadError), findsNothing);
+    expect(find.byType(MyMealRow), findsNWidgets(2));
+
+    final rendered = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .join(' ');
+    expect(rendered, isNot(contains('null')));
   });
 }

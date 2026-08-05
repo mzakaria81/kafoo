@@ -43,6 +43,21 @@ const _meal = Meal(
   allergens: ['جلوتين'],
 );
 
+const _cookMeal = CookMeal(
+  id: 'test-meal-id',
+  cookId: 'test-meal-cook',
+  title: 'كشري',
+  description: 'عدس ورز ومكرونة',
+  price: '35.00',
+  cuisine: Cuisine.egyptian,
+  category: MealCategory.main,
+  status: MealStatus.published,
+  nutritionSource: NutritionSource.ai,
+  ingredients: ['عدس', 'رز', 'مكرونة'],
+  calories: 520,
+  allergens: ['جلوتين'],
+);
+
 Widget _testApp(Widget child, {double textScale = 1.0}) {
   return MaterialApp(
     locale: const Locale('ar'),
@@ -83,7 +98,7 @@ Map<String, Widget> _screens() => {
       'my meals': ProviderScope(
         overrides: [
           mealRepositoryProvider.overrideWithValue(
-            FakeMealRepository(meals: [_meal]),
+            FakeMealRepository(meals: [_cookMeal]),
           ),
         ],
         child: const MyMealsScreen(),

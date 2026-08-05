@@ -48,7 +48,7 @@ class FakeMealRepository implements MealRepository {
     this.existing,
     this.failOperations = false,
     this.failUploads = false,
-    List<Meal>? meals,
+    List<CookMeal>? meals,
   }) : meals = meals ?? [];
 
   /// What operations return. Null entries are created on demand.
@@ -186,7 +186,7 @@ class FakeMealRepository implements MealRepository {
   }
 
   /// Meals returned by myMeals(). Set by tests; defaults to empty.
-  List<Meal> meals = [];
+  List<CookMeal> meals = [];
 
   int myMealsCalls = 0;
   int setStatusCalls = 0;
@@ -205,7 +205,7 @@ class FakeMealRepository implements MealRepository {
   Duration myMealsDelay = Duration.zero;
 
   @override
-  Future<Result<List<Meal>, AppError>> myMeals() async {
+  Future<Result<List<CookMeal>, AppError>> myMeals() async {
     myMealsCalls++;
     if (myMealsDelay > Duration.zero) {
       await Future<void>.delayed(myMealsDelay);
@@ -217,7 +217,7 @@ class FakeMealRepository implements MealRepository {
   }
 
   @override
-  Future<Result<Meal, AppError>> setStatus({
+  Future<Result<CookMeal, AppError>> setStatus({
     required String mealId,
     required MealStatus next,
   }) async {

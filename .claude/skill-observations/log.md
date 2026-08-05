@@ -1655,3 +1655,20 @@ infer from a neighbour it will naturally copy.
 generalising it. Reviewing each increment against its own brief cannot detect this, because the
 defect is not in any increment — it is in their sum. Duplication across delegations needs a review
 window wider than one delegation.
+
+### Observation 63: no observations (checkpoint)
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** CookMeal half-draft list fix (implementer brief)
+**Skill:** task-observer
+**Type:** internal
+**Phase/Area:** checkpoint
+
+**Issue:** Mandatory checkpoint after multi-step implementation. Spec was complete and
+unambiguous; no skill friction, corrections, or workflow gaps.
+
+**Suggested improvement:** none
+
+**Principle:** A clean brief that names types, tests, and forbidden files leaves little for
+task-observer to harvest — that is success, not a missed observation.

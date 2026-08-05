@@ -1153,6 +1153,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'جرب تاني'**
   String get mealKitchenCheckRetry;
+
+  /// Shown on a draft Meal in the Cook's list when the price question has not been answered yet.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه من غير سعر'**
+  String get myMealsNoPriceYet;
+
+  /// Shown in place of a draft's dish name when the Cook has not answered the first question yet. The schema allows a title-less row, so the list must render one rather than break on it.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة من غير اسم'**
+  String get myMealsUntitledDraft;
 }
 
 class _AppLocalizationsDelegate

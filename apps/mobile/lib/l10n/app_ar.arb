@@ -719,5 +719,13 @@
   "mealKitchenCheckRetry": "جرب تاني",
   "@mealKitchenCheckRetry": {
     "description": "Button that re-runs the Kitchen Profile existence check."
-}
+  },
+  "myMealsNoPriceYet": "لسه من غير سعر",
+  "@myMealsNoPriceYet": {
+    "description": "Shown on a draft Meal in the Cook's list when the price question has not been answered yet."
+  },
+  "myMealsUntitledDraft": "مسودة من غير اسم",
+  "@myMealsUntitledDraft": {
+    "description": "Shown in place of a draft's dish name when the Cook has not answered the first question yet. The schema allows a title-less row, so the list must render one rather than break on it."
+  }
 }

@@ -576,4 +576,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealKitchenCheckRetry => 'جرب تاني';
+
+  @override
+  String get myMealsNoPriceYet => 'لسه من غير سعر';
+
+  @override
+  String get myMealsUntitledDraft => 'مسودة من غير اسم';
 }
