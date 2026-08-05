@@ -1912,3 +1912,18 @@ and cost all have this shape — the degenerate path is the fast path — so the
 part of the measurement, not a separate quality check applied afterwards. The same rule covers
 verification steps: a check that cannot distinguish "I looked and found nothing" from "I could not
 look" will report the reassuring one.
+
+### Observation 73: Ownership rules that cover the artifact do not cover incidents against it
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Two agent sessions independently resolved the same merge conflict on one pull request, minutes apart, having each concluded correctly that it was theirs to fix.
+**Skill:** New skill candidate: multi-agent-work-coordination
+**Type:** open-source
+**Phase/Area:** Ownership boundaries between a coordinating session and worker sessions
+
+**Issue:** The coordination scheme assigned units of work and named exactly one owner for each, and that worked. It said nothing about incidents that happen *to* a unit of work after it is submitted — a merge conflict, a red build, an inbound review. When one worker's submission became un-mergeable because another's landed first, the worker fixed it because the submission was theirs, and the coordinator fixed it because it carried a production-blocking change that was now stuck. Both derived their answer from the rules; the rules produced two owners. The collision surfaced only because the version-control system refused the second push as non-fast-forward. Had the ordering been reversed, the coordinator's push would have silently overwritten a live worker's branch. Contributing cause: a report that the submission had already merged, which was inaccurate and which nobody verified against the system of record before acting on it.
+
+**Suggested improvement:** State that a submission belongs to the session that opened it until it merges, and that reacting to conflicts, failing checks and review comments on it is that session's job — the coordinator's only moves are to merge it or to say why it is not being merged. Add the one exception explicitly, because it is the common case rather than an edge case: a session whose environment has been reclaimed cannot respond, so an unowned or demonstrably stale unit may be taken over, announced in the shared state before the branch is touched. Add a rule that a claim about a submission's status is not evidence — query the system of record first, whoever the claim came from.
+
+**Principle:** Assigning ownership of an artifact does not assign ownership of the events that happen to it. Wherever two roles can each derive a correct-looking duty toward the same object, name which one holds it and which one only observes — otherwise the collision is discovered by whichever mechanism happens to refuse the second writer, and that mechanism is not guaranteed to exist.

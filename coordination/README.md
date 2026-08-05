@@ -80,6 +80,30 @@ The coordinator flips `COMPLETED` after the merge, and clears `owner` in the sam
 package holds no worker, and a name left on one makes it look busy to the next session that reads
 this directory.
 
+### A worker's PR stays the worker's until it merges
+
+**Conflicts, red CI and review comments on an open PR belong to the worker that opened it, not to
+the coordinator.** The coordinator's only move on someone else's PR is to merge it, or to say why
+it is not being merged.
+
+This is not obvious and it cost duplicated work on 2026-08-05. WP-002's PR went un-mergeable when
+WP-003 merged ahead of it. worker-b saw its own PR go red and started resolving. The coordinator saw
+a production-blocking fix sitting unmergeable and started resolving. Both were right on their own
+terms; neither could see the other. The collision surfaced only when the coordinator's push was
+rejected as non-fast-forward — **git refusing the push was the entire notification mechanism**, and
+had the coordinator pushed first it would have overwritten a live worker's branch instead.
+
+The exception is a worker that is gone. Containers are destroyed on inactivity, so this is the
+normal end of a session rather than an edge case: if the package is unowned, or `IN_PROGRESS` past
+the staleness warning the validator prints, the coordinator may take the branch over. Say so in the
+package before touching it, for the same reason the claim is pushed before the work starts.
+
+**Do not read a "merged" from anyone but the repository.** The same day, a report that WP-002 had
+merged arrived while its PR was still open — which is what sent the coordinator to the branch in the
+first place. Check the PR state before acting on a claim about it, including a claim from the
+founder; the cost of checking is one API call and the cost of not checking is two sessions editing
+one branch.
+
 ### Execution mode
 
 `PARALLEL` is the default. `EXCLUSIVE` means nothing else runs while it is active — used for
