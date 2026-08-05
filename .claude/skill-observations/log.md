@@ -1703,7 +1703,21 @@ usually the common one, which is why the defect got through.
 as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
 asking for it gets no error, no warning, and the old value.
 
-### Observation 65: A mutation test whose mutation silently fails reports "check is asleep"
+### Observation 65: A negative authorization test can be masked by a sibling policy, and passes for the wrong reason
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Adding a column to an existing table whose row-level security already had four policies, and writing the test proving a non-owner cannot write it.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Verifying that a test seen to fail was seen to fail for the right reason
+
+**Issue:** The negative test was written first and confirmed failing before the column existed, which satisfied the usual "seen to fail" discipline. It then passed once the column landed. But the failure it had been seen to produce was "column does not exist" — not "the write was refused" — and those are different properties. Mutation-testing the policy it named revealed the test still passed with that policy fully open: a *different* policy on the same table hid the row from the attacker, so the write never reached the policy under test. The fixture was the cause — it used a resource in a state where the claimed guard is never the operative one. The same file already carried a comment warning that this exact masking would begin once a related change shipped, and it had shipped.
+
+**Suggested improvement:** In the section on confirming a test fails first, distinguish *failing because the thing under test is absent* from *failing because the guard under test refuses*. The first is necessary and not sufficient. Add: after the implementation lands, mutate the specific guard the test names and confirm the test goes red; if it stays green, the test is measuring something else, and the usual cause is a fixture in a state where a sibling guard does the work. Name the remedy — move or duplicate the test onto a fixture where the named guard is the only thing standing in the way.
+
+**Principle:** "Seen to fail" is only evidence when the failure has the same cause as the property being claimed. A test that fails because the feature is missing has not yet demonstrated it can fail because the feature is wrong — and where several guards overlap, the only proof is to break the specific one the test names and watch that test, alone, go red.
+### Observation 66: A mutation test whose mutation silently fails reports "check is asleep"
 
 **Status:** OPEN
 **Date:** 2026-08-05
@@ -1729,7 +1743,7 @@ is not exactly what was intended (one line removed, not a file emptied). Add thi
 been created. An unverified mutation makes both outcomes uninformative: green may mean the check is
 asleep, or that the mutation never happened — and those have opposite remedies.
 
-### Observation 66: A delegated implementer confirms the brief's errors instead of catching them
+### Observation 67: A delegated implementer confirms the brief's errors instead of catching them
 
 **Status:** OPEN
 **Date:** 2026-08-05

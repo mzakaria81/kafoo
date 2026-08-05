@@ -70,7 +70,7 @@ If any check reports "skipping", something did not land.
 Proves every ✗ in `contracts/authorization.md`. Written before the policies, so they fail first and
 pass once the migration lands. **If they pass on the first run they are testing nothing.**
 
-There are **7 pgTAP suites, 69 assertions** in `supabase/tests/`. The four added by E2 are
+There are **7 pgTAP suites, 76 assertions** in `supabase/tests/`. The four added by E2 are
 `meals_rls_test.sql`, `meals_lifecycle_test.sql`, `meal_draft_completeness_test.sql` and
 `meal_photos_storage_test.sql`.
 
