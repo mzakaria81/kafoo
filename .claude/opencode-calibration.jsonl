@@ -1,0 +1,7 @@
+{"day": "2026-08-02", "model": "opencode-go/grok-4.5", "console_cost": 0.09, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-03", "model": "opencode-go/grok-4.5", "console_cost": 1.49, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-03", "model": "opencode-go/qwen3.6-plus", "console_cost": 0.54, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-04", "model": "opencode-go/grok-4.5", "console_cost": 1.95, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-04", "model": "opencode-go/qwen3.6-plus", "console_cost": 0.59, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-05", "model": "opencode-go/grok-4.5", "console_cost": 1.82, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-05", "model": "opencode-go/qwen3.6-plus", "console_cost": 3.23, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}

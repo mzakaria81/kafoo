@@ -368,6 +368,33 @@ the OpenCode workspace console, which needs a browser credential that must not b
 environment: there is no secrets store, so anyone with access to the environment could read it, and
 a console session reaches billing rather than just model calls.
 
+**So the founder sends a screenshot of that console at the end of each day, and it is the only
+thing here that touches billed dollars.** He hovers a day's bar; the tooltip gives the exact figure
+per model. Record each reading in `.claude/opencode-calibration.jsonl`, one row per day per model,
+and commit it with the ledger. That gets the authoritative number into the repository without a
+billing-capable browser session ever reaching an environment with no secrets store.
+
+**Do not put calibration rows in the ledger.** They carry a cost figure, everything that reads the
+ledger sums cost figures, and the check would corrupt the number it exists to check.
+
+**The relay's `cost` is what the CLI computes, not what the account is billed, and the gap is
+per model rather than uniform.** Measured 2026-08-05 across four days:
+
+| Model | Ledger | Console | Drift |
+|---|---|---|---|
+| `qwen3.6-plus` | $4.24 | $4.36 | −2.7%, and within 1% on every single day |
+| `grok-4.5` | $7.28 | $5.35 | +36%, i.e. a third of the five-hour window spent on nothing |
+
+`report` now corrects per model from those readings before comparing anything to a cap, and prints
+the relay's own figure beside the corrected one so the correction is visible rather than silent.
+**Adding a day's reading is what keeps it accurate — an uncalibrated report says so in its output.**
+
+Founder's tolerance, 2026-08-05: **8% per day after correction.** Five of the seven day-and-model
+pairs measured land inside 1%. The two that do not are both `grok-4.5` on 02 and 03 August, the
+first two days this tooling was used at all, and they are reported as OUT rather than absorbed.
+**A day outside tolerance is a defect to investigate, never a reason to widen the band** — scaling
+a number that is wrong for a knowable reason only hides the reason.
+
 **`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
 two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every
 agent to use the metered one:
