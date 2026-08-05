@@ -10,7 +10,7 @@
     "description-finished to first estimate is measured against the 2s budget, with the method recorded",
     "confirm to on-offer is measured against the 3s budget, with the method recorded",
     "the model cost of one published Meal is measured and reported as a figure, alongside E1's still-open per-verification cost",
-    "every number states how many runs it averages — one run is not a measurement"
+    "every number states how many runs it averages \u2014 one run is not a measurement"
   ],
   "dependencies": [],
   "scope": {
@@ -22,15 +22,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "ASSIGNED",
+  "status": "IN_PROGRESS",
   "owner": "worker-b",
   "priority": 1,
   "spend_envelope_usd": 0.5,
   "suggested_model": "opencode-go/qwen3.6-plus",
-  "branch": null,
+  "branch": "claude/e2-performance-measurements-yl4ttm",
   "pr": null,
   "blocked_reason": null,
-  "notes": "The numbers are the founder's to act on, not the worker's. Measure and report; do not change a budget or optimise against it without asking. May need temporary instrumentation in the Meal feature — declared as shared because WP-004 also touches apps/mobile.",
+  "notes": "The numbers are the founder's to act on, not the worker's. Measure and report; do not change a budget or optimise against it without asking. May need temporary instrumentation in the Meal feature \u2014 declared as shared because WP-004 also touches apps/mobile.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T17:34:20Z"
+  "updated_at": "2026-08-05T17:50:06Z"
 }
