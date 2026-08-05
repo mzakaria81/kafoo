@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,6 +51,10 @@ const _noAllergensReply = '{"ingredients":["عدس","رز"],"calories":850,'
     '"cuisine":"egyptian","category":"main",'
     '"basis":{"ingredients":"من وصف الكوك","calories":"تقدير لطبق كامل",'
     '"cuisine":"كشري مصري","category":"طبق رئيسي"}}';
+
+/// Parse the JSON analysis fixture so tests read values from it, never retype.
+Map<String, Object?> _parseAnalysis(String json) =>
+    jsonDecode(json) as Map<String, Object?>;
 
 AiProvider _stubAi([String? reply]) => StubAiProvider({
       if (reply != null) 'meal-analysis': reply,
@@ -784,5 +790,256 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  // --- T047 + T050: nutrition source — estimate vs Cook-owned ---------------
+  //
+  // The trigger `derive_nutrition_source` decides who owns the figure by
+  // comparing what arrives against what is stored. If the app ever sent the
+  // estimate on a correction, or a different value on an approval, the
+  // database would label it correctly for the wrong write. These tests pin
+  // the app's half of that contract.
+
+  // T050 — an approved estimate is still an estimate after publishing.
+  testWidgets('approved estimates keep their badge and notice after publish',
+      (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    await _reachSummary(
+      tester,
+      repo,
+      ai: _stubAi(_fullAnalysisReply),
+    );
+
+    await _approveAllViaController(tester);
+
+    final button = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+    );
+    expect(button.onPressed, isNotNull);
+    await _tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+    );
+
+    expect(find.text(l10n.mealPublishedConfirmation), findsOneWidget);
+
+    final caloriesRow = _estimateRowFor(l10n.mealSummaryLabelCalories);
+    expect(
+      find.descendant(
+        of: caloriesRow,
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsOneWidget,
+      reason: 'approved calories must still read as an estimate, not verified',
+    );
+
+    final allergensRow = _estimateRowFor(l10n.mealSummaryLabelAllergens);
+    expect(
+      find.descendant(
+        of: allergensRow,
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsOneWidget,
+      reason: 'approved allergens must still read as an estimate, not verified',
+    );
+
+    expect(find.text(l10n.mealSummaryEstimatesNotice), findsOneWidget);
+  });
+
+  // The other half of the same claim, and the one that stops the badge being
+  // unconditional. A badge that never disappears is not carrying information:
+  // it would keep saying "estimate" over a figure the Cook typed themselves.
+  testWidgets('a corrected estimate stops reading as one', (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    await _reachSummary(
+      tester,
+      repo,
+      ai: _stubAi(_fullAnalysisReply),
+    );
+
+    final caloriesRow = _estimateRowFor(l10n.mealSummaryLabelCalories);
+    expect(
+      find.descendant(
+        of: caloriesRow,
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsOneWidget,
+      reason: 'the estimate is badged before the Cook touches it',
+    );
+
+    await _tapVisible(
+      tester,
+      find.descendant(
+        of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+        matching: find.widgetWithText(TextButton, l10n.convEdit),
+      ),
+    );
+    await tester.enterText(find.byType(TextField), '950');
+    await tester.tap(find.byType(IconButton));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsNothing,
+      reason: 'a figure the Cook replaced is theirs and is not an estimate',
+    );
+
+    // The allergens row was neither approved nor corrected, so it is untouched
+    // — a correction must not clear the badge on every other row at once.
+    expect(
+      find.descendant(
+        of: _estimateRowFor(l10n.mealSummaryLabelAllergens),
+        matching: find.text(l10n.mealSummaryEstimateBadge),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // T047 — a correction reaches the database as a changed value.
+  group('nutrition write carries the right value', () {
+    testWidgets('approving calories sends the AI value unchanged',
+        (tester) async {
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+          matching: find.widgetWithText(TextButton, l10n.mealSummaryApprove),
+        ),
+      );
+
+      final aiCalories = _parseAnalysis(_fullAnalysisReply)['calories'] as int;
+      final calCall =
+          repo.updateDraftArgs.where((c) => c.calories != null).last;
+      expect(
+        calCall.calories,
+        aiCalories,
+        reason:
+            'approval must send the AI Assistant value, not a different one',
+      );
+    });
+
+    testWidgets('correcting calories sends the Cook value, not the estimate',
+        (tester) async {
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+          matching: find.widgetWithText(TextButton, l10n.convEdit),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), '950');
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      const cookCalories = 950;
+      final calCall =
+          repo.updateDraftArgs.where((c) => c.calories != null).last;
+      expect(
+        calCall.calories,
+        cookCalories,
+        reason: 'a correction must send the Cook number, not the estimate',
+      );
+    });
+
+    testWidgets('approving allergens sends the AI list unchanged',
+        (tester) async {
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      final aiAllergens =
+          (_parseAnalysis(_fullAnalysisReply)['allergens'] as List)
+              .cast<String>();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MealSummaryScreen)),
+      );
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+      for (final field in [
+        MealEstimateFields.cuisine,
+        MealEstimateFields.category,
+        MealEstimateFields.ingredients,
+        MealEstimateFields.calories,
+      ]) {
+        expect(
+          await controller.approveEstimate(field),
+          isTrue,
+        );
+      }
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelAllergens),
+          matching: find.widgetWithText(TextButton, l10n.mealSummaryApprove),
+        ),
+      );
+
+      final allergenCall =
+          repo.updateDraftArgs.where((c) => c.allergens != null).last;
+      expect(
+        allergenCall.allergens,
+        aiAllergens,
+        reason: 'approval must send the AI Assistant list unchanged',
+      );
+    });
+
+    testWidgets('correcting allergens sends the Cook list, using Arabic comma',
+        (tester) async {
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelAllergens),
+          matching: find.widgetWithText(TextButton, l10n.convEdit),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), 'قمح،سمسم');
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      final cookAllergens = ['قمح', 'سمسم'];
+      final allergenCall =
+          repo.updateDraftArgs.where((c) => c.allergens != null).last;
+      expect(
+        allergenCall.allergens,
+        cookAllergens,
+        reason:
+            'a correction must send the Cook list, split on Arabic comma too',
+      );
+    });
   });
 }

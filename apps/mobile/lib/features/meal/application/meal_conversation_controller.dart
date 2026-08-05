@@ -33,6 +33,7 @@ class MealConversationState {
     this.analysisInFlight = false,
     this.analysisError,
     this.approvals = const {},
+    this.corrections = const {},
     this.error,
   });
 
@@ -45,6 +46,17 @@ class MealConversationState {
   /// Separate from [error]: a model failure must never look like a save failure.
   final AppError? analysisError;
   final Map<String, bool> approvals;
+
+  /// Fields the Cook REPLACED rather than approved.
+  ///
+  /// Separate from [approvals] because correcting a value also approves it, so
+  /// one map cannot answer "whose figure is this". The summary needs that
+  /// answer: an approved estimate is still the AI Assistant's guess and keeps
+  /// its badge, and a corrected one is the Cook's own and loses it. The
+  /// database draws the same line in `derive_nutrition_source` by comparing
+  /// what arrives against what is stored.
+  final Set<String> corrections;
+
   final AppError? error;
 
   MealConversationState copyWith({
@@ -53,6 +65,7 @@ class MealConversationState {
     bool? analysisInFlight,
     Object? analysisError = _undefined,
     Map<String, bool>? approvals,
+    Set<String>? corrections,
     Object? error = _undefined,
   }) =>
       MealConversationState(
@@ -63,6 +76,7 @@ class MealConversationState {
             ? this.analysisError
             : analysisError as AppError?,
         approvals: approvals ?? this.approvals,
+        corrections: corrections ?? this.corrections,
         error: error == _undefined ? this.error : error as AppError?,
       );
 }
@@ -334,6 +348,7 @@ class MealConversationController extends _$MealConversationController {
               analysisInFlight: false,
               analysisError: null,
               approvals: const {},
+              corrections: const {},
             );
           case Failure(error: final err):
             state = state.copyWith(
@@ -366,7 +381,8 @@ class MealConversationController extends _$MealConversationController {
   /// Editing counts as approving: a Cook who corrected a value has engaged
   /// with it more than one who tapped approve.
   Future<bool> correctEstimate(String field, Object value) async {
-    return _writeEstimate(field, value, markApproved: true);
+    return _writeEstimate(field, value,
+        markApproved: true, markCorrected: true);
   }
 
   /// Puts the Meal on offer. Emits [EventNames.mealPublished] once on success.
@@ -416,6 +432,7 @@ class MealConversationController extends _$MealConversationController {
     String field,
     Object value, {
     required bool markApproved,
+    bool markCorrected = false,
   }) async {
     final mealId = state.draft.mealId;
     if (mealId == null) return false;
@@ -450,12 +467,14 @@ class MealConversationController extends _$MealConversationController {
     switch (result) {
       case Success():
         _applyToDraft(field, value);
-        if (markApproved) {
-          final next = Map<String, bool>.from(state.approvals)..[field] = true;
-          state = state.copyWith(approvals: next);
-        } else {
-          state = state.copyWith();
-        }
+        state = state.copyWith(
+          approvals: markApproved
+              ? (Map<String, bool>.from(state.approvals)..[field] = true)
+              : null,
+          corrections: markCorrected
+              ? (Set<String>.from(state.corrections)..add(field))
+              : null,
+        );
         return true;
       case Failure(error: final err):
         state = state.copyWith(error: err);

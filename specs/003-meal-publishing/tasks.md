@@ -384,10 +384,33 @@ estimate. Correct one and confirm it becomes the Cook's.
 
 - [ ] T045 [P] [US2] Add the estimate and provenance strings to `app_ar.arb` then `app_en.arb` — "the AI Assistant estimated this", and the basis for each
 - [ ] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the `basis` the function returned (FR-013). On the screen, not in a tooltip
-- [ ] T047 [US2] Make each estimate correctable in one action, and confirm the correction reaches the database as the Cook's — verifying the T017 trigger from the client side
+- [x] T047 [US2] Make each estimate correctable in one action, and confirm the correction reaches the database as the Cook's — verifying the T017 trigger from the client side — **DONE 2026-08-05.** The one-tap correction already existed; what was missing was proof of which VALUE each act sends, which is the only thing the trigger can see. Four tests now pin it: approving sends the AI Assistant's figure unchanged, correcting sends the Cook's, for calories and for allergens. The allergen correction is typed with the Arabic comma `،`, because that is what a Cook's keyboard produces and a split that only handled the Latin one would swallow a whole list into a single string
+
+  **Doing this found the trigger getting the distinction backwards, and it was not a rare case —
+  it was every Meal.** A Cook cannot publish without approving every estimate, and approving writes
+  the AI Assistant's own number onto a column that held nothing, which the trigger read as a change.
+  So every published Meal was labelled as a figure a person had checked, and a Customer avoiding
+  gluten would have read a guess as verified fact. Proved against a real Postgres before anything
+  was changed, fixed in `20260805120825_fix_nutrition_source_on_first_write.sql`, and covered by
+  cases 26 to 29
+
+  **The allergen half of that fix was nearly a no-op.** `allergens` is `NOT NULL DEFAULT '{}'`, so
+  the obvious `OLD.allergens IS NOT NULL` guard is true for every row that has ever existed — the
+  calorie half would have been fixed and the allergen half would have gone on promoting, with
+  nothing saying so. Absence on that column is an empty list, and case 28 is what catches it
 - [ ] T048 [US2] Present calories and allergens as estimates wherever they appear, including to a Customer reading a published Meal — FR-012 is not only about the summary screen
 - [x] T049 [US2] Handle the AI Assistant being unreachable so a Cook still publishes, with the fields left to them (FR-014, SC-005) — **the same requirement as T096, which carries the founder's decision on how.** Build it once, there
-- [ ] T050 [P] [US2] Add a widget test asserting an approved-but-unchanged estimate is still labelled as the AI Assistant's after publishing — the distinction most easily lost
+- [x] T050 [P] [US2] Add a widget test asserting an approved-but-unchanged estimate is still labelled as the AI Assistant's after publishing — the distinction most easily lost — **DONE 2026-08-05, and it was indeed lost.** The test failed on its first run: the summary dropped the `تقدير` badge the moment a Cook tapped approve and replaced it with `اتأكد`, so an approved guess was visually indistinguishable from a figure the Cook had verified — the same defect as the trigger's, one layer up
+
+  **The screen could not tell approving from correcting**, because correcting also approves and both
+  wrote to the same map. The conversation state now records replaced fields separately, and the
+  badge is keyed to that rather than to approval — the same line the database draws by comparing
+  what arrives against what is stored
+
+  **Two tests, not one.** A badge that is never removed carries no information: it would go on
+  saying "estimate" over a figure the Cook typed. So there is a matching test that a corrected value
+  loses the badge, and that correcting one row does not clear the badge on the others. Both
+  mutation-checked
 - [ ] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is conversational Egyptian, not Modern Standard. This is the first Arabic in Kafoo a model wrote rather than a person
 
 ---

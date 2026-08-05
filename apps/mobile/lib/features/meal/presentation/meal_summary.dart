@@ -248,6 +248,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                   displayValue: estimateDisplay(l10n, state, field),
                   basis: estimateBasis(analysis!, field),
                   approved: state.approvals[field] == true,
+                  isCookOwn: state.corrections.contains(field),
                   editing: _editingEstimateField == field,
                   controller: _editController,
                   editLabel: l10n.convEdit,
