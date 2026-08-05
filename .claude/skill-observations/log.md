@@ -1732,3 +1732,33 @@ a stand-in cannot audit itself by construction.
 double supplies that the real system does not is invisible to every test that uses it, so the
 correctness of a double is never testable from inside the suite it serves. It must be established
 by observing the real system, and that observation has a date on it.
+
+### Observation 66: A latency measurement must gate on success, or failure reads as speed
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** WP-002 — measuring publish and first-estimate latency against a real backend
+**Skill:** New skill candidate: measuring-against-a-budget
+**Type:** open-source
+**Phase/Area:** Performance measurement harnesses; verdict computation
+
+**Issue:** A harness timed a request, averaged the elapsed times, and compared the median to a
+budget. Twelve consecutive runs failed with HTTP 502 — the service could not reach its provider at
+all — and the report printed **"Verdict: PASS"**, because a request that fails fast is fast. The
+failure was invisible in the summary: the per-run table carried the status code, but the headline
+number, the median and the verdict were all computed over runs that returned nothing. The metric
+improved monotonically as the feature became more broken.
+
+**Suggested improvement:** A latency verdict must be computed only over runs that produced the
+result being timed, and the count of successes must appear beside the number. Where zero runs
+succeeded, print no number at all rather than a number from an empty or failed sample. Failures
+should be summarised by status and cause next to the missing figure, since they are the finding.
+Two related traps in the same harness: a cleanup check that read through a role holding no SELECT
+treated its own failed request as "nothing left" and reported success; and a summary that inherited
+its run count from the *requested* number of runs rather than the number actually completed.
+
+**Principle:** Any metric where failure is cheap will be improved by failure. Latency, throughput
+and cost all have this shape — the degenerate path is the fast path — so the success predicate is
+part of the measurement, not a separate quality check applied afterwards. The same rule covers
+verification steps: a check that cannot distinguish "I looked and found nothing" from "I could not
+look" will report the reassuring one.
