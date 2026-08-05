@@ -784,7 +784,7 @@ Every Cook-facing string addresses the Cook as a man. 56 of 94 Arabic strings ar
 suffix identically for both. E2's remaining tasks will add roughly thirty more strings that will need
 converting along with them — accepted, not overlooked.
 
-- [ ] T089 Add the stored form of address — a column on the Cook's row, a migration with the
+- [x] T089 Add the stored form of address — a column on the Cook's row, a migration with the **DONE 2026-08-05, WP-006 (#31).** `kitchen_profiles.address_form`, nullable, CHECK-constrained, no new policy — it inherits the table's. The write test was mutation-tested and found NOT to guard the write: its fixture kitchen is closed, so the SELECT policy refuses first. The assertion that bites now lives in the discoverability suite against an open kitchen. See T099.
   authorization test first, and a default. **A form of address, never a gender**: the feature needs a
   verb ending, and `business-rules.md` forbids collecting a demographic field the feature does not
   need
