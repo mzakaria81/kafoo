@@ -524,7 +524,7 @@ estimate. Correct one and confirm it becomes the Cook's.
   Mutation-checked: a Modern Standard verb in a description names the marker and quotes the
   sentence; removing one Egyptian marker from the shared file drops the corpus count below four.
 
-- [ ] T098 **Replay `meal-description` against a real model, as T086 did for `meal-analysis`.**
+- [x] T098 **Replay `meal-description` against a real model, as T086 did for `meal-analysis`.** **DONE 2026-08-05, WP-003.** Zero Modern Standard markers across all eight drafts — the failure that forced `meal-analysis` to version 2 did not recur. What replaced it is worse and the corpus could not see it: three drafts stated facts the Cook never gave, and all three passed. Tracked as T100.
   Numbered T097 when it was written on 2026-08-05 and renumbered the same day: another session had
   already merged a different T097. Two sessions appending to one task list will keep colliding while
   the next free number is guessed from a local copy — pull `main` before claiming one.
@@ -615,14 +615,14 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 - [x] T072 [P] Move every E2 event in `docs/product/event-model.md` from `planned` to `active` — **done for the two that are actually emitted, and deliberately not for the other three.** `MealPublished` and `MealDrafted` are emitted by the publishing flow today and are now `active`. `MealArchived` (T058), `MealUpdated` (T054/T069) and `PhoneNumberDetached` (ADR-0007) are unbuilt, and the registry's own rule is that a `planned` event which is emitted misleads exactly as much as an `active` one that is not. Each moves in the change that first emits it; the change log records why. **Followed through the same day**: US4, US5 and US7 made `MealArchived` and `MealUpdated` real, and both moved to `active` in that commit rather than in a later tidy-up. `PhoneNumberDetached` is still `planned` — ADR-0007's dormancy severing is unbuilt
 - [x] T073 [P] Confirm every new screen renders under RTL with `EdgeInsetsDirectional` and `start`/`end`, never `left`/`right` (SC-009). Swept `apps/mobile/lib` and `packages/ui/lib`: zero non-directional `EdgeInsets`, zero `left:`/`right:`, zero `Alignment.centerLeft/Right`, zero `TextAlign.left/right`. The public Meal view is in the `accessibility_test.dart` sweep, which asserts `Directionality.of(context) == rtl` on the rendered tree rather than reading the source
 - [x] T074 [P] Confirm semantic labels and ≥48dp tap targets on every new screen — the `accessibility-reviewer` agent carries the checklist. The public Meal view joins the `accessibility_test.dart` sweep for all three checks (RTL, ≥48dp, no clipping at 200% text scale), **with `onOpenKitchen` supplied** — it is the screen's only interactive widget, so without it the tap-target sweep would have passed by having nothing to measure
-- [ ] T075 **Measure and record two numbers**: description-finished to first estimate (budget 2s), and confirm to on-offer (budget 3s). E1 left its launch baseline unmeasured and the budget is still unverified a feature later — do not repeat that
-- [ ] T076 Measure the cost of one published Meal against the chosen provider and put the figure to the founder, alongside E1's still-open per-verification cost (T073 in E1)
+- [x] T075 **Measure and record two numbers**: description-finished to first estimate (budget 2s), and confirm to on-offer (budget 3s). E1 left its launch baseline unmeasured and the budget is still unverified a feature later — do not repeat that **PARTIALLY DONE 2026-08-05, WP-002.** Confirm-to-on-offer measured at 189 ms median over 12 runs against a 3s budget. Description-to-first-estimate NOT measured: every call returned 502 because Supabase does not copy model credentials into a preview branch, and moving one was correctly refused. Composed arithmetic puts it near 2.4s and is recorded as arithmetic, not as a measurement.
+- [x] T076 Measure the cost of one published Meal against the chosen provider and put the figure to the founder, alongside E1's still-open per-verification cost (T073 in E1) **DONE 2026-08-05, WP-002.** $0.82 per 1,000 Meals published without a photo, $1.99 with one. Beside it, E1's still-open per-verification cost at roughly $0.45 a sign-in on list prices — one sign-in costs what 550 published Meals cost.
 - [x] T097 **Let a Cook resume a draft rather than starting again.** FR-033's third clause, and it had no task anywhere in this epic until 2026-08-05. The other two clauses — see every draft, delete any of them — are T053 and T060, and because both cite FR-033 the requirement read as covered by every traceability check. Resuming means restoring a half-finished conversation from a persisted draft, which is why it is its own task and not a line inside T053 — **DONE 2026-08-05.** `MealConversationController.resume()` seeds the conversation's `MealDraft` from the stored row and the existing step logic asks the next unanswered question; no second conversation, no resume mode. A draft with no photo path is asked about the photo again, because declining is not persisted and so is indistinguishable from not having been asked.
 
   **Reviewing it found a clear that was not a clear.** `resume()` asked `copyWith` to drop the previous Meal's analysis, and `copyWith` read `analysis ?? this.analysis` — so passing null kept the old one. The approvals beside it *were* cleared, which hid the failure rather than exposing it: a Cook resuming a barely-started draft would have been shown another dish's suggested allergens as estimates awaiting their approval, and approving them writes those guesses onto this Meal. Fixed with the same `_undefined` sentinel the two error fields already used, and covered by a test that was seen to fail without it
-- [ ] T077 Extend `specs/003-meal-publishing/quickstart.md` if anything built here diverged from it
-- [ ] T078 Update `docs/HANDOFF.md` — Database, Features and Edge Functions rows all change
-- [ ] T079 Run `./scripts/verify.sh` and confirm it passes with codegen drift and RLS coverage both doing real work (Definition of Done item 1)
+- [x] T077 Extend `specs/003-meal-publishing/quickstart.md` if anything built here diverged from it **DONE 2026-08-05, WP-001.**
+- [x] T078 Update `docs/HANDOFF.md` — Database, Features and Edge Functions rows all change **DONE 2026-08-05, WP-001.**
+- [x] T079 Run `./scripts/verify.sh` and confirm it passes with codegen drift and RLS coverage both doing real work (Definition of Done item 1) **DONE 2026-08-05, WP-001.**
 
 ---
 
@@ -798,6 +798,14 @@ converting along with them — accepted, not overlooked.
 - [ ] T093 Extend the localization parity check. It compares key presence between locales and nothing
   else, so a `select` converted in Arabic and missed in English, or one missing its `other` branch,
   passes the gate today and fails at generation. The sweep must fix the check, not trust it
+- [ ] T100 Make the `meal-description` corpus able to see an invented fact. WP-003 measured three of
+  eight drafts stating things the Cook never said — `الخضرة الفريش` onto plain `الخضرة`, `ومقرمش في
+  الفرن` onto a hawawshi, and `عشان توصلك سخنة` turning "comes out hot" into a delivery promise — and
+  **all three passed**. The corpus forbids specific words on two fixtures out of eight; the two rules
+  that broke are asserted nowhere. This is the only prompt a Customer reads verbatim under a named
+  Cook's name, so an invented freshness claim is worn by the Cook. **Hold `meal-description` out of
+  any Cook flow until this lands** — nothing calls it, so the hold is free. WP-009
+
 - [ ] T099 Mutation-test every RLS policy against the suite that claims to guard it, and report the
   assertions that pass with the policy fully open. **Not a hypothetical.** Case 9 of
   `kitchen_profiles_rls_test.sql` passed on 2026-08-05 with the UPDATE policy weakened to

@@ -2,18 +2,27 @@
   "id": "WP-008",
   "title": "Find the authorization assertions that cannot fail",
   "objective": "Mutation-test every policy the seven pgTAP suites claim to guard, and find the assertions that pass because a sibling policy hides the row rather than because the policy under test refuses. One was found by accident; nobody knows how many others there are.",
-  "tasks": ["T099"],
+  "tasks": [
+    "T099"
+  ],
   "acceptance_criteria": [
     "every RLS policy in supabase/migrations/ is mutated one at a time — weakened to a permissive predicate, never deleted — and the suites run against each mutation",
     "a table in docs/ops/ lists each policy against the assertions that go red when it is weakened, and names every policy for which NO assertion goes red",
     "each masked assertion is either moved to a fixture where the policy under test is the only guard, or renamed and commented to say what it actually covers and which assertion covers the rest",
     "no policy is weakened in a committed file — every mutation is reverted, and the final ./scripts/verify.sh runs against the unmutated tree",
-    "the report states how many assertions were checked and how many mutations were run, so a later reader can tell coverage from a spot check"
+    "the report states how many assertions were checked and how many mutations were run, so a later reader can tell coverage from a spot check",
+    "TRUNCATE, REFERENCES, TRIGGER and MAINTAIN are revoked from anon and authenticated on every table in public, with the grants test extended to assert their absence. TRUNCATE ignores RLS entirely, so a policy cannot contain it. It is not reachable through PostgREST today, which makes this defence in depth rather than an open door — but it is the exact 'grant wider than the policy set' that the grants migration's own comment argues against, and it survived that migration"
   ],
   "dependencies": [],
   "scope": {
-    "files": ["docs/ops/", "supabase/tests/"],
-    "shared_files": ["supabase/tests/", "supabase/migrations/"]
+    "files": [
+      "docs/ops/",
+      "supabase/tests/"
+    ],
+    "shared_files": [
+      "supabase/tests/",
+      "supabase/migrations/"
+    ]
   },
   "execution_mode": "EXCLUSIVE",
   "status": "NOT_STARTED",

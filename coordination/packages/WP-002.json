@@ -10,7 +10,7 @@
     "description-finished to first estimate is measured against the 2s budget, with the method recorded",
     "confirm to on-offer is measured against the 3s budget, with the method recorded",
     "the model cost of one published Meal is measured and reported as a figure, alongside E1's still-open per-verification cost",
-    "every number states how many runs it averages \u2014 one run is not a measurement"
+    "every number states how many runs it averages — one run is not a measurement"
   ],
   "dependencies": [],
   "scope": {
@@ -22,15 +22,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "READY_FOR_REVIEW",
-  "owner": "worker-b",
+  "status": "COMPLETED",
+  "owner": null,
   "priority": 1,
   "spend_envelope_usd": 0.5,
   "suggested_model": "opencode-go/qwen3.6-plus",
   "branch": "claude/e2-performance-measurements-yl4ttm",
   "pr": 32,
   "blocked_reason": null,
-  "notes": "The numbers are the founder's to act on, not the worker's. Measure and report; do not change a budget or optimise against it without asking. STATUS 2026-08-05, PR 32: T076 measured ($0.82 per 1,000 published Meals without a photo, $1.99 with). Confirm-to-on-offer measured: 12 runs, median 189 ms against a 3s budget, PASS. Description-finished-to-first-estimate NOT measured \u2014 a Supabase preview branch carries no model credential, so all 12 calls returned 502 provider_misconfigured; composing the three measured parts suggests ~2.4s against a 2s budget, reported as arithmetic rather than a result. Found and fixed en route: the live database granted no application role any DML privilege, so the app could not read or write a row in production. Spend $0.59 against a $0.50 envelope; the overrun is the grants work, which was not in the package.",
+  "notes": "The numbers are the founder's to act on, not the worker's. Measure and report; do not change a budget or optimise against it without asking. STATUS 2026-08-05, PR 32: T076 measured ($0.82 per 1,000 published Meals without a photo, $1.99 with). Confirm-to-on-offer measured: 12 runs, median 189 ms against a 3s budget, PASS. Description-finished-to-first-estimate NOT measured — a Supabase preview branch carries no model credential, so all 12 calls returned 502 provider_misconfigured; composing the three measured parts suggests ~2.4s against a 2s budget, reported as arithmetic rather than a result. Found and fixed en route: the live database granted no application role any DML privilege, so the app could not read or write a row in production. Spend $0.59 against a $0.50 envelope; the overrun is the grants work, which was not in the package.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T19:20:00Z"
+  "updated_at": "2026-08-05T20:40:00Z"
 }

@@ -1,0 +1,41 @@
+{
+  "id": "WP-009",
+  "title": "Make the meal-description corpus able to see an invented fact",
+  "objective": "The only prompt a Customer reads verbatim, under a named Cook's name, states things the Cook never said — and the corpus marks them PASS. Give it the ability to notice before anything calls the prompt.",
+  "tasks": [
+    "T100"
+  ],
+  "acceptance_criteria": [
+    "every replayed draft reports the words in it that do not trace back to what the Cook said — reported as a human signal like the register markers, not as a gate, so the false-alarm rate is visible before anything fails on it",
+    "two closed vocabularies are asserted across ALL eight fixtures, not two of them: delivery/price/availability, and health/calorie",
+    "the أم علي delivery-promise failure that WP-003 recorded turns the corpus red, verified by running it",
+    "only after the report exists: a general 'every content word traces back to the Cook' check, tuned against the measured false-alarm rate rather than against intuition",
+    "the shared register markers gain the possessive family بتاعي/بعمله/بعملها/معموله, and the WP-003 report's 'Egyptian markers: none' lines are corrected or re-run",
+    "prompts/meal-description.md is NOT edited unless a check exists that would have caught the failure the edit is meant to fix",
+    "the dialect_burger fixture stops asserting the literal ده and asserts 'carries at least one Egyptian marker' against the shared registry instead — coordinator's decision, 2026-08-05: that is replacing a bad proxy with the property actually wanted, not relaxing a check to make it green. Do it only after the registry has the possessive family, or it swaps one narrow test for another"
+  ],
+  "dependencies": [],
+  "scope": {
+    "files": [
+      "packages/ai/test/goldens/meal_description/",
+      "scripts/replay-goldens.ts",
+      "scripts/replay_goldens_test.ts",
+      "docs/ops/"
+    ],
+    "shared_files": [
+      "packages/ai/test/goldens/register_markers.json"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 2,
+  "spend_envelope_usd": 1.5,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "From WP-003's handoff. The register problem IS solved — zero Modern Standard markers across all eight drafts, and that is not what this package is about. The model instead adds facts: 'with the fresh greens' onto a Cook who said 'greens', 'cooks crisp in the oven' onto a hawawshi, and 'so it reaches you hot' where the Cook said 'so it comes out hot'. The prompt forbids all three in prose and the model ignored the prose, which is exactly why the last criterion forbids touching the prompt first: changing words without a check moves the problem out of sight rather than fixing it. ORDER MATTERS AND IS NOT NEGOTIABLE — report before assert, assert closed vocabularies before the general check. Arabic prefixes (بال، وال) make naive word matching flag correct drafts, so the general check needs a measured false-alarm rate to be tuned against. Gemini free tier is 15 requests per minute and the script refuses to run below 4000ms spacing; eight fixtures take about 40 seconds. The scorer is unit-testable without a live call — that is what scripts/replay_goldens_test.ts is for. Do not iterate against the live model. This package owns register_markers.json, which WP-003 deliberately left alone because two other sessions were live.",
+  "created_at": "2026-08-05T20:40:00Z",
+  "updated_at": "2026-08-05T20:40:00Z"
+}
