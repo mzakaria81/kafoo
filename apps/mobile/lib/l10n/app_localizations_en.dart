@@ -478,6 +478,104 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mealPublishedConfirmation => 'This Meal is on the menu now.';
 
   @override
+  String publicMealPriceValue(String price) {
+    return '$price EGP';
+  }
+
+  @override
+  String get publicMealOpenKitchen => 'See the kitchen';
+
+  @override
+  String get publicMealCaloriesUnknown => 'Calories not worked out';
+
+  @override
+  String get publicMealAllergensUnknown =>
+      'No allergens listed. If you have an allergy, ask the Cook.';
+
+  @override
+  String get publicMealNutritionFromCook =>
+      'These figures are the Cook\'s own.';
+
+  @override
+  String get myMealsTitle => 'My Meals';
+
+  @override
+  String get myMealsEmpty => 'No Meals yet. Start one.';
+
+  @override
+  String get myMealsStatusDraft => 'Draft';
+
+  @override
+  String get myMealsStatusPublished => 'On the menu';
+
+  @override
+  String get myMealsStatusUnavailable => 'Not available right now';
+
+  @override
+  String get myMealsStatusArchived => 'Retired';
+
+  @override
+  String get mealMakeUnavailable => 'Take it off the menu';
+
+  @override
+  String get mealMakeAvailable => 'Put it back on the menu';
+
+  @override
+  String get mealLastOnOfferWarning =>
+      'This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.';
+
+  @override
+  String get mealLastOnOfferConfirm => 'Take it off anyway';
+
+  @override
+  String get mealLastOnOfferCancel => 'Leave it on the menu';
+
+  @override
+  String get mealLoadError => 'We could not load your Meals. Try again.';
+
+  @override
+  String get mealAvailabilityError =>
+      'We could not change the Meal. Try again.';
+
+  @override
+  String get mealDeleteError => 'We could not delete the draft. Try again.';
+
+  @override
+  String get mealLoadRetry => 'Try again';
+
+  @override
+  String get mealRetire => 'Retire it permanently';
+
+  @override
+  String get mealRetireWarning =>
+      'This Meal comes off the menu for good and can never go back on. It stays in your list, but nobody else will see it again.';
+
+  @override
+  String get mealRetireConfirm => 'Retire it permanently';
+
+  @override
+  String get mealRetireCancel => 'Leave it as it is';
+
+  @override
+  String get mealDeleteDraft => 'Delete the draft';
+
+  @override
+  String get mealDeleteDraftWarning =>
+      'This draft will be deleted for good and cannot be brought back.';
+
+  @override
+  String get mealDeleteDraftConfirm => 'Delete it';
+
+  @override
+  String get mealEditTitle => 'Edit the Meal';
+
+  @override
+  String get mealEditSaved => 'Changed.';
+
+  @override
+  String get mealEditNoChange => 'Nothing changed.';
+
+  @override
   String get mealNeedsKitchenTitle => 'You don\'t have a kitchen yet';
 
   @override
@@ -493,4 +591,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealKitchenCheckRetry => 'Try again';
+
+  @override
+  String get myMealsNoPriceYet => 'No price yet';
+
+  @override
+  String get myMealsUntitledDraft => 'Untitled draft';
+
+  @override
+  String get mealResumeDraft => 'Carry on with this Meal';
 }

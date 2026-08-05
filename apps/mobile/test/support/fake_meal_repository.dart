@@ -44,8 +44,12 @@ class FakeUpdateDraftCall {
 /// Records every write it is asked to make, so a test can assert which writes
 /// happened — and, more usefully, that none did.
 class FakeMealRepository implements MealRepository {
-  FakeMealRepository(
-      {this.existing, this.failOperations = false, this.failUploads = false});
+  FakeMealRepository({
+    this.existing,
+    this.failOperations = false,
+    this.failUploads = false,
+    List<CookMeal>? meals,
+  }) : meals = meals ?? [];
 
   /// What operations return. Null entries are created on demand.
   Meal? existing;
@@ -179,5 +183,66 @@ class FakeMealRepository implements MealRepository {
     }
     lastUploadedMealId = mealId;
     return Success('fake-cook/$mealId.jpg');
+  }
+
+  /// Meals returned by myMeals(). Set by tests; defaults to empty.
+  List<CookMeal> meals = [];
+
+  int myMealsCalls = 0;
+  int setStatusCalls = 0;
+  int deleteDraftCalls = 0;
+
+  final List<({String mealId, MealStatus next})> setStatusArgs = [];
+  String? lastDeletedMealId;
+
+  /// How long [myMeals] takes to answer.
+  ///
+  /// Zero by default so every existing test is unaffected. A test that needs
+  /// to observe what the screen renders WHILE the load is in flight sets it —
+  /// without a delay the load resolves inside the first pump and the loading
+  /// state is unobservable, which is how it shipped rendering "no Meals yet"
+  /// to Cooks who have Meals.
+  Duration myMealsDelay = Duration.zero;
+
+  @override
+  Future<Result<List<CookMeal>, AppError>> myMeals() async {
+    myMealsCalls++;
+    if (myMealsDelay > Duration.zero) {
+      await Future<void>.delayed(myMealsDelay);
+    }
+    if (failOperations) {
+      return const Failure(AppError(messageKey: 'mealLoadError'));
+    }
+    return Success(List.unmodifiable(meals));
+  }
+
+  @override
+  Future<Result<CookMeal, AppError>> setStatus({
+    required String mealId,
+    required MealStatus next,
+  }) async {
+    setStatusCalls++;
+    setStatusArgs.add((mealId: mealId, next: next));
+    if (failOperations) {
+      return const Failure(AppError(messageKey: 'mealAvailabilityError'));
+    }
+    final idx = meals.indexWhere((m) => m.id == mealId);
+    if (idx == -1) {
+      return const Failure(AppError(messageKey: 'mealAvailabilityError'));
+    }
+    final updated = meals[idx].copyWith(status: next);
+    meals = [...meals]..[idx] = updated;
+    return Success(updated);
+  }
+
+  @override
+  Future<Result<void, AppError>> deleteDraft(String mealId) async {
+    deleteDraftCalls++;
+    if (failOperations) {
+      return const Failure(AppError(messageKey: 'mealDeleteError'));
+    }
+    lastDeletedMealId = mealId;
+    meals = meals.where((m) => m.id != mealId).toList();
+    return const Success(null);
   }
 }

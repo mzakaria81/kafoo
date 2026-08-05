@@ -1546,3 +1546,159 @@ path is never exercised.
 **Suggested improvement:** Separate task for hand-entry of cuisine and category when estimates are absent (T049 territory). Do not relax DB constraints or invent 'other'.
 
 **Principle:** Vacuous approval of zero estimates is not the same as a complete Meal — completeness and approval are independent gates.
+
+### Observation 59: A phased task list re-lists work an earlier phase already finished
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, building the Customer's public Meal view (T062-T065, T048, T071-T074)
+**Skill:** speckit-tasks
+**Type:** open-source
+**Phase/Area:** Task generation — cross-phase deduplication
+
+**Issue:** Three of the eight tasks assigned to this session were already complete before it started.
+T064 ("confirm a signed-out person reads a published Meal") and T065 ("assert a non-owner reads zero
+drafts and zero unavailable Meals") were written as Phase 8 tasks, but the authorization test suite
+written in Phase 2 already carries them verbatim as cases 5, 6, 2 and 3 — the suite's own comments
+even quote the task wording ("The first use of the anon role in Kafoo"). T071 (a documentation task
+in the Polish phase) had likewise been landed by an earlier commit. Nothing in the task file marked
+any of them done, so an agent reading only the task list would have written duplicate assertions.
+
+**Suggested improvement:** When tasks are generated per user story, add a deduplication pass that
+checks whether a later-phase verification task is already satisfied by an artefact an earlier phase
+produces — particularly test suites, which are commonly written up-front under test-first rules and
+therefore land phases ahead of the story they verify. Where the overlap is intentional, say so in
+the task text ("already covered by X — confirm it runs green") so the reader is told to verify
+rather than to build.
+
+**Principle:** In a test-first workflow, verification tasks migrate earlier than the phase they
+belong to. A task list organised by user story will therefore re-ask for work its own earlier
+phases already did, and the failure mode is duplicated tests rather than missing ones — which is
+invisible to any gate.
+
+### Observation 60: An accessibility sweep passes vacuously when the fixture has nothing to measure
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, adding the Customer's public Meal view to the accessibility sweep (T074)
+**Skill:** accessibility-reviewer
+**Type:** open-source
+**Phase/Area:** Tap-target and interactive-element checks
+
+**Issue:** The repository's accessibility suite iterates a map of screens and asserts no tap target
+is under 48dp. A delegated agent added the new screen to that map using the widget's simplest
+constructor, which left the screen's only interactive control — an optional callback-gated link —
+unrendered. Every assertion passed. The suite reported the screen as covered while measuring an
+empty set, and nothing in the output distinguished "no target is too small" from "there are no
+targets".
+
+**Suggested improvement:** Add to the reviewer's checklist: a tap-target or interactive-element
+assertion must first assert that at least one such element was found. Where a screen's controls are
+behind optional constructor parameters, the fixture must supply them, and the reason belongs in a
+comment beside the fixture — otherwise the next person simplifying the fixture silently removes the
+coverage.
+
+**Principle:** A "nothing is wrong" assertion over a collection is vacuously true when the
+collection is empty. Any such check needs a companion non-emptiness assertion, or it degrades from
+a test into a report of how the fixture was built.
+
+### Observation 61: A multi-clause requirement can be half-covered by tasks with nothing flagging the rest
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, building US4/US5/US7 (Meal availability, retirement, editing)
+**Skill:** speckit-tasks
+**Type:** open-source
+**Phase/Area:** Requirement-to-task traceability
+
+**Issue:** One requirement in the spec carries three clauses: a Cook must be able to (a) see every
+draft, (b) delete any of them, and (c) resume a draft rather than starting again. Clauses (a) and
+(b) each have a task. Clause (c) has no task anywhere in the epic — a full-text search for the verb
+returns nothing. Because the requirement id is cited by the two tasks that do exist, every
+traceability check passes: the requirement looks covered. It was found only by reading the
+requirement's own text while writing an implementation brief, not by any check.
+
+**Suggested improvement:** When generating tasks, split a requirement containing multiple MUST
+clauses into its clauses first and map each clause to a task, rather than mapping the requirement id
+as a unit. Where a clause is deliberately deferred, it needs a task that says so — a deferral with
+no record is indistinguishable from an omission, and the citation of the requirement id by sibling
+tasks actively hides it.
+
+**Principle:** Coverage measured at the granularity of the requirement id is coarser than the
+requirement. A multi-clause requirement cited by any task reads as satisfied, so the uncovered
+clauses are invisible to exactly the check meant to find them.
+
+### Observation 62: Sequential delegation accumulates duplication no single brief can see
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, three user stories delegated as three briefs against the same screen
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Reviewing a delegated diff — the review checklist
+
+**Issue:** Three briefs extended one screen in sequence. Each implementer saw the current tree and
+followed its brief correctly, and each diff was individually clean. The second added a widget
+closely modelled on one the first had written; the third would have added a fourth. By the end there
+were three near-identical button-plus-confirmation-dialog widgets differing only in their strings and
+in the call they finally made, in a file well past the project's own file-length guideline. No single
+diff contained the duplication — it existed only between diffs, so a reviewer checking each change
+against its brief would never see it.
+
+**Suggested improvement:** Add to the review step: when a delegated change extends a file an earlier
+delegation created, diff against the state before the FIRST delegation in the series, not just
+against the immediately preceding commit. Better, state in the later brief which existing widget or
+helper the new work is expected to reuse, so the implementer is told to extend rather than left to
+infer from a neighbour it will naturally copy.
+
+**Principle:** An implementer with no memory of previous rounds re-derives what it sees rather than
+generalising it. Reviewing each increment against its own brief cannot detect this, because the
+defect is not in any increment — it is in their sum. Duplication across delegations needs a review
+window wider than one delegation.
+
+### Observation 63: no observations (checkpoint)
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** CookMeal half-draft list fix (implementer brief)
+**Skill:** task-observer
+**Type:** internal
+**Phase/Area:** checkpoint
+
+**Issue:** Mandatory checkpoint after multi-step implementation. Spec was complete and
+unambiguous; no skill friction, corrections, or workflow gaps.
+
+**Suggested improvement:** none
+
+**Principle:** A clean brief that names types, tests, and forbidden files leaves little for
+task-observer to harvest — that is success, not a missed observation.
+
+### Observation 64: A copyWith that cannot express null makes "clear this field" a silent no-op
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, resuming a half-finished Meal draft (T097)
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Reviewing delegated code; regression-test design
+
+**Issue:** A state class's `copyWith` used the common `field ?? this.field` idiom for most fields
+and a sentinel default for two others. New code called `copyWith(analysis: null)` intending to clear
+a stale value; because that field used the `??` form, the call compiled, read naturally, and did
+nothing. The neighbouring fields in the same call — which used non-null empty collections — WERE
+cleared, so the object ended up in a state no code path intended and no reviewer would predict.
+
+The tests written alongside the change passed, because the same method went on to trigger a fresh
+computation that overwrote the stale value in every case the tests exercised. The bug survived only
+on the path where that follow-up did not run. It was found by reading the `copyWith` signature, not
+by any test.
+
+**Suggested improvement:** When reviewing or writing a call that passes null to `copyWith` (or any
+partial-update helper), check the parameter's declaration before trusting the call: `?? this.x`
+cannot express "set to null", so the call is either a no-op or a lie. When adding a regression test
+for a clear-this-field bug, pick the input where no later write masks the field — the masked path is
+usually the common one, which is why the defect got through.
+
+**Principle:** An optional-parameter update helper silently conflates "not supplied" with "supplied
+as null" unless it uses a sentinel. Every such field has an unreachable state — null — and a caller
+asking for it gets no error, no warning, and the old value.

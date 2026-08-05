@@ -300,3 +300,135 @@ final class MealDraft {
   static bool _isPresent(String? value) =>
       value != null && value.trim().isNotEmpty;
 }
+
+/// One of a Cook's own Meals, exactly as the database holds it.
+///
+/// Distinct from [Meal] on purpose. [Meal] models a complete offer and every
+/// answer on it is non-null; a draft may be half-answered, because the Meal
+/// conversation persists each answer as it arrives so that walking away leaves
+/// a draft rather than nothing. Widening [Meal] to cover that would push null
+/// checks into every screen that shows a published Meal, which is the cost the
+/// two types exist to avoid.
+///
+/// **Every conversation answer here is nullable, including [title].** The
+/// migration that allowed incomplete drafts dropped `NOT NULL` from all five,
+/// and `createDraft` supplying a title is a property of today's only insert
+/// path, not of the schema. Casting a nullable column to non-null in the row
+/// mapper is exactly the defect this type was introduced to fix — and because
+/// that mapper runs over every row, one such cast takes down the Cook's whole
+/// list rather than one entry of it. So the mapper must not be able to throw,
+/// which means the type must not promise more than the schema does.
+final class CookMeal {
+  const CookMeal({
+    required this.id,
+    required this.cookId,
+    required this.status,
+    required this.nutritionSource,
+    this.title,
+    this.description,
+    this.price,
+    this.cuisine,
+    this.category,
+    this.ingredients = const [],
+    this.allergens = const [],
+    this.calories,
+    this.photoPath,
+    this.publishedAt,
+  });
+
+  final String id;
+  final String cookId;
+  final String? title;
+  final String? description;
+  final String? price;
+  final Cuisine? cuisine;
+  final MealCategory? category;
+  final MealStatus status;
+  final List<String> ingredients;
+  final int? calories;
+  final List<String> allergens;
+  final NutritionSource nutritionSource;
+  final String? photoPath;
+  final DateTime? publishedAt;
+
+  /// Whether every answer the database requires before leaving draft is present.
+  ///
+  /// Mirrors `enforce_meal_lifecycle`: [title] plus description, price, cuisine
+  /// and category. Photo, calories and allergens are never required.
+  bool get isComplete =>
+      title != null &&
+      description != null &&
+      price != null &&
+      cuisine != null &&
+      category != null;
+
+  /// The complete [Meal] when [isComplete], otherwise null.
+  ///
+  /// How a [CookMeal] reaches a screen that needs a real Meal. Never throws.
+  Meal? get asMeal {
+    if (!isComplete) return null;
+    return Meal(
+      id: id,
+      cookId: cookId,
+      title: title!,
+      description: description!,
+      price: price!,
+      cuisine: cuisine!,
+      category: category!,
+      status: status,
+      nutritionSource: nutritionSource,
+      ingredients: ingredients,
+      allergens: allergens,
+      calories: calories,
+      photoPath: photoPath,
+      publishedAt: publishedAt,
+    );
+  }
+
+  CookMeal copyWith({
+    String? title,
+    String? description,
+    String? price,
+    Cuisine? cuisine,
+    MealCategory? category,
+    MealStatus? status,
+    List<String>? ingredients,
+    int? calories,
+    List<String>? allergens,
+    NutritionSource? nutritionSource,
+    String? photoPath,
+    DateTime? publishedAt,
+  }) =>
+      CookMeal(
+        id: id,
+        cookId: cookId,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        price: price ?? this.price,
+        cuisine: cuisine ?? this.cuisine,
+        category: category ?? this.category,
+        status: status ?? this.status,
+        ingredients: ingredients ?? this.ingredients,
+        calories: calories ?? this.calories,
+        allergens: allergens ?? this.allergens,
+        nutritionSource: nutritionSource ?? this.nutritionSource,
+        photoPath: photoPath ?? this.photoPath,
+        publishedAt: publishedAt ?? this.publishedAt,
+      );
+}
+
+/// Whether taking [meal] off the menu would leave its Cook with nothing on
+/// offer — and therefore with a kitchen nobody can find.
+///
+/// This is the rule that surprises Cooks: discoverability follows from having
+/// food actually on offer, so a Cook who takes down their last Meal closes
+/// their kitchen. Correct, and the reason it must be said before it happens
+/// rather than discovered afterwards.
+bool isLastMealOnOffer(Iterable<CookMeal> meals, CookMeal meal) {
+  if (meal.status != MealStatus.published) return false;
+  final publishedCount =
+      meals.where((m) => m.status == MealStatus.published).length;
+  if (publishedCount != 1) return false;
+  return meals.where((m) => m.status == MealStatus.published).single.id ==
+      meal.id;
+}

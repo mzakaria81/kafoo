@@ -398,7 +398,7 @@ estimate. Correct one and confirm it becomes the Cook's.
   the obvious `OLD.allergens IS NOT NULL` guard is true for every row that has ever existed — the
   calorie half would have been fixed and the allergen half would have gone on promoting, with
   nothing saying so. Absence on that column is an empty list, and case 28 is what catches it
-- [ ] T048 [US2] Present calories and allergens as estimates wherever they appear, including to a Customer reading a published Meal — FR-012 is not only about the summary screen
+- [x] T048 [US2] Present calories and allergens as estimates wherever they appear, including to a Customer reading a published Meal — FR-012 is not only about the summary screen. Done on the Customer's public view in `public_meal_view.dart`: `nutrition_source` decides, an `ai` figure carries the estimate badge on the row and the notice below it, a `cook` figure says the numbers are the Cook's, and both branches are asserted. An **empty** allergen list says nothing was listed rather than rendering a blank a Customer with an allergy would read as an all-clear
 - [x] T049 [US2] Handle the AI Assistant being unreachable so a Cook still publishes, with the fields left to them (FR-014, SC-005) — **the same requirement as T096, which carries the founder's decision on how.** Build it once, there
 - [x] T050 [P] [US2] Add a widget test asserting an approved-but-unchanged estimate is still labelled as the AI Assistant's after publishing — the distinction most easily lost — **DONE 2026-08-05, and it was indeed lost.** The test failed on its first run: the summary dropped the `تقدير` badge the moment a Cook tapped approve and replaced it with `اتأكد`, so an approved guess was visually indistinguishable from a figure the Cook had verified — the same defect as the trigger's, one layer up
 
@@ -422,11 +422,13 @@ estimate. Correct one and confirm it becomes the Cook's.
 **Independent test**: Take a Meal off the menu, confirm nobody finds it, put it back, confirm it is
 unchanged.
 
-- [ ] T052 [P] [US4] Add the availability strings to `app_ar.arb` and `app_en.arb`
-- [ ] T053 [US4] Build the Cook's own Meal list in `apps/mobile/lib/features/meal/presentation/my_meals_screen.dart`, showing every status including drafts (FR-033)
-- [ ] T054 [US4] Implement making a Meal unavailable and available again in one action each, emitting `MealUpdated` with `changed`
-- [ ] T055 [US4] Tell the Cook when taking their last available Meal off the menu makes their kitchen unfindable — correct, and surprising enough that it must be visible rather than discovered
-- [ ] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody
+- [x] T052 [P] [US4] Add the availability strings to `app_ar.arb` and `app_en.arb` — fourteen keys, Arabic written first, appended to both files
+- [x] T053 [US4] Build the Cook's own Meal list in `apps/mobile/lib/features/meal/presentation/my_meals_screen.dart`, showing every status including drafts (FR-033). Backed by `my_meals_controller.dart` and three new repository methods (`myMeals`, `setStatus`, `deleteDraft`). **Loading is a state of its own, not `meals.isEmpty`** — the first cut rendered "no Meals yet, start one" for the whole of the first load, telling a Cook with a full menu their work was gone. A test now holds that shut. **FR-033's third clause — resuming a draft rather than starting again — has no task anywhere in E2 and is NOT built here.** See T097
+
+  **It also shipped a defect that made the screen useless for its main purpose, found and fixed 2026-08-05.** `myMeals()` cast the five conversation answers to non-null, but the migration that allowed incomplete drafts made all five nullable — so the moment a Cook answered one question and stopped, the cast threw and their ENTIRE list showed a load error. A null price was worse than a throw: it rendered as the literal string `"null"`. Fixed with `CookMeal`, the row as the database actually holds it, leaving `Meal` to model a complete offer so nullable fields do not spread into every screen showing a published Meal
+- [x] T054 [US4] Implement making a Meal unavailable and available again in one action each, emitting `MealUpdated` with `changed`. `setStatus` writes the `status` column and nothing else — a test asserts no other write accompanied it, because "nothing about it is lost" is the acceptance criterion. `changed: 'availability'` is a fixed vocabulary word, never free text
+- [x] T055 [US4] Tell the Cook when taking their last available Meal off the menu makes their kitchen unfindable — correct, and surprising enough that it must be visible rather than discovered. One confirmation, and **only** on the last one: an ordinary reversible change gets no dialog. The rule is the pure `isLastMealOnOffer` in `packages/domain/`. Mutation-checked — removing the confirmation turns the test red
+- [x] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody. **Already covered**: `kitchen_discoverability_test.sql` case 28 — "a kitchen with everything taken off the menu is closed, and nobody finds it" — green. Confirmed rather than duplicated
 
 ---
 
@@ -437,11 +439,11 @@ unchanged.
 **Independent test**: Retire a Meal, confirm it cannot return by any route, confirm it is still
 readable to its Cook.
 
-- [ ] T057 [P] [US5] Add the retirement strings to `app_ar.arb` and `app_en.arb` — plain, and clear that it is permanent
-- [ ] T058 [US5] Implement retiring with one confirmation, emitting `MealArchived`
-- [ ] T059 [US5] Keep a retired Meal readable to its Cook and absent from every other surface (FR-020)
-- [ ] T060 [US5] Implement deleting a **draft**, and confirm the same action is unavailable for anything that has been on offer — archiving is what that is for
-- [ ] T061 [P] [US5] Add a test asserting a retired Meal cannot be republished from the UI, backing the T016 trigger
+- [x] T057 [P] [US5] Add the retirement strings to `app_ar.arb` and `app_en.arb` — plain, and clear that it is permanent. The warning says the Meal never comes back AND that it stays in the Cook's own list, because "permanent" without that second half reads as deletion
+- [x] T058 [US5] Implement retiring with one confirmation, emitting `MealArchived`. One confirmation, not two, and no typed-word ceremony — the action is serious but not rare, and an interface a Cook has to fight stops being trusted. Mutation-checked: removing the confirmation turns the suite red. `MealArchived` carries no attributes and does **not** also emit `MealUpdated`; a test asserts both the event that fires and the one that must not
+- [x] T059 [US5] Keep a retired Meal readable to its Cook and absent from every other surface (FR-020). The database half was already green (`meals_rls_test.sql` cases 1 and 6). The client half: an archived Meal renders in the Cook's own list with its title, price and status, and offers **no** control of any kind — not a disabled one, an absent one. No filter, no tab, no "show retired" toggle; a retired Meal sitting in the list with nothing to do to it is the clearest statement of what happened
+- [x] T060 [US5] Implement deleting a **draft**, and confirm the same action is unavailable for anything that has been on offer — archiving is what that is for. Gated on `MealStatus.isDeletable` rather than a hand-written status check, so the Dart and the DELETE policy cannot drift apart. Deleting a draft emits nothing — no event exists for it and inventing one is forbidden — and a test asserts the recorder stayed empty
+- [x] T061 [P] [US5] Add a test asserting a retired Meal cannot be republished from the UI, backing the T016 trigger. Two tests, because one would have been theatre: the archived row renders no control, **and** the controller refuses `archived → published` without calling the repository at all. A guard that only hides a button is not a guard — the second test proves the refusal survives a caller that never saw the button. The database remains the real guard (`meals_lifecycle_test.sql` cases 18 and 19, green)
 
 ---
 
@@ -452,10 +454,10 @@ readable to its Cook.
 **Independent test**: As someone who is not the Cook, read a published Meal with its estimates
 marked, reach its kitchen, and find nothing for a Meal not on offer.
 
-- [ ] T062 [P] [US6] Build the public Meal view in `apps/mobile/lib/features/meal/presentation/public_meal_view.dart` rendering the dish, ingredients, price and estimates — every estimate marked as one
-- [ ] T063 [US6] Link from a Meal to its Kitchen Profile, and confirm the Cook's phone number is unreachable by any route (case 30)
-- [ ] T064 [US6] Confirm a signed-out person reads a published Meal — the first use of the `anon` role in Kafoo
-- [ ] T065 [P] [US6] Add a test asserting a non-owner reads zero drafts and zero unavailable Meals through the public surface
+- [x] T062 [P] [US6] Build the public Meal view in `apps/mobile/lib/features/meal/presentation/public_meal_view.dart` rendering the dish, ingredients, price and estimates — every estimate marked as one. Pure presentation, like `PublicKitchenView`: it takes a `Meal` and renders it, and does not check `status` — RLS is what stops a non-owner ever holding a draft, and a status check here would also block the Cook's own preview. **Nothing routes to it yet**; browsing Meals is E3
+- [x] T063 [US6] Link from a Meal to its Kitchen Profile, and confirm the Cook's phone number is unreachable by any route (case 30). The link is an `onOpenKitchen` callback, rendered only when a caller supplies a route. Case 30 is asserted on both sides: `kitchen_discoverability_test.sql` at the database, and a client test that collects every rendered string and asserts it holds no `cook_id`, no Meal id, and no run of seven or more digits
+- [x] T064 [US6] Confirm a signed-out person reads a published Meal — the first use of the `anon` role in Kafoo. **Already covered when this task was reached**: `meals_rls_test.sql` case 5 is this assertion verbatim, written in Phase 2 under the test-first rule and green (`ok 5 - a signed-out person reads a Meal on offer`). Confirmed rather than duplicated
+- [x] T065 [P] [US6] Add a test asserting a non-owner reads zero drafts and zero unavailable Meals through the public surface. **Already covered**: `meals_rls_test.sql` cases 2, 3 and 6 — a signed-in non-owner reads zero drafts and zero unavailable Meals, and a signed-out reader reads nothing that is not on offer. All three green. Confirmed rather than duplicated; writing a second copy would have added assertions without adding coverage
 
 ---
 
@@ -465,22 +467,25 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
 **Independent test**: Change each part in turn; each takes effect and nothing else moves.
 
-- [ ] T066 [P] [US7] Add the edit strings to `app_ar.arb` and `app_en.arb`
-- [ ] T067 [US7] Build editing in `apps/mobile/lib/features/meal/presentation/meal_edit_screen.dart`, one detail at a time in keeping with the conversation rather than reverting to a seven-field form
-- [ ] T068 [US7] Keep the previous version visible to readers until a change is confirmed
-- [ ] T069 [US7] Emit `MealUpdated` with `changed`, distinguishing a price change from a typo
+- [x] T066 [P] [US7] Add the edit strings to `app_ar.arb` and `app_en.arb` — three keys. The Change control and the error reuse `convEdit` and `mealSaveError` rather than adding near-duplicates
+- [x] T067 [US7] Build editing in `apps/mobile/lib/features/meal/presentation/meal_edit_screen.dart`, one detail at a time in keeping with the conversation rather than reverting to a seven-field form. It reuses the summary's `SummaryRow` — a row that becomes a field in place — so there is no form, and **at most one row is in edit state at a time**: opening a second abandons the first without writing it. **Editable fields are exactly title, description and price, and that is a `MealEditField` enum rather than a convention.** Calories and allergens are deliberately absent: the `derive_nutrition_source` trigger sets the source to `cook` on any update that changes them, so a screen that sent the whole Meal back would silently relabel an AI estimate as a figure the Cook stands behind. A test asserts no write from this screen ever carries an analysed field
+- [x] T068 [US7] Keep the previous version visible to readers until a change is confirmed. There is no autosave, no save-on-blur and no "save all" — one detail, confirmed, written. The test asserts the repository received **nothing** while an edit was in progress, which is the guarantee stated from the reader's side
+- [x] T069 [US7] Emit `MealUpdated` with `changed`, distinguishing a price change from a typo. `changed` is the field name — `title`, `description`, `price` — never anything the Cook typed. A commit of an unchanged or empty value writes nothing and emits nothing, so opening a row and closing it does not appear in the funnel as an edit
 
 ---
 
 ## Phase 10: Polish & Cross-Cutting
 
 - [x] T070 **Amend ADR-0005 — DONE, and moved to the front of the epic rather than the end.** Building the Edge Function on an architecture document known to be wrong is how a decision record becomes fiction. Amendment 1 covers the moved seam, the one-variable switch, and the chosen provider. ~~**Amend ADR-0005.**~~ It assumes the model seam and the credential live in the same place. They cannot — the key would ship in the Flutter binary. Record that the seam stays `AiProvider` while the vendor swap moves inside the Edge Function
-- [ ] T071 [P] Add the Meal shape and the `nutrition_source` rule to `docs/product/domain-model.md`, and record that `meals.cook_id` uses `ON DELETE CASCADE` today and **must become `RESTRICT` in the migration that creates `orders`** (Definition of Done item 6)
-- [ ] T072 [P] Move every E2 event in `docs/product/event-model.md` from `planned` to `active`
-- [ ] T073 [P] Confirm every new screen renders under RTL with `EdgeInsetsDirectional` and `start`/`end`, never `left`/`right` (SC-009)
-- [ ] T074 [P] Confirm semantic labels and ≥48dp tap targets on every new screen — the `accessibility-reviewer` agent carries the checklist
+- [x] T071 [P] Add the Meal shape and the `nutrition_source` rule to `docs/product/domain-model.md`, and record that `meals.cook_id` uses `ON DELETE CASCADE` today and **must become `RESTRICT` in the migration that creates `orders`** (Definition of Done item 6). **Already landed** in an earlier E2 commit — all three are present in the Meal section. Verified, not rewritten
+- [x] T072 [P] Move every E2 event in `docs/product/event-model.md` from `planned` to `active` — **done for the two that are actually emitted, and deliberately not for the other three.** `MealPublished` and `MealDrafted` are emitted by the publishing flow today and are now `active`. `MealArchived` (T058), `MealUpdated` (T054/T069) and `PhoneNumberDetached` (ADR-0007) are unbuilt, and the registry's own rule is that a `planned` event which is emitted misleads exactly as much as an `active` one that is not. Each moves in the change that first emits it; the change log records why. **Followed through the same day**: US4, US5 and US7 made `MealArchived` and `MealUpdated` real, and both moved to `active` in that commit rather than in a later tidy-up. `PhoneNumberDetached` is still `planned` — ADR-0007's dormancy severing is unbuilt
+- [x] T073 [P] Confirm every new screen renders under RTL with `EdgeInsetsDirectional` and `start`/`end`, never `left`/`right` (SC-009). Swept `apps/mobile/lib` and `packages/ui/lib`: zero non-directional `EdgeInsets`, zero `left:`/`right:`, zero `Alignment.centerLeft/Right`, zero `TextAlign.left/right`. The public Meal view is in the `accessibility_test.dart` sweep, which asserts `Directionality.of(context) == rtl` on the rendered tree rather than reading the source
+- [x] T074 [P] Confirm semantic labels and ≥48dp tap targets on every new screen — the `accessibility-reviewer` agent carries the checklist. The public Meal view joins the `accessibility_test.dart` sweep for all three checks (RTL, ≥48dp, no clipping at 200% text scale), **with `onOpenKitchen` supplied** — it is the screen's only interactive widget, so without it the tap-target sweep would have passed by having nothing to measure
 - [ ] T075 **Measure and record two numbers**: description-finished to first estimate (budget 2s), and confirm to on-offer (budget 3s). E1 left its launch baseline unmeasured and the budget is still unverified a feature later — do not repeat that
 - [ ] T076 Measure the cost of one published Meal against the chosen provider and put the figure to the founder, alongside E1's still-open per-verification cost (T073 in E1)
+- [x] T097 **Let a Cook resume a draft rather than starting again.** FR-033's third clause, and it had no task anywhere in this epic until 2026-08-05. The other two clauses — see every draft, delete any of them — are T053 and T060, and because both cite FR-033 the requirement read as covered by every traceability check. Resuming means restoring a half-finished conversation from a persisted draft, which is why it is its own task and not a line inside T053 — **DONE 2026-08-05.** `MealConversationController.resume()` seeds the conversation's `MealDraft` from the stored row and the existing step logic asks the next unanswered question; no second conversation, no resume mode. A draft with no photo path is asked about the photo again, because declining is not persisted and so is indistinguishable from not having been asked.
+
+  **Reviewing it found a clear that was not a clear.** `resume()` asked `copyWith` to drop the previous Meal's analysis, and `copyWith` read `analysis ?? this.analysis` — so passing null kept the old one. The approvals beside it *were* cleared, which hid the failure rather than exposing it: a Cook resuming a barely-started draft would have been shown another dish's suggested allergens as estimates awaiting their approval, and approving them writes those guesses onto this Meal. Fixed with the same `_undefined` sentinel the two error fields already used, and covered by a test that was seen to fail without it
 - [ ] T077 Extend `specs/003-meal-publishing/quickstart.md` if anything built here diverged from it
 - [ ] T078 Update `docs/HANDOFF.md` — Database, Features and Edge Functions rows all change
 - [ ] T079 Run `./scripts/verify.sh` and confirm it passes with codegen drift and RLS coverage both doing real work (Definition of Done item 1)
