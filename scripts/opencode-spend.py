@@ -236,7 +236,23 @@ def _calibration() -> list[dict]:
             continue
         if {"day", "model", "console_cost"} <= row.keys():
             rows.append(row)
-    return rows
+
+    # A second reading for a day supersedes the first rather than adding to it.
+    #
+    # The file is append-only on purpose — it carries a union merge so two sessions can write it at
+    # once — but "append-only" is a storage rule, not an arithmetic one. A day read at noon and read
+    # again at midnight produces two rows for the same day and model, and _factors() below sums
+    # every row it is given: the day's ledger total would be counted twice, against two different
+    # console figures, and the correction it exists to compute would be wrong in a way nothing
+    # prints. Last row per (day, model) wins, ordered by recorded_at and falling back to file order
+    # for rows written before that field existed.
+    latest: dict[tuple[str, str], tuple[str, int, dict]] = {}
+    for i, row in enumerate(rows):
+        key = (row["day"], row["model"])
+        stamp = (str(row.get("recorded_at", "")), i)
+        if key not in latest or stamp > latest[key][:2]:
+            latest[key] = (stamp[0], stamp[1], row)
+    return [v[2] for v in latest.values()]
 
 
 def _factors(rows: list[dict]) -> tuple[dict[str, float], list[dict]]:

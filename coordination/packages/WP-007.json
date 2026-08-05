@@ -2,7 +2,12 @@
   "id": "WP-007",
   "title": "Address a Cook in their own grammatical form",
   "objective": "Convert every gendered string to an ICU select on the Cook's stored form, so Kafoo stops addressing half its Cooks in the wrong gender. ADR-0010.",
-  "tasks": ["T090", "T091", "T092", "T093"],
+  "tasks": [
+    "T090",
+    "T091",
+    "T092",
+    "T093"
+  ],
   "acceptance_criteria": [
     "the Kitchen Profile conversation asks the fifth question, and the code says why a question that looks like a failure to infer is the right call here",
     "all 56 gendered strings are ICU select in both ARB files, Arabic written first",
@@ -10,7 +15,9 @@
     "the localization parity check is extended to compare placeholders and select branches, not only key presence — the sweep must fix the check, not trust it",
     "./scripts/verify.sh passes"
   ],
-  "dependencies": ["WP-006"],
+  "dependencies": [
+    "WP-006"
+  ],
   "scope": {
     "files": [
       "apps/mobile/lib/l10n/app_ar.arb",
@@ -21,15 +28,15 @@
     "shared_files": []
   },
   "execution_mode": "EXCLUSIVE",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "IN_PROGRESS",
+  "owner": "worker-d",
   "priority": 2,
   "spend_envelope_usd": 3.0,
   "suggested_model": "opencode-go/grok-4.5",
-  "branch": null,
+  "branch": "claude/caveman-full-7k5toq",
   "pr": null,
   "blocked_reason": null,
-  "notes": "EXCLUSIVE because it rewrites both ARB files and ~56 call sites across every feature. Every user-facing package touches the ARBs, so nothing else can run beside it without a merge nobody wants to resolve. It also changes verify.sh, which every other package depends on to know whether it passed. Not split further: converting the strings without the call sites leaves the app broken, and extending the parity check after the conversion means the conversion shipped unchecked.",
+  "notes": "The fifth question's wording is the founder's, approved 2026-08-05: عشان أكلمك صح — أقولّك \"كمّل\" ولا \"كمّلي\"؟ — built from first-person verbs only, because a question asked to learn the Cook's form cannot itself be gendered. EXCLUSIVE because it rewrites both ARB files and ~56 call sites across every feature. Every user-facing package touches the ARBs, so nothing else can run beside it without a merge nobody wants to resolve. It also changes verify.sh, which every other package depends on to know whether it passed. Not split further: converting the strings without the call sites leaves the app broken, and extending the parity check after the conversion means the conversion shipped unchecked.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T20:00:00Z"
+  "updated_at": "2026-08-05T21:45:00Z"
 }

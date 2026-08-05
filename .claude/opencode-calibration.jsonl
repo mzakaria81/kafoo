@@ -5,3 +5,5 @@
 {"day": "2026-08-04", "model": "opencode-go/qwen3.6-plus", "console_cost": 0.59, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
 {"day": "2026-08-05", "model": "opencode-go/grok-4.5", "console_cost": 1.82, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
 {"day": "2026-08-05", "model": "opencode-go/qwen3.6-plus", "console_cost": 3.23, "source": "console screenshot, tooltip", "recorded_at": "2026-08-05T19:45:00Z"}
+{"day": "2026-08-05", "model": "opencode-go/grok-4.5", "console_cost": 2.54, "source": "console screenshot, tooltip, end of day — supersedes the 1.82 read mid-afternoon", "recorded_at": "2026-08-05T21:40:00Z"}
+{"day": "2026-08-05", "model": "opencode-go/qwen3.6-plus", "console_cost": 3.95, "source": "console screenshot, tooltip, end of day — supersedes the 3.23 read mid-afternoon", "recorded_at": "2026-08-05T21:40:00Z"}

@@ -2,7 +2,9 @@
   "id": "WP-005",
   "title": "Spike the Gemini Live API for Customer discovery",
   "objective": "Learn whether a live voice channel is viable for Customer search before E3 commits to an architecture around it.",
-  "tasks": ["T084"],
+  "tasks": [
+    "T084"
+  ],
   "acceptance_criteria": [
     "the spike answers the question it was scoped to ask, in writing",
     "the throwaway code is thrown away, or an ADR explains why it stays",
@@ -10,7 +12,9 @@
   ],
   "dependencies": [],
   "scope": {
-    "files": ["docs/ops/"],
+    "files": [
+      "docs/ops/"
+    ],
     "shared_files": []
   },
   "execution_mode": "PARALLEL",
@@ -22,7 +26,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "Explicitly throwaway. A spike that quietly becomes production is the failure mode; say so in the report rather than leaving it to be discovered. Phase 2 work — the coordinator should not assign it while Phase 1 tasks are open unless the founder asks.",
+  "notes": "FREE TIER CONFIRMED TO CARRY THE LIVE API, from the founder's AI Studio rate-limit page on 2026-08-05. Three models are available with unlimited requests per minute and a real token budget: Gemini 2.5 Flash Native Audio Dialog (1M tokens/min), Gemini 3 Flash Live (65K), Gemini 3.5 Live Translate (20K). Veo 3 and Veo 3 Lite read 0/0 and are NOT available. So this is a working spike rather than a written assessment, and the constraint to design against is tokens per minute, not request count — the opposite of the 15-requests-per-minute limit that shapes every other Gemini call in this repository. FOUNDER AUTHORISED FREE TIER ONLY: stop and report rather than calling any paid tier. Native Audio Dialog has by far the largest budget and is the one to start with. Explicitly throwaway. A spike that quietly becomes production is the failure mode; say so in the report rather than leaving it to be discovered. Phase 2 work — the coordinator should not assign it while Phase 1 tasks are open unless the founder asks.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T20:00:00Z"
+  "updated_at": "2026-08-05T21:45:00Z"
 }
