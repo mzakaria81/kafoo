@@ -1405,3 +1405,144 @@ without re-deriving, so a misnamed test actively suppresses the suspicion that w
 someone to write the real one. Passing is not evidence of coverage; failing when the behaviour is
 removed is. And when a requested assertion cannot be expressed, the missing seam is the actual
 finding — treat "I wrote the test" as unverified until the mutation confirms which test got written.
+
+### Observation 53: An eval that scores a different layer than production reports failures nobody can hit
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** T086 — replaying the meal-analysis golden corpus against a live model
+**Skill:** New skill candidate: evaluating-prompts-against-live-models
+**Type:** open-source
+**Phase/Area:** Scoring design
+
+**Issue:** The first version of the replay harness scored the model's raw JSON reply. Three of eight
+fixtures "failed". None of the three was a real defect. Two were the harness demanding exact array
+membership where the model had been more specific than the fixture author (fixture said "meat", model
+said "minced meat"). The third was the model filling two enum fields on garbage input — which the
+production parser already drops, because it discards any field whose explanation is blank. Scoring the
+raw reply both invented failures and hid the fact that a defence was working.
+
+**Suggested improvement:** An eval must score the value at the same layer the user receives it. Where a
+parser, validator or gate sits between the model and the screen, mirror it in the harness before
+comparing — and report what it dropped, because a field the model filled and the parser discarded is
+the most informative thing in the run.
+
+**Principle:** Evaluate the output at the layer the user consumes it, not the layer the vendor emits
+it. Any transform between the two is part of the system under test, and skipping it produces both
+false failures and false confidence in the same run.
+
+### Observation 54: A quality detector that can only report "clean" certifies what it cannot see
+
+**Status:** OPEN
+**Date:** 2026-08-03
+**Session context:** Same — checking whether a model wrote Egyptian Arabic or Modern Standard
+**Skill:** New skill candidate: evaluating-prompts-against-live-models
+**Type:** open-source
+**Phase/Area:** Automated quality signals
+
+**Issue:** The register check was built from the vocabulary pairs the prompt itself names. It reported
+all eight fixtures clean. Reading the output by hand showed the opposite: the model had matched every
+named vocabulary item and then written the surrounding sentences in the wrong register entirely. The
+detector was measuring the one dimension the model happened to get right, and its green result read as
+a pass on the whole question.
+
+**Suggested improvement:** Build the detector from failure modes observed in real output, not from the
+instruction being tested — an instruction's own wording is what a model pattern-matches first, so it is
+the least discriminating thing to check. Where feasible, count positive evidence as well as negative,
+so "no violations found" and "no evidence of compliance" cannot render identically. Always print the
+raw text alongside the verdict.
+
+**Principle:** A one-sided detector cannot distinguish absence of violations from absence of signal.
+When a check can only ever say "clean", its green result is an unfalsifiable claim, and it is more
+dangerous than no check because it is read as a pass.
+
+### Observation 55: A delegated agent's completion report is not evidence, and its narration reads like one
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** Delegating a Flutter screen and controller to a separate CLI agent
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Review — step 4, "do not trust the self-report"
+
+**Issue:** The brief specified a report contract: files changed, the exact gate commands run, and
+their real outcomes. What came back was a narration of intent — "Now let me run build_runner again"
+— with no outcome stated for any gate. It read as successful because it ended mid-stride on a
+plausible action. The code did not compile: an undefined generated type, four const-constructor
+errors, two unused imports and an unused field, with the tests unable to load at all. Two test
+assertions also searched for substrings absent from the locale the app renders, so they would have
+failed the moment they could run.
+
+**Suggested improvement:** Treat a report that does not explicitly state a gate's outcome as a
+report of failure, not of success — narration ending on an action is the most common shape of an
+unverified run. The reviewing step should check for the absence of stated outcomes before reading
+any diff, because that absence predicts what the diff will contain. Where a brief specifies a report
+contract, a reply not matching it is itself a finding worth recording.
+
+**Principle:** Absence of a stated result is evidence of an unverified result, not a neutral
+omission. An agent that narrates its final action without its outcome has told you it did not check,
+and the report's fluency is unrelated to whether the work runs.
+
+### Observation 56: A bug in an unreachable branch needs a test at the layer where it IS reachable
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** Reviewing a delegated controller against a domain rule documented in a comment
+**Skill:** New skill candidate: reviewing-delegated-implementations
+**Type:** open-source
+**Phase/Area:** Test coverage of not-yet-wired code paths
+
+**Issue:** A controller recorded a value for an optional step without also marking the step
+resolved. The sequencing function reads only the resolved flag, so the step would have re-asked
+forever — the exact trap the domain module documented in its own comment. No UI test could catch it:
+the interface cannot reach that branch until a later task wires it up, so every test passed with the
+bug present and would have kept passing until the feature that triggers it shipped.
+
+**Suggested improvement:** When review finds a defect in a branch the current interface cannot
+reach, do not rely on the test suite that missed it. Add a test at the layer where the branch IS
+reachable — usually a direct unit test against the component rather than through the surface — and
+mutation-check it by reverting the fix and confirming the test goes red. A green suite over an
+unreachable branch is the strongest possible false signal, because the branch will be reached later
+by someone who trusts it.
+
+**Principle:** Code that a test cannot reach today is code that ships untested to whoever wires it up
+tomorrow. Test at the layer where the path is reachable, not the layer where the feature will
+eventually live, and verify the test fails without the fix.
+
+### Observation 57: AutoDispose controller drops async analysis without a listener
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** T034/T035 Meal conversation persist + analysis
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Riverpod autoDispose + async side effects in tests
+
+**Issue:** MealConversationController is autoDispose. Unit tests that only
+`read` the notifier saw analysis completions silently dropped via
+`ref.mounted` once the provider disposed after the answer future returned.
+Widget tests were fine because the screen watches the provider.
+
+**Suggested improvement:** When testing async work kicked off with unawaited
+from an autoDispose Notifier, always `container.listen` the provider (or
+document keepAlive). A helper that builds the container should attach the
+listener by default.
+
+**Principle:** An autoDispose provider with no listener is disposed before
+async completions land; tests must keep a subscription or the completion
+path is never exercised.
+
+### Observation 58: Publishing blocked without manual cuisine/category path when AI fails
+
+**Status:** OPEN
+**Date:** 2026-08-04
+**Session context:** T038 + estimate approval on Meal summary
+**Skill:** New skill candidate: none — product gap for orchestrator
+**Type:** internal
+**Phase/Area:** Meal publishing / FR-014
+
+**Issue:** When analysis produces nothing, allEstimatesApproved is vacuously true but draft.isComplete is false (no cuisine/category). Publish stays disabled and the Cook cannot finish. FR-014 requires a path when the AI Assistant is unavailable; inventing defaults is forbidden.
+
+**Suggested improvement:** Separate task for hand-entry of cuisine and category when estimates are absent (T049 territory). Do not relax DB constraints or invent 'other'.
+
+**Principle:** Vacuous approval of zero estimates is not the same as a complete Meal — completeness and approval are independent gates.

@@ -8,7 +8,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
-import '../application/photo_picker.dart';
+import '../../conversation/application/photo_picker.dart';
 import '../data/kitchen_profile_repository.dart';
 
 /// Everything the conversation gathered, in one place, before anything is kept.
@@ -172,7 +172,7 @@ class _KitchenConversationSummaryState
                 value: _valueOf(step),
                 editing: _editing == step,
                 controller: _editController,
-                editLabel: l10n.kitchenConvSummaryEdit,
+                editLabel: l10n.convEdit,
                 onEdit: () => _beginEdit(step),
                 onCommit: _commitEdit,
               ),

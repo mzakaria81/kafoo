@@ -114,16 +114,16 @@
   "@kitchenConvHintDeliveryTerms": {
     "description": "Hint text shown below the delivery terms question."
   },
-  "kitchenConvContinue": "كمّل",
-  "@kitchenConvContinue": {
+  "convContinue": "كمّل",
+  "@convContinue": {
     "description": "Button to confirm the current answer and proceed to the next step."
   },
-  "kitchenConvVoiceHint": "قول إجابتك بصوتك",
-  "@kitchenConvVoiceHint": {
+  "convVoiceHint": "قول إجابتك بصوتك",
+  "@convVoiceHint": {
     "description": "Shown next to the microphone button — prompts the Cook to speak."
   },
-  "kitchenConvVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
-  "@kitchenConvVoiceUnavailable": {
+  "convVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
+  "@convVoiceUnavailable": {
     "description": "Shown when on-device speech recognition is not available. Offers typing as a fallback."
   },
   "kitchenConvSummaryTitle": "ده اللي قلته",
@@ -134,8 +134,8 @@
   "@kitchenConvSummaryConfirm": {
     "description": "Button to confirm the summary and write the Kitchen Profile."
   },
-  "kitchenConvSummaryEdit": "غيّر",
-  "@kitchenConvSummaryEdit": {
+  "convEdit": "غيّر",
+  "@convEdit": {
     "description": "Button to edit a single answer on the summary screen."
   },
   "kitchenConvLabelDisplayName": "اسم المطبخ",
@@ -345,5 +345,214 @@
   "mealPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
   "@mealPhotoError": {
     "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
+  },
+  "mealConvPromptDish": "طبخت إيه؟",
+  "@mealConvPromptDish": {
+    "description": "First question in the Meal conversation: what the Cook made. Becomes the Meal's title."
+  },
+  "mealConvHintDish": "مثلاً: كشري، محشي، فراخ بانيه",
+  "@mealConvHintDish": {
+    "description": "Hint below the dish question."
+  },
+  "mealConvPromptDescription": "قولّي عنها. فيها إيه وبتتعمل إزاي؟",
+  "@mealConvPromptDescription": {
+    "description": "Second question: the description every AI-inferred field is derived from."
+  },
+  "mealConvHintDescription": "مثلاً: عدس ورز ومكرونة، وبنحمّر البصل فوقها",
+  "@mealConvHintDescription": {
+    "description": "Hint below the description question."
+  },
+  "mealConvPromptPhoto": "في صورة للأكلة؟",
+  "@mealConvPromptPhoto": {
+    "description": "Third question: the optional photograph. The only step a Cook may decline."
+  },
+  "mealConvHintPhoto": "الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز",
+  "@mealConvHintPhoto": {
+    "description": "Hint below the photo question. Says plainly that it can be skipped."
+  },
+  "mealConvPhotoDisclosure": "لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.",
+  "@mealConvPhotoDisclosure": {
+    "description": "FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses."
+  },
+  "mealConvPhotoSkip": "كمّل من غير صورة",
+  "@mealConvPhotoSkip": {
+    "description": "Button that declines the photo and continues the conversation."
+  },
+  "mealConvPromptPrice": "بتبيعها بكام؟",
+  "@mealConvPromptPrice": {
+    "description": "Fourth question: the price of the whole Meal."
+  },
+  "mealConvHintPrice": "سعر الطبق كامل بالجنيه",
+  "@mealConvHintPrice": {
+    "description": "Hint below the price question. Says whole dish, matching how calories are estimated."
+  },
+  "mealSummaryTitle": "ده اللي قلته عن الأكلة",
+  "@mealSummaryTitle": {
+    "description": "Heading of the Meal summary, shown before anything is on offer."
+  },
+  "mealSummaryLabelDish": "الأكلة",
+  "@mealSummaryLabelDish": {
+    "description": "Label for the Meal's title on the summary."
+  },
+  "mealSummaryLabelDescription": "التفاصيل",
+  "@mealSummaryLabelDescription": {
+    "description": "Label for the description on the summary."
+  },
+  "mealSummaryLabelPhoto": "الصورة",
+  "@mealSummaryLabelPhoto": {
+    "description": "Label for the photo row on the summary."
+  },
+  "mealSummaryLabelPrice": "السعر",
+  "@mealSummaryLabelPrice": {
+    "description": "Label for the price on the summary."
+  },
+  "mealSummaryNoPhoto": "من غير صورة",
+  "@mealSummaryNoPhoto": {
+    "description": "Shown in place of a photo when the Cook declined one."
+  },
+  "mealSummaryConfirm": "تمام، انشرها",
+  "@mealSummaryConfirm": {
+    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this."
+  },
+  "cuisineEgyptian": "مصري",
+  "@cuisineEgyptian": {
+    "description": "Display name for the cuisineEgyptian value."
+  },
+  "cuisineLevantine": "شامي",
+  "@cuisineLevantine": {
+    "description": "Display name for the cuisineLevantine value."
+  },
+  "cuisineGulf": "خليجي",
+  "@cuisineGulf": {
+    "description": "Display name for the cuisineGulf value."
+  },
+  "cuisineSudanese": "سوداني",
+  "@cuisineSudanese": {
+    "description": "Display name for the cuisineSudanese value."
+  },
+  "cuisineMoroccan": "مغربي",
+  "@cuisineMoroccan": {
+    "description": "Display name for the cuisineMoroccan value."
+  },
+  "cuisineTurkish": "تركي",
+  "@cuisineTurkish": {
+    "description": "Display name for the cuisineTurkish value."
+  },
+  "cuisineItalian": "إيطالي",
+  "@cuisineItalian": {
+    "description": "Display name for the cuisineItalian value."
+  },
+  "cuisineAsian": "آسيوي",
+  "@cuisineAsian": {
+    "description": "Display name for the cuisineAsian value."
+  },
+  "cuisineAmerican": "أمريكاني",
+  "@cuisineAmerican": {
+    "description": "Display name for the cuisineAmerican value."
+  },
+  "cuisineOther": "تاني",
+  "@cuisineOther": {
+    "description": "Display name for the cuisineOther value."
+  },
+  "categoryMain": "طبق رئيسي",
+  "@categoryMain": {
+    "description": "Display name for the categoryMain value."
+  },
+  "categoryAppetizer": "مقبلات",
+  "@categoryAppetizer": {
+    "description": "Display name for the categoryAppetizer value."
+  },
+  "categorySoup": "شوربة",
+  "@categorySoup": {
+    "description": "Display name for the categorySoup value."
+  },
+  "categorySalad": "سلطة",
+  "@categorySalad": {
+    "description": "Display name for the categorySalad value."
+  },
+  "categorySide": "طبق جنب",
+  "@categorySide": {
+    "description": "Display name for the categorySide value."
+  },
+  "categoryDessert": "حلو",
+  "@categoryDessert": {
+    "description": "Display name for the categoryDessert value."
+  },
+  "categoryBakery": "مخبوزات",
+  "@categoryBakery": {
+    "description": "Display name for the categoryBakery value."
+  },
+  "categoryDrink": "مشروب",
+  "@categoryDrink": {
+    "description": "Display name for the categoryDrink value."
+  },
+  "categoryOther": "تاني",
+  "@categoryOther": {
+    "description": "Display name for the categoryOther value."
+  },
+  "mealSummaryEstimatesTitle": "تقديرات المساعد",
+  "@mealSummaryEstimatesTitle": {
+    "description": "Heading of the AI estimate section on the Meal summary."
+  },
+  "mealSummaryEstimatesNotice": "دي تقديرات من المساعد، مش حاجة مؤكدة. راجعها وأكّدها قبل ما تنشر.",
+  "@mealSummaryEstimatesNotice": {
+    "description": "FR-012: AI-derived values are shown as estimates, never as verified fact."
+  },
+  "mealSummaryEstimateBadge": "تقدير",
+  "@mealSummaryEstimateBadge": {
+    "description": "Marks a single value as an AI estimate rather than something the Cook said."
+  },
+  "mealSummaryApprove": "تمام",
+  "@mealSummaryApprove": {
+    "description": "Approves one AI estimate. Founder rule: each must be approved or edited before publishing."
+  },
+  "mealSummaryApproved": "اتأكد",
+  "@mealSummaryApproved": {
+    "description": "State of an estimate the Cook has already approved."
+  },
+  "mealSummaryNeedsApproval": "لسه فيه تقديرات محتاجة موافقتك",
+  "@mealSummaryNeedsApproval": {
+    "description": "Why the publish action is unavailable — estimates are still unapproved."
+  },
+  "mealSummaryLabelCuisine": "نوع المطبخ",
+  "@mealSummaryLabelCuisine": {
+    "description": "Label for the AI-suggested cuisine."
+  },
+  "mealSummaryLabelCategory": "نوع الطبق",
+  "@mealSummaryLabelCategory": {
+    "description": "Label for the AI-suggested category."
+  },
+  "mealSummaryLabelIngredients": "المكونات",
+  "@mealSummaryLabelIngredients": {
+    "description": "Label for the AI-extracted ingredients."
+  },
+  "mealSummaryLabelCalories": "السعرات",
+  "@mealSummaryLabelCalories": {
+    "description": "Label for the AI-estimated calories for the whole Meal."
+  },
+  "mealSummaryLabelAllergens": "الحساسية",
+  "@mealSummaryLabelAllergens": {
+    "description": "Label for the AI-suggested allergens."
+  },
+  "mealSummaryCaloriesValue": "{calories} سعرة",
+  "@mealSummaryCaloriesValue": {
+    "description": "Calories with their unit. Never string-concatenate a number.",
+    "placeholders": {
+      "calories": {
+        "type": "int"
+      }
+    }
+  },
+  "mealSummaryNoEstimates": "المساعد مقدرش يقدّر حاجة. اكتب التفاصيل بنفسك.",
+  "@mealSummaryNoEstimates": {
+    "description": "Shown when the AI Assistant produced nothing usable (FR-014)."
+  },
+  "mealPublishError": "مقدرناش ننشر الأكلة. جرب تاني.",
+  "@mealPublishError": {
+    "description": "Shown when putting the Meal on offer fails."
+  },
+  "mealPublishedConfirmation": "الأكلة بقت على المنيو.",
+  "@mealPublishedConfirmation": {
+    "description": "Confirms the Meal is now on offer."
   }
 }

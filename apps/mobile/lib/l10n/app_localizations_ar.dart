@@ -97,13 +97,13 @@ class AppLocalizationsAr extends AppLocalizations {
       'مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك';
 
   @override
-  String get kitchenConvContinue => 'كمّل';
+  String get convContinue => 'كمّل';
 
   @override
-  String get kitchenConvVoiceHint => 'قول إجابتك بصوتك';
+  String get convVoiceHint => 'قول إجابتك بصوتك';
 
   @override
-  String get kitchenConvVoiceUnavailable =>
+  String get convVoiceUnavailable =>
       'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.';
 
   @override
@@ -113,7 +113,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get kitchenConvSummaryConfirm => 'تمام، احفظ';
 
   @override
-  String get kitchenConvSummaryEdit => 'غيّر';
+  String get convEdit => 'غيّر';
 
   @override
   String get kitchenConvLabelDisplayName => 'اسم المطبخ';
@@ -285,4 +285,164 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealPhotoError => 'الصورة ما اتحملتش. ممكن تكمل من غير صورة.';
+
+  @override
+  String get mealConvPromptDish => 'طبخت إيه؟';
+
+  @override
+  String get mealConvHintDish => 'مثلاً: كشري، محشي، فراخ بانيه';
+
+  @override
+  String get mealConvPromptDescription => 'قولّي عنها. فيها إيه وبتتعمل إزاي؟';
+
+  @override
+  String get mealConvHintDescription =>
+      'مثلاً: عدس ورز ومكرونة، وبنحمّر البصل فوقها';
+
+  @override
+  String get mealConvPromptPhoto => 'في صورة للأكلة؟';
+
+  @override
+  String get mealConvHintPhoto =>
+      'الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز';
+
+  @override
+  String get mealConvPhotoDisclosure =>
+      'لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.';
+
+  @override
+  String get mealConvPhotoSkip => 'كمّل من غير صورة';
+
+  @override
+  String get mealConvPromptPrice => 'بتبيعها بكام؟';
+
+  @override
+  String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
+
+  @override
+  String get mealSummaryTitle => 'ده اللي قلته عن الأكلة';
+
+  @override
+  String get mealSummaryLabelDish => 'الأكلة';
+
+  @override
+  String get mealSummaryLabelDescription => 'التفاصيل';
+
+  @override
+  String get mealSummaryLabelPhoto => 'الصورة';
+
+  @override
+  String get mealSummaryLabelPrice => 'السعر';
+
+  @override
+  String get mealSummaryNoPhoto => 'من غير صورة';
+
+  @override
+  String get mealSummaryConfirm => 'تمام، انشرها';
+
+  @override
+  String get cuisineEgyptian => 'مصري';
+
+  @override
+  String get cuisineLevantine => 'شامي';
+
+  @override
+  String get cuisineGulf => 'خليجي';
+
+  @override
+  String get cuisineSudanese => 'سوداني';
+
+  @override
+  String get cuisineMoroccan => 'مغربي';
+
+  @override
+  String get cuisineTurkish => 'تركي';
+
+  @override
+  String get cuisineItalian => 'إيطالي';
+
+  @override
+  String get cuisineAsian => 'آسيوي';
+
+  @override
+  String get cuisineAmerican => 'أمريكاني';
+
+  @override
+  String get cuisineOther => 'تاني';
+
+  @override
+  String get categoryMain => 'طبق رئيسي';
+
+  @override
+  String get categoryAppetizer => 'مقبلات';
+
+  @override
+  String get categorySoup => 'شوربة';
+
+  @override
+  String get categorySalad => 'سلطة';
+
+  @override
+  String get categorySide => 'طبق جنب';
+
+  @override
+  String get categoryDessert => 'حلو';
+
+  @override
+  String get categoryBakery => 'مخبوزات';
+
+  @override
+  String get categoryDrink => 'مشروب';
+
+  @override
+  String get categoryOther => 'تاني';
+
+  @override
+  String get mealSummaryEstimatesTitle => 'تقديرات المساعد';
+
+  @override
+  String get mealSummaryEstimatesNotice =>
+      'دي تقديرات من المساعد، مش حاجة مؤكدة. راجعها وأكّدها قبل ما تنشر.';
+
+  @override
+  String get mealSummaryEstimateBadge => 'تقدير';
+
+  @override
+  String get mealSummaryApprove => 'تمام';
+
+  @override
+  String get mealSummaryApproved => 'اتأكد';
+
+  @override
+  String get mealSummaryNeedsApproval => 'لسه فيه تقديرات محتاجة موافقتك';
+
+  @override
+  String get mealSummaryLabelCuisine => 'نوع المطبخ';
+
+  @override
+  String get mealSummaryLabelCategory => 'نوع الطبق';
+
+  @override
+  String get mealSummaryLabelIngredients => 'المكونات';
+
+  @override
+  String get mealSummaryLabelCalories => 'السعرات';
+
+  @override
+  String get mealSummaryLabelAllergens => 'الحساسية';
+
+  @override
+  String mealSummaryCaloriesValue(int calories) {
+    return '$calories سعرة';
+  }
+
+  @override
+  String get mealSummaryNoEstimates =>
+      'المساعد مقدرش يقدّر حاجة. اكتب التفاصيل بنفسك.';
+
+  @override
+  String get mealPublishError => 'مقدرناش ننشر الأكلة. جرب تاني.';
+
+  @override
+  String get mealPublishedConfirmation => 'الأكلة بقت على المنيو.';
 }

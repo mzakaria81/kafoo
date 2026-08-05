@@ -28,6 +28,38 @@ run "format"        bash -c '
   command -v dart >/dev/null || { echo "   dart not on PATH — skipping"; exit 0; }
   git ls-files -z "*.dart" | grep -qz . || { echo "   no dart files yet — skipping"; exit 0; }
   dart format --set-exit-if-changed --output=none .'
+# MUST run before "analyze" and "tests", because they cannot compile without what
+# it produces. `*.g.dart` is in .gitignore, so a clean checkout has none of it —
+# and CI is always a clean checkout.
+#
+# This step used to run AFTER both, and passed anyway for as long as nothing in
+# the app actually needed generated code to compile. The first `@riverpod`
+# controller ended that on 2026-08-05: every local run was green because stale
+# generated files were lying around on disk, and CI failed on a checkout that had
+# none. A gate whose steps run in an order the build cannot survive is a gate that
+# only tests the machine it last ran on.
+#
+# The old name was "codegen drift" and it asserted `git diff --quiet -- "*.g.dart"`.
+# Generated Dart is gitignored, so git had nothing to diff and that assertion could
+# never fail — it reported ok on every run since it was written, including runs
+# where build_runner produced nothing at all. The comment beneath the localization
+# check describes this exact trap for gen-l10n; it was sitting one step above,
+# unread. What is worth checking is that generation SUCCEEDS, so that is what this
+# checks now.
+run "codegen"       bash -c '
+  grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
+    echo "   no melos workspace yet — skipping"; exit 0; }
+  grep -rqE "^[[:space:]]+build_runner:" --include=pubspec.yaml . || {
+    echo "   no package uses build_runner yet — skipping"; exit 0; }
+  # No --delete-conflicting-outputs: build_runner removed the flag and now only
+  # warns that it was ignored. Kept working by accident, which is how a dead
+  # flag survives long enough for someone to copy it somewhere it does matter.
+  melos exec --depends-on=build_runner -- dart run build_runner build >/dev/null 2>&1 || {
+    echo "   build_runner failed — the generated code the app imports was not produced"
+    exit 1; }
+  # Any generated file somebody DID commit must still match what generation makes.
+  # Nothing matches this today; it is here so that the day one does, it is covered.
+  git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 run "analyze"       bash -c '
   grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
     echo "   no melos workspace yet — skipping"; exit 0; }
@@ -36,17 +68,6 @@ run "tests"         bash -c '
   grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
     echo "   no melos workspace yet — skipping"; exit 0; }
   melos run test'
-run "codegen drift" bash -c '
-  grep -q "^workspace:" pubspec.yaml 2>/dev/null || {
-    echo "   no melos workspace yet — skipping"; exit 0; }
-  grep -rqE "^[[:space:]]+build_runner:" --include=pubspec.yaml . || {
-    echo "   no package uses build_runner yet — skipping"; exit 0; }
-  # No --delete-conflicting-outputs: build_runner removed the flag and now only
-  # warns that it was ignored. Kept working by accident, which is how a dead
-  # flag survives long enough for someone to copy it somewhere it does matter.
-  melos exec --depends-on=build_runner -- \
-    dart run build_runner build >/dev/null 2>&1 \
-    && git diff --quiet -- "*.g.dart" "*.freezed.dart"'
 
 # The ARB files are the source of truth for every user-facing string; app_localizations*.dart is
 # generated from them by `flutter gen-l10n` and is committed. A commit that edits an ARB without

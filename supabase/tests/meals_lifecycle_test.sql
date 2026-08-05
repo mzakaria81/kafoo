@@ -13,7 +13,7 @@
 -- Run with: supabase test db
 
 BEGIN;
-SELECT plan(8);
+SELECT plan(9);
 
 SELECT tests.create_supabase_user('cook@test.kafoo');
 
@@ -108,6 +108,26 @@ SELECT throws_ok(
   '23514',
   NULL,
   'a status outside the lifecycle cannot be stored at all'
+);
+
+-- 21b. The rule that decides what the publishing flow has to collect before it can
+--      offer anything: a Meal cannot leave draft without cuisine and category, and
+--      those are the two values the AI Assistant supplies rather than the Cook.
+--
+--      This is asserted here rather than discovered in the app because the app's
+--      own tests run against a fake repository, which has no triggers and would
+--      happily "publish" a Meal the database refuses. That gap is what makes a
+--      green suite and a broken product possible at the same time.
+INSERT INTO public.meals (id, cook_id, title, description, price, status)
+VALUES ('bbbbbbbb-0000-4000-8000-000000000004', tests.user_id('cook@test.kafoo'),
+        'بانيه', 'بانيه فراخ مقرمش', 85.00, 'draft');
+
+SELECT throws_ok(
+  $$ UPDATE public.meals SET status = 'published'
+       WHERE id = 'bbbbbbbb-0000-4000-8000-000000000004' $$,
+  'P0001',
+  'a Meal that is not a draft must have title, description, price, cuisine and category',
+  'a Meal cannot go on offer without the cuisine and category the AI Assistant supplies'
 );
 
 SELECT tests.clear_authentication();

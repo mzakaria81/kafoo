@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
-import 'package:kafoo_mobile/features/kitchen_profile/application/voice_input.dart';
+import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
+import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/conversation.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 

@@ -3,6 +3,44 @@ import 'dart:typed_data';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 
+/// One [MealRepository.updateDraft] invocation, with every field that was sent.
+///
+/// Tests assert both that Cook answers reach the database and that analysed
+/// fields never do — this record is what makes the second claim measurable.
+class FakeUpdateDraftCall {
+  const FakeUpdateDraftCall({
+    required this.mealId,
+    this.title,
+    this.description,
+    this.price,
+    this.cuisine,
+    this.category,
+    this.ingredients,
+    this.calories,
+    this.allergens,
+    this.photoPath,
+  });
+
+  final String mealId;
+  final String? title;
+  final String? description;
+  final String? price;
+  final Cuisine? cuisine;
+  final MealCategory? category;
+  final List<String>? ingredients;
+  final int? calories;
+  final List<String>? allergens;
+  final String? photoPath;
+
+  /// True when any field the AI Assistant proposes was included in the write.
+  bool get carriesAnalysedField =>
+      cuisine != null ||
+      category != null ||
+      ingredients != null ||
+      calories != null ||
+      allergens != null;
+}
+
 /// Records every write it is asked to make, so a test can assert which writes
 /// happened — and, more usefully, that none did.
 class FakeMealRepository implements MealRepository {
@@ -25,6 +63,9 @@ class FakeMealRepository implements MealRepository {
   final List<String> createdTitles = [];
   String? lastPublishedMealId;
   String? lastUploadedMealId;
+
+  /// Every [updateDraft] call, in order, with the fields that were sent.
+  final List<FakeUpdateDraftCall> updateDraftArgs = [];
 
   @override
   Future<Result<String, AppError>> createDraft({required String title}) async {
@@ -52,6 +93,20 @@ class FakeMealRepository implements MealRepository {
     String? photoPath,
   }) async {
     updateDraftCalls++;
+    updateDraftArgs.add(
+      FakeUpdateDraftCall(
+        mealId: mealId,
+        title: title,
+        description: description,
+        price: price,
+        cuisine: cuisine,
+        category: category,
+        ingredients: ingredients,
+        calories: calories,
+        allergens: allergens,
+        photoPath: photoPath,
+      ),
+    );
     if (failOperations) {
       return const Failure(AppError(messageKey: 'mealSaveError'));
     }

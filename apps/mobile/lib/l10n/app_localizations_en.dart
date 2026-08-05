@@ -99,13 +99,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'e.g. Delivery within an hour, or pick up yourself';
 
   @override
-  String get kitchenConvContinue => 'Continue';
+  String get convContinue => 'Continue';
 
   @override
-  String get kitchenConvVoiceHint => 'Say your answer out loud';
+  String get convVoiceHint => 'Say your answer out loud';
 
   @override
-  String get kitchenConvVoiceUnavailable =>
+  String get convVoiceUnavailable =>
       'Voice recognition is not available. You can type your answer instead.';
 
   @override
@@ -115,7 +115,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kitchenConvSummaryConfirm => 'Looks good, save';
 
   @override
-  String get kitchenConvSummaryEdit => 'Change';
+  String get convEdit => 'Change';
 
   @override
   String get kitchenConvLabelDisplayName => 'Kitchen name';
@@ -293,4 +293,167 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mealPhotoError =>
       'The photo could not be uploaded. You can continue without one.';
+
+  @override
+  String get mealConvPromptDish => 'What did you cook?';
+
+  @override
+  String get mealConvHintDish => 'For example: koshary, mahshi, panee chicken';
+
+  @override
+  String get mealConvPromptDescription =>
+      'Tell me about it. What\'s in it and how is it made?';
+
+  @override
+  String get mealConvHintDescription =>
+      'For example: lentils, rice and pasta, with fried onion on top';
+
+  @override
+  String get mealConvPromptPhoto => 'Is there a photo of the dish?';
+
+  @override
+  String get mealConvHintPhoto =>
+      'A photo gets you more orders, and you can skip it if you would rather not';
+
+  @override
+  String get mealConvPhotoDisclosure =>
+      'If you send a photo, the assistant will look at it to estimate the ingredients and calories. We will not use it for anything else.';
+
+  @override
+  String get mealConvPhotoSkip => 'Continue without a photo';
+
+  @override
+  String get mealConvPromptPrice => 'What do you sell it for?';
+
+  @override
+  String get mealConvHintPrice => 'The price of the whole dish, in pounds';
+
+  @override
+  String get mealSummaryTitle => 'Here is what you told me about this Meal';
+
+  @override
+  String get mealSummaryLabelDish => 'Meal';
+
+  @override
+  String get mealSummaryLabelDescription => 'Details';
+
+  @override
+  String get mealSummaryLabelPhoto => 'Photo';
+
+  @override
+  String get mealSummaryLabelPrice => 'Price';
+
+  @override
+  String get mealSummaryNoPhoto => 'No photo';
+
+  @override
+  String get mealSummaryConfirm => 'Looks right, publish it';
+
+  @override
+  String get cuisineEgyptian => 'Egyptian';
+
+  @override
+  String get cuisineLevantine => 'Levantine';
+
+  @override
+  String get cuisineGulf => 'Gulf';
+
+  @override
+  String get cuisineSudanese => 'Sudanese';
+
+  @override
+  String get cuisineMoroccan => 'Moroccan';
+
+  @override
+  String get cuisineTurkish => 'Turkish';
+
+  @override
+  String get cuisineItalian => 'Italian';
+
+  @override
+  String get cuisineAsian => 'Asian';
+
+  @override
+  String get cuisineAmerican => 'American';
+
+  @override
+  String get cuisineOther => 'Other';
+
+  @override
+  String get categoryMain => 'Main';
+
+  @override
+  String get categoryAppetizer => 'Appetizer';
+
+  @override
+  String get categorySoup => 'Soup';
+
+  @override
+  String get categorySalad => 'Salad';
+
+  @override
+  String get categorySide => 'Side';
+
+  @override
+  String get categoryDessert => 'Dessert';
+
+  @override
+  String get categoryBakery => 'Bakery';
+
+  @override
+  String get categoryDrink => 'Drink';
+
+  @override
+  String get categoryOther => 'Other';
+
+  @override
+  String get mealSummaryEstimatesTitle => 'The assistant\'s estimates';
+
+  @override
+  String get mealSummaryEstimatesNotice =>
+      'These are estimates from the assistant, not confirmed facts. Check them and confirm each one before you publish.';
+
+  @override
+  String get mealSummaryEstimateBadge => 'Estimate';
+
+  @override
+  String get mealSummaryApprove => 'Looks right';
+
+  @override
+  String get mealSummaryApproved => 'Confirmed';
+
+  @override
+  String get mealSummaryNeedsApproval =>
+      'Some estimates still need your confirmation';
+
+  @override
+  String get mealSummaryLabelCuisine => 'Cuisine';
+
+  @override
+  String get mealSummaryLabelCategory => 'Category';
+
+  @override
+  String get mealSummaryLabelIngredients => 'Ingredients';
+
+  @override
+  String get mealSummaryLabelCalories => 'Calories';
+
+  @override
+  String get mealSummaryLabelAllergens => 'Allergens';
+
+  @override
+  String mealSummaryCaloriesValue(int calories) {
+    return '$calories kcal';
+  }
+
+  @override
+  String get mealSummaryNoEstimates =>
+      'The assistant could not estimate anything. Write the details yourself.';
+
+  @override
+  String get mealPublishError =>
+      'We could not publish this Meal. Please try again.';
+
+  @override
+  String get mealPublishedConfirmation => 'This Meal is on the menu now.';
 }
