@@ -598,5 +598,65 @@
   "mealKitchenCheckRetry": "Try again",
   "@mealKitchenCheckRetry": {
     "description": "Button that re-runs the Kitchen Profile existence check."
+  },
+  "myMealsTitle": "My Meals",
+  "@myMealsTitle": {
+    "description": "Title of the Cook's own list of Meals, showing every status."
+  },
+  "myMealsEmpty": "Nothing here yet.",
+  "@myMealsEmpty": {
+    "description": "Shown when the Cook has no Meals at all, not even a draft."
+  },
+  "myMealsStartAction": "Offer a Meal",
+  "@myMealsStartAction": {
+    "description": "Action that starts the Meal publishing conversation."
+  },
+  "myMealsLoadError": "We couldn't load your Meals. Try again.",
+  "@myMealsLoadError": {
+    "description": "Shown when loading the Cook's own Meals fails."
+  },
+  "mealStatusDraft": "Draft",
+  "@mealStatusDraft": {
+    "description": "Status label for a Meal the Cook began and has not put on offer."
+  },
+  "mealStatusPublished": "On the menu",
+  "@mealStatusPublished": {
+    "description": "Status label for a Meal on offer."
+  },
+  "mealStatusUnavailable": "Off the menu for now",
+  "@mealStatusUnavailable": {
+    "description": "Status label for a Meal taken off the menu and expected back."
+  },
+  "mealStatusArchived": "Retired",
+  "@mealStatusArchived": {
+    "description": "Status label for a Meal retired for good. Refined by US5 if needed."
+  },
+  "mealTakeOffMenu": "Take off the menu",
+  "@mealTakeOffMenu": {
+    "description": "Action that makes a published Meal unavailable."
+  },
+  "mealPutBackOnMenu": "Put back on the menu",
+  "@mealPutBackOnMenu": {
+    "description": "Action that makes an unavailable Meal available again."
+  },
+  "mealAvailabilityError": "We couldn't change the Meal. Try again.",
+  "@mealAvailabilityError": {
+    "description": "Shown when changing a Meal's availability fails."
+  },
+  "mealLastOnMenuTitle": "This is your last Meal on the menu",
+  "@mealLastOnMenuTitle": {
+    "description": "Title of the confirmation shown only when taking off the Cook's last available Meal."
+  },
+  "mealLastOnMenuBody": "If you take it off, nobody will find your kitchen until you put a Meal back.",
+  "@mealLastOnMenuBody": {
+    "description": "Explains that the kitchen stops being findable while the Cook has nothing on offer."
+  },
+  "mealLastOnMenuConfirm": "Take it off anyway",
+  "@mealLastOnMenuConfirm": {
+    "description": "Confirms taking off the last available Meal. Neutral, not discouraging."
+  },
+  "mealLastOnMenuCancel": "Keep it on the menu",
+  "@mealLastOnMenuCancel": {
+    "description": "Cancels taking off the last available Meal."
   }
 }

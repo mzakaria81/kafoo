@@ -532,11 +532,35 @@ estimate. Correct one and confirm it becomes the Cook's.
 **Independent test**: Take a Meal off the menu, confirm nobody finds it, put it back, confirm it is
 unchanged.
 
-- [ ] T052 [P] [US4] Add the availability strings to `app_ar.arb` and `app_en.arb`
+- [x] T052 [P] [US4] Add the availability strings to `app_ar.arb` and `app_en.arb` — **DONE
+  2026-08-05.** Fifteen keys: the list's title, empty state, start action and load error; the four
+  status labels; the two availability actions and their error; and the four strings of the
+  last-Meal confirmation. Arabic written first, matching the register already in the file — a Meal
+  is `الأكلة` and on offer is `على المنيو`, from `mealPublishedConfirmation`.
+
+  `mealStatusArchived` is included even though retiring is US5, because FR-033 requires the Cook's
+  list to show every status from the day it exists. US5 may refine the wording; it will not need a
+  new key
 - [ ] T053 [US4] Build the Cook's own Meal list in `apps/mobile/lib/features/meal/presentation/my_meals_screen.dart`, showing every status including drafts (FR-033)
 - [ ] T054 [US4] Implement making a Meal unavailable and available again in one action each, emitting `MealUpdated` with `changed`
 - [ ] T055 [US4] Tell the Cook when taking their last available Meal off the menu makes their kitchen unfindable — correct, and surprising enough that it must be visible rather than discovered
-- [ ] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody
+- [x] T056 [P] [US4] Add a test asserting a kitchen with only unavailable Meals is found by nobody —
+  **ALREADY COVERED, verified and ticked 2026-08-05.** Case 28 of
+  `supabase/tests/kitchen_discoverability_test.sql` is exactly this assertion, with a `paused@`
+  fixture whose only Meal is `unavailable`. It landed with the discovery policy rather than with
+  this task.
+
+  **Verified by mutation against a real Postgres, and the first two attempts could not fail it.**
+  Widening the kitchen policy to accept an unavailable Meal left the suite green; so did widening
+  the meals read policy on its own. Neither result meant the test was weak — it meant the rule is
+  enforced twice. The kitchen policy asks whether a published Meal exists, and the `EXISTS` runs
+  under the meals policy, which decides what the asker can see at all. Each layer masks the other,
+  so a single mutation proves nothing either way.
+
+  Widening both together turns this case and the whole-surface count red. The assertion bites, the
+  redundancy is real, and `docs/product/domain-model.md` now records which of the two policies does
+  which half — because the next person to relax one will read the other as belt-and-braces and be
+  wrong about which belt is holding
 
 ---
 

@@ -480,4 +480,50 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealKitchenCheckRetry => 'جرب تاني';
+
+  @override
+  String get myMealsTitle => 'أكلاتي';
+
+  @override
+  String get myMealsEmpty => 'لسه مفيش أكلات هنا.';
+
+  @override
+  String get myMealsStartAction => 'اعرض أكلة';
+
+  @override
+  String get myMealsLoadError => 'مقدرناش نجيب أكلاتك. جرب تاني.';
+
+  @override
+  String get mealStatusDraft => 'مسودة';
+
+  @override
+  String get mealStatusPublished => 'على المنيو';
+
+  @override
+  String get mealStatusUnavailable => 'مش على المنيو دلوقتي';
+
+  @override
+  String get mealStatusArchived => 'متشالة خلاص';
+
+  @override
+  String get mealTakeOffMenu => 'شيلها من المنيو';
+
+  @override
+  String get mealPutBackOnMenu => 'رجّعها للمنيو';
+
+  @override
+  String get mealAvailabilityError => 'مقدرناش نغيّر الأكلة. جرب تاني.';
+
+  @override
+  String get mealLastOnMenuTitle => 'دي آخر أكلة على المنيو';
+
+  @override
+  String get mealLastOnMenuBody =>
+      'لو شيلتها، مطبخك مش هيبان لحد، لحد ما ترجّع أكلة تاني.';
+
+  @override
+  String get mealLastOnMenuConfirm => 'شيلها برضه';
+
+  @override
+  String get mealLastOnMenuCancel => 'سيبها على المنيو';
 }

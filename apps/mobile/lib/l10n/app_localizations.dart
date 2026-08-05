@@ -973,6 +973,96 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'جرب تاني'**
   String get mealKitchenCheckRetry;
+
+  /// Title of the Cook's own list of Meals, showing every status.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلاتي'**
+  String get myMealsTitle;
+
+  /// Shown when the Cook has no Meals at all, not even a draft.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه مفيش أكلات هنا.'**
+  String get myMealsEmpty;
+
+  /// Action that starts the Meal publishing conversation.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعرض أكلة'**
+  String get myMealsStartAction;
+
+  /// Shown when loading the Cook's own Meals fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نجيب أكلاتك. جرب تاني.'**
+  String get myMealsLoadError;
+
+  /// Status label for a Meal the Cook began and has not put on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة'**
+  String get mealStatusDraft;
+
+  /// Status label for a Meal on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'على المنيو'**
+  String get mealStatusPublished;
+
+  /// Status label for a Meal taken off the menu and expected back.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش على المنيو دلوقتي'**
+  String get mealStatusUnavailable;
+
+  /// Status label for a Meal retired for good. Refined by US5 if needed.
+  ///
+  /// In ar, this message translates to:
+  /// **'متشالة خلاص'**
+  String get mealStatusArchived;
+
+  /// Action that makes a published Meal unavailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلها من المنيو'**
+  String get mealTakeOffMenu;
+
+  /// Action that makes an unavailable Meal available again.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجّعها للمنيو'**
+  String get mealPutBackOnMenu;
+
+  /// Shown when changing a Meal's availability fails.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نغيّر الأكلة. جرب تاني.'**
+  String get mealAvailabilityError;
+
+  /// Title of the confirmation shown only when taking off the Cook's last available Meal.
+  ///
+  /// In ar, this message translates to:
+  /// **'دي آخر أكلة على المنيو'**
+  String get mealLastOnMenuTitle;
+
+  /// Explains that the kitchen stops being findable while the Cook has nothing on offer.
+  ///
+  /// In ar, this message translates to:
+  /// **'لو شيلتها، مطبخك مش هيبان لحد، لحد ما ترجّع أكلة تاني.'**
+  String get mealLastOnMenuBody;
+
+  /// Confirms taking off the last available Meal. Neutral, not discouraging.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلها برضه'**
+  String get mealLastOnMenuConfirm;
+
+  /// Cancels taking off the last available Meal.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيبها على المنيو'**
+  String get mealLastOnMenuCancel;
 }
 
 class _AppLocalizationsDelegate

@@ -493,4 +493,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealKitchenCheckRetry => 'Try again';
+
+  @override
+  String get myMealsTitle => 'My Meals';
+
+  @override
+  String get myMealsEmpty => 'Nothing here yet.';
+
+  @override
+  String get myMealsStartAction => 'Offer a Meal';
+
+  @override
+  String get myMealsLoadError => 'We couldn\'t load your Meals. Try again.';
+
+  @override
+  String get mealStatusDraft => 'Draft';
+
+  @override
+  String get mealStatusPublished => 'On the menu';
+
+  @override
+  String get mealStatusUnavailable => 'Off the menu for now';
+
+  @override
+  String get mealStatusArchived => 'Retired';
+
+  @override
+  String get mealTakeOffMenu => 'Take off the menu';
+
+  @override
+  String get mealPutBackOnMenu => 'Put back on the menu';
+
+  @override
+  String get mealAvailabilityError =>
+      'We couldn\'t change the Meal. Try again.';
+
+  @override
+  String get mealLastOnMenuTitle => 'This is your last Meal on the menu';
+
+  @override
+  String get mealLastOnMenuBody =>
+      'If you take it off, nobody will find your kitchen until you put a Meal back.';
+
+  @override
+  String get mealLastOnMenuConfirm => 'Take it off anyway';
+
+  @override
+  String get mealLastOnMenuCancel => 'Keep it on the menu';
 }
