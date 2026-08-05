@@ -114,7 +114,7 @@ Binding, and not negotiable against a product insight:
 | `AccountCreated` | active (E1) | A person became known to Kafoo |
 | `AccountRemoved` | active (E1) | A person removed their account and everything attached |
 | `KitchenProfileCreated` | active (E1) | A person became a Cook |
-| `MealPublished` | planned (E2) | A Meal became available to order |
+| `MealPublished` | active (E2) | A Meal became available to order |
 | `MealArchived` | planned (E2) | A Meal was withdrawn permanently |
 | `OrderPlaced` | planned (E4) | A Customer placed an Order |
 | `OrderAccepted` | planned (E4) | The Cook agreed to cook it |
@@ -123,8 +123,10 @@ Binding, and not negotiable against a product insight:
 | `OrderCompleted` | planned (E4) | The Order finished — the precondition for a Review |
 | `ReviewSubmitted` | planned (E5) | A Customer reviewed a completed Order |
 
-The three E1 events are `active` as of E1. The rest are `planned`: the features that would emit
-them do not exist yet. The Order lifecycle is complete
+The three E1 events are `active` as of E1, and `MealPublished` joined them in E2. The rest are
+`planned`: the features that would emit them do not exist yet. **`MealArchived` is still `planned`
+after E2 shipped the publishing flow**, because retiring a Meal is a later task in the same epic and
+nothing emits it today — see the E2 change-log row below. The Order lifecycle is complete
 here for the first time — `OrderRejected`, `OrderCancelled` and `OrderCompleted` were missing from
 the constitution until v1.1.0, which left cancellations uncountable and the entire review funnel
 unmeasurable, since a Review requires a completed Order.
@@ -144,7 +146,7 @@ unmeasurable, since a Review requires a completed Order.
 | `RecoveryEmailAttached` | active (E1) | — | They added one |
 | `PhoneNumberChanged` | active (E1) | — | A person moved their identity to a new number. Also a takeover signal |
 | `PhoneNumberDetached` | planned (E2) | `days_dormant` | A dormant Person lost its phone credential, so the number resolves to nobody (ADR-0007) |
-| `MealDrafted` | planned (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
+| `MealDrafted` | active (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
 | `MealUpdated` | planned (E2) | `changed` | A published Meal was edited. `changed` distinguishes a price change from a typo |
 | `SearchPerformed` | planned (E3) | `result_count` | A search ran |
 | `SearchFailed` | planned (E3) | — | A search returned nothing |
@@ -239,3 +241,4 @@ is what this file was created to end.
 |---|---|
 | 2026-07-30 | Created. Consolidates event rules previously duplicated across the constitution, `CLAUDE.md`, `glossary.md` and `tasks-template.md`. Completes the Order lifecycle, adds the E1 funnel, introduces levels, status, and the operational-telemetry boundary. |
 | 2026-07-30 | E1 shipped: all thirteen E1 events moved from `planned` to `active`. A `planned` event that is emitted misleads exactly as much as an `active` one that is not. |
+| 2026-08-05 | E2 publishing shipped: `MealPublished` and `MealDrafted` moved to `active`. **`MealArchived`, `MealUpdated` and `PhoneNumberDetached` deliberately did NOT move**, though all three are E2 events. Nothing emits them yet — retiring a Meal, editing one on offer, and ADR-0007's dormancy severing are still unbuilt. The rule from the row above cuts both ways, and moving all five at once because they share an epic label is exactly how a registry stops describing the system. Move each one in the change that first emits it. |

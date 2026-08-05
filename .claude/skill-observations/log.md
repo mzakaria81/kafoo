@@ -1546,3 +1546,32 @@ path is never exercised.
 **Suggested improvement:** Separate task for hand-entry of cuisine and category when estimates are absent (T049 territory). Do not relax DB constraints or invent 'other'.
 
 **Principle:** Vacuous approval of zero estimates is not the same as a complete Meal — completeness and approval are independent gates.
+
+### Observation 59: A phased task list re-lists work an earlier phase already finished
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, building the Customer's public Meal view (T062-T065, T048, T071-T074)
+**Skill:** speckit-tasks
+**Type:** open-source
+**Phase/Area:** Task generation — cross-phase deduplication
+
+**Issue:** Three of the eight tasks assigned to this session were already complete before it started.
+T064 ("confirm a signed-out person reads a published Meal") and T065 ("assert a non-owner reads zero
+drafts and zero unavailable Meals") were written as Phase 8 tasks, but the authorization test suite
+written in Phase 2 already carries them verbatim as cases 5, 6, 2 and 3 — the suite's own comments
+even quote the task wording ("The first use of the anon role in Kafoo"). T071 (a documentation task
+in the Polish phase) had likewise been landed by an earlier commit. Nothing in the task file marked
+any of them done, so an agent reading only the task list would have written duplicate assertions.
+
+**Suggested improvement:** When tasks are generated per user story, add a deduplication pass that
+checks whether a later-phase verification task is already satisfied by an artefact an earlier phase
+produces — particularly test suites, which are commonly written up-front under test-first rules and
+therefore land phases ahead of the story they verify. Where the overlap is intentional, say so in
+the task text ("already covered by X — confirm it runs green") so the reader is told to verify
+rather than to build.
+
+**Principle:** In a test-first workflow, verification tasks migrate earlier than the phase they
+belong to. A task list organised by user story will therefore re-ask for work its own earlier
+phases already did, and the failure mode is duplicated tests rather than missing ones — which is
+invisible to any gate.
