@@ -323,6 +323,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mealConvPhotoSkip => 'Continue without a photo';
 
   @override
+  String get mealConvPhotoAdd => 'Add a photo of the Meal';
+
+  @override
   String get mealConvPromptPrice => 'What do you sell it for?';
 
   @override

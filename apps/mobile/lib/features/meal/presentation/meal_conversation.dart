@@ -8,6 +8,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../../conversation/presentation/voice_button.dart';
@@ -25,10 +26,12 @@ import 'meal_summary.dart';
 class MealConversationScreen extends ConsumerStatefulWidget {
   const MealConversationScreen({
     this.voiceInput,
+    this.pickPhoto = pickPhotoFromGallery,
     super.key,
   });
 
   final VoiceInput? voiceInput;
+  final PickPhoto pickPhoto;
 
   @override
   ConsumerState<MealConversationScreen> createState() =>
@@ -41,6 +44,7 @@ class _MealConversationScreenState
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
   bool _voiceAvailable = false;
   bool _listening = false;
+  bool _uploading = false;
 
   /// Set once the person speaks or types on the current step, so the funnel
   /// records how the answer arrived without recording what was said (FR-037).
@@ -115,6 +119,35 @@ class _MealConversationScreenState
         'input': 'typed',
       },
     ));
+  }
+
+  Future<void> _addPhoto() async {
+    if (_uploading) return;
+    setState(() => _uploading = true);
+
+    final bytes = await widget.pickPhoto();
+    if (!mounted) return;
+    if (bytes == null) {
+      setState(() => _uploading = false);
+      return;
+    }
+
+    final controller = ref.read(mealConversationControllerProvider.notifier);
+    final ok = await controller.attachPhoto(bytes);
+
+    if (!mounted) return;
+    setState(() => _uploading = false);
+
+    if (ok) {
+      unawaited(emitEvent(
+        EventNames.conversationStepCompleted,
+        attributes: {
+          'kind': mealConversationKind,
+          'step': MealStepId.photo.wireName,
+          'input': 'typed',
+        },
+      ));
+    }
   }
 
   Future<void> _toggleListening() async {
@@ -224,16 +257,31 @@ class _MealConversationScreenState
                 ),
               ],
               const Spacer(),
-              if (isPhoto)
+              if (isPhoto) ...[
+                if (_uploading)
+                  const SizedBox(
+                    height: KafooSpacing.minTapTarget,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  FilledButton(
+                    onPressed: _addPhoto,
+                    style: FilledButton.styleFrom(
+                      minimumSize:
+                          const Size.fromHeight(KafooSpacing.minTapTarget),
+                    ),
+                    child: Text(l10n.mealConvPhotoAdd),
+                  ),
+                const SizedBox(height: KafooSpacing.sm),
                 OutlinedButton(
-                  onPressed: _declinePhoto,
+                  onPressed: _uploading ? null : _declinePhoto,
                   style: OutlinedButton.styleFrom(
                     minimumSize:
                         const Size.fromHeight(KafooSpacing.minTapTarget),
                   ),
                   child: Text(l10n.mealConvPhotoSkip),
-                )
-              else
+                ),
+              ] else
                 FilledButton(
                   onPressed: _acceptAnswer,
                   style: FilledButton.styleFrom(

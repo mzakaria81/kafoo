@@ -378,6 +378,10 @@
   "@mealConvPhotoSkip": {
     "description": "Button that declines the photo and continues the conversation."
   },
+  "mealConvPhotoAdd": "ضيف صورة للأكلة",
+  "@mealConvPhotoAdd": {
+    "description": "Button to attach a photo to a Meal during the conversation (T041)."
+  },
   "mealConvPromptPrice": "بتبيعها بكام؟",
   "@mealConvPromptPrice": {
     "description": "Fourth question: the price of the whole Meal."

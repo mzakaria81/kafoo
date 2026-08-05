@@ -328,7 +328,17 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   `SupabaseAccountRepository` it does not accept as an argument, so the test reaches an
   uninitialised Supabase before it can assert anything. Making that injectable is a change to the
   identity feature, not to this gate
-- [ ] T041 [US1] Upload the photo to `meal-photos/{uid}/{meal_id}.jpg`, and let a Cook finish without one rather than losing the conversation
+- [x] T041 [US1] Upload the photo to `meal-photos/{uid}/{meal_id}.jpg`, and let a Cook finish without one rather than losing the conversation — **DONE 2026-08-05.** The path was already correct in the repository; what was missing was any way for a Cook to reach it, so the photo step offered only "carry on without a photo". It now offers both, and both are answers to that question
+
+  **A failed upload keeps the Cook where they are.** The error says the photo did not go and that
+  they can carry on without one, and the skip button is still there — mutation-checked by making a
+  failed upload resolve the photo step anyway, which turns the test red
+
+  **`input: 'typed'` on a photo is imprecise and deliberate.** Choosing a file is neither typing nor
+  speaking, but the registry in `docs/product/event-model.md` lists no third value and analytics
+  attribute values are not renamed once emitted. `typed` here means "not voice", which is what the
+  funnel actually asks of it. Worth revisiting only if a question about photo attach rates comes up
+  that this cannot answer
 - [x] T042 [P] [US1] Add a widget test asserting no screen shows two unanswered questions (SC-002) — **DONE 2026-08-04** alongside T031
 - [x] T043 [P] [US1] Add a test asserting an abandoned conversation leaves a draft and **nothing on offer** — **DONE 2026-08-05.** Asserts the draft survives, `publish` was never called, and neither `MealPublished` nor `ConversationCompleted` was emitted
 - [x] T044 [US1] **Count the questions.** A Meal has seven values; if the conversation asks for all seven, the AI Assistant has failed and the design needs revisiting rather than shipping — **DONE 2026-08-05.** The rule was a doc comment in `meal_step.dart`, and a comment cannot fail a build; `packages/domain/test/meal_step_test.dart` now asserts `MealStepId` has exactly four values, so a fifth question breaks the build and has to be argued for. The "seven values" in that comment is loose — the `meals` table has nine Cook-facing columns — so the test asserts the rule that matters, four questions against everything the AI Assistant infers, rather than a contested total

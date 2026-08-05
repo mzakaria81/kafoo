@@ -314,6 +314,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealConvPhotoSkip => 'كمّل من غير صورة';
 
   @override
+  String get mealConvPhotoAdd => 'ضيف صورة للأكلة';
+
+  @override
   String get mealConvPromptPrice => 'بتبيعها بكام؟';
 
   @override

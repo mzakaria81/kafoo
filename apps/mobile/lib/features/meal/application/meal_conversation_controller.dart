@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
@@ -180,6 +181,29 @@ class MealConversationController extends _$MealConversationController {
   void declinePhoto() {
     state.draft.photoResolved = true;
     state = state.copyWith();
+  }
+
+  /// Uploads a photo and records it as the answer to the photo step.
+  ///
+  /// Returns true when the photo was stored and the step advanced. On a
+  /// failed upload the state carries the error and the Cook stays on the
+  /// photo question — a photo that would not upload must not cost them the
+  /// conversation.
+  Future<bool> attachPhoto(Uint8List bytes) async {
+    final mealId = state.draft.mealId;
+    if (mealId == null) return false;
+
+    state = state.copyWith(error: null);
+    final result = await _repository.uploadPhoto(mealId: mealId, bytes: bytes);
+    if (!ref.mounted) return false;
+
+    switch (result) {
+      case Success(value: final path):
+        return answer(MealStepId.photo, path);
+      case Failure(error: final err):
+        state = state.copyWith(error: err);
+        return false;
+    }
   }
 
   Future<Result<Object?, AppError>> _persistAnswer(

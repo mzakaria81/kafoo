@@ -650,6 +650,12 @@ abstract class AppLocalizations {
   /// **'كمّل من غير صورة'**
   String get mealConvPhotoSkip;
 
+  /// Button to attach a photo to a Meal during the conversation (T041).
+  ///
+  /// In ar, this message translates to:
+  /// **'ضيف صورة للأكلة'**
+  String get mealConvPhotoAdd;
+
   /// Fourth question: the price of the whole Meal.
   ///
   /// In ar, this message translates to:

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,6 +9,7 @@ import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
+import 'package:kafoo_mobile/features/conversation/application/photo_picker.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
 import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
@@ -959,6 +961,182 @@ void main() {
           .where((e) => e.name == EventNames.conversationCompleted)
           .toList();
       expect(completed, isEmpty);
+    });
+  });
+
+  // --- T041: Photo upload UI ------------------------------------------------
+
+  group('T041: photo upload UI', () {
+    final _fakePhotoBytes = Uint8List.fromList([1, 2, 3]);
+
+    PickPhoto _returnBytes() => () async => _fakePhotoBytes;
+    PickPhoto _returnNull() => () async => null;
+
+    setUp(() {
+      debugEventRecorder = (_, __) {};
+    });
+    tearDown(() => debugEventRecorder = null);
+
+    testWidgets('choosing a photo stores it and moves to price',
+        (tester) async {
+      final repo = FakeMealRepository();
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(
+          voiceInput: _UnavailableVoiceInput(),
+          pickPhoto: _returnBytes(),
+        ),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Answer dish
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Answer description
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Photo step: both buttons visible
+      expect(find.text(l10n.mealConvPhotoAdd), findsOneWidget);
+      expect(find.text(l10n.mealConvPhotoSkip), findsOneWidget);
+
+      // Tap add photo
+      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.pumpAndSettle();
+
+      // Upload was called for the draft's meal id
+      expect(repo.uploadPhotoCalls, 1);
+      expect(repo.lastUploadedMealId, repo.lastCreatedMealId);
+
+      // The returned path was written to the draft
+      final photoCall = repo.updateDraftArgs.where((c) => c.photoPath != null);
+      expect(photoCall, isNotEmpty);
+
+      // Conversation moved to price
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(OutlinedButton), findsNothing);
+    });
+
+    testWidgets('failed upload does not cost the Cook the conversation',
+        (tester) async {
+      final repo = FakeMealRepository(failUploads: true);
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(
+          voiceInput: _UnavailableVoiceInput(),
+          pickPhoto: _returnBytes(),
+        ),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Reach photo step
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Tap add photo — upload will fail
+      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.pumpAndSettle();
+
+      // Error is shown
+      expect(find.text(l10n.mealPhotoError), findsOneWidget);
+
+      // Still on photo step
+      expect(find.text(l10n.mealConvPhotoSkip), findsOneWidget);
+
+      // Skip still works
+      await tester.tap(find.text(l10n.mealConvPhotoSkip));
+      await tester.pumpAndSettle();
+
+      // Reached price step
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('backing out of picker changes nothing', (tester) async {
+      final repo = FakeMealRepository();
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(
+          voiceInput: _UnavailableVoiceInput(),
+          pickPhoto: _returnNull(),
+        ),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Reach photo step
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Tap add photo — picker returns null
+      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.pumpAndSettle();
+
+      // No upload was attempted
+      expect(repo.uploadPhotoCalls, 0);
+
+      // No error on screen
+      expect(find.text(l10n.mealPhotoError), findsNothing);
+
+      // Still on photo step
+      expect(find.text(l10n.mealConvPhotoSkip), findsOneWidget);
+    });
+
+    testWidgets('attaching a photo emits ConversationStepCompleted',
+        (tester) async {
+      final repo = FakeMealRepository();
+      final events = <({String name, Map<String, Object> attributes})>[];
+      debugEventRecorder = (name, attributes) {
+        events.add((name: name, attributes: attributes));
+      };
+
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(
+          voiceInput: _UnavailableVoiceInput(),
+          pickPhoto: _returnBytes(),
+        ),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Reach photo step
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'عدس ورز');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      // Attach photo
+      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.pumpAndSettle();
+
+      // Exactly one ConversationStepCompleted for photo
+      final photoEvents = events
+          .where((e) =>
+              e.name == EventNames.conversationStepCompleted &&
+              e.attributes['step'] == 'photo')
+          .toList();
+      expect(photoEvents, hasLength(1));
+      expect(photoEvents.single.attributes['input'], 'typed');
+      expect(photoEvents.single.attributes['kind'], 'meal');
+
+      // No attribute value contains bytes or a path
+      for (final value in photoEvents.single.attributes.values) {
+        if (value is String) {
+          expect(value.contains('fake-cook'), isFalse,
+              reason: 'event leaked upload path');
+        }
+      }
     });
   });
 }
