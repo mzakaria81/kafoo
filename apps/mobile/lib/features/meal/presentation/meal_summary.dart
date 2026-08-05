@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../analytics/emit_event.dart';
+import '../../analytics/event_names.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/meal_estimate_fields.dart';
 import 'meal_estimate_display.dart';
@@ -133,7 +137,16 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
         _publishFailed = true;
       }
     });
-    if (ok) widget.onPublished?.call();
+    if (ok) {
+      unawaited(emitEvent(
+        EventNames.conversationCompleted,
+        attributes: {
+          'kind': mealConversationKind,
+          'input': 'mixed',
+        },
+      ));
+      widget.onPublished?.call();
+    }
   }
 
   @override

@@ -652,4 +652,64 @@ void main() {
         reason: 'a Meal already on offer must not be published again');
     expect(repo.publishCalls, 1);
   });
+
+  // ConversationCompleted closes the funnel that ConversationStarted opens, and
+  // it is asserted here rather than with the other conversation events because
+  // the emission lives in this screen: publishing is the confirmation the whole
+  // conversation was leading to.
+  testWidgets('ConversationCompleted is emitted once when a Meal goes on offer',
+      (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    final events = <({String name, Map<String, Object> attributes})>[];
+    debugEventRecorder = (name, attributes) {
+      events.add((name: name, attributes: attributes));
+    };
+
+    await _reachSummary(tester, repo, ai: _stubAi(_fullAnalysisReply));
+    await _approveAllViaController(tester);
+
+    await _tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+    );
+
+    final completed = events
+        .where((e) => e.name == EventNames.conversationCompleted)
+        .toList();
+    expect(completed, hasLength(1));
+    expect(completed.single.attributes['kind'], mealConversationKind);
+    expect(completed.single.attributes['input'], 'mixed');
+  });
+
+  // A conversation that ended in a failure did not complete. Emitting it anyway
+  // would report a publish rate higher than the one Cooks actually experience,
+  // and the number would be wrong in the flattering direction.
+  testWidgets('ConversationCompleted is not emitted when the publish fails',
+      (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    final events = <({String name, Map<String, Object> attributes})>[];
+    debugEventRecorder = (name, attributes) {
+      events.add((name: name, attributes: attributes));
+    };
+
+    await _reachSummary(tester, repo, ai: _stubAi(_fullAnalysisReply));
+    await _approveAllViaController(tester);
+
+    // Fails only at the publish, so the summary is reached exactly as it is on
+    // the working path — the failure under test is the publish, not the setup.
+    repo.failOperations = true;
+
+    await _tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+    );
+
+    expect(
+      events.where((e) => e.name == EventNames.conversationCompleted),
+      isEmpty,
+    );
+    expect(find.text(l10n.mealPublishError), findsOneWidget);
+  });
 }

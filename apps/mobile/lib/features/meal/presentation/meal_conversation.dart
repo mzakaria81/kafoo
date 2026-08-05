@@ -6,6 +6,8 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../analytics/emit_event.dart';
+import '../../analytics/event_names.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../../conversation/presentation/voice_button.dart';
@@ -40,6 +42,10 @@ class _MealConversationScreenState
   bool _voiceAvailable = false;
   bool _listening = false;
 
+  /// Set once the person speaks or types on the current step, so the funnel
+  /// records how the answer arrived without recording what was said (FR-037).
+  String _inputMode = 'typed';
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +63,16 @@ class _MealConversationScreenState
     final available = await _voice.initialize();
     if (!mounted) return;
     setState(() => _voiceAvailable = available);
+
+    unawaited(emitEvent(
+      EventNames.conversationStarted,
+      attributes: {
+        'kind': mealConversationKind,
+        'input': available ? 'voice' : 'typed',
+        'speech_locale':
+            available ? (_voice.resolvedLocaleId ?? 'none') : 'none',
+      },
+    ));
   }
 
   /// Asks the controller, which asks the domain. Deriving the sequence here as
@@ -75,11 +91,30 @@ class _MealConversationScreenState
 
     if (mounted && success) {
       setState(_answerController.clear);
+
+      unawaited(emitEvent(
+        EventNames.conversationStepCompleted,
+        attributes: {
+          'kind': mealConversationKind,
+          'step': step.id.wireName,
+          'input': _inputMode,
+        },
+      ));
+      _inputMode = 'typed';
     }
   }
 
   Future<void> _declinePhoto() async {
     ref.read(mealConversationControllerProvider.notifier).declinePhoto();
+
+    unawaited(emitEvent(
+      EventNames.conversationStepCompleted,
+      attributes: {
+        'kind': mealConversationKind,
+        'step': MealStepId.photo.wireName,
+        'input': 'typed',
+      },
+    ));
   }
 
   Future<void> _toggleListening() async {
@@ -94,6 +129,7 @@ class _MealConversationScreenState
         if (!mounted) return;
         setState(() {
           _answerController.text = transcript;
+          _inputMode = 'voice';
           if (isFinal) _listening = false;
         });
       },

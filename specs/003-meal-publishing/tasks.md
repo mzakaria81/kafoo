@@ -304,13 +304,28 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   T038. With no analysis there is no cuisine and no category, so the database refuses the Meal and a
   Cook whose model call failed cannot offer their food at all. FR-014 says they must be able to.
   Needs a way to choose those two by hand — deliberately NOT bodged with a default, because a Meal
-  labelled with a cuisine nobody chose is worse than one that could not be published
-- [ ] T039 [US1] Emit `ConversationStarted`, `ConversationStepCompleted` with `step`, and `ConversationCompleted`, all carrying `kind: meal` and `input` — the same family as E1, not a second idea
+  labelled with a cuisine nobody chose is worse than one that could not be published.
+
+  **Founder decision, 2026-08-05: two extra conversation questions, asked only when the analysis
+  failed.** Not a picker on the summary. A Cook whose estimate arrived never sees them, so the
+  normal path stays at four questions and T044 still holds; a Cook whose estimate did not arrive is
+  asked what kind of food it is and whether it is a main dish, a dessert and so on. The answers are
+  the Cook's own, not estimates, so they need no approval row and carry no `تقدير` badge. This
+  keeps the fallback a conversation rather than a form, which the alternative — two dropdowns of ten
+  cuisines, in Arabic, on the screen the design is most explicitly conversational — would not.
+  Supersedes T049, which asks for the same thing from the US2 side
+- [x] T039 [US1] Emit `ConversationStarted`, `ConversationStepCompleted` with `step`, and `ConversationCompleted`, all carrying `kind: meal` and `input` — the same family as E1, not a second idea — **DONE 2026-08-05.** `ConversationStarted` carries `speech_locale` as E1 does, because a bare `input: voice` cannot answer whether Egyptian Arabic was actually used. Declining the photo emits a step event too: a Cook who says no has answered that question, and without the event the funnel shows a drop-off that never happened. `ConversationCompleted` is emitted from the summary on a successful publish only — a conversation that ended in a failed write did not complete, and counting it would report a publish rate higher than Cooks actually experience
 - [ ] T040 [US1] Send a Cook with no Kitchen Profile to create one first (FR-017 in the UI; the trigger from T018 is the real guard)
 - [ ] T041 [US1] Upload the photo to `meal-photos/{uid}/{meal_id}.jpg`, and let a Cook finish without one rather than losing the conversation
-- [ ] T042 [P] [US1] Add a widget test asserting no screen shows two unanswered questions (SC-002)
-- [ ] T043 [P] [US1] Add a test asserting an abandoned conversation leaves a draft and **nothing on offer**
-- [ ] T044 [US1] **Count the questions.** A Meal has seven values; if the conversation asks for all seven, the AI Assistant has failed and the design needs revisiting rather than shipping
+- [x] T042 [P] [US1] Add a widget test asserting no screen shows two unanswered questions (SC-002) — **DONE 2026-08-04** alongside T031
+- [x] T043 [P] [US1] Add a test asserting an abandoned conversation leaves a draft and **nothing on offer** — **DONE 2026-08-05.** Asserts the draft survives, `publish` was never called, and neither `MealPublished` nor `ConversationCompleted` was emitted
+- [x] T044 [US1] **Count the questions.** A Meal has seven values; if the conversation asks for all seven, the AI Assistant has failed and the design needs revisiting rather than shipping — **DONE 2026-08-05.** The rule was a doc comment in `meal_step.dart`, and a comment cannot fail a build; `packages/domain/test/meal_step_test.dart` now asserts `MealStepId` has exactly four values, so a fifth question breaks the build and has to be argued for. The "seven values" in that comment is loose — the `meals` table has nine Cook-facing columns — so the test asserts the rule that matters, four questions against everything the AI Assistant infers, rather than a contested total
+
+  **A privacy test with teeth came out of this.** FR-037 says an analytics event never carries what
+  the Cook said, and that rule is broken by a helpful addition rather than by malice. There is now a
+  test that answers with distinctive values and asserts no emitted attribute contains any of them.
+  It was mutation-checked twice: leaking the (already-cleared) text controller did not trip it,
+  leaking the draft title did
 
 **Checkpoint**: a Cook can offer food. This is the MVP boundary.
 
@@ -328,7 +343,7 @@ estimate. Correct one and confirm it becomes the Cook's.
 - [ ] T046 [US2] Render every AI-derived value in the summary as visibly an estimate, with the `basis` the function returned (FR-013). On the screen, not in a tooltip
 - [ ] T047 [US2] Make each estimate correctable in one action, and confirm the correction reaches the database as the Cook's — verifying the T017 trigger from the client side
 - [ ] T048 [US2] Present calories and allergens as estimates wherever they appear, including to a Customer reading a published Meal — FR-012 is not only about the summary screen
-- [ ] T049 [US2] Handle the AI Assistant being unreachable so a Cook still publishes, with the fields left to them (FR-014, SC-005)
+- [ ] T049 [US2] Handle the AI Assistant being unreachable so a Cook still publishes, with the fields left to them (FR-014, SC-005) — **the same requirement as T096, which carries the founder's decision on how.** Build it once, there
 - [ ] T050 [P] [US2] Add a widget test asserting an approved-but-unchanged estimate is still labelled as the AI Assistant's after publishing — the distinction most easily lost
 - [ ] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is conversational Egyptian, not Modern Standard. This is the first Arabic in Kafoo a model wrote rather than a person
 
