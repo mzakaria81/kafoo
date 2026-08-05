@@ -1165,6 +1165,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مسودة من غير اسم'**
   String get myMealsUntitledDraft;
+
+  /// Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمّل الأكلة دي'**
+  String get mealResumeDraft;
 }
 
 class _AppLocalizationsDelegate

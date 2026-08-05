@@ -582,4 +582,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get myMealsUntitledDraft => 'مسودة من غير اسم';
+
+  @override
+  String get mealResumeDraft => 'كمّل الأكلة دي';
 }

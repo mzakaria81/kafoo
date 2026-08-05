@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
+import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/my_meals_controller.dart';
+import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
@@ -80,20 +83,24 @@ const _publishedSecond = CookMeal(
   nutritionSource: NutritionSource.ai,
 );
 
-Widget _app(FakeMealRepository repo) => ProviderScope(
+Widget _app(
+  FakeMealRepository repo, {
+  void Function(CookMeal meal)? onResumeDraft,
+}) =>
+    ProviderScope(
       overrides: [
         mealRepositoryProvider.overrideWithValue(repo),
       ],
-      child: const MaterialApp(
-        locale: Locale('ar'),
-        supportedLocales: [Locale('ar'), Locale('en')],
-        localizationsDelegates: [
+      child: MaterialApp(
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: MyMealsScreen(),
+        home: MyMealsScreen(onResumeDraft: onResumeDraft),
       ),
     );
 
@@ -528,5 +535,92 @@ void main() {
         .map((t) => t.data ?? '')
         .join(' ');
     expect(rendered, isNot(contains('null')));
+  });
+
+  // --- T097: Resume a draft from the list ------------------------------------
+
+  testWidgets('only a draft offers to be carried on', (tester) async {
+    final repo = FakeMealRepository(
+      meals: [_draft, _published, _unavailable, _archived],
+    );
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealResumeDraft), findsOneWidget);
+
+    final resumeButton = find.text(l10n.mealResumeDraft);
+    final draftRow = find.byType(MyMealRow).first;
+    expect(
+      find.descendant(of: draftRow, matching: resumeButton),
+      findsOneWidget,
+    );
+
+    for (final mealLabel in [
+      l10n.myMealsStatusPublished,
+      l10n.myMealsStatusUnavailable,
+      l10n.myMealsStatusArchived,
+    ]) {
+      final rowFinder = find.ancestor(
+        of: find.text(mealLabel),
+        matching: find.byType(MyMealRow),
+      );
+      expect(
+        find.descendant(of: rowFinder, matching: resumeButton),
+        findsNothing,
+      );
+    }
+  });
+
+  testWidgets('tapping it seeds the conversation and calls back',
+      (tester) async {
+    CookMeal? callbackMeal;
+    final repo = FakeMealRepository(meals: [_draft]);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealRepositoryProvider.overrideWithValue(repo),
+          aiProviderProvider.overrideWithValue(StubAiProvider({})),
+        ],
+        child: MaterialApp(
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar'), Locale('en')],
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Consumer(
+            builder: (context, ref, child) {
+              // Keep the controller alive so resume does not dispose it.
+              ref.watch(mealConversationControllerProvider);
+              return MyMealsScreen(
+                onResumeDraft: (meal) => callbackMeal = meal,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.mealResumeDraft));
+    await tester.pumpAndSettle();
+
+    // Callback fired with the right CookMeal
+    expect(callbackMeal, isNotNull);
+    expect(callbackMeal!.id, _draft.id);
+
+    // The conversation controller's draft now carries that Meal's id
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MyMealsScreen)),
+    );
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+    expect(controller.currentStep, isNotNull);
+    expect(
+      container.read(mealConversationControllerProvider).draft.mealId,
+      _draft.id,
+    );
   });
 }

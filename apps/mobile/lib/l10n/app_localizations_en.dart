@@ -597,4 +597,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myMealsUntitledDraft => 'Untitled draft';
+
+  @override
+  String get mealResumeDraft => 'Carry on with this Meal';
 }

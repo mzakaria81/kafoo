@@ -4,11 +4,17 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
 import 'meal_enum_labels.dart';
 
 class MyMealsScreen extends ConsumerWidget {
-  const MyMealsScreen({super.key});
+  const MyMealsScreen({this.onResumeDraft, super.key});
+
+  /// Called after [MealConversationController.resume] seeds the conversation
+  /// from a stored draft. Navigation is the caller's concern, exactly as
+  /// [MealSummaryScreen.onPublished] works.
+  final void Function(CookMeal meal)? onResumeDraft;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,7 +46,10 @@ class MyMealsScreen extends ConsumerWidget {
                                   const SizedBox(height: KafooSpacing.sm),
                               itemBuilder: (context, index) {
                                 final meal = state.meals[index];
-                                return MyMealRow(meal: meal);
+                                return MyMealRow(
+                                  meal: meal,
+                                  onResumeDraft: onResumeDraft,
+                                );
                               },
                             ),
                           ),
@@ -129,9 +138,10 @@ class _InlineError extends StatelessWidget {
 }
 
 class MyMealRow extends ConsumerWidget {
-  const MyMealRow({required this.meal, super.key});
+  const MyMealRow({required this.meal, this.onResumeDraft, super.key});
 
   final CookMeal meal;
+  final void Function(CookMeal meal)? onResumeDraft;
 
   /// The dish name, or what to call a draft that has none.
   ///
@@ -170,7 +180,7 @@ class MyMealRow extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: KafooSpacing.xs),
-          _buildAction(context, controller, l10n),
+          _buildAction(context, ref, controller, l10n),
         ],
       ),
     );
@@ -178,6 +188,7 @@ class MyMealRow extends ConsumerWidget {
 
   Widget _buildAction(
     BuildContext context,
+    WidgetRef ref,
     MyMealsController controller,
     AppLocalizations l10n,
   ) {
@@ -223,6 +234,19 @@ class MyMealRow extends ConsumerWidget {
           retire,
         ],
       MealStatus.draft => [
+          _MealAction(
+            label: l10n.mealResumeDraft,
+            mealTitle: _title(l10n),
+            warning: null,
+            confirmLabel: l10n.mealRetireConfirm,
+            cancelLabel: l10n.mealRetireCancel,
+            onConfirmed: () async {
+              ref
+                  .read(mealConversationControllerProvider.notifier)
+                  .resume(meal);
+              onResumeDraft?.call(meal);
+            },
+          ),
           _MealAction(
             label: l10n.mealDeleteDraft,
             mealTitle: _title(l10n),
