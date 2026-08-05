@@ -70,6 +70,33 @@ Two of the stand-ins are where a wrong answer would come from, so they are worth
   row-level trigger runs, so zero rows matched and the statement succeeded silently. **A row-scoped
   mechanism cannot produce a statement-level refusal.** Only running it showed the difference.
 
+## The stand-in that was removed, and what it cost
+
+**Table privileges used to be a stand-in here, and they were the wrong one.** The bootstrap granted
+`ALL ON TABLES` to `anon`, `authenticated` and `service_role` through `ALTER DEFAULT PRIVILEGES`, on
+the belief that Supabase does the same by default and that RLS is what actually restricts access.
+
+Measured against the live project on 2026-08-05, the second half of that is true and the first half
+is not. Every table there granted the API roles `TRUNCATE`, `REFERENCES`, `TRIGGER` and `MAINTAIN`
+and none of `SELECT`, `INSERT`, `UPDATE` or `DELETE`, so every call through PostgREST came back
+`42501 permission denied` — **the app could not read or write a single row in production**, for
+E1's Kitchen Profiles as much as E2's Meals, while every suite in this directory was green.
+
+That is the failure mode a stand-in has and a real system does not: **it can only ever make the
+suite greener than reality.** Nothing inside a suite can audit the substitute the suite depends on,
+so a substitute justified by an assumption rather than an observation will hide exactly the gap it
+was supposed to model. This one was found by making a real call against the real deployment for an
+unrelated reason — a latency measurement — not by any check that existed.
+
+Table privileges are therefore no longer stood in for. They come from
+`supabase/migrations/20260805180727_grant_data_api_privileges.sql`, the same place production gets
+them, and `supabase/tests/data_api_grants_test.sql` fails if a table ever ships without them.
+
+Sequences and functions still take blanket default grants, and that is not an oversight: nothing in
+Kafoo's schema reaches a sequence or a public function through the API roles yet, so there is no
+production evidence either way — and inventing a rule from no measurement is what produced the line
+above.
+
 ## Trusting it
 
 It was validated rather than assumed. All existing suites pass with the same assertion count and the
