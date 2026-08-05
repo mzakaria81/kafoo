@@ -67,3 +67,19 @@ export const MEAL_ANALYSIS_SCHEMA: ResponseSchema = {
     },
   },
 };
+
+// Nothing calls this yet — no Edge Function drafts a description. It lives beside
+// MEAL_ANALYSIS_SCHEMA so the day one does, it imports the same shape rather than writing a second.
+export const MEAL_DESCRIPTION_SCHEMA: ResponseSchema = {
+  type: 'object',
+  required: ['description', 'basis'],
+  properties: {
+    description: { type: 'string' },
+    basis: {
+      type: 'object',
+      properties: {
+        description: { type: 'string' },
+      },
+    },
+  },
+};

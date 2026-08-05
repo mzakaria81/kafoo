@@ -64,7 +64,21 @@ NOT_STARTED → ASSIGNED → IN_PROGRESS → READY_FOR_REVIEW → COMPLETED
                            BLOCKED
 ```
 
-`ASSIGNED` is the coordinator's move. Everything after it is the owning worker's.
+**The two ends belong to the coordinator; the middle belongs to the worker.** `ASSIGNED` is the
+coordinator's move, and so is `COMPLETED`. Everything between them — `IN_PROGRESS`, `BLOCKED`,
+`READY_FOR_REVIEW` — is the owning worker's.
+
+A worker moves its package to `READY_FOR_REVIEW` when its PR is open and green, and stops there.
+It does not mark its own work complete, for the same reason this repository delegates
+implementation in the first place: **the author of a change is the worst available reviewer of it.**
+There are two practical reasons on top of the principle. `COMPLETED` means the work is in `main`,
+which a worker often cannot know — the merge may be waiting on the founder. And by the time it
+merges the worker's container may be gone, so a status that only it may set would never be set at
+all.
+
+The coordinator flips `COMPLETED` after the merge, and clears `owner` in the same edit: a finished
+package holds no worker, and a name left on one makes it look busy to the next session that reads
+this directory.
 
 ### Execution mode
 

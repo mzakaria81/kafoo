@@ -798,5 +798,15 @@ converting along with them — accepted, not overlooked.
 - [ ] T093 Extend the localization parity check. It compares key presence between locales and nothing
   else, so a `select` converted in Arabic and missed in English, or one missing its `other` branch,
   passes the gate today and fails at generation. The sweep must fix the check, not trust it
+- [ ] T099 Mutation-test every RLS policy against the suite that claims to guard it, and report the
+  assertions that pass with the policy fully open. **Not a hypothetical.** Case 9 of
+  `kitchen_profiles_rls_test.sql` passed on 2026-08-05 with the UPDATE policy weakened to
+  `USING (true)`: its fixture kitchen has no Meal on offer, so the SELECT policy refuses the write
+  before the UPDATE policy is consulted. Case 3 of the same file had predicted exactly this, in a
+  comment written while kitchens were still private — the masking would begin the day E2 made open
+  kitchens publicly readable. E2 shipped, and nothing re-read the warning. The fix for a masked
+  assertion is to move the test to a fixture where the named policy is the only guard, **never** to
+  change the policy. WP-008
+
 - [x] T094 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.
 - [x] T095 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.
