@@ -1,0 +1,30 @@
+{
+  "id": "WP-008",
+  "title": "Find the authorization assertions that cannot fail",
+  "objective": "Mutation-test every policy the seven pgTAP suites claim to guard, and find the assertions that pass because a sibling policy hides the row rather than because the policy under test refuses. One was found by accident; nobody knows how many others there are.",
+  "tasks": ["T099"],
+  "acceptance_criteria": [
+    "every RLS policy in supabase/migrations/ is mutated one at a time — weakened to a permissive predicate, never deleted — and the suites run against each mutation",
+    "a table in docs/ops/ lists each policy against the assertions that go red when it is weakened, and names every policy for which NO assertion goes red",
+    "each masked assertion is either moved to a fixture where the policy under test is the only guard, or renamed and commented to say what it actually covers and which assertion covers the rest",
+    "no policy is weakened in a committed file — every mutation is reverted, and the final ./scripts/verify.sh runs against the unmutated tree",
+    "the report states how many assertions were checked and how many mutations were run, so a later reader can tell coverage from a spot check"
+  ],
+  "dependencies": [],
+  "scope": {
+    "files": ["docs/ops/", "supabase/tests/"],
+    "shared_files": ["supabase/tests/", "supabase/migrations/"]
+  },
+  "execution_mode": "EXCLUSIVE",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 3,
+  "spend_envelope_usd": 3.0,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "Found during WP-006. The assertion 'non-owner cannot write another Cook's address form' passed with the UPDATE policy weakened to USING (true), because that fixture's kitchen has no Meal on offer and the SELECT policy refuses the statement before the UPDATE policy is consulted. kitchen_profiles_rls_test.sql had PREDICTED this at case 3, in a comment written while kitchens were still private: the masking would begin the day open kitchens became publicly readable. E2 shipped that change and nothing re-read the warning. So this is not a hunt for a hypothetical — it is one confirmed instance plus a documented mechanism for producing more, and 76 assertions nobody has mutation-tested. EXCLUSIVE because it edits supabase/tests/ across every suite and touches migrations transiently; two workers mutating policies against the same database would read each other's mutations as their own results. THE WHOLE PACKAGE IS A READ OF EXISTING GUARANTEES, NOT A WIDENING: if a masked assertion is found, the fix is to move the test, never to change the policy. A policy change coming out of this package is a stop-and-report to the founder.",
+  "created_at": "2026-08-05T18:40:00Z",
+  "updated_at": "2026-08-05T18:40:00Z"
+}
