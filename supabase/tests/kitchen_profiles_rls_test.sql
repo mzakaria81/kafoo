@@ -3,7 +3,7 @@
 -- Run with: supabase test db
 
 BEGIN;
-SELECT plan(7);
+SELECT plan(11);
 
 -- Create two test users.
 SELECT tests.create_supabase_user('owner@test.kafoo');
@@ -152,6 +152,90 @@ SELECT is(
   1,
   'no one can delete a kitchen profile directly'
 );
+
+-- 8. Owner sets their own address form (grammatical verb form, not demographic).
+SELECT tests.authenticate_as('owner@test.kafoo');
+
+UPDATE public.kitchen_profiles
+  SET address_form = 'feminine'
+  WHERE cook_id = tests.user_id('owner@test.kafoo');
+
+SELECT is(
+  (SELECT address_form FROM public.kitchen_profiles
+   WHERE cook_id = tests.user_id('owner@test.kafoo')),
+  'feminine',
+  'owner sets their own address form'
+);
+
+SELECT tests.clear_authentication();
+
+-- 9. A non-owner cannot write another Cook's address form — while the kitchen is closed.
+--
+-- READ THIS BEFORE TRUSTING IT. It does not detect what its name suggests, and it is kept only
+-- because the closed-kitchen case is worth pinning too.
+--
+-- Mutation-tested on 2026-08-05: with the UPDATE policy weakened to `USING (true) WITH CHECK
+-- (true)`, this assertion still passed. What refuses the write here is the SELECT policy — this
+-- fixture's Cook has no Meal on offer, so the row is invisible to the attacker and the UPDATE
+-- never reaches the UPDATE policy at all. Exactly the trap case 3 above warns about, arriving on
+-- schedule now that E2 has made kitchens with food on offer publicly readable.
+--
+-- The assertion that does bite lives in kitchen_discoverability_test.sql, case 33, where the
+-- kitchen IS discoverable and the attacker really can see the row. If you are changing the UPDATE
+-- policy, that is the test to watch, not this one.
+--
+-- Asserted with authentication cleared regardless, because a zero-rows-affected UPDATE under RLS
+-- looks identical to a successful one if you only read back as the attacker.
+SELECT tests.authenticate_as('other@test.kafoo');
+
+UPDATE public.kitchen_profiles
+  SET address_form = 'masculine'
+  WHERE cook_id = tests.user_id('owner@test.kafoo');
+
+SELECT tests.clear_authentication();
+
+SELECT is(
+  (SELECT address_form FROM public.kitchen_profiles
+   WHERE cook_id = tests.user_id('owner@test.kafoo')),
+  'feminine',
+  'non-owner cannot write another Cook''s address form'
+);
+
+-- 10. An invalid address_form value is rejected by CHECK.
+SELECT tests.authenticate_as('owner@test.kafoo');
+
+SELECT throws_ok(
+  $$ UPDATE public.kitchen_profiles
+       SET address_form = 'polite'
+       WHERE cook_id = tests.user_id('owner@test.kafoo') $$,
+  '23514',
+  NULL,
+  'invalid address_form value is rejected by CHECK'
+);
+
+SELECT tests.clear_authentication();
+
+-- 11. Unset address_form is legal — nullable, no default.
+SELECT tests.authenticate_as('other@test.kafoo');
+
+INSERT INTO public.kitchen_profiles
+  (cook_id, display_name, story, area, delivery_terms)
+VALUES (
+  tests.user_id('other@test.kafoo'),
+  'مطبخ تاني',
+  'قصة تانية',
+  'حدائق القبة',
+  'شرط التوصيل'
+);
+
+SELECT is(
+  (SELECT address_form FROM public.kitchen_profiles
+   WHERE cook_id = tests.user_id('other@test.kafoo')),
+  NULL,
+  'unset address_form is legal and reads NULL'
+);
+
+SELECT tests.clear_authentication();
 
 SELECT finish();
 ROLLBACK;
