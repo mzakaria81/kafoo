@@ -150,13 +150,56 @@ as confirmed. Separately abandon halfway and find a draft, not an offer.
   register check tested only the three noun pairs, so it reported all eight clean — a detector that
   can only say "clean" is worse than none, because it certifies the thing it cannot see.
 
-- [ ] T088 **Teach the prompt the register it already asks for, then re-replay.** T086's finding.
-  The prompt gives noun pairs (`فراخ` not `دجاج`) and no sentence pairs, so the model matches the
-  nouns and misses the register. Add worked `basis` examples in spoken Egyptian and a short
-  do-not-write list (`تحتوي على`, `يعتبر`, `غالباً ما`, `لذا`), bump `version` to 2, regenerate
-  `supabase/functions/_shared/prompts.ts`, and re-run `scripts/replay-goldens.ts`.
-  **Needs the founder to write or approve the Egyptian example sentences** — the whole point is a
-  register nobody who is not Egyptian should be inventing
+- [x] T088 **Teach the prompt the register it already asks for, then re-replay — DONE 2026-08-05.**
+  T086's finding. Version 1 gave noun pairs (`فراخ` not `دجاج`) and no sentence pairs, so the model
+  matched the nouns and missed the register. Version 2 adds a nine-row do-not-write table, seven
+  worked `basis` rewrites, and the rule that the model writes about the Meal rather than to the
+  Cook. T094 and T095 are folded in, so the corpus was replayed once rather than three times.
+
+  **Five of eight replies carried Modern Standard markers before; one does now.** The one left is
+  `دي وجبة مشبعة وتعتبر طبق رئيسي` on the burger fixture — Egyptian everywhere except the verb.
+  Six of the remaining seven carry Egyptian markers; the eighth is the garbage fixture, which
+  correctly returns nothing to score. Full report: `docs/ops/eval-meal-analysis.md`.
+
+  **The seven rewrites are still the founder's to confirm.** They are rewrites of sentences the
+  model actually produced, not invented copy, and they are the one part of this that a non-Egyptian
+  should not be the last reader of. They are listed for line-by-line review in the session that
+  landed this; nothing merges to `main` until he has read them.
+
+  **Latency also moved, and nobody asked it to: 864–1814 ms, median 1199 ms.** Version 1 was
+  779–2615 ms with a tail outside the 2-second voice budget. All eight are now inside it. One run
+  is not a measurement — this does not close T075 — but it is the direction to expect.
+
+  **The register detector was wrong in two ways, and a replay could not have told anyone.** It
+  flagged `الطباخ` as the error and named `الكوك` as the fix, which is backwards since the founder
+  settled the word on 2026-08-04 — from version 2 on it would have flagged every correct reply. And
+  its marker test was anchored on a space, so an Arabic conjunction written joined to the next word
+  hid the marker behind it: `وتعتبر` went unreported twice in the version 1 replay, once on a
+  fixture whose verdict came out as "Modern Standard markers: none". The one MSA hit in this replay
+  is a `وتعتبر`, so without the fix version 2 would have scored a clean sweep it did not earn.
+
+  Both are now covered by `scripts/register_markers_test.ts`, which runs in the gate — the `find`
+  in `verify.sh` was widened from `supabase/functions` to include `scripts`. Mutation-checked in
+  both directions: removing the conjunction turns three cases red, flipping the word turns one red.
+
+- [x] T094 **Never address the Cook in the second person — DONE 2026-08-05, folded into T088.**
+  Arabic marks gender on the second person, so every `you` forces a guess about whether this Cook is
+  a man or a woman and there is no neutral form to fall back on. The prompt now requires third
+  person about the Meal, which removes the guess rather than making it well. This is what keeps
+  model output gender-free by construction, so T089–T092 never have to pass a preference into a
+  model
+
+- [x] T095 **The Arabic word for Cook is `الطباخ` — DONE 2026-08-05, folded into T088.**
+  Founder decision, 2026-08-04 (ADR-0010). The task said one word in `prompts/meal-analysis.md`; it
+  was in nine places. `prompts/meal-description.md` carried it too and took a `version` bump of its
+  own, six golden fixtures recorded it in their stub replies, and two widget tests asserted on it.
+
+  The new `arabic vocabulary` step in `scripts/verify.sh` fails on it across `apps`, `packages`,
+  `prompts` and `supabase`. The existing `vocabulary` step could never have caught any of this —
+  it greps English words, and every occurrence was inside an Arabic string. `docs/` is deliberately
+  not swept: `docs/ops/eval-meal-analysis.md` is a transcript of what a model returned, and editing
+  the record to match the decision would be falsifying the measurement. Mutation-checked by putting
+  the old word back into a fixture and watching the step go red
 
 ### The conversation
 
@@ -413,6 +456,17 @@ estimate. Correct one and confirm it becomes the Cook's.
   mutation-checked
 - [ ] T051 [P] [US2] Add a golden case for `meal-description` asserting the drafted description is conversational Egyptian, not Modern Standard. This is the first Arabic in Kafoo a model wrote rather than a person
 
+  **Unblocked by T088 on 2026-08-05, and it was blocked for a reason worth keeping.** Written while
+  five of eight replies read as Modern Standard, the only assertion that could have passed is one
+  weak enough not to measure the register — a test written to the bug. `meal-analysis` now scores
+  one MSA marker in eight, so an assertion this test would fail on is finally worth writing.
+
+  Two things this task inherits rather than invents. The register detector and its marker lists are
+  in `scripts/replay-goldens.ts`, exported and tested — use them rather than writing a second
+  Egyptian-versus-Standard heuristic. And `meal-description` has never been replayed against a real
+  model at all (`last_evaluated: never`), so its first eval measures a prompt nobody has scored,
+  not a regression against a baseline
+
 ---
 
 ## Phase 6: User Story 4 — A Cook takes a Meal off the menu, and puts it back (P2)
@@ -659,11 +713,5 @@ converting along with them — accepted, not overlooked.
 - [ ] T093 Extend the localization parity check. It compares key presence between locales and nothing
   else, so a `select` converted in Arabic and missed in English, or one missing its `other` branch,
   passes the gate today and fails at generation. The sweep must fix the check, not trust it
-- [ ] T094 Instruct `prompts/meal-analysis.md` never to address the Cook in the second person, bump
-  `version`, and re-replay with `scripts/replay-goldens.ts`. This keeps model output gender-free by
-  construction rather than passing a preference into the model. Fold into T088 if that is still open
-- [ ] T095 **The Arabic word for Cook is `الطباخ`** — founder decision, 2026-08-04. The ARB strings
-  are already right; `prompts/meal-analysis.md` says `الكوك` and must change. That is a semantic
-  prompt change, so it bumps `version` and forces a re-evaluation — **fold it into T088** and replay
-  the corpus once rather than twice. Add `الكوك` to the vocabulary check in `scripts/verify.sh` so
-  it cannot come back
+- [x] T094 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.
+- [x] T095 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.

@@ -1,6 +1,9 @@
 ---
 id: meal-description
-version: 1
+version: 2
+# The Arabic for Cook is `الطباخ` — founder's decision, 2026-08-04, ADR-0010. One word in one
+# worked example, but it is a word the model copies into text a Cook reads, so it is a semantic
+# change and takes a version with it.
 model_tier: fast
 last_evaluated: never # goldens land with T051; this becomes a date when they first run
 ---
@@ -54,7 +57,7 @@ Strict JSON, nothing else.
 ```json
 {
   "description": "كشري بالعدس والحمص، على وصفة ماما. بيتعمل في نفس اليوم.",
-  "basis": "الكوك قال إن الوصفة بتاعة مامته وإنه بيعمله طازة"
+  "basis": "الطباخ قال إن الوصفة بتاعة مامته وإنه بيعمله طازة"
 }
 ```
 

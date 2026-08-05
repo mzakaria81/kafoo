@@ -93,7 +93,12 @@ const MSA_MARKERS: ReadonlyArray<{ term: string; note: string }> = [
   { term: 'دجاج', note: 'Egyptian: فراخ — named in the prompt' },
   { term: 'أرز', note: 'Egyptian: رز — named in the prompt' },
   { term: 'بندورة', note: 'Egyptian: طماطم — named in the prompt' },
-  { term: 'الطباخ', note: 'glossary: Cook is الكوك' },
+  { term: 'بالإضافة', note: 'Egyptian: و / وكمان' },
+  // Was the other way round until 2026-08-05, and would have flagged every correct reply from here
+  // on. The founder settled the word on 2026-08-04 (ADR-0010): Cook is الطباخ. The detector kept
+  // the old answer, which is the failure mode this whole block was written to avoid — a check that
+  // is confidently wrong is worse than one that is silent.
+  { term: 'الكوك', note: 'glossary: Cook is الطباخ' },
 ];
 
 const EGYPTIAN_MARKERS: readonly string[] = [
@@ -111,11 +116,16 @@ function collectStrings(value: unknown, into: string[]): void {
 
 /// Space-anchored on purpose. A bare substring test would count بيحتوي (Egyptian) as يحتوي (MSA),
 /// which is the exact distinction being measured.
+///
+/// The optional `و` is a conjunction written joined to the next word, and leaving it out cost this
+/// check two real hits in the version 1 replay: `وتعتبر` in two fixtures went unreported, and one
+/// of them was scored "Modern Standard markers: none". Prefixes that change the register — the `ب`
+/// on بيحتوي — still must not be skipped, so only the conjunction is optional.
 function present(haystack: string, term: string): boolean {
-  return new RegExp(`(^|\\s)${term}(\\s|$|[،.)(])`).test(haystack);
+  return new RegExp(`(^|\\s)و?${term}(\\s|$|[،.)(])`).test(haystack);
 }
 
-function findRegisterMarkers(
+export function findRegisterMarkers(
   value: Record<string, unknown>,
 ): { msa: string[]; egyptian: string[] } {
   const texts: string[] = [];
