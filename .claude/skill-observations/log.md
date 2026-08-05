@@ -1575,3 +1575,29 @@ rather than to build.
 belong to. A task list organised by user story will therefore re-ask for work its own earlier
 phases already did, and the failure mode is duplicated tests rather than missing ones — which is
 invisible to any gate.
+
+### Observation 60: An accessibility sweep passes vacuously when the fixture has nothing to measure
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** Kafoo E2, adding the Customer's public Meal view to the accessibility sweep (T074)
+**Skill:** accessibility-reviewer
+**Type:** open-source
+**Phase/Area:** Tap-target and interactive-element checks
+
+**Issue:** The repository's accessibility suite iterates a map of screens and asserts no tap target
+is under 48dp. A delegated agent added the new screen to that map using the widget's simplest
+constructor, which left the screen's only interactive control — an optional callback-gated link —
+unrendered. Every assertion passed. The suite reported the screen as covered while measuring an
+empty set, and nothing in the output distinguished "no target is too small" from "there are no
+targets".
+
+**Suggested improvement:** Add to the reviewer's checklist: a tap-target or interactive-element
+assertion must first assert that at least one such element was found. Where a screen's controls are
+behind optional constructor parameters, the fixture must supply them, and the reason belongs in a
+comment beside the fixture — otherwise the next person simplifying the fixture silently removes the
+coverage.
+
+**Principle:** A "nothing is wrong" assertion over a collection is vacuously true when the
+collection is empty. Any such check needs a companion non-emptiness assertion, or it degrades from
+a test into a report of how the fixture was built.
