@@ -4,6 +4,8 @@
 **Updated**: 2026-07-30, at the end of the session that built E1.
 **Updated**: 2026-07-31 — E1 follow-ups, E2 specified/planned/tasked, and the environment mix-up
 below.
+**Updated**: 2026-08-05 — E2 built. Database, Features, Edge Functions, Gate, E2 and Decisions rows
+rewritten, and the prose above and below the table brought level with them.
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
@@ -72,23 +74,29 @@ give it its own Claude Code environment rather than a second set of variable nam
 ## Where things stand
 
 E0 (foundation) is delivered except for the release story. **E1 (identity and Kitchen Profile) is
-written and passing the gate**, but has never run against a live database or a real handset — see
-"Known-wrong or unverified". **E2 (Meal publishing) is fully specified, planned and broken into 80
-tasks; not one line of it is implemented.**
+written and passing the gate**, but has never run against a real handset — see "Known-wrong or
+unverified". **E2 (Meal publishing) is built and passing the gate.** A Cook can describe a Meal in
+conversation, approve the AI Assistant's estimates one at a time, publish it, run a menu, and a
+Customer can read it and find the kitchen behind it.
+
+**What E2 has not done is measure itself.** The authorization suites run and pass; the timing
+budgets, the cost of a published Meal, and the description prompt against a real model are all
+still open.
 
 ### Where to pick up
 
 In rough order of value:
 
-1. **Run E1's authorization suites.** They have never executed, and until 2026-07-31 they were
-   *unrunnable* — the pgTAP extension and the `tests` helper schema they call existed nowhere.
-   `supabase/seed.sql` fixes that. Walk `docs/ops/verifying-e1.md`; §5 is the step that converts
-   "they passed" into "they would have caught it".
-2. **Answer E2's blocking decision — choose a model provider** (`specs/003-meal-publishing/tasks.md`
-   T080). Recurring spend, so it is a founder call. Requirements are in that feature's
-   `research.md` §1. Nothing in E2's AI path can be honestly evaluated until it is answered.
-3. **Start E2 at Phase 1.** Tasks are ordered so US3 (ownership) comes first, because it creates
-   the table every other story writes into.
+1. **Take E2's two timing measurements** (`specs/003-meal-publishing/tasks.md` T075): description
+   finished to first estimate, budget 2 seconds; confirm to on-offer, budget 3 seconds. Neither
+   number exists. E1 left its launch baseline unmeasured and it is still unmeasured a whole feature
+   later — this is where that pattern either stops or becomes the habit.
+2. **Measure what one published Meal costs** (T076). Every publish now bills a vision call against
+   a real provider. Recurring spend, so it is a founder call, and it joins E1's still-open
+   per-verification cost (T073).
+3. **Replay `meal-description` against a real model** (T098). `meal-analysis` has been replayed and
+   recorded in `docs/ops/eval-meal-analysis.md`; the prompt that writes the Cook's description has
+   only ever been checked against a stub.
 4. **The three E1 spikes are still untouched** — `ar-EG` recognition on real handsets, SMS delivery
    to a real Egyptian number, and per-verification cost. Each can invalidate a decision cheaply now
    and expensively later.
@@ -96,17 +104,17 @@ In rough order of value:
 | Area | State |
 |---|---|
 | Governance | Constitution v1.0.0, glossary, domain model, ADR-0005. All written, all cited by rules that now resolve. |
-| Gate | `./scripts/verify.sh` — 10 checks, all running. Verified locally against the real toolchain, not inferred from CI. `edge functions` type-checks Deno sources; `no committed credentials` blocks a tracked API key. Both were confirmed to FAIL on a deliberately planted defect, not merely to pass on a clean tree. |
+| Gate | `./scripts/verify.sh` — 19 checks, all running. Verified locally against the real toolchain, not inferred from CI. `edge functions` type-checks Deno sources; `no committed credentials` blocks a tracked API key. Both were confirmed to FAIL on a deliberately planted defect, not merely to pass on a clean tree. |
 | Workspace | Dart pub workspace: `apps/mobile`, `packages/{domain,ai,ui}`. Builds, analyses, tests. |
 | Platform projects | `android/` and `ios/` generated (ADR-0006: both platforms are in scope). An Android bundle builds end to end (41.9 MB, 3 symbol files); iOS has never been built. |
 | Agents | 7 review agents in `.claude/agents/`. |
 | CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
-| Database | Three migrations: `kitchen_profiles`, `analytics_events`, and the `kitchen-photos` bucket with its storage policies. Every table has RLS and per-operation policies, **confirmed applied and correctly shaped on the deployed project** (read-only check, 2026-07-31 — the `UPDATE` policy carries both `USING` and `WITH CHECK`). **The pgTAP tests have still never been executed**: the harness they need did not exist until `supabase/seed.sql`, and seeds do not run against a deployed project. Run them locally. |
-| Edge Functions | One: `delete-account`. Takes no arguments and reads identity from the JWT. Type-checks clean under `deno check`, which is part of the gate. **Never executed** — that needs Docker for the local stack. |
-| Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. **No Meal, no Order, no AI call to a real provider.** |
-| E2 | Specified, planned, tasked — `specs/003-meal-publishing/`: spec, plan, research, data-model, two contracts, quickstart, 80 tasks. **Zero implementation.** Blocked on a model-provider decision (T080). |
-| Decisions | ADR-0007 (dormancy severs a phone credential — policy only, no code), ADR-0008 (a Customer web surface is in scope; technology deliberately undecided). **ADR-0005 needs amending** — E2's plan found that the model seam and the provider credential cannot live in the same place. |
+| Database | Eight migrations: `kitchen_profiles`, `analytics_events`, the `kitchen-photos` bucket with its storage policies, a restriction on kitchen-photo enumeration, `meals`, the change allowing incomplete Meal drafts, the fix to the nutrition-source trigger on first write, and the Cook's form of address. Every table has RLS with per-operation policies, **confirmed applied and correctly shaped on the deployed project** (read-only check, 2026-07-31 — the `UPDATE` policy carries both `USING` and `WITH CHECK`; that check covered the E1 tables — **the `meals` policies have not been checked against the deployed project**). **The pgTAP suites do now run, and they run without Docker** — `./scripts/local-db.sh test`, 7 suites, 76 assertions, against a real Postgres of the version pinned in `supabase/config.toml`. The harness that did not exist when this file was last updated is now the fastest path to proving the policies. |
+| Edge Functions | Two: `delete-account` and `analyze-meal`. `analyze-meal` is where the vendor call happens. It holds no service-role key and has no write path, so the AI Assistant is *structurally* unable to write to the database. `supabase/functions/_shared/ai/` holds the provider registry with adapters for Gemini, Anthropic and OpenAI. It is the only place in Kafoo where a model name is written down, and the gate fails if a model id appears anywhere else. Both functions type-check under `deno check` in the gate, as before. **New since E1**: the shared AI code has unit tests (`*_test.ts`) that run in the gate on every commit — the registry suite is what keeps the one-variable provider switch honest, because a half-added provider or a silent fallback to the wrong one would pass every other check. `delete-account` has **still never been executed** — that needs Docker for the local stack. `analyze-meal` *has* been called against a real provider, which is how the model defaults were measured. |
+| Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. E2 complete: publishing a Meal by conversation with AI-assisted estimates the Cook approves one at a time; the Cook's menu (put on offer, take off, retire, delete a draft); editing a published Meal one detail at a time; and the Customer's public view of a Meal. E2 also kept E1's inherited obligation: the migration that creates `meals` carries the widening `SELECT` policy on `kitchen_profiles`, so a Kitchen Profile with a Meal on offer is now findable by a Customer. That was impossible in E1. **Still no Order** — it is the next thing that does not exist. |
+| E2 | Built and passing the gate. The model-provider decision that blocked it was made on 2026-08-02 and is recorded in ADR-0005 Amendment 1: **Gemini on `gemini-3.1-flash-lite`**, chosen by measuring four models against the real prompt rather than from a pricing page. Anthropic Claude Haiku 4.5 was the founder's first choice earlier the same day and remains configured as the alternative — `AI_PROVIDER=anthropic`, one variable, no code change. What remains open is measurement — the two timing budgets (T075), the cost of one published Meal (T076), and replaying the `meal-description` prompt against a real model (T098). |
+| Decisions | ADR-0007 (dormancy severs a phone credential — policy only, no code), ADR-0008 (a Customer web surface is in scope; technology deliberately undecided). **ADR-0005 Amendment 1 landed 2026-08-02** — the model seam stays `AiProvider` in Dart while the vendor swap moved inside the Edge Function, because a provider key compiled into the app is extractable by anyone who downloads it. E2 added two more: ADR-0009 (a thin client talking to the model directly — **Proposed, not decided**, deliberately held still while it is evaluated) and ADR-0010 (address a Cook in their own grammatical form; the Arabic word for Cook is `الطباخ`). |
 | Web | `apps/mobile/web/` builds (`flutter build web --release`, 42 MB CanvasKit, `lang="ar" dir="rtl"`). Development and demo target **only** — it is not the Customer web surface of ADR-0008, and must not become one by default. |
 
 ## What is missing, in the order it probably matters
@@ -121,41 +129,49 @@ is why this is still cheap.
 Then T040 (four signing secrets into repository settings) and T041 (verify a genuinely signed
 candidate in CI — the current pipeline has only ever produced a debug-signed one).
 
-### 2. Run E1's tests against a real stack — they exist and have never executed
+### 2. The parts of the backend a test still cannot reach
 
-This is now the largest gap, and it is a **verification** gap rather than a writing one.
+**The authorization suites are no longer in this category.** They run, without Docker, in seconds:
+
+```
+./scripts/local-db.sh test           # 7 pgTAP files, 76 assertions
+```
+
+That is the whole of `FR-008` — that a person's data is unreadable by anyone else — plus every
+Meal ownership and lifecycle rule E2 added, exercised against a real Postgres of the version
+`supabase/config.toml` pins. `docs/ops/local-database.md` explains how, and why Docker was never
+the requirement: Postgres was.
+
+**What is still unreachable is the rest of the stack around those policies** — Auth, PostgREST,
+Storage, and Edge Functions at runtime. That needs Docker:
 
 ```
 supabase start
-supabase test db                     # 3 pgTAP files, 18 assertions
 supabase functions serve delete-account
 deno test --allow-net --allow-env supabase/functions/delete-account/index.test.ts
 ```
 
-`FR-008` — that a person's data is unreadable by anyone else — now has tests written *against
-real tables*, which is further than E0 got. They still have to be seen passing. A negative test
-that has never run has proven nothing, which is the whole reason the constitution wants it
-written first.
-
-The Edge Function and its tests **do** now type-check on every gate run, which is not the same as
-running them but is no longer nothing: it caught three errors that had survived review.
+`delete-account` has still never been executed. It type-checks on every gate run, which is not the
+same as running it but is no longer nothing: it caught three errors that had survived review.
 
 Then walk `specs/002-identity-kitchen-profile/quickstart.md` §6 end to end. The step most likely
 to be quietly broken is the **photo deletion** during account removal: it is the only part of
 removal no foreign key enforces.
 
-### 3. E2
+### 3. E2 — built; the inherited obligation is discharged
 
 E1 established the ownership pattern every later table copies; E2 (voice-first, AI-assisted Meal
-publishing) is the product thesis and the reason the constitution has the shape it does. It has
-no spec yet and needs `/speckit-specify` — it adds screens and an AI-derived write path, both
-stop-and-ask triggers.
+publishing) is the product thesis and the reason the constitution has the shape it does. It is
+specified, planned, built and passing the gate — `specs/003-meal-publishing/`.
 
-E2 also carries an **inherited obligation**: the migration that creates `meals` must add the
-widening `SELECT` policy on `kitchen_profiles` that `data-model.md` has already written out.
-Without it Kafoo will have Meals whose kitchens nobody can find, and the failure is silent —
-queries return zero rows rather than erroring. `supabase/tests/kitchen_discoverability_test.sql`
-is the test that will start failing when that day comes, and its header says so.
+E2 carried an **inherited obligation** and **it landed**: the migration that creates `meals` adds
+the widening `SELECT` policy on `kitchen_profiles` at the foot of the same file, so a Kitchen
+Profile with a Meal on offer is findable. Without it Kafoo would have had Meals whose kitchens
+nobody could find, and the failure would have been silent — queries return zero rows rather than
+erroring. `supabase/tests/kitchen_discoverability_test.sql` is the suite that would have gone red,
+and it passes.
+
+What E2 has not done is measure itself — see "Where to pick up".
 
 ### 4. Smaller, real
 
@@ -204,7 +220,7 @@ Stated plainly, because the expensive failures this session were all of this kin
 - **Nothing in E1 has touched a live Supabase.** Every Dart test runs against an in-memory fake.
   The Edge Functions are correct by construction and by review, which is not the same as correct.
   **The RLS policies are no longer in that category**: they run against a real Postgres on every
-  pull request and locally in seconds — `docs/ops/local-database.md`, 64 assertions. What that does
+  pull request and locally in seconds — `docs/ops/local-database.md`, 76 assertions. What that does
   not cover is Supabase's own services around them, so the gap has narrowed rather than closed.
   Preview branches were the earlier answer and are retired; `docs/ops/preview-branches.md` says why
   and what it would take to bring them back.

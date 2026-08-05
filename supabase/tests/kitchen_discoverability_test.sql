@@ -22,7 +22,7 @@
 -- Run with: supabase test db
 
 BEGIN;
-SELECT plan(7);
+SELECT plan(10);
 
 SELECT tests.create_supabase_user('open@test.kafoo');       -- has a Meal on offer
 SELECT tests.create_supabase_user('drafting@test.kafoo');   -- has drafts only
@@ -156,6 +156,79 @@ SELECT throws_ok(
 );
 
 SELECT tests.clear_authentication();
+
+-- 31. An anonymous visitor reads the address form on an open kitchen.
+--     Deliberate: Customer-facing strings that describe a Cook need the Cook's form, so the form
+--     rides the existing discovery SELECT — not a new hole, and not owner-only.
+SELECT tests.authenticate_as('open@test.kafoo');
+
+UPDATE public.kitchen_profiles
+  SET address_form = 'feminine'
+  WHERE cook_id = tests.user_id('open@test.kafoo');
+
+SELECT tests.clear_authentication();
+
+SELECT tests.authenticate_as_anon();
+
+SELECT is(
+  (SELECT address_form FROM public.kitchen_profiles
+   WHERE cook_id = tests.user_id('open@test.kafoo')),
+  'feminine',
+  'an anonymous visitor reads the address form on an open kitchen'
+);
+
+SELECT tests.clear_authentication();
+
+-- 32. The address form is invisible on a kitchen that is not discoverable.
+--     Proves the exposure is scoped to the existing discovery rule, not a new public read.
+SELECT tests.authenticate_as('paused@test.kafoo');
+
+UPDATE public.kitchen_profiles
+  SET address_form = 'masculine'
+  WHERE cook_id = tests.user_id('paused@test.kafoo');
+
+SELECT tests.clear_authentication();
+
+SELECT tests.authenticate_as_anon();
+
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.kitchen_profiles
+   WHERE cook_id = tests.user_id('paused@test.kafoo')),
+  0,
+  'address form is not readable on a kitchen that is not discoverable'
+);
+
+SELECT tests.clear_authentication();
+
+-- 33. A Customer who can SEE an open kitchen still cannot WRITE its address form.
+--
+-- THIS IS THE CASE THE ADDRESS FORM ACTUALLY NEEDS, and it has to live here rather than in
+-- kitchen_profiles_rls_test.sql. That file's equivalent assertion passes for the wrong reason:
+-- its fixture kitchen has no Meal on offer, so the attacker cannot see the row at all and the
+-- UPDATE is refused by the SELECT policy before the UPDATE policy is ever consulted. Measured on
+-- 2026-08-05 — with the UPDATE policy weakened to `USING (true) WITH CHECK (true)`, that
+-- assertion still passed. It is the exact trap case 3 of that file warns about, arriving on
+-- schedule now that E2 has made kitchens publicly readable.
+--
+-- Here the kitchen IS discoverable, so the Customer genuinely can read the row, and the only
+-- thing standing between them and writing it is the UPDATE policy. Weaken that policy and this
+-- goes red. Verified both ways before it was committed.
+SELECT tests.authenticate_as('customer@test.kafoo');
+
+UPDATE public.kitchen_profiles
+  SET address_form = 'masculine'
+  WHERE cook_id = tests.user_id('open@test.kafoo');
+
+SELECT tests.clear_authentication();
+
+-- Read back with authentication cleared: a zero-rows-affected UPDATE under RLS is indistinguishable
+-- from a successful one if you only look through the attacker's own policies.
+SELECT is(
+  (SELECT address_form FROM public.kitchen_profiles
+   WHERE cook_id = tests.user_id('open@test.kafoo')),
+  'feminine',
+  'a Customer who can see an open kitchen still cannot write its address form'
+);
 
 SELECT finish();
 ROLLBACK;

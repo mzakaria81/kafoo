@@ -1,0 +1,46 @@
+-- How a Cook wants to be addressed.
+--
+-- Arabic conjugates the second person and has no neutral form. كمّل and كمّلي are different words
+-- and there is no third spelling that serves both, so an app that addresses a Cook at all has
+-- already chosen. Kafoo currently addresses every Cook as a man; that was never decided, it was
+-- copied from E1. ADR-0010 decided to ask rather than keep guessing.
+--
+-- A FORM OF ADDRESS, NEVER A GENDER. 'masculine' and 'feminine' name the grammatical form of the
+-- verb, not the person. The narrowness is the whole point: business-rules.md forbids collecting a
+-- demographic field the feature does not need, and a form of address cannot be repurposed for
+-- ranking or advertising the way a recorded gender could. Do not widen these values, and do not
+-- add a second column that records the same thing about the person instead of about the sentence.
+--
+-- The four questions business-rules.md requires of any new personal-data field:
+--
+--   Why do we need it       A verb ending, and nothing else. Without it the app addresses every
+--                           Cook as a man, in a product whose first principle is trust.
+--   How long do we keep it  For the life of the account. cook_id is ON DELETE CASCADE against
+--                           auth.users, so deleting the account deletes this with it. There is no
+--                           separate retention rule to remember or to get wrong.
+--   Who can read it         The Cook, and anyone who can already see the kitchen — which, through
+--                           the policy "anyone reads a kitchen with food on offer", includes
+--                           anonymous visitors whenever that Cook has a published Meal. That
+--                           exposure is deliberate and was approved on 2026-08-05: two
+--                           Customer-facing strings describe a Cook and need the Cook's form
+--                           rather than the reader's. It is also why this is a form of address —
+--                           a gender field with the same visibility would be indefensible.
+--   Can we avoid it         No. ADR-0010 considered rewriting every string to dodge second-person
+--                           verbs and rejected it: Egyptian imperatives are hard to avoid and the
+--                           result reads like signage rather than like a person.
+--
+-- NULLABLE ON PURPOSE, AND IT STAYS THAT WAY. The question that fills this column is added to the
+-- Kitchen Profile conversation in T090. Until then nothing sets it, so NOT NULL would break
+-- profile creation on the day this ships. After T090 it is still nullable, because the ICU
+-- `select` in the ARB files needs an `other` branch whatever the database does, and that branch is
+-- what an unset Cook reads.
+--
+-- NO NEW POLICY, DELIBERATELY. Row Level Security is already enabled on kitchen_profiles and its
+-- policies are per-operation and column-agnostic, so this column inherits them exactly: the owning
+-- Cook writes it, and it is readable precisely where the row is. A policy added here could only
+-- widen that, never narrow it. supabase/tests/ proves both halves — that a non-owner cannot write
+-- it, and that it is visible on an open kitchen and invisible on one that is closed.
+
+ALTER TABLE kitchen_profiles
+  ADD COLUMN address_form text
+    CHECK (address_form IN ('masculine', 'feminine'));
