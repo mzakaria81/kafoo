@@ -17,18 +17,28 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get browseNothingOnOffer =>
-      'مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.';
+  String get browseLoading => 'بنجيب الأكل...';
 
   @override
-  String get browseSignInEntry => 'تسجيل الدخول';
+  String get browseNothingOnOffer =>
+      'مفيش أكلات معروضة دلوقتي. ممكن نلاقي حاجة كمان شوية.';
+
+  @override
+  String get browseRetry => 'جرب تاني';
+
+  @override
+  String get browseSignInEntry => 'دخول';
 
   @override
   String get browseTitle => 'أكل النهاردة';
 
   @override
-  String get discoveryLoadError =>
-      'مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.';
+  String get discoveryLoadError => 'مش قادرين نعرض الأكل دلوقتي.';
+
+  @override
+  String mealCardSemanticLabel(String kitchen, String price, String title) {
+    return '$title، $kitchen، $price';
+  }
 
   @override
   String publishMeal(String addressForm) {

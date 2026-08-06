@@ -13,7 +13,7 @@ import '../application/browse_controller.dart';
 /// to it: it is the zero-state before a Customer searches and the answer when a
 /// search finds nothing.
 class BrowseScreen extends ConsumerWidget {
-  const BrowseScreen({this.onOpen, this.trailing, super.key});
+  const BrowseScreen({this.onOpen, this.entry, super.key});
 
   /// Called when a Customer opens a Meal.
   ///
@@ -22,9 +22,14 @@ class BrowseScreen extends ConsumerWidget {
   /// again.
   final void Function(DiscoveredMeal item)? onOpen;
 
-  /// An action in the bar. Signed out this is the way in for a Cook; signed in
-  /// there is nothing to put here.
-  final Widget? trailing;
+  /// A way in for someone with no account.
+  ///
+  /// Rendered in the body rather than the bar, and that is measured rather than
+  /// preferred: as an `AppBar` action it took its full intrinsic width and
+  /// squeezed the title to **zero** at 200% text scale — silently at 360dp, and
+  /// with an overflow at 320dp. An `AppBar` clips without throwing, so a test
+  /// asserting on exceptions could never see it.
+  final Widget? entry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,34 +37,53 @@ class BrowseScreen extends ConsumerWidget {
     final state = ref.watch(browseControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.browseTitle),
-        actions: [if (trailing != null) trailing!],
-      ),
+      appBar: AppBar(title: Text(l10n.browseTitle)),
       body: RefreshIndicator(
         onRefresh: () => ref.read(browseControllerProvider.notifier).refresh(),
-        child: _body(context, l10n, state),
+        // A live region, so a screen reader announces the move out of loading
+        // and announces what a refresh returned. Without it a blind Customer
+        // hears nothing and cannot tell a slow load from a broken app — the
+        // failure `browseNothingOnOffer` prevents visually and nothing
+        // prevented aloud.
+        child: Semantics(
+          liveRegion: true,
+          child: _body(context, ref, l10n, state),
+        ),
       ),
     );
   }
 
   Widget _body(
     BuildContext context,
+    WidgetRef ref,
     AppLocalizations l10n,
     BrowseState state,
   ) {
     if (state.loading) {
-      return const Center(child: CircularProgressIndicator());
+      // A bare spinner carries an empty semantic label and says nothing at all.
+      return Center(
+        child: CircularProgressIndicator(semanticsLabel: l10n.browseLoading),
+      );
     }
 
     if (state.error != null) {
-      return _message(l10n.discoveryLoadError, KafooColors.danger);
+      return _message(
+        text: l10n.discoveryLoadError,
+        color: KafooColors.danger,
+        onRetry: () => ref.read(browseControllerProvider.notifier).refresh(),
+        retryLabel: l10n.browseRetry,
+      );
     }
 
     // FR-006: words, never a blank screen. And never this message for a
     // failure — see [BrowseState.saysNothingOnOffer].
     if (state.saysNothingOnOffer) {
-      return _message(l10n.browseNothingOnOffer, KafooColors.onSurface);
+      return _message(
+        text: l10n.browseNothingOnOffer,
+        color: KafooColors.onSurface,
+        onRetry: () => ref.read(browseControllerProvider.notifier).refresh(),
+        retryLabel: l10n.browseRetry,
+      );
     }
 
     // A Column in a SingleChildScrollView rather than a lazy ListView. The
@@ -73,22 +97,54 @@ class BrowseScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final item in state.onOffer)
-            MealCard(
-              title: item.meal.title,
-              price: item.meal.price,
-              kitchenLabel: l10n.browseKitchenLabel(item.kitchen.displayName),
-              onTap: onOpen == null ? null : () => onOpen!(item),
-            ),
+          if (entry != null) ...[
+            entry!,
+            const SizedBox(height: KafooSpacing.md),
+          ],
+          for (final item in state.onOffer) _card(l10n, item),
         ],
       ),
     );
   }
 
-  /// Scrollable so the pull-to-refresh gesture still works on a screen with
-  /// nothing on it — which is exactly the screen a Customer most wants to
-  /// retry.
-  Widget _message(String text, Color color) => LayoutBuilder(
+  Widget _card(AppLocalizations l10n, DiscoveredMeal item) {
+    final kitchenLabel = l10n.browseKitchenLabel(item.kitchen.displayName);
+    // The price carries its currency. `Meal.price` is the exact string the Cook
+    // typed — `numeric(10,2)`, never a double — and this card was rendering it
+    // bare as "35" while the Meal one tap deeper said "٣٥ جنيه". Money a
+    // Customer reads is never a naked number.
+    final price = l10n.publicMealPriceValue(item.meal.price);
+
+    return MealCard(
+      title: item.meal.title,
+      price: price,
+      kitchenLabel: kitchenLabel,
+      // Composed here from an ARB entry so the separator follows the locale.
+      // Built inside the card it meant a hardcoded Arabic comma reaching every
+      // English voice.
+      semanticsLabel: l10n.mealCardSemanticLabel(
+        item.meal.title,
+        kitchenLabel,
+        price,
+      ),
+      onTap: onOpen == null ? null : () => onOpen!(item),
+    );
+  }
+
+  /// Scrollable so pull-to-refresh still works on a screen with nothing on it —
+  /// which is exactly the screen a Customer most wants to retry.
+  ///
+  /// The button is not a convenience. `RefreshIndicator` exposes **no**
+  /// semantics action, so as the only way back it stranded a screen-reader
+  /// Customer, and anyone who cannot make a precise vertical drag, on a message
+  /// with nothing to press.
+  Widget _message({
+    required String text,
+    required Color color,
+    required VoidCallback onRetry,
+    required String retryLabel,
+  }) =>
+      LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
@@ -96,10 +152,28 @@ class BrowseScreen extends ConsumerWidget {
             child: Center(
               child: Padding(
                 padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-                child: Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: color),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      // Copied from the ambient style rather than built fresh,
+                      // so it keeps inheriting text scaling.
+                      style: DefaultTextStyle.of(context)
+                          .style
+                          .copyWith(color: color),
+                    ),
+                    const SizedBox(height: KafooSpacing.md),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize:
+                            const Size.fromHeight(KafooSpacing.minTapTarget),
+                      ),
+                      onPressed: onRetry,
+                      child: Text(retryLabel),
+                    ),
+                  ],
                 ),
               ),
             ),

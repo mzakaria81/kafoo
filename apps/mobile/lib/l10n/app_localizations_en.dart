@@ -17,8 +17,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get browseLoading => 'Loading food...';
+
+  @override
   String get browseNothingOnOffer =>
-      'No food is on offer right now. Check back in a little while.';
+      'No Meals are on offer right now. There may be something in a little while.';
+
+  @override
+  String get browseRetry => 'Try again';
 
   @override
   String get browseSignInEntry => 'Sign in';
@@ -27,8 +33,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseTitle => 'What\'s cooking';
 
   @override
-  String get discoveryLoadError =>
-      'We couldn\'t load the food right now. Let\'s try again in a moment.';
+  String get discoveryLoadError => 'We couldn\'t load the food right now.';
+
+  @override
+  String mealCardSemanticLabel(String kitchen, String price, String title) {
+    return '$title, $kitchen, $price';
+  }
 
   @override
   String publishMeal(String addressForm) {

@@ -1,0 +1,11 @@
+{
+  "appTitle": "كفو",
+  "browseTitle": "أكل النهاردة",
+  "browseNothingOnOffer": "مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.",
+  "browseKitchenLabel": "من {kitchen}",
+  "kitchenMealsTitle": "الأكل المعروض",
+  "kitchenArea": "المنطقة",
+  "kitchenDeliveryTerms": "التوصيل",
+  "notFound": "الصفحة دي مش موجودة، أو المطبخ ده مفيش عنده أكل معروض دلوقتي.",
+  "loadError": "مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية."
+}

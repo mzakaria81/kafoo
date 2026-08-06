@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -176,13 +177,50 @@ void main() {
     expect(view.cookAddressForm, item.kitchen.addressForm);
   });
 
-  testWidgets('every Meal card is reachable by a screen reader',
+  testWidgets('a Meal card can be OPENED by a screen reader, not just read',
       (tester) async {
+    // This assertion exists because its weaker form passed while the feature
+    // was broken. Asserting the label is present proved only that the card
+    // announced itself — and it announced itself as a BUTTON whose tap action
+    // had been swallowed, so a blind Customer heard "button", double tapped,
+    // and nothing happened. Browsing was a dead end and every test was green.
+    //
+    // SemanticsAction.tap is what a screen reader's double tap sends. Its
+    // presence on the node is the discriminator: the broken version carried
+    // isButton with an EMPTY action set, which no label assertion can see.
     final handle = tester.ensureSemantics();
-    await tester.pumpWidget(_app(FakeDiscoveryRepository(onOffer: _onOffer)));
+    await tester.pumpWidget(_app(
+      FakeDiscoveryRepository(onOffer: _onOffer),
+      onOpen: (_) {},
+    ));
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel(RegExp('كشري')), findsAtLeastNWidgets(1));
+    final data = tester
+        .getSemantics(find.bySemanticsLabel(RegExp('كشري')))
+        .getSemanticsData();
+    expect(data.flagsCollection.isButton, isTrue);
+    expect(data.hasAction(SemanticsAction.tap), isTrue,
+        reason: 'a node that says it is a button must be pressable');
     handle.dispose();
+  });
+
+  testWidgets('the error state offers a way back that is not a gesture',
+      (tester) async {
+    // RefreshIndicator exposes no semantics action at all, so pull-to-refresh
+    // as the only retry left a screen-reader Customer stranded on a message
+    // with nothing to press.
+    final repo = FakeDiscoveryRepository(fail: true);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.browseRetry), findsOneWidget);
+    final before = repo.calls;
+    repo.fail = false;
+    repo.onOffer = _onOffer;
+    await tester.tap(find.text(l10n.browseRetry));
+    await tester.pumpAndSettle();
+
+    expect(repo.calls, greaterThan(before));
+    expect(find.text('كشري'), findsOneWidget);
   });
 }

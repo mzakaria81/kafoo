@@ -11,21 +11,38 @@
       "kitchen": {"type": "String"}
     }
   },
-  "browseNothingOnOffer": "مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.",
-  "@browseNothingOnOffer": {
-    "description": "FR-006. Shown when no Cook anywhere has a Meal on offer. Must be words rather than an empty screen, and must NOT be shown while the first load is still running or for a failure \u2014 those are different things."
+  "browseLoading": "بنجيب الأكل...",
+  "@browseLoading": {
+    "description": "Announced to a screen reader while the first load runs. Silence is indistinguishable from a broken app."
   },
-  "browseSignInEntry": "تسجيل الدخول",
+  "browseNothingOnOffer": "مفيش أكلات معروضة دلوقتي. ممكن نلاقي حاجة كمان شوية.",
+  "@browseNothingOnOffer": {
+    "description": "FR-006. Shown when no Cook anywhere has a Meal on offer. Must be words rather than an empty screen, and must NOT be shown while the first load is running or for a failure. Customer-facing and UNGENDERED per ADR-0010: the first version said 'تعالى بص' — two masculine imperatives — which addressed every woman browsing as a man. First-person plural has no gender in Arabic, which is why the action lives on a button instead of in the sentence. FLAG: wants a native Cairene ear."
+  },
+  "browseRetry": "جرب تاني",
+  "@browseRetry": {
+    "description": "Retry button on the browse error state. Pull-to-refresh exposes no semantics action, so it cannot be the only way back. Customer-facing and ungendered per ADR-0010 \u2014 a bare imperative that is identical in both forms."
+  },
+  "browseSignInEntry": "دخول",
   "@browseSignInEntry": {
-    "description": "Bar action on the browse screen shown to someone with no account. Customer-facing and ungendered (ADR-0010): a noun, not a verb, so it carries no grammatical form at all."
+    "description": "Entry to signing in, shown to someone with no account. A bare verbal noun: ungendered per ADR-0010, and in the app's own register — 'تسجيل الدخول' was the MSA calque of the English and rendered a 352dp button on a 320dp screen at 200% text scale, clipping the title to nothing."
   },
   "browseTitle": "أكل النهاردة",
   "@browseTitle": {
     "description": "Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010)."
   },
-  "discoveryLoadError": "مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.",
+  "discoveryLoadError": "مش قادرين نعرض الأكل دلوقتي.",
   "@discoveryLoadError": {
-    "description": "Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing, so no addressForm select — ADR-0010 keeps Customer-directed verbs ungendered, and first-person plural has no gender in Arabic."
+    "description": "Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing and ungendered per ADR-0010. States the fact only — the retry is browseRetry on a real button, because the previous copy promised a retry that nothing performed and the screen had no control to press."
+  },
+  "mealCardSemanticLabel": "{title}، {kitchen}، {price}",
+  "@mealCardSemanticLabel": {
+    "description": "How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale \u2014 a hardcoded Arabic comma is announced or mispaused by many English voices.",
+    "placeholders": {
+      "kitchen": {"type": "String"},
+      "price": {"type": "String"},
+      "title": {"type": "String"}
+    }
   },
   "publishMeal": "{addressForm, select, feminine{انشري الأكلة} other{انشر الأكلة}}",
   "@publishMeal": {

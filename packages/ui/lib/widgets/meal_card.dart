@@ -18,6 +18,7 @@ class MealCard extends StatelessWidget {
     required this.title,
     required this.price,
     required this.kitchenLabel,
+    required this.semanticsLabel,
     this.photoUrl,
     this.onTap,
     super.key,
@@ -34,6 +35,15 @@ class MealCard extends StatelessWidget {
   /// question a Customer asks, so it is required rather than optional.
   final String kitchenLabel;
 
+  /// How the whole card reads aloud, already composed and localized.
+  ///
+  /// Supplied by the caller rather than built here, and the reason is specific:
+  /// composing it in this package meant hardcoding an Arabic comma into a
+  /// widget that also renders under `en`, where many voices announce or
+  /// mispause it. Concatenation also fixes the field order across every locale,
+  /// which is the thing placeholders exist to avoid.
+  final String semanticsLabel;
+
   final String? photoUrl;
 
   final VoidCallback? onTap;
@@ -42,11 +52,21 @@ class MealCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
+    // `excludeSemantics` on THIS node rather than an ExcludeSemantics child.
+    //
+    // The child form swallowed the InkWell's tap action while `button: true`
+    // kept advertising the node as pressable — measured as
+    // `IS BUTTON: true, HAS TAP ACTION: false`. A screen reader announced every
+    // Meal as a button and its double-tap did nothing, so browsing was a dead
+    // end for a blind Customer. The action has to live on the same node that
+    // claims to be a button.
     return Semantics(
       button: onTap != null,
-      label: '$title، $kitchenLabel، $price',
-      child: ExcludeSemantics(
-        child: Card(
+      label: semanticsLabel,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Builder(
+        builder: (context) => Card(
           margin: const EdgeInsetsDirectional.only(bottom: KafooSpacing.md),
           child: InkWell(
             onTap: onTap,
@@ -69,8 +89,13 @@ class MealCard extends StatelessWidget {
                         const SizedBox(height: KafooSpacing.sm),
                         Text(
                           price,
-                          style: textTheme.titleSmall
-                              ?.copyWith(color: KafooColors.primary),
+                          style: textTheme.titleSmall?.copyWith(
+                            // The generated scheme, not the raw seed token —
+                            // every other colour on the screen is tonally
+                            // remapped from it and the price was the one
+                            // element off that palette.
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -99,6 +124,10 @@ class MealCardPhoto extends StatelessWidget {
         borderRadius: BorderRadius.circular(KafooSpacing.sm),
         child: Image.network(
           url,
+          // A Meal photo beside the Meal's name is decorative in the semantics
+          // sense; announcing it is noise. Harmless while the card excluded its
+          // whole subtree — and no longer, now that it does not.
+          excludeFromSemantics: true,
           width: _size,
           height: _size,
           fit: BoxFit.cover,

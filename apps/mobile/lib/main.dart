@@ -195,9 +195,12 @@ class _SignedOutHome extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return BrowseScreen(
-      trailing: TextButton(
+      entry: TextButton(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const SignInScreen()),
+        ),
+        style: TextButton.styleFrom(
+          minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
         ),
         child: Text(l10n.browseSignInEntry),
       ),

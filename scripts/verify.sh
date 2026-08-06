@@ -270,6 +270,10 @@ run "rls coverage" bash -c '
 run "no synthetic content" bash -c '
   hits=$(grep -rinE "INSERT[[:space:]]+INTO[[:space:]]+(public\.)?(cooks|meals|reviews|kitchen_profiles)" \
     supabase/migrations/ supabase/functions/ 2>/dev/null || true)
+  web=$(grep -rlniE "(fake|demo|sample|placeholder|lorem)[-_ ]?(cook|meal|kitchen|review)" \
+    --include="*.ts" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next \
+    apps/web 2>/dev/null || true)
+  hits="$hits$web"
   if [ -n "$hits" ]; then
     echo "$hits"
     echo "   Synthetic Cooks, Meals, or Reviews are product-fatal (Constitution I)."
@@ -277,9 +281,15 @@ run "no synthetic content" bash -c '
   fi'
 
 # Non-canonical vocabulary leaking into code or SQL.
+#
+# apps/web/ is swept too, and .tsx was added with it — the Customer web surface is a place
+# user-facing words live, so a check that could not read it was a surface with no rules. node_modules
+# is excluded because 355 npm packages are not Kafoo's vocabulary to police, and without the
+# exclusion this check reports other people's code and drowns its own signal.
 run "vocabulary" bash -c '
   hits=$(grep -rinE "\b(vendors?|sellers?|buyers?|listings?|menu_items?|chatbots?)\b" \
-    --include="*.dart" --include="*.sql" --include="*.ts" \
+    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.tsx" \
+    --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.open-next \
     apps packages supabase 2>/dev/null || true)
   if [ -n "$hits" ]; then echo "$hits"; exit 1; fi'
 
@@ -298,8 +308,9 @@ run "vocabulary" bash -c '
 # file, not a directory, so a second file cannot quietly inherit it.
 run "arabic vocabulary" bash -c '
   hits=$(grep -rn "الكوك" \
-    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.json" --include="*.arb" \
-    --include="*.md" \
+    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.tsx" --include="*.json" \
+    --include="*.arb" --include="*.md" \
+    --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.open-next \
     apps packages prompts supabase 2>/dev/null \
     | grep -v "^packages/ai/test/goldens/register_markers.json:" || true)
   if [ -n "$hits" ]; then
@@ -363,6 +374,34 @@ run "localization parity" bash -c '
   en=apps/mobile/lib/l10n/app_en.arb
   [ -f "$ar" ] && [ -f "$en" ] || { echo "   arb files not present yet — skipping"; exit 0; }
   python3 scripts/check-l10n-parity.py'
+
+# The Customer web surface carries its own ar/en messages rather than the app's ARB files, so the
+# parity check above does not see them. Two locales that drift are how a Customer meets an English
+# string on an Arabic-first surface — and ar is the SOURCE here, not the fallback.
+run "web localization parity" bash -c '
+  ar=apps/web/messages/ar.json
+  en=apps/web/messages/en.json
+  [ -f "$ar" ] && [ -f "$en" ] || { echo "   web messages not present yet — skipping"; exit 0; }
+  python3 - <<"PY"
+import json, sys
+ar = json.load(open("apps/web/messages/ar.json", encoding="utf-8"))
+en = json.load(open("apps/web/messages/en.json", encoding="utf-8"))
+missing_en = sorted(set(ar) - set(en))
+missing_ar = sorted(set(en) - set(ar))
+bad = []
+if missing_en: bad.append(f"missing from en.json: {missing_en}")
+if missing_ar: bad.append(f"missing from ar.json: {missing_ar}")
+import re
+for key in sorted(set(ar) & set(en)):
+    pa = set(re.findall(r"\{(\w+)\}", ar[key]))
+    pe = set(re.findall(r"\{(\w+)\}", en[key]))
+    if pa != pe:
+        bad.append(f"{key}: placeholders {sorted(pa)} vs {sorted(pe)}")
+if bad:
+    for line in bad: print(f"   {line}")
+    sys.exit(1)
+print(f"   {len(ar)} web keys, placeholders match across ar/en")
+PY'
 
 # A hook that points at a file which is not there fails SILENTLY. Claude Code runs the command,
 # the command is not found, and the session continues as though the hook had chosen to do nothing.

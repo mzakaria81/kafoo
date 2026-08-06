@@ -1,0 +1,47 @@
+/* Tokens mirror packages/ui/lib/theme/tokens.dart. Two surfaces, one design —
+   a value invented here rather than taken from there is the drift ADR-0008
+   Amendment 1 warns about, in its smallest form. */
+:root {
+  --kafoo-primary: #c2410c;
+  --kafoo-surface: #fffbf7;
+  --kafoo-on-surface: #1c1917;
+  --kafoo-danger: #b91c1c;
+  --kafoo-space-xs: 4px;
+  --kafoo-space-sm: 8px;
+  --kafoo-space-md: 16px;
+  --kafoo-space-lg: 24px;
+  --kafoo-tap-target: 48px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--kafoo-surface);
+  color: var(--kafoo-on-surface);
+  font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  line-height: 1.6;
+}
+
+main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
+
+/* Logical properties throughout, never left/right — this surface is
+   right-to-left by default and must stay correct if it is ever not. */
+.card {
+  display: flex;
+  gap: var(--kafoo-space-md);
+  padding: var(--kafoo-space-md);
+  margin-block-end: var(--kafoo-space-md);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--kafoo-space-sm);
+  text-decoration: none;
+  color: inherit;
+  min-block-size: var(--kafoo-tap-target);
+}
+
+.card:hover { border-color: var(--kafoo-primary); }
+.card img { inline-size: 72px; block-size: 72px; object-fit: cover; border-radius: var(--kafoo-space-sm); }
+.card h2 { margin: 0 0 var(--kafoo-space-xs); font-size: 1.05rem; }
+.card p { margin: 0; font-size: 0.9rem; }
+.price { color: var(--kafoo-primary); font-weight: 600; }
+.empty { padding: var(--kafoo-space-lg); text-align: center; }
