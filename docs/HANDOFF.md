@@ -6,6 +6,8 @@
 below.
 **Updated**: 2026-08-05 — E2 built. Database, Features, Edge Functions, Gate, E2 and Decisions rows
 rewritten, and the prose above and below the table brought level with them.
+**Updated**: 2026-08-06 — E2 measured itself, and one budget is missed. Six work packages merged
+(WP-005, WP-007 to WP-010). **Read "Before E3" below before planning E3.**
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
@@ -79,27 +81,46 @@ unverified". **E2 (Meal publishing) is built and passing the gate.** A Cook can 
 conversation, approve the AI Assistant's estimates one at a time, publish it, run a menu, and a
 Customer can read it and find the kitchen behind it.
 
-**What E2 has not done is measure itself.** The authorization suites run and pass; the timing
-budgets, the cost of a published Meal, and the description prompt against a real model are all
-still open.
+**E2 has now measured itself, and one number came back bad.** All of it landed on 2026-08-06.
+
+**The 2-second voice budget is missed.** Description-finished to first estimate, measured against
+production over 12 runs: **2177 ms median, range 1837–2608, 8 of 12 runs over.** Not a near miss and
+not one outlier. **1997 ms of it is inside the model call**, so the database half could vanish
+entirely and the median would clear the budget by 3 ms. Runs executed from a cloud container, so a
+Cook on an Egyptian mobile network pays this *plus* their own latency — it is the optimistic end.
+`docs/ops/measuring-e2.md` has the full report, generated rather than hand-written.
+
+**Founder's position, 2026-08-06: accept the miss.** Do not optimise toward it and do not move the
+number. The intended answer is to show the Cook something while the model thinks, which is an E3
+design question rather than a tuning job. Confirm-to-on-offer is fine at 189 ms against 3 s.
+
+Cost is settled and small: **$0.81 per 1,000 Meals published without a photo, $1.97 with one.**
+
+The `meal-description` prompt has been replayed against a real model and the corpus can now see an
+invented claim — see `docs/ops/eval-meal-description-findings.md`. It found the model stating things
+the Cook never said, and the corpus had marked all three PASS.
 
 ### Where to pick up
 
-In rough order of value:
+**E3 is next, and it is Customer discovery** — finding a Meal or a kitchen without a direct
+reference. `specs/003-meal-publishing/plan.md` draws the boundary: E2 made a kitchen *readable*;
+finding one is a different feature. The events are already named and reserved in
+`docs/product/event-model.md`: `SearchPerformed`, `SearchFailed`, `RecommendationAccepted`.
 
-1. **Take E2's two timing measurements** (`specs/003-meal-publishing/tasks.md` T075): description
-   finished to first estimate, budget 2 seconds; confirm to on-offer, budget 3 seconds. Neither
-   number exists. E1 left its launch baseline unmeasured and it is still unmeasured a whole feature
-   later — this is where that pattern either stops or becomes the habit.
-2. **Measure what one published Meal costs** (T076). Every publish now bills a vision call against
-   a real provider. Recurring spend, so it is a founder call, and it joins E1's still-open
-   per-verification cost (T073).
-3. **Replay `meal-description` against a real model** (T098). `meal-analysis` has been replayed and
-   recorded in `docs/ops/eval-meal-analysis.md`; the prompt that writes the Cook's description has
-   only ever been checked against a stub.
-4. **The three E1 spikes are still untouched** — `ar-EG` recognition on real handsets, SMS delivery
-   to a real Egyptian number, and per-verification cost. Each can invalidate a decision cheaply now
-   and expensively later.
+Everything in the previous version of this list is done. What is left, in order of value:
+
+1. **`ar-EG` speech recognition on a real handset is still unmeasured**, and it is now the largest
+   open risk in the product rather than the fourth. ADR-0009 calls it "the unmeasured risk, and the
+   likeliest place a voice-first product fails in Egyptian Arabic". The Gemini Live API was the
+   route that would have removed it by taking audio natively — **that route is closed for now**, see
+   ADR-0009's 2026-08-06 addendum. So the on-device path is the only path and nobody has tested
+   whether it hears Egyptian. It needs a physical handset bought in Egypt; no container has a
+   microphone. `coordination/packages/WP-004.json`.
+2. **SMS delivery to a real Egyptian number, and per-verification cost** (T073). Untouched. An
+   unregistered sender ID is filtered silently — nothing errors, the code simply never arrives.
+3. **Two ADR-0008 questions are now due**: which technology renders the Customer web surface, and
+   what it shows. Both were explicitly deferred until "E2 lands and there is a Meal to show". E2 has
+   landed and there is a Meal to show.
 
 | Area | State |
 |---|---|
@@ -110,12 +131,67 @@ In rough order of value:
 | Agents | 7 review agents in `.claude/agents/`. |
 | CI/CD | Gate on push/PR to `main` and `develop`. Deploy on `main`: backend guarded by secrets; Android and iOS release candidates build but never submit. The iOS job is gated behind a preflight check so it costs no macOS minutes until credentials exist. |
 | Codespaces | `.devcontainer/` installs the full toolchain including the Android SDK on rebuild. |
-| Database | Eight migrations: `kitchen_profiles`, `analytics_events`, the `kitchen-photos` bucket with its storage policies, a restriction on kitchen-photo enumeration, `meals`, the change allowing incomplete Meal drafts, the fix to the nutrition-source trigger on first write, and the Cook's form of address. Every table has RLS with per-operation policies, **confirmed applied and correctly shaped on the deployed project** (read-only check, 2026-07-31 — the `UPDATE` policy carries both `USING` and `WITH CHECK`; that check covered the E1 tables — **the `meals` policies have not been checked against the deployed project**). **The pgTAP suites do now run, and they run without Docker** — `./scripts/local-db.sh test`, 7 suites, 76 assertions, against a real Postgres of the version pinned in `supabase/config.toml`. The harness that did not exist when this file was last updated is now the fastest path to proving the policies. |
+| Database | **Nine migrations**: `kitchen_profiles`, `analytics_events`, the `kitchen-photos` bucket and its storage policies, the restriction on kitchen-photo enumeration, `meals`, incomplete Meal drafts, the nutrition-source trigger fix, the Cook's form of address, and **the revoke of TRUNCATE/REFERENCES/TRIGGER/MAINTAIN** from anon, authenticated and service_role (2026-08-06 — measured as held on every table, granted by nobody, arriving by default privilege; TRUNCATE ignores RLS entirely so no policy can refuse it). Every table has RLS with per-operation policies. **`./scripts/local-db.sh test` — 8 suites, 114 assertions, no Docker**, against a real Postgres of the version pinned in `supabase/config.toml`. **`scripts/mutate-policies.py` is new and is the thing to run after touching a policy or a fixture**: it weakens one predicate clause at a time and reports which assertions notice. It found 15 clauses with no assertion behind them and 3 assertions passing for a reason other than their name; both are now zero. `docs/ops/policy-assertion-coverage.md`. |
 | Edge Functions | Two: `delete-account` and `analyze-meal`. `analyze-meal` is where the vendor call happens. It holds no service-role key and has no write path, so the AI Assistant is *structurally* unable to write to the database. `supabase/functions/_shared/ai/` holds the provider registry with adapters for Gemini, Anthropic and OpenAI. It is the only place in Kafoo where a model name is written down, and the gate fails if a model id appears anywhere else. Both functions type-check under `deno check` in the gate, as before. **New since E1**: the shared AI code has unit tests (`*_test.ts`) that run in the gate on every commit — the registry suite is what keeps the one-variable provider switch honest, because a half-added provider or a silent fallback to the wrong one would pass every other check. `delete-account` has **still never been executed** — that needs Docker for the local stack. `analyze-meal` *has* been called against a real provider, which is how the model defaults were measured. |
 | Features | E1 complete: phone sign-in, the Kitchen Profile conversation, editing, the public view, account removal, recovery email, change-of-number. E2 complete: publishing a Meal by conversation with AI-assisted estimates the Cook approves one at a time; the Cook's menu (put on offer, take off, retire, delete a draft); editing a published Meal one detail at a time; and the Customer's public view of a Meal. E2 also kept E1's inherited obligation: the migration that creates `meals` carries the widening `SELECT` policy on `kitchen_profiles`, so a Kitchen Profile with a Meal on offer is now findable by a Customer. That was impossible in E1. **Still no Order** — it is the next thing that does not exist. |
-| E2 | Built and passing the gate. The model-provider decision that blocked it was made on 2026-08-02 and is recorded in ADR-0005 Amendment 1: **Gemini on `gemini-3.1-flash-lite`**, chosen by measuring four models against the real prompt rather than from a pricing page. Anthropic Claude Haiku 4.5 was the founder's first choice earlier the same day and remains configured as the alternative — `AI_PROVIDER=anthropic`, one variable, no code change. What remains open is measurement — the two timing budgets (T075), the cost of one published Meal (T076), and replaying the `meal-description` prompt against a real model (T098). |
-| Decisions | ADR-0007 (dormancy severs a phone credential — policy only, no code), ADR-0008 (a Customer web surface is in scope; technology deliberately undecided). **ADR-0005 Amendment 1 landed 2026-08-02** — the model seam stays `AiProvider` in Dart while the vendor swap moved inside the Edge Function, because a provider key compiled into the app is extractable by anyone who downloads it. E2 added two more: ADR-0009 (a thin client talking to the model directly — **Proposed, not decided**, deliberately held still while it is evaluated) and ADR-0010 (address a Cook in their own grammatical form; the Arabic word for Cook is `الطباخ`). |
+| E2 | **Built, passing the gate, and now measured.** Model provider decided 2026-08-02, ADR-0005 Amendment 1 — Gemini `gemini-3.1-flash-lite`, chosen by measuring four models against the real prompt. Anthropic Claude Haiku 4.5 stays configured as the alternative: `AI_PROVIDER=anthropic`, one variable, no code change. **All three open measurements closed on 2026-08-06**: the timing budgets (T075 — the 2 s one is missed, see above), the cost of a published Meal (T076 — $0.81 to $1.97 per thousand), and the `meal-description` replay (T098/T100). |
+| Decisions | ADR-0007 (dormancy severs a phone credential — policy only). **ADR-0008** (a Customer web surface is in scope; **technology deliberately undecided, and that decision is now due** — it was deferred until E2 landed, and E2 has landed). **ADR-0005 Amendment 1** (the model seam stays `AiProvider` in Dart while the vendor swap moved inside the Edge Function). **ADR-0009 — still Proposed, and the spike has now run without settling it**: the ephemeral-token flow did not work from this account on 2026-08-06, so the thin-client option collapses into the disqualified one and the status quo stands. It is Proposed rather than Rejected because the spike proves the token *could not be used*, not that it cannot be. **ADR-0010 — Accepted and shipped**: a Cook is addressed in their own grammatical form; Customers are addressed as men for now, a deferral rather than a conclusion. |
 | Web | `apps/mobile/web/` builds (`flutter build web --release`, 42 MB CanvasKit, `lang="ar" dir="rtl"`). Development and demo target **only** — it is not the Customer web surface of ADR-0008, and must not become one by default. |
+
+## Before E3 — what is already decided, and what is not
+
+Written 2026-08-06, at the founder's request, so an E3 session does not re-open settled questions or
+assume unsettled ones.
+
+### Settled. Do not re-litigate these.
+
+- **The 2-second voice budget is missed and that is accepted.** 2177 ms median on production. The
+  answer is to show the Cook something while the model thinks, not to optimise and not to move the
+  number. If an E3 design needs the budget met, that is a new conversation with the founder.
+- **Customers are addressed as men.** Kafoo stores a form of address for Cooks only. Every
+  Customer-directed verb stays ungendered; only a *described* Cook changes. Giving Customers one is
+  a new category of personal data for a new population and is the founder's call, deferred not
+  refused. ADR-0010.
+- **The thin-client voice architecture is not available.** ADR-0009 stays Proposed; the status quo —
+  every model call through the Edge Function — stands. Re-run the spike before committing E3 to
+  anything that assumes a direct client-to-model audio path.
+- **Every model call goes through the provider abstraction.** ADR-0005 Amendment 1. Swapping vendors
+  is one environment variable and the gate enforces that a model id appears in exactly one place.
+
+### Open, and E3 has to answer or route to the founder
+
+- **Which technology renders the Customer web surface**, and what it shows. ADR-0008 deferred both
+  until "E2 lands and there is a Meal to show". Both conditions are met. `apps/mobile/web/` is a
+  development target and **must not become the answer by default** — 42 MB of CanvasKit on an
+  Egyptian mobile connection is a decision nobody made.
+- **How a Customer finds food at all.** Search is not built and not designed. `.claude/rules/supabase.md`
+  already forecloses one wrong answer: cross-language search (`برجر` → Burger) is an embedding
+  concern with `pgvector` and an HNSW index, **never `ILIKE`**.
+- **Whether `ar-EG` recognition works on a real handset.** The largest open risk in the product, and
+  it needs the founder and a phone rather than a session.
+
+### The pattern that cost the most on 2026-08-06 — read this one
+
+**Five separate checks were found to be incapable of failing**, across areas with nothing else in
+common:
+
+| The check | Why it could not fail |
+|---|---|
+| ARB parity | compared key names in one direction only, and never placeholders |
+| Three authorization assertions | a *different* policy refused first, so the one under test was never consulted |
+| `anon cannot TRUNCATE` | the local harness had never granted the privilege it asserted was absent |
+| The OpenCode spend ledger | reported `$18.85 left` while the service refused the dispatch for being over its weekly limit |
+| Gemini's model catalogue | lists 50 models and omits the Live models it actually serves |
+
+Two of them were caught only by **calling something expected to succeed before believing a
+negative**, and one — a `404` on `auth_tokens:create` versus `auth_tokens` — was a four-character URL
+suffix away from killing an architecture decision in the direction that closes doors.
+
+**The habit to carry into E3: a green check is a claim, and a claim needs to have been seen to
+fail.** Break the thing on purpose, watch the check go red, put it back. `scripts/mutate-policies.py`
+does this for database policies now; nothing does it for anything else.
+
+---
 
 ## What is missing, in the order it probably matters
 
