@@ -29,7 +29,7 @@
   },
   "execution_mode": "EXCLUSIVE",
   "status": "COMPLETED",
-  "owner": "worker-d",
+  "owner": null,
   "priority": 2,
   "spend_envelope_usd": 3.0,
   "suggested_model": "opencode-go/grok-4.5",
