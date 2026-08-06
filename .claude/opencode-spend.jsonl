@@ -32,3 +32,4 @@
 {"at": "2026-08-05T21:55:38.763Z", "model": "opencode-go/grok-4.5", "cost": 0.368692, "status": "completed", "session": "ses_02c178298ffe1yRF0RKRzPYcXE", "files": 1}
 {"at": "2026-08-05T22:02:30.980Z", "model": "opencode-go/grok-4.5", "cost": 0.63007, "status": "completed", "session": "ses_02c10d93fffeBqDCIcsqiJln8o", "files": 2}
 {"at": "2026-08-06T04:02:27.294Z", "model": "opencode-go/grok-4.5", "cost": 0.0, "status": "timeout", "session": null, "files": 0}
+{"at": "2026-08-06T08:03:04.868Z", "model": "opencode-go/grok-4.5", "cost": 0.0, "status": "aborted", "session": null, "files": 0}
