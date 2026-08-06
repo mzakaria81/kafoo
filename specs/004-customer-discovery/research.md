@@ -167,9 +167,32 @@ description is of a Cook — it is what someone wanted, at a moment, in their ow
 It is a disclosure, not a permission gate, and Kafoo storing nothing is exactly what makes that
 sufficient.
 
-**Open, and routed to the founder rather than decided here**: whether a Customer may refuse and fall
-back to browsing only. E2 allowed a Cook to refuse. The symmetry argues yes; the cost is a path that
-must then work, and browsing already exists to be that path.
+**Answered by the founder, 2026-08-06: a Customer may always refuse.** Asked **once**, at the first
+attempt to search rather than on arrival, and remembered. A switch in Settings changes it later, in
+both directions, and the question is never asked twice.
+
+**The choice is kept on the Customer's own device, not by Kafoo, and that is forced rather than
+preferred.** Kafoo holds no record of a Customer at all — there is no Customer table, and discovery
+works signed-out by design (FR-025). A preference stored on Kafoo's side would therefore be
+unavailable to exactly the person the shareable link exists for: someone who arrived from a
+conversation, has installed nothing, and is signed in to nothing. Keeping it on the device also means
+**refusing creates no data about anyone**, which is the only version of a privacy control that does
+not undercut itself.
+
+**Refusing means search is unavailable, not reduced, and this needs saying plainly because a worker
+will reach for the middle option.** A phrase leaves Kafoo to become *searchable at all* — that is the
+embedding, not the judgement — so there is no state where search works and nothing is sent. And there
+is no fallback that matches on spelling: `.claude/rules/supabase.md` forbids `ILIKE` search by name,
+and a worse search offered to someone who declined is not a kindness. Off means browsing, which
+US1 makes a complete way to use Kafoo rather than a punishment.
+
+**Cost, stated rather than discovered**: the choice does not follow a Customer to a second device,
+and clearing app data asks again. Both are acceptable, and both are consequences of Kafoo holding
+nothing rather than of an implementation shortcut.
+
+**Two stop-and-ask triggers fired here and the founder answered both on the same day** — this adds a
+screen and a settings toggle. It is Kafoo's first Settings screen, and it should stay one switch
+rather than becoming the place future toggles accumulate.
 
 ## §6 — The web surface's route to data
 

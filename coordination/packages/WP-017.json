@@ -47,7 +47,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "grok-4.5 because this is health-adjacent and the model table reserves that row for subtle logic near safety. Measured 2026-08-06: asking for food with no meat returned meat dishes, first correct answer at rank 6, precision@5 of 0.00. A Customer excluding a food is usually doing so for dietary, religious or health reasons, so serving them the opposite is a betrayal rather than a poor result. The sharp edge is that meals.allergens is frequently an AI estimate carrying nutrition_source — hence 'states what it filtered on, never that a Meal is safe'. Touches search_meals, which WP-013 created; serialised behind it by dependency.",
+  "notes": "grok-4.5 because this is health-adjacent and the model table reserves that row for subtle logic near safety. Measured 2026-08-06: asking for food with no meat returned meat dishes, first correct answer at rank 6, precision@5 of 0.00. A Customer excluding a food is usually doing so for dietary, religious or health reasons, so serving them the opposite is a betrayal rather than a poor result. The sharp edge is that meals.allergens is frequently an AI estimate carrying nutrition_source — hence 'states what it filtered on, never that a Meal is safe'. Touches search_meals, which WP-013 created; serialised behind it by dependency.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }

@@ -46,7 +46,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "Runs from day one alongside WP-011 — analyze corrected an earlier claim that this waited on search. The scaffold, the kitchen page, the Meal page and the preview read what E2 already published under policies that already exist. Only browse-and-search on the web waits, and that is WP-018. Its own messages live in apps/web/messages/, so it does NOT collide with the app's ARB files. It does change verify.sh, which every other package depends on to know whether it passed — hence the shared declaration and the low priority number rather than EXCLUSIVE, since the change is additive.",
+  "notes": "Runs from day one alongside WP-011 — analyze corrected an earlier claim that this waited on search. The scaffold, the kitchen page, the Meal page and the preview read what E2 already published under policies that already exist. Only browse-and-search on the web waits, and that is WP-018. Its own messages live in apps/web/messages/, so it does NOT collide with the app's ARB files. It does change verify.sh, which every other package depends on to know whether it passed — hence the shared declaration and the low priority number rather than EXCLUSIVE, since the change is additive.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }

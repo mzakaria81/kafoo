@@ -55,7 +55,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "deepseek-v4-flash because this is the mechanical row of the model table and E3's earlier packages will have spent the expensive one. T191 is here only as a record — the founder decision it names must actually be answered before WP-015 builds T215, not at the end. Documentation drift is part of the change, not follow-up work: item 6 of the Definition of Done is not optional.",
+  "notes": "deepseek-v4-flash because this is the mechanical row of the model table and E3's earlier packages will have spent the expensive one. T191 is here only as a record — the founder decision it names must actually be answered before WP-015 builds T215, not at the end. Documentation drift is part of the change, not follow-up work: item 6 of the Definition of Done is not optional.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }

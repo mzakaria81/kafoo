@@ -78,6 +78,17 @@ has never collected anything about.
 - Q: Can a Customer search for a Cook by name? → A: **No.** Discovery is about food. A Customer
   arrives wanting koshari, not wanting a named person. Following a Cook is the better answer to what
   name search is reaching for, and it needs Orders to exist first — it is not in E3.
+- Q: A Customer's words have to leave Kafoo to be understood. May they refuse? → A: **Always.**
+  Asked **once**, the first time they try to search, and the answer is remembered. A switch in
+  Settings turns it on or off later, and once answered the question is never asked again. **Refusing
+  falls back to browsing**, which is a complete way to use Kafoo rather than a punishment.
+- Q: Where is that choice kept? → A: **On the Customer's own device.** Kafoo holds no record of a
+  Customer at all, and discovery works without signing in — so a choice kept on Kafoo's side would be
+  impossible for exactly the person the shareable link exists for. It also means the refusal itself
+  creates no data about anyone.
+- Q: With the switch off, can a Customer still search in some reduced way? → A: **No, and this is
+  worth being blunt about.** A phrase leaves Kafoo to *become searchable at all*, not merely to be
+  commented on. There is no halfway state where search works and nothing is sent. Off means browsing.
 - Q: A Cook writes their area one way and a Customer names it another — `الدقى` against `الدقي`,
   `مهندسين` against `المهندسين`. → A: **Same area.** A Customer must not be blind to a kitchen
   because of a spelling. This covers how a name is written, not what it means: two genuinely
@@ -340,6 +351,19 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
   Arabic written first, and MUST render right-to-left.
 - **FR-029**: Kafoo MUST record that a search happened and how many results it returned. It MUST NOT
   record what was searched for.
+- **FR-029a**: Before a Customer's words leave Kafoo for the first time, Kafoo MUST say that they
+  will and MUST let the Customer refuse. Browsing MUST NOT require an answer — the question is asked
+  at the first attempt to search, never on arrival.
+- **FR-029b**: The answer MUST be asked **once** and remembered. A Customer who has answered MUST NOT
+  be asked again, whichever way they answered.
+- **FR-029c**: A Customer MUST be able to change the answer at any time, in one place, in both
+  directions.
+- **FR-029d**: The answer MUST be kept on the Customer's own device and MUST NOT be stored by Kafoo.
+  Kafoo holds no record of a Customer, and discovery works without signing in; a choice kept on
+  Kafoo's side would be unavailable to exactly the person who arrives by a shared link.
+- **FR-029e**: With the answer set to refuse, Kafoo MUST NOT send a Customer's words anywhere, and
+  search MUST be unavailable rather than degraded. Kafoo MUST say plainly that searching is off and
+  that browsing still works. There MUST NOT be a reduced form of search that matches on spelling.
 - **FR-030**: Kafoo MUST record when a search returned nothing, and when a Customer acted on a Meal
   the AI Assistant suggested.
 - **FR-031**: No Meal, Cook or Kitchen Profile that is not a real Cook's own MUST ever appear in
@@ -385,6 +409,10 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
   Any fourth is a failure.
 - **SC-013**: This feature adds **zero** fields to a Kitchen Profile's public face, which stays at
   five, and **zero** new personal details about a Cook.
+- **SC-014**: A Customer who has refused sends **zero** words to anything outside Kafoo, verified by
+  watching what leaves rather than by reading the code that decides.
+- **SC-015**: A Customer is asked about this **once**. After any answer, the question appears zero
+  times until they change it themselves.
 
 ## Assumptions
 

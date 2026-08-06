@@ -43,7 +43,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "The only thing in Kafoo on an AI path holding a service-role key. The argument for it is in plan.md's Complexity Tracking: an embedding is not a claim, so Principle II is not what stops it. That argument must be checked by something other than the document making it, which is why T214 is an acceptance criterion rather than a nicety. The manipulation hole it closes is real and invisible: a client that supplies the vector can supply the one nearest every query, and that Cook's Meal ranks first for everything, permanently.",
+  "notes": "The only thing in Kafoo on an AI path holding a service-role key. The argument for it is in plan.md's Complexity Tracking: an embedding is not a claim, so Principle II is not what stops it. That argument must be checked by something other than the document making it, which is why T214 is an acceptance criterion rather than a nicety. The manipulation hole it closes is real and invisible: a client that supplies the vector can supply the one nearest every query, and that Cook's Meal ranks first for everything, permanently.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }

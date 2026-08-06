@@ -47,7 +47,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "This exists because both candidate thresholds measured BACKWARDS — a query the corpus cannot answer scored higher than one answered correctly. Within a corpus that is entirely food, every food query is topically similar to everything, and a better model does not fix that. The E2 finding applies directly: replaying meal-description against a real model caught it stating things the Cook never said while three golden cases marked all of it PASS. The same failure here names food nobody is cooking.",
+  "notes": "This exists because both candidate thresholds measured BACKWARDS — a query the corpus cannot answer scored higher than one answered correctly. Within a corpus that is entirely food, every food query is topically similar to everything, and a better model does not fix that. The E2 finding applies directly: replaying meal-description against a real model caught it stating things the Cook never said while three golden cases marked all of it PASS. The same failure here names food nobody is cooking.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }

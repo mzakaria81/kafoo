@@ -9,7 +9,12 @@ description: "Task list for E3 — Customer Discovery"
 must be true; a work package in `coordination/packages/` says who is doing it, what it may spend,
 and what else it collides with.
 
-**All 120 tasks below are grouped into WP-011 to WP-019**, each owned by exactly one package:
+> **Delegation is suspended, 2026-08-06.** The founder reports the OpenCode weekly limit reached. Do
+> this work directly; do not dispatch to `opencode-delegate` or `claude-delegate` until the founder
+> says otherwise. Each package still carries a `suggested_model` and an envelope — that is the plan
+> for when it resumes, not permission to spend today.
+
+**All 126 tasks below are grouped into WP-011 to WP-019**, each owned by exactly one package:
 
 | Package | Tasks | What it is |
 |---|---|---|
@@ -17,10 +22,10 @@ and what else it collides with.
 | **WP-012** | T176–T182, T184–T189, T196 | The web surface and its static half. **Starts immediately, alongside WP-011** |
 | **WP-013** | T122–T131, T202–T206, T211 | The migration: `pgvector`, the ranking function, area matching |
 | **WP-014** | T132–T140, T214 | The embedding capability, and the one function that writes |
-| **WP-015** | T141–T155, T207–T210, T212, T213, T215, T216 | Search itself. The largest package |
+| **WP-015** | T141–T155, T207–T210, T212, T213, T215, T216, T221–T225 | Search, and the choice to refuse it. The largest package |
 | **WP-016** | T156–T165, T217 | The relevance judgement |
 | **WP-017** | T166–T175 | Exclusions |
-| **WP-018** | T183, T218–T220 | Discovery on the web |
+| **WP-018** | T183, T218–T220, T226 | Discovery on the web |
 | **WP-019** | T190–T195, T197–T201 | Documentation, cost, and the criteria by name |
 
 **This file is the reasoning; the packages are the state.**
@@ -192,7 +197,12 @@ Added 2026-08-06 after `/speckit-analyze` found FR-022 and FR-024 had a parser a
 #### Before this story ships
 
 - [ ] T214 [US2] Have `ai-boundary-reviewer` and `rls-reviewer` review the `embed-meal` diff **before it merges**. The plan argues that a service-role key on an AI path is acceptable here because an embedding is not a claim; that argument must be checked by something other than the document making it
-- [ ] T215 [US2] Disclose that a Customer's words leave Kafoo to be understood, before the first search, following E2's precedent for a Cook. **This ships with search, not after it** — as originally ordered it sat in Polish, which would have put search in front of Customers before they were told
+- [ ] T215 [US2] Ask, at the **first attempt to search** and never on arrival, whether a Customer is willing for their words to leave Kafoo to be understood — and let them refuse. **This ships with search, not after it** — as originally ordered it sat in Polish, which would have put search in front of Customers before they were told. Founder's decision, 2026-08-06: always refusable
+- [ ] T221 [US2] Store the answer **on the device**, not in Kafoo — `shared_preferences` is already available transitively. Kafoo holds no record of a Customer and discovery works signed-out, so a server-side choice would be unavailable to exactly the person arriving by a shared link. FR-029d
+- [ ] T222 [US2] Never ask again once answered, either way — FR-029b, SC-015. Test it across an app restart
+- [ ] T223 [US2] Add a Settings screen with an **AI Search** switch, on and off, reachable at any time — FR-029c. **This adds a screen and a settings toggle, two stop-and-ask triggers, and the founder asked for both explicitly on 2026-08-06.** It is Kafoo's first Settings screen; keep it to this one switch rather than making it a home for future toggles
+- [ ] T224 [US2] With the switch off, **no phrase leaves Kafoo and search is unavailable rather than degraded** — FR-029e. Kafoo says searching is off and browsing still works. There is no reduced search that matches on spelling; `.claude/rules/supabase.md` forbids `ILIKE` search by name and a worse search is not a kindness
+- [ ] T225 [US2] Verify SC-014 by watching what actually leaves the device with the switch off — **not** by reading the code that decides. A test asserting the branch was taken is not evidence that nothing was sent
 - [ ] T216 [US2] A Meal that goes off offer between being ranked and being opened tells the Customer it is no longer available — FR-005, and the one freshness case a Customer actually meets
 
 ---
@@ -261,7 +271,8 @@ visible obeys the same rules as inside Kafoo.
 - [ ] T183 [US5] Browse and search on the web, calling the same `discover` function — no second data path, no second visibility model
 - [ ] T218 [US5] Call `judge-results` from the web surface too, after results render. FR-026 requires what is visible without installing to be **exactly** what is visible inside Kafoo, and a web surface with results but no honesty layer would ship the confident wrong answer this feature exists to prevent
 - [ ] T219 [US5] Area narrowing and the empty-area state on the web, matching the app — FR-022 and FR-024 on both surfaces
-- [ ] T220 [US5] The disclosure from T215 on the web surface as well
+- [ ] T220 [US5] The same ask-once-and-refuse from T215 on the web, stored in the browser rather than by Kafoo — FR-029a to FR-029e apply unchanged. A refusal on the web means browsing, exactly as in the app
+- [ ] T226 [US5] Somewhere on the web to change the answer later, matching T223's switch. It need not be a Settings screen shaped like the app's, but it must be findable and it must work in both directions
 - [ ] T184 [US5] A kitchen with nothing on offer is not reachable — FR-027, same terms as in the app
 - [ ] T185 [US5] Shared-reference preview carrying **exactly** name, area and photo — FR-027a. Not the story, not the delivery terms, not a Meal count
 - [ ] T186 [US5] Assert that no rating, review count or order count appears anywhere — FR-027c. None exist, and a placeholder for one is a fabricated measurement rather than an empty field
@@ -274,7 +285,7 @@ visible obeys the same rules as inside Kafoo.
 ## Phase 8: Polish & cross-cutting
 
 - [ ] T190 Confirm the disclosure shipped on **both** surfaces — T215 and T220. It was written here originally, which would have meant search reaching Customers a whole phase before they were told their words leave Kafoo. Kept as a check rather than deleted, because the ordering mistake is easy to make again
-- [ ] T191 **Answer before T215 is built, not here**: may a Customer refuse the disclosure and fall back to browsing only? E2 let a Cook refuse and the symmetry argues yes. It is the founder's call, and T215 cannot be finished without it
+- [ ] T191 ~~May a Customer refuse?~~ **Answered by the founder, 2026-08-06: always.** Asked once at the first search, remembered on the device, changeable from a Settings switch, and refusing falls back to browsing. Built as T215 and T221–T225, and T220/T226 on the web. Kept here as the record of who decided it and when
 - [ ] T192 [P] Update `docs/product/domain-model.md` with the embedding column and the rule that a Meal without one is browsable but not searchable — Definition of Done item 6, in the same commit
 - [ ] T193 [P] Update `docs/product/event-model.md` — `SearchFailed` now means "judged", not "scored below a line", because `research.md` §4 established that no line exists
 - [ ] T194 [P] Update `docs/HANDOFF.md` — E3's state, the open cost question, and what the spike settled

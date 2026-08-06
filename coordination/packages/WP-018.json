@@ -6,15 +6,16 @@
     "T183",
     "T218",
     "T219",
-    "T220"
+    "T220",
+    "T226"
   ],
   "acceptance_criteria": [
     "the web calls the same discover function — no second data path and no second visibility model",
     "the web calls judge-results too; a surface with results and no honesty layer would ship the confident wrong answer this feature exists to prevent (FR-026)",
     "area narrowing and the empty-area state match the app",
-    "the disclosure from T215 appears here as well",
     "SC-009 verified field by field: what is visible without installing is identical to what is visible inside",
-    "./scripts/verify.sh passes"
+    "./scripts/verify.sh passes",
+    "the same ask-once-and-refuse as the app, stored in the browser rather than by Kafoo, with somewhere findable to change it later"
   ],
   "dependencies": [
     "WP-012",
@@ -38,7 +39,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "Analyze caught the gap this closes: T183 wired the web to discover but not to judge-results, which would have shipped a Customer-facing surface that returns results with nothing checking whether they answer the question. Small package, three dependencies, and it is the last thing between E3 and being done.",
+  "notes": "Analyze caught the gap this closes: T183 wired the web to discover but not to judge-results, which would have shipped a Customer-facing surface that returns results with nothing checking whether they answer the question. Small package, three dependencies, and it is the last thing between E3 and being done.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }

@@ -51,7 +51,7 @@
   "branch": null,
   "pr": null,
   "blocked_reason": null,
-  "notes": "grok-4.5 because this is the row the model table reserves for it: authorization and RLS. E3 adds no policy, which is exactly why this package is dangerous — every existing authorization test passes whether or not search leaks, because none of them travel a ranking path that did not previously exist. Two things must be broken on purpose here and both are in the acceptance criteria. The plan(N) line in discovery_rls_test.sql is declared shared: WP-017 adds cases to a different file, but any later package adding cases here edits this one line.",
+  "notes": "grok-4.5 because this is the row the model table reserves for it: authorization and RLS. E3 adds no policy, which is exactly why this package is dangerous — every existing authorization test passes whether or not search leaks, because none of them travel a ranking path that did not previously exist. Two things must be broken on purpose here and both are in the acceptance criteria. The plan(N) line in discovery_rls_test.sql is declared shared: WP-017 adds cases to a different file, but any later package adding cases here edits this one line.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T18:00:00Z"
+  "updated_at": "2026-08-06T19:30:00Z"
 }
