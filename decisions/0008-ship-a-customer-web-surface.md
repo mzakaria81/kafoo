@@ -1,6 +1,6 @@
 # ADR-0008 — Ship a Customer web surface
 
-**Status:** Accepted
+**Status:** Accepted — **amended 2026-08-06, see Amendment 1**
 **Date:** 2026-07-31
 **Decider:** Founder
 
@@ -79,8 +79,8 @@ pages at a size that fits the launch budget, which would collapse the technology
 
 ## Open dependencies
 
-1. **Which technology renders it.** Decided when E2 lands and there is a Meal to show. The
-   Flutter-web measurement above is the evidence to weigh, not the verdict.
+1. ~~**Which technology renders it.**~~ **Closed 2026-08-06 by Amendment 1** — Next.js and
+   TypeScript on Cloudflare Workers.
 2. **What a shared kitchen link contains.** A preview showing the kitchen's name and photo is the
    entire point of the link, and it is also personal data leaving Kafoo's surface into a
    conversation Kafoo cannot see. It needs its own answer before any link is shareable.
@@ -90,8 +90,91 @@ pages at a size that fits the launch budget, which would collapse the technology
 
 ## Notes for Claude Code
 
+> **Superseded in part by Amendment 1 below — the technology IS now chosen.** The paragraph that
+> follows is the 2026-07-31 text and is kept so the decision's history reads straight. Read
+> Amendment 1's own notes for what binds today.
+
 Kafoo has a Customer web surface in scope: browsing and ordering without an install. It is **not**
 built and its technology is **not** chosen — do not assume the Flutter web build under
 `apps/mobile/web/` is it, and do not point a Customer at that build. Every rule that binds the app
 binds the web surface: `ar` first, RTL, canonical vocabulary, strings in the localization files,
 trust rules unchanged. Never let a service-role key reach a client bundle.
+
+---
+
+# Amendment 1 — the technology is Next.js and TypeScript, and both front-ends are presentation
+
+**Status:** Accepted
+**Date:** 2026-08-06
+**Decider:** Founder
+**Amends:** Open dependency 1 above, and adds a consequence the original decision did not carry.
+Everything else in this ADR stands, including open dependencies 2 and 3, which remain open.
+
+## Why this was reopened
+
+Because the ADR said to. The rendering technology was deliberately left open "until E2 lands and
+there is a Meal to render". E2 landed on 2026-08-05 and measured itself on 2026-08-06, so the
+condition is met and the question is due rather than deferred.
+
+One thing changed between the original decision and this one, and it changed the answer. ADR-0008
+justifies the surface almost entirely on the shareable link — a preview of a kitchen in a WhatsApp
+conversation. Optimising for that alone points at the smallest thing that renders server-side HTML
+with preview tags, and the first recommendation made in this session was exactly that. It was wrong,
+not because the reasoning failed, but because the scope was inherited from this document instead of
+confirmed with the founder. **The intent is a functional web application beside the app, not a set
+of public pages.** That is a different question and it has a different answer.
+
+## Decision
+
+**The Customer web surface is Next.js and TypeScript, hosted on Cloudflare Workers.**
+
+Astro and Next.js both server-render, both produce previewable and indexable pages, and both run
+React with TypeScript — the "static site versus application" framing is not what separates them.
+What separates them is that cookie-based Supabase sessions on the web are the part that goes wrong,
+and Next.js is the path where that is already solved and documented. Astro's smaller default
+JavaScript payload is a real advantage on an Egyptian mobile connection and it narrows once a
+Customer is signed in and interacting, which is the plan.
+
+The existing Flutter web build is rejected for the reasons this ADR already gave: 42 MB to a canvas,
+with no link preview, no indexing and no text selection. That was evidence when this ADR was
+written; it is now the verdict.
+
+Cloudflare hosts it because `CLAUDE.md` already names Cloudflare and the `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` secrets are already configured and read by nothing. Next.js reaches
+Cloudflare through an adapter rather than natively, which is more moving parts than Vercel. That
+cost was weighed and accepted rather than missed, in exchange for not splitting the deploy story
+across two vendors.
+
+**Scope condition: this decision authorises a Customer surface only.** No Cook portal and no
+administrative surface. Open dependency 3 above is untouched, and there is no `apps/admin` by
+decision rather than by omission — E0's T045 defers one until it is needed. Choosing a framework
+capable of carrying those surfaces is not approval to build them.
+
+## The consequence this ADR did not previously carry
+
+**`packages/domain/` is Dart, and a TypeScript surface cannot import it.**
+
+Kafoo's business rules — a Meal's lifecycle, that only the Cook who owns a Meal may accept its
+Order, that a Review requires a completed Order — would be written a second time in TypeScript, and
+the two copies would drift. The original ADR named front-end divergence as a risk in general terms.
+This is what it looks like in particular, and it is the largest permanent cost of shipping any
+JavaScript surface.
+
+**Therefore: neither front-end is trusted to be right.** Enforcement lives in Postgres — RLS
+policies and constraints — so the database is the single arbiter and both clients are presentation.
+A rule restated in TypeScript is a convenience that may be wrong without being dangerous.
+
+This is already most of the way built and it is what makes the decision affordable: 114 assertions
+run against a real Postgres, and `scripts/mutate-policies.py` verifies those assertions can actually
+fail. Any rule added to a client without a policy behind it is a regression against this amendment,
+not a shortcut.
+
+## Notes for Claude Code
+
+The Customer web surface is **Next.js + TypeScript on Cloudflare Workers**, Customer flows only.
+Do not add Cook or administrative flows to it without a new decision. Do not restate a domain rule
+in TypeScript without a database policy or constraint enforcing it — the database is the arbiter and
+both front-ends are presentation. Everything that binds the app binds this surface unchanged: `ar`
+first and RTL, canonical vocabulary, no user-facing string outside the localization files, and the
+trust rules. The publishable key belongs in the bundle; the service-role key never reaches any
+client.
