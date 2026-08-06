@@ -806,6 +806,36 @@ converting along with them — accepted, not overlooked.
   Cook's name, so an invented freshness claim is worn by the Cook. **Hold `meal-description` out of
   any Cook flow until this lands** — nothing calls it, so the hold is free. WP-009
 
+  **Delivered 2026-08-06, WP-009, worker-f — box left unticked for the coordinator to flip after
+  merge.** Full write-up in `docs/ops/eval-meal-description-findings.md`. Three things worth
+  carrying forward:
+
+  *The order mattered and produced a different answer than intuition would have.* Two of the three
+  proposed checks shipped as gates; the third — the general "every content word traces back to the
+  Cook", which catches the most — measured a **41% false-alarm rate** and stayed a report. 8 of its
+  9 false alarms are one fixture, `dialect_franco_koshary`, where the Cook wrote Latin script and
+  the model drafted Arabic; no character comparison can trace `koshari` to `كشري`. Gating everything
+  *except* that fixture would blind the gate inside the one fixture guaranteed to fire, so it stays
+  reporting until several replays have accumulated. The 22 flags are pinned in
+  `scripts/replay_goldens_test.ts` so loosening the tracer is a diff, not a quiet improvement.
+
+  *The report caught a defect an assertion would have shipped.* The first tracer reported `الفريش`
+  — the headline invented claim — as traced, because `في` normalises to the single letter `ي` and
+  that one stem is a substring of most Arabic words. Written as an assertion it would have passed
+  on its first run and been believed. Substring matching now needs three characters on the Cook's
+  side too.
+
+  *Every new check was mutation-tested, not just seen green.* Removing `توصلك` from the vocabulary
+  file turns the أم علي test red naming the word; dropping the live draft into the fixture's
+  `modelReply` turns the Dart suite red the same way; emptying the `egyptian` list fails
+  `carriesEgyptianMarker`; raising the corpus threshold to 6 fails with `only 5 fixture(s) carry an
+  Egyptian marker`.
+
+  `prompts/meal-description.md` was **not** edited and no live replay was spent. Only one of the
+  three violations has a gate behind it, and the prompt already forbids that one in prose which the
+  model ignored — so the only available edit is to say it louder, which moves the problem out of
+  sight. The hold on wiring `meal-description` into a Cook flow therefore stands.
+
 - [ ] T099 Mutation-test every RLS policy against the suite that claims to guard it, and report the
   assertions that pass with the policy fully open. **Not a hypothetical.** Case 9 of
   `kitchen_profiles_rls_test.sql` passed on 2026-08-05 with the UPDATE policy weakened to

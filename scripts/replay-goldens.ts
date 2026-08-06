@@ -88,10 +88,14 @@ export interface Suite {
   readonly task: string;
   readonly preamble: readonly string[];
   gate(value: Record<string, unknown>): { gated: Record<string, unknown>; dropped: string[] };
+  /// `said` is optional so the pinning tests in scripts/replay_goldens_test.ts can score a recorded
+  /// model reply without also restating the Cook's words. Only the untraced-word report uses it,
+  /// and that report is a note rather than a check, so its absence cannot change a verdict.
   score(
     expect: Record<string, unknown>,
     gated: Record<string, unknown>,
     fixtureFile: string,
+    said?: string,
   ): { checks: Check[]; notes: Note[] };
 }
 
@@ -130,6 +134,121 @@ function _registry(): {
     _egyptianMarkers = raw.egyptian;
   }
   return { msa: _msaMarkers!, egyptian: _egyptianMarkers! };
+}
+
+// ---------------------------------------------------------------------------
+// Closed vocabularies the drafted description must never contain
+//
+// Asserted for EVERY meal-description fixture, not driven by a fixture's `expect` block. The
+// 2026-08-05 replay is the argument: two of eight fixtures forbade anything at all, and neither of
+// the rules that actually broke was asserted anywhere. `عشان توصلك سخنة` — a delivery promise the
+// Cook never made — was recorded as PASS. The prompt forbids it in prose; the model ignored the
+// prose. A rule that lives only in a prompt is enforced nowhere.
+//
+// The list is data, in packages/ai/test/goldens/description_vocabulary.json, so the Dart golden
+// runner asserts the same words. Matching is substring, and the file says why.
+/// Ordered so the report's check lines are stable between runs.
+const VOCABULARY_FAMILIES = [
+  { key: 'delivery', label: 'no delivery, price or availability vocabulary' },
+  { key: 'health', label: 'no health or calorie vocabulary' },
+] as const;
+
+let _vocabulary: ReadonlyArray<{ family: string; term: string }> | null = null;
+
+function _vocabularyRegistry(): ReadonlyArray<{ family: string; term: string }> {
+  if (_vocabulary === null) {
+    const raw = JSON.parse(
+      Deno.readTextFileSync('packages/ai/test/goldens/description_vocabulary.json'),
+    ) as Record<string, unknown>;
+    const flat: Array<{ family: string; term: string }> = [];
+    for (const family of VOCABULARY_FAMILIES) {
+      for (const term of raw[family.key] as string[]) flat.push({ family: family.key, term });
+    }
+    _vocabulary = flat;
+  }
+  return _vocabulary;
+}
+
+export function findForbiddenVocabulary(
+  text: string,
+): ReadonlyArray<{ family: string; term: string }> {
+  return _vocabularyRegistry().filter(({ term }) => text.includes(term));
+}
+
+// ---------------------------------------------------------------------------
+// Words that do not trace back to the Cook
+//
+// A REPORT, never a check. It cannot fail a run, and that is the point: the false-alarm rate had to
+// be measured before anything could gate on it, because Arabic writes its clitics joined to the
+// word — بالتوم is بـ + الـ + توم — so a naive token comparison flags correct drafts. The measured
+// rate over the eight 2026-08-05 drafts is pinned in scripts/replay_goldens_test.ts and written up
+// in docs/ops/eval-meal-description-findings.md.
+
+const ARABIC_DIACRITICS = /[ً-ْـ]/g;
+
+/// Strips the orthographic variation and the leading clitics that make two spellings of one word
+/// look like two words. Deliberately shallow — this is a tracer, not a morphological analyser, and
+/// every extra rule is another way to hide a word the model actually invented.
+function normaliseArabicWord(word: string): string {
+  let w = word.replace(ARABIC_DIACRITICS, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه');
+
+  if (/^[وف]/.test(w) && w.length > 1) w = w.slice(1);
+  if (/^[بكل]/.test(w) && w.length > 1) w = w.slice(1);
+  if (w.startsWith('ال') && w.length > 2) w = w.slice(2);
+
+  for (const suffix of ['ها', 'ه', 'ي', 'ك']) {
+    if (w.endsWith(suffix) && w.length - suffix.length >= 3) {
+      w = w.slice(0, w.length - suffix.length);
+      break;
+    }
+  }
+  return w;
+}
+
+/// Function words, not content. A draft that says في where the Cook did not is not inventing a
+/// fact about someone's food. Kept short on purpose: every word added here is a word the tracer
+/// stops being able to see.
+const FUNCTION_WORDS = new Set([
+  'في', 'مع', 'من', 'علي', 'عن', 'كل', 'ده', 'دي', 'اللي', 'الي', 'مش', 'بس',
+  'عشان', 'لما', 'لحد', 'زي', 'ما', 'او', 'ان', 'انه', 'لو', 'يعني', 'كمان',
+  'بردو', 'برضه', 'هو', 'هي', 'انا', 'احنا', 'كان', 'بقي', 'يبقي', 'فيه',
+  'فيها', 'دا',
+].map(normaliseArabicWord));
+
+function tokenise(text: string): string[] {
+  return text.split(/[^ء-يA-Za-z0-9]+/).filter((t) => t.length > 0);
+}
+
+/// The words in `description` that do not trace back to anything in `said`.
+///
+/// Traced means: the normalised form equals a normalised Cook word, or is a substring of one, or
+/// contains one. Substring in both directions because the Cook says لحمة and the model says
+/// لحمة مفرومة, and the Cook says الحواوشي where the model says حواوشي.
+export function untracedContentWords(said: string, description: string): string[] {
+  const cookStems = tokenise(said).map(normaliseArabicWord).filter((s) => s.length > 0);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const token of tokenise(description)) {
+    const stem = normaliseArabicWord(token);
+    if (stem.length < 3 || FUNCTION_WORDS.has(stem)) continue;
+    // Substring matching requires the COOK's stem to be three characters too. Without that guard
+    // the tracer certifies almost anything: في normalises to the single letter ي, which is a
+    // substring of most Arabic words, and it silently traced الفريش — the invented freshness claim
+    // that is the entire reason this report exists. Equality still holds at any length, so a Cook
+    // who said رز still traces the model's بالرز.
+    const traced = cookStems.some((c) =>
+      c === stem || (c.length >= 3 && (c.includes(stem) || stem.includes(c)))
+    );
+    if (traced || seen.has(stem)) continue;
+    seen.add(stem);
+    out.push(token);
+  }
+  return out;
 }
 
 function collectStrings(value: unknown, into: string[]): void {
@@ -296,6 +415,7 @@ const MEAL_DESCRIPTION_EXPECT_KEYS = new Set([
   'descriptionNotContains',
   'descriptionInArabicScript',
   'maxSentences',
+  'carriesEgyptianMarker',
 ]);
 
 function containsTerm(values: string[], wanted: string): boolean {
@@ -414,6 +534,7 @@ export function scoreMealDescription(
   expect: Record<string, unknown>,
   value: Record<string, unknown>,
   fixtureFile: string,
+  said?: string,
 ): { checks: Check[]; notes: Note[] } {
   assertKnownKeys(expect, MEAL_DESCRIPTION_EXPECT_KEYS, fixtureFile);
 
@@ -510,6 +631,50 @@ export function scoreMealDescription(
     }
   }
 
+  if ('carriesEgyptianMarker' in expect) {
+    // Unlike the two vocabulary families below, a fixture asked for this one, so a dropped
+    // description fails it rather than being skipped — the same rule the content checks above use.
+    if (desc === null) {
+      checks.push({
+        label: 'carriesEgyptianMarker',
+        pass: false,
+        detail: 'no description to check for an Egyptian marker',
+      });
+    } else {
+      const found = findRegisterMarkers({ description: desc }).egyptian;
+      const carries = found.length > 0;
+      checks.push({
+        label: 'carriesEgyptianMarker',
+        pass: carries === expect.carriesEgyptianMarker,
+        detail: carries
+          ? `found ${found.join(', ')}`
+          : `no Egyptian marker in ${JSON.stringify(desc)}`,
+      });
+    }
+  }
+
+  // The two closed vocabularies, asserted for every fixture rather than only where an author
+  // thought to forbid something.
+  //
+  // When the gate dropped the description, NO vocabulary check is emitted — not a passing one. A
+  // passing check on a draft that does not exist is the vacuous pass this file guards against
+  // everywhere else, and `empty_garbage.json` correctly produces no description, so a failing check
+  // there would leave the corpus permanently red for a fixture behaving exactly as intended.
+  // Silence is the honest third answer where pass and fail are both lies.
+  if (desc !== null) {
+    const hits = findForbiddenVocabulary(desc);
+    for (const family of VOCABULARY_FAMILIES) {
+      const found = hits.filter((h) => h.family === family.key).map((h) => h.term);
+      checks.push({
+        label: family.label,
+        pass: found.length === 0,
+        detail: found.length === 0
+          ? 'absent'
+          : `found ${found.join(', ')} in ${JSON.stringify(desc)}`,
+      });
+    }
+  }
+
   let descriptionText: string;
   if (desc === null) {
     descriptionText = 'dropped';
@@ -518,10 +683,19 @@ export function scoreMealDescription(
     descriptionText = `${sentences} sentence${sentences === 1 ? '' : 's'}, ${desc.length} characters`;
   }
 
-  return {
-    checks,
-    notes: [{ label: 'description (reported, not asserted)', text: descriptionText }],
-  };
+  const notes: Note[] = [
+    { label: 'description (reported, not asserted)', text: descriptionText },
+  ];
+
+  if (desc !== null && said !== undefined) {
+    const untraced = untracedContentWords(said, desc);
+    notes.push({
+      label: 'words that do not trace back to the Cook (reported, not asserted)',
+      text: untraced.length === 0 ? 'none' : untraced.join('، '),
+    });
+  }
+
+  return { checks, notes };
 }
 
 export const SUITES: Record<string, Suite> = {
@@ -614,7 +788,7 @@ async function replay(suite: Suite, fixture: Fixture): Promise<Outcome> {
         const value = parsed.value as Record<string, unknown>;
         // Score what a Cook would see, not what the model emitted — the parser sits between them.
         const { gated, dropped } = suite.gate(value);
-        const { checks, notes } = suite.score(fixture.expect, gated, fixture.file);
+        const { checks, notes } = suite.score(fixture.expect, gated, fixture.file, fixture.said);
         return {
           fixture,
           latencyMs: Math.round(performance.now() - started),

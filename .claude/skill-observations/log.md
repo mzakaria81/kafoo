@@ -1942,3 +1942,48 @@ look" will report the reassuring one.
 **Suggested improvement:** When adding or strengthening a verify.sh step, require one red run per refused condition (mutation or fixture), then restore — same discipline as RLS negative tests seen to fail.
 
 **Principle:** A check that has never been seen to fail is not known to check anything.
+
+### Observation 75: Ship a new check as a report first, and the false-alarm rate stops being a guess
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-009 / T100 — teaching the meal-description golden corpus to notice that the model had stated three facts the Cook never gave, all of which the corpus marked PASS
+**Skill:** test-driven-development (and verification-before-completion)
+**Type:** open-source
+**Phase/Area:** deciding whether a new check is fit to gate on
+
+**Issue:** The package specified an order — build the check as a REPORT, measure how often it fires wrongly, and only then decide whether it can gate. That order was not ceremony. Measuring produced two results neither intuition nor a green test run would have given. First, the measured false-alarm rate was 41% (22 flags, 13 real, 9 false), concentrated almost entirely in one structural case, which was enough to keep the check out of the build. Second, and more important, the very first version of the check reported the single most important violation as *clean* — a one-character normalisation artefact silently traced an invented word back to input that never contained it. Had the same logic been written as an assertion, it would have passed on its first run against a corpus everyone believed was healthy, and been trusted precisely because it was green.
+
+**Suggested improvement:** In test-driven-development, add a rule for checks whose subject is fuzzy — natural language, heuristics, similarity, classification — distinct from the existing red-then-green rule for deterministic logic. For these, the first implementation ships as a non-failing report over a corpus of real recorded outputs, its hit rate is hand-classified into true and false, and only that measured number justifies promoting it to a gate. Record the number in the test suite so a later loosening of the heuristic appears as a diff rather than as a quiet improvement in the rate. State the failure mode plainly: a fuzzy assertion that passes on its first run is indistinguishable from a fuzzy assertion that cannot see anything, and greenness is what makes it credible.
+
+**Principle:** For a check whose correctness is a matter of degree rather than of logic, "it passed" carries no information — the same output is produced by a correct check and a blind one. The only thing that separates them is a measured hit rate against known-classified inputs, and the measurement must happen while the check is still incapable of failing anything, because the moment it can fail a build the incentive shifts from measuring it to satisfying it.
+
+### Observation 76: A delegated run that produces no output is indistinguishable from one that is thinking
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-009 — dispatching the implementation half of the package to a CLI implementer before doing the analysis in-session
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** step 3, "Wait for completion"
+
+**Issue:** The relay ran for 42 minutes and wrote nothing at all: an empty event stream, no files touched in the working tree, and roughly 47 seconds of accumulated CPU. Nothing in the skill's waiting model distinguishes that from a long, healthy run — the guidance is to block until the helper returns, and the helper only writes its result file at the end. Time was spent checking the process was alive, checking the API host was reachable, and inspecting an event file that stayed at zero bytes, none of which is a decision procedure. The run was eventually killed on a judgement call about elapsed wall clock, which is exactly the kind of arbitrary threshold a skill should supply rather than leave to the orchestrator mid-task.
+
+**Suggested improvement:** In `references/dispatch-and-poll.md`, add a liveness section separating "still working" from "stalled" using signals available during the run rather than after it: the event file's byte count, the count of files touched in the working tree, and accumulated process CPU. Give a concrete first-signal expectation — an implementer that has touched no file and emitted no event after roughly ten minutes is not mid-task — and say what to do: kill it, record the dispatch as aborted in whatever ledger the project keeps, and decide between re-dispatching with a smaller brief and doing the work in-session. Note the specific trap that a buffered output format hides progress entirely, so the absence of streamed output is not evidence either way and the working tree is the more reliable signal.
+
+**Principle:** Any skill that tells an agent to wait on a long-running external process must define what a healthy wait looks like, not only how to detect completion. Without a liveness signal the agent's only options are to wait indefinitely or to abandon on an invented threshold, and it will pick one under time pressure with no basis for either.
+
+### Observation 77: A detector improvement silently buys slack in the corpus-level test that depends on it
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-009 — widening a shared register-marker registry, which fed a separate corpus-level assertion counting how many fixtures carry a marker
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** threshold assertions over a derived count
+
+**Issue:** A test asserted that at least four fixtures in a corpus carried a dialect marker, with a comment explaining that four was exactly the current count so the assertion would bite rather than absorb a regression. Widening the detector's vocabulary raised the real count to five without any fixture changing. The test stayed green, the comment became false, and the assertion silently acquired one fixture of slack — a later fixture edit that removed a marker would no longer be caught. Nothing in the failing-test signal could reveal this, because the test never failed; the drift was only visible by deliberately raising the threshold to see where it broke.
+
+**Suggested improvement:** Add a rule that a threshold pinned to "exactly what exists today" is a two-part invariant — the number and the claim that it is tight — and that any change to the measuring instrument feeding it requires re-deriving the number and updating both. The cheap verification is to raise the threshold by one and confirm the test fails naming the actual count; that failure message is the proof the pin is still tight. Note the asymmetry that makes this easy to miss: improving a detector moves a derived count in the direction that keeps every dependent assertion green, so the whole class of drift is invisible to the test suite by construction.
+
+**Principle:** An assertion pinned tight against a derived measurement inherits a dependency on the thing doing the measuring. Improving the instrument loosens the assertion without breaking it, so tightness has to be re-verified whenever the instrument changes — and the only way to verify tightness is to make the assertion fail on purpose.

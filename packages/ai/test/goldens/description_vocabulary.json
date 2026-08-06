@@ -1,0 +1,7 @@
+{
+  "note": "Two readers share this file: `scripts/replay-goldens.ts` (TypeScript, live model replay) and `packages/ai/test/meal_description_goldens_test.dart` (Dart, stub golden runner). It lists vocabulary a drafted Meal description must never contain, and it is asserted for EVERY meal_description fixture rather than being driven by a fixture's `expect` block. That is deliberate: two of the eight fixtures forbid anything at all today, and neither of the two rules that actually broke on 2026-08-05 was asserted anywhere. These families are a property of the prompt, not of a fixture author's imagination.",
+  "matching": "Plain substring, and deliberately NOT the word-boundary rule register_markers.json uses. Arabic attaches suffixes, so صحي must still catch صحية, and توصلك must be caught inside عشان توصلك سخنة. The register detector is anchored because it has to keep بيحتوي apart from يحتوي; there is no such distinction to protect here, and an anchored rule would miss the exact failure this check exists to catch.",
+  "history": "Added by T100 (WP-009) after the first live replay of meal-description. The model wrote عشان توصلك سخنة where the Cook had said عشان تطلع سخنة — a delivery promise Kafoo invented over a named Cook's name — and the corpus recorded the fixture as PASS. The prompt forbids it in prose under 'What not to write'; the model ignored the prose. A rule stated only in a prompt is not enforced anywhere.",
+  "delivery": ["توصيل", "توصلك", "نوصل", "سعر", "جنيه", "متاح", "متوفر"],
+  "health": ["صحي", "دايت", "سعرات", "خفيف"]
+}
