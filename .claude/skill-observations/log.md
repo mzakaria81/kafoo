@@ -2101,3 +2101,38 @@ discovering it in front of a reader who is deciding something.
 **Principle:** Prose generated under one branch of a condition is untested code until the other
 branch runs. The failure mode is not a crash but a confident sentence asserting the opposite of the
 data beside it, which is worse than a blank.
+
+### Observation 82: A recommendation inherited its scope from the repo instead of asking the user
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Starting a new epic. The agent read the project's decision records and handoff
+document, inferred the scope of an upcoming surface from them, and recommended the cheapest
+technology that satisfied that inferred scope. The user then produced an outside opinion which
+disagreed — correctly — on the grounds that the user's actual intent was substantially larger than
+what the documents implied.
+**Skill:** brainstorming
+**Type:** open-source
+**Phase/Area:** "Proposing approaches" / "Ask clarifying questions"
+
+**Issue:** The agent's clarifying questions established *which* surface was in scope but never
+established *how much application* the user intended to build on it. The decision record described
+a narrow justification (a shareable link with a preview), so the agent optimised for that
+justification and recommended a minimal server-rendered option. The user's real plan was a full
+second client application. The recommendation was not wrong for the scope the agent assumed; it was
+wrong because the assumption was never surfaced, so the user had no way to see it and correct it.
+An outside reviewer caught it in one reading, precisely because they were working from the user's
+stated intent rather than from the project's documents.
+
+**Suggested improvement:** In the "Proposing approaches" step, require that every recommendation
+state the scope assumption it is optimised for, in one clause, adjacent to the recommendation
+itself — "cheapest thing that satisfies X" rather than just "cheapest thing". Where the assumption
+came from a document rather than from the user, say so. A recommendation whose scope premise is
+invisible cannot be disagreed with on its premise; the user can only disagree with the conclusion,
+which is the harder and rarer thing to do.
+
+**Principle:** Project documents record the scope that *was* decided, not the scope the user now
+intends. When a recommendation is scoped by documents rather than by something the user said in
+this conversation, the scope assumption is the load-bearing part of the recommendation and must be
+stated out loud alongside it. Otherwise the user reviews the answer without ever seeing the question
+it answered.
