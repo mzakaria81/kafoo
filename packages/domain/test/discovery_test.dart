@@ -10,7 +10,8 @@ void main() {
       // Collapsing them is how a Customer who said "without meat" gets meat.
       expect(ExclusionVocabulary.lookUp(''), isA<NoExclusion>());
       expect(ExclusionVocabulary.lookUp('   '), isA<NoExclusion>());
-      expect(ExclusionVocabulary.lookUp('كافيار'), isA<ExclusionNotUnderstood>());
+      expect(
+          ExclusionVocabulary.lookUp('كافيار'), isA<ExclusionNotUnderstood>());
     });
 
     test('an unrecognised term reports what it failed on', () {
@@ -23,11 +24,12 @@ void main() {
       // 'من غير ما يكون فيه' contains 'من غير'. Matching the shorter one first
       // would take "ما يكون فيه لحمة" as the thing being excluded, which is not
       // a food and would report not-understood on a phrase Kafoo does handle.
-      final markers = ExclusionVocabulary.negationMarkers;
+      const markers = ExclusionVocabulary.negationMarkers;
       for (var i = 0; i < markers.length; i++) {
         for (var j = i + 1; j < markers.length; j++) {
           expect(
-            markers[i].contains(markers[j]) && markers[i].length < markers[j].length,
+            markers[i].contains(markers[j]) &&
+                markers[i].length < markers[j].length,
             isFalse,
             reason: '${markers[j]} must come before ${markers[i]}',
           );
@@ -40,7 +42,8 @@ void main() {
     test('toString never leaks what the Customer said', () {
       // toString is what reaches a crash report and a log line. A phrase there
       // defeats the no-recording rule everywhere at once.
-      const request = DiscoveryRequest(phrase: 'نفسي في حاجة خفيفة', area: 'المهندسين');
+      const request =
+          DiscoveryRequest(phrase: 'نفسي في حاجة خفيفة', area: 'المهندسين');
       expect(request.toString(), isNot(contains('نفسي')));
       expect(request.toString(), isNot(contains('المهندسين')));
     });
