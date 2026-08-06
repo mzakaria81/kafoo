@@ -1204,11 +1204,18 @@ function generateReport(
         aVerdict === "PASS" ? "is within" : "exceeds"
       } the ${aBudget} ms budget across ${runs} runs.`,
     );
+    // The qualifier depends on which way the verdict went. It read "a median inside the budget does
+    // not mean every Cook is inside it" unconditionally, which is a sentence about a PASS printed
+    // underneath an OVER — and the first real OVER put it there, saying the opposite of the row above.
     lines.push(
       `- **Runs over budget**: ${aOver} of ${runs}${
         aOver === 0
           ? "" // nothing to qualify
-          : ` — a median inside the budget does not mean every Cook is inside it, and ${aOver} of these would have waited longer than ${aBudget} ms.`
+          : aVerdict === "PASS"
+          ? ` — a median inside the budget does not mean every Cook is inside it, and ${aOver} of these would have waited longer than ${aBudget} ms.`
+          : ` — the median is over, and so were ${aOver} of the individual runs. ${
+            runs - aOver
+          } came in under, so this is not a feature that is always slow; it is one that is slow more often than not.`
       }`,
     );
     lines.push("");
