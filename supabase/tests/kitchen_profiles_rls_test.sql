@@ -59,7 +59,7 @@ SELECT is(
   (SELECT display_name FROM public.kitchen_profiles
    WHERE cook_id = tests.user_id('owner@test.kafoo')),
   NULL,
-  'other cannot update owner kitchen profile (reads null because no SELECT access)'
+  'a closed kitchen is invisible, so a stranger''s UPDATE finds no row (SELECT policy, not UPDATE)'
 );
 
 SELECT tests.clear_authentication();
@@ -80,6 +80,12 @@ SELECT tests.clear_authentication();
 -- (E2), which broadens the SELECT policy — and on that day this test stops covering the thing its
 -- name suggests. Whoever writes that migration must add an assertion that fails with
 -- `WITH CHECK (true)` in place, because this one will not.
+--
+-- THAT DAY CAME AND NOBODY RE-READ THIS. E2 shipped the widening policy; the assertion below was
+-- still named after WITH CHECK on 2026-08-06, when scripts/mutate-policies.py confirmed it passes
+-- with WITH CHECK weakened to true. It is renamed to what it exercises, and the assertion that
+-- does bite is `the UPDATE policy WITH CHECK refuses a reassign on its own, with the row still
+-- visible` in policy_isolation_test.sql. **A warning in the right place is not a control.**
 SELECT tests.authenticate_as('owner@test.kafoo');
 
 SELECT throws_ok(
@@ -88,7 +94,7 @@ SELECT throws_ok(
        WHERE cook_id = tests.user_id('owner@test.kafoo') $$,
   '42501',
   NULL,
-  'owner cannot reassign cook_id to another person (WITH CHECK)'
+  'reassigning cook_id makes the row invisible to its updater, which is what refuses it (SELECT policy)'
 );
 
 SELECT tests.clear_authentication();
@@ -211,7 +217,7 @@ SELECT is(
   (SELECT address_form FROM public.kitchen_profiles
    WHERE cook_id = tests.user_id('owner@test.kafoo')),
   'feminine',
-  'non-owner cannot write another Cook''s address form'
+  'a closed kitchen''s address form is unwritable because the row is unreadable (SELECT policy)'
 );
 
 -- 10. An invalid address_form value is rejected by CHECK.

@@ -1,8 +1,19 @@
 # Which authorization assertions can actually fail
 
 Measured 2026-08-06 by `scripts/mutate-policies.py` against a local Postgres 17 built by
-`scripts/local-db.sh`. **104 assertions, 19 policies, 29 clause mutations.** Re-run it after adding
-a policy or a fixture — isolation is not a property a suite keeps by default.
+`scripts/local-db.sh`. Re-run it after adding a policy or a fixture — isolation is not a property a
+suite keeps by default.
+
+| | Before | After |
+|---|---|---|
+| Assertions | 104 | 114 |
+| Policies / clause mutations | 19 / 29 | 19 / 29 |
+| **Clauses with no assertion behind them** | **15** | **0** |
+| Assertions passing for a reason other than their name | 3 | 0 (renamed; replacements added) |
+
+The ten new assertions are in `supabase/tests/policy_isolation_test.sql`. Every one of them was
+seen to go red for the clause it was written for — that is the whole point of the file, and the
+sweep is how it is checked rather than asserted.
 
 ## Why this was measured
 
@@ -39,17 +50,22 @@ the reassuring direction.
 - **A clause with no red assertion is covered by nothing in the suite.** That result is not
   probabilistic, and it is what this document is for.
 
-## The three assertions that pass for a reason other than their name
+## The three assertions that passed for a reason other than their name
 
 All three are the same mechanism, and it is the one worth internalising: **PostgreSQL applies
 `SELECT` policies to the rows an `UPDATE` or `DELETE` touches.** A row you cannot see is a row you
 cannot change, so the read policy refuses first and the write policy under test is never reached.
 
-| Assertion | Names | Actually exercises |
-|---|---|---|
-| `another signed-in person cannot delete a Cook's draft` | the DELETE policy's ownership clause | the SELECT policies. Removing `cook_id = auth.uid()` from the DELETE policy leaves it green. |
-| `owner cannot reassign cook_id to another person (WITH CHECK)` | the UPDATE policy's `WITH CHECK` | the SELECT policies. The reassigned row stops being visible to its updater, which is what raises 42501. |
-| `non-owner cannot write another Cook's address form` | the UPDATE policy | the SELECT policies. WP-006's original find, in its original location. |
+| Assertion, as it was named | Claimed | Actually exercises | Now |
+|---|---|---|---|
+| `another signed-in person cannot delete a Cook's draft` | the DELETE policy's ownership clause | the SELECT policies. Removing `cook_id = auth.uid()` from the DELETE policy left it green. | renamed; `a stranger who can SEE a draft still cannot delete it` bites |
+| `owner cannot reassign cook_id to another person (WITH CHECK)` | the UPDATE policy's `WITH CHECK` | the SELECT policies. The reassigned row stops being visible to its updater, which is what raises 42501. | renamed; `the UPDATE policy WITH CHECK refuses a reassign on its own, with the row still visible` bites |
+| `non-owner cannot write another Cook's address form` | the UPDATE policy | the SELECT policies. WP-006's original find, in its original location. | renamed; WP-006's discoverability assertion already bites |
+
+**None of the three was deleted.** Each still pins a real outcome — a stranger's write really does
+fail against a closed kitchen — and each is renamed to say which layer refuses, so a TAP line
+reading `a closed kitchen is invisible, so a stranger's UPDATE finds no row (SELECT policy, not
+UPDATE)` cannot be mistaken for coverage of the UPDATE policy.
 
 **The second one was predicted in writing, in the file, above the assertion.** The comment says that
 when a later epic makes kitchens publicly discoverable, "this test stops covering the thing its name
@@ -57,16 +73,16 @@ suggests", and that whoever writes that migration "must add an assertion that fa
 `WITH CHECK (true)` in place, because this one will not." E2 shipped that migration. Nobody re-read
 the note. A warning in the right place is not a control — the mutation sweep is.
 
-## The 15 clauses with nothing behind them
+## The 15 clauses that had nothing behind them
 
-**One on `public`, and it is the sharp one:**
+**One on `public`, and it was the sharp one:**
 
 | Policy | Clause with no assertion |
 |---|---|
 | `meals :: cook deletes own drafts` | `cook_id = auth.uid()` |
 
-Nothing proves a stranger cannot delete your draft. The DELETE policy's other half (`status =
-'draft'`) is covered twice over.
+Nothing proved a stranger cannot delete your draft. The DELETE policy's other half (`status =
+'draft'`) was covered twice over.
 
 **Six ownership clauses on `storage.objects`:**
 
@@ -92,36 +108,53 @@ different rule, and no assertion would notice.
 
 ## Full result
 
-`OK` means at least one assertion goes red when the clause is dropped.
+Every clause now has at least one assertion that goes red when it is dropped. The counts are
+lower bounds on coverage, not a score — one assertion that genuinely isolates a clause is worth
+more than four that pass through it.
 
 | Policy (cmd) | Clause | Assertions that notice |
 |---|---|---|
-| `analytics_events :: anonymous records pre-sign-in funnel only` (INSERT) | `person_id IS NULL` | 1 |
-| `analytics_events :: anonymous records pre-sign-in funnel only` (INSERT) | `name = ANY (…)` | 1 |
-| `analytics_events :: person records own events` (INSERT) | `person_id = auth.uid()` | 2 |
-| `kitchen_profiles :: anyone reads a kitchen with food on offer` (SELECT) | `EXISTS (… published …)` | 8 |
-| `kitchen_profiles :: cook creates own kitchen profile` (INSERT) | `cook_id = auth.uid()` | 1 |
-| `kitchen_profiles :: cook reads own kitchen profile` (SELECT) | `cook_id = auth.uid()` | 4 |
-| `kitchen_profiles :: cook updates own kitchen profile` (UPDATE) | `cook_id = auth.uid()` | 1 |
-| `meals :: anyone reads a published meal` (SELECT) | `status = 'published'` | 3 |
-| `meals :: cook creates own meals` (INSERT) | `cook_id = auth.uid()` | 1 |
-| `meals :: cook deletes own drafts` (DELETE) | `cook_id = auth.uid()` | **0** |
-| `meals :: cook deletes own drafts` (DELETE) | `status = 'draft'` | 2 |
-| `meals :: cook reads own meals` (SELECT) | `cook_id = auth.uid()` | 2 |
-| `meals :: cook updates own meals` (UPDATE) | `cook_id = auth.uid()` | 2 |
-| `storage :: owner deletes meal photo` (DELETE) | folder = `auth.uid()` | 1 |
-| `storage :: owner uploads meal photo` (INSERT) | folder = `auth.uid()` | 1 |
-| `storage :: owner deletes kitchen photo` (DELETE) | folder = `auth.uid()` | **0** |
-| `storage :: owner reads own kitchen photo` (SELECT) | folder = `auth.uid()` | **0** |
-| `storage :: owner reads own meal photo` (SELECT) | folder = `auth.uid()` | **0** |
-| `storage :: owner updates kitchen photo` (UPDATE) | folder = `auth.uid()` | **0** |
-| `storage :: owner updates meal photo` (UPDATE) | folder = `auth.uid()` | **0** |
-| `storage :: owner uploads kitchen photo` (INSERT) | folder = `auth.uid()` | **0** |
-| `storage ::` all eight policies | `bucket_id = …` | **0** each |
+| `analytics_events :: anonymous records pre-sign-in funnel only (INSERT)` | `person_id IS NULL` | 1 |
+| `analytics_events :: anonymous records pre-sign-in funnel only (INSERT)` | `name = ANY (…)` | 1 |
+| `analytics_events :: person records own events (INSERT)` | `person_id = auth.uid` | 2 |
+| `kitchen_profiles :: anyone reads a kitchen with food on offer (SELECT)` | `EXISTS (… published …)` | 8 |
+| `kitchen_profiles :: cook creates own kitchen profile (INSERT)` | `cook_id = auth.uid` | 1 |
+| `kitchen_profiles :: cook reads own kitchen profile (SELECT)` | `cook_id = auth.uid` | 4 |
+| `kitchen_profiles :: cook updates own kitchen profile (UPDATE)` | `cook_id = auth.uid` | 2 |
+| `meals :: anyone reads a published meal (SELECT)` | `status = 'published'::text` | 3 |
+| `meals :: cook creates own meals (INSERT)` | `cook_id = auth.uid` | 1 |
+| `meals :: cook deletes own drafts (DELETE)` | `cook_id = auth.uid` | 1 |
+| `meals :: cook deletes own drafts (DELETE)` | `status = 'draft'::text` | 2 |
+| `meals :: cook reads own meals (SELECT)` | `cook_id = auth.uid` | 2 |
+| `meals :: cook updates own meals (UPDATE)` | `cook_id = auth.uid` | 2 |
+| `storage :: owner deletes kitchen photo (DELETE)` | `bucket_id = 'kitchen-photos'::text` | 1 |
+| `storage :: owner deletes kitchen photo (DELETE)` | folder = `auth.uid()` | 1 |
+| `storage :: owner deletes meal photo (DELETE)` | `bucket_id = 'meal-photos'::text` | 1 |
+| `storage :: owner deletes meal photo (DELETE)` | folder = `auth.uid()` | 1 |
+| `storage :: owner reads own kitchen photo (SELECT)` | `bucket_id = 'kitchen-photos'::text` | 1 |
+| `storage :: owner reads own kitchen photo (SELECT)` | folder = `auth.uid()` | 1 |
+| `storage :: owner reads own meal photo (SELECT)` | `bucket_id = 'meal-photos'::text` | 1 |
+| `storage :: owner reads own meal photo (SELECT)` | folder = `auth.uid()` | 1 |
+| `storage :: owner updates kitchen photo (UPDATE)` | `bucket_id = 'kitchen-photos'::text` | 1 |
+| `storage :: owner updates kitchen photo (UPDATE)` | folder = `auth.uid()` | 1 |
+| `storage :: owner updates meal photo (UPDATE)` | `bucket_id = 'meal-photos'::text` | 1 |
+| `storage :: owner updates meal photo (UPDATE)` | folder = `auth.uid()` | 1 |
+| `storage :: owner uploads kitchen photo (INSERT)` | `bucket_id = 'kitchen-photos'::text` | 1 |
+| `storage :: owner uploads kitchen photo (INSERT)` | folder = `auth.uid()` | 1 |
+| `storage :: owner uploads meal photo (INSERT)` | `bucket_id = 'meal-photos'::text` | 1 |
+| `storage :: owner uploads meal photo (INSERT)` | folder = `auth.uid()` | 1 |
 
-`kitchen_profiles :: cook updates own kitchen profile` shows 1, and that one assertion is the one
-WP-006 added in `kitchen_discoverability_test.sql` after finding the masking. Without it the clause
-would read **0** — the whole "a Cook owns their own kitchen" write rule would be untested.
+`kitchen_profiles :: cook updates own kitchen profile` shows 2, and **both** were written after a
+mutation showed the clause bare: one by WP-006 in `kitchen_discoverability_test.sql` when the
+masking was first found, one here. Before either existed the clause read **0** — the whole "a Cook
+owns their own kitchen" write rule was untested.
+
+The eight `bucket_id` clauses each show 1, and that one is structural: `every storage.objects policy
+names the bucket it governs`. They cannot be covered behaviourally, because widening a policy from
+one bucket to both changes nothing observable while the two buckets carry identical predicates.
+A check on the predicate's text is the honest shape for a clause whose effect is currently
+unobservable — and it is the thing that will notice the day a third bucket arrives with a different
+rule.
 
 ## One assertion that did not run rather than passing
 
@@ -129,7 +162,13 @@ Weakening `kitchen_profiles :: cook creates own kitchen profile` aborted
 `kitchen_profiles_rls_test.sql` before `unset address_form is legal and reads NULL` executed. An
 assertion that does not run is not an assertion that passed, so the harness reports it separately
 rather than counting it as coverage. It is a fixture that depends on the policy being narrow, not a
-hole.
+hole: the clause itself has an assertion that goes red.
+
+**The same thing happened once in the new suite and was fixed rather than documented.** Under the
+kitchen-photo upload mutation the stranger's INSERT succeeded, collided with the owner's later
+upload on a unique key, and aborted four later assertions — which the harness correctly reported as
+unmeasured rather than as coverage. The fixture now plants its file under a different name. A suite
+has to survive the mutation it exists to catch, or it goes quiet exactly when it should shout.
 
 ## What was NOT done here, deliberately
 

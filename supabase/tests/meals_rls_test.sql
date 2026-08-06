@@ -402,6 +402,15 @@ SELECT is(
 );
 
 -- 13. Another signed-in person deletes someone else's draft → nothing happens.
+--
+-- READ THIS BEFORE TRUSTING IT. Mutation-tested 2026-08-06: with `cook_id = auth.uid()` removed
+-- from the DELETE policy this assertion still passes, because the stranger cannot SELECT the draft
+-- and PostgreSQL applies SELECT policies to the rows a DELETE touches — so the DELETE matches
+-- nothing and the DELETE policy is never consulted. It pins the outcome, which is worth having, and
+-- it does not test what its old name claimed.
+--
+-- The assertion that bites is `a stranger who can SEE a draft still cannot delete it` in
+-- policy_isolation_test.sql. If you are changing the DELETE policy, watch that one.
 SELECT tests.authenticate_as('owner@test.kafoo');
 
 INSERT INTO public.meals (id, cook_id, title, description, price, cuisine, category)
@@ -419,7 +428,7 @@ SELECT tests.clear_authentication();
 SELECT is(
   (SELECT COUNT(*)::int FROM public.meals WHERE id = 'aaaaaaaa-0000-4000-8000-000000000020'),
   1,
-  'another signed-in person cannot delete a Cook''s draft'
+  'a stranger''s delete of an unseen draft removes nothing (SELECT policy, not DELETE)'
 );
 
 -- ── Is case 8b capable of failing? ───────────────────────────────────────────────────────────────
