@@ -158,6 +158,13 @@ SELECT ok(
 -- It is also what makes the revoke durable. `REVOKE ... ON ALL TABLES` fixes the tables that exist
 -- when it runs and says nothing about the next one, which inherits by default privilege. This
 -- assertion is the thing that notices.
+--
+-- AND IT IS WHY THIS READS pg_class RATHER THAN A LIST OF TABLE NAMES. Production carries a second
+-- default privilege, owned by `supabase_admin`, that grants all four privileges plus full CRUD —
+-- and `postgres` is not a member of `supabase_admin`, so no migration of ours can revoke it. It
+-- applies only to tables `supabase_admin` itself creates, which is none of Kafoo's; but if a
+-- platform feature ever creates one, this assertion sees it, because it asks what a table HOLDS and
+-- never who made it. See `docs/ops/local-database.md`.
 
 SELECT is(
   (SELECT string_agg(DISTINCT c.relname || ' (' || r.rolname || ': ' || p.priv || ')', ', ')

@@ -120,6 +120,32 @@ does grant makes a negative assertion unfalsifiable, which looks like coverage a
 add a role, a grant or a default privilege here, the question is not "is this enough for the tests
 to pass" — it is "does this match what was measured against the live project, and on what date".
 
+#### One divergence that remains, deliberately
+
+Production has **two** default-privilege entries for tables in `public`; this harness reproduces
+one. Read after the migration was applied on 2026-08-06:
+
+| Granting role | Grants to anon / authenticated / service_role |
+|---|---|
+| `postgres` | nothing — the migration revoked it, and this is the one the harness reproduces |
+| `supabase_admin` | `arwdDxtm`, i.e. full CRUD **and** all four of TRUNCATE, REFERENCES, TRIGGER, MAINTAIN |
+
+A default privilege applies only to objects created **by its granting role**. All three Kafoo tables
+are owned by `postgres`, and every table a migration creates will be — which is why they came up
+clean, and why the earlier claim that "a table created after the migration inherits nothing" holds
+for the tables this project actually creates.
+
+**It does not hold for a table created by `supabase_admin`.** That is the platform's own role — a
+Supabase-managed feature or an extension could create one — and such a table would arrive granting
+anon full CRUD plus the four. A migration cannot fix it: `postgres` is not a member of
+`supabase_admin`, so `ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin` is not ours to run.
+
+What covers it is the dynamic guard in `data_api_grants_test.sql`, which reads `pg_class` and cares
+only about what a table *holds*, never about who created it. That is the reason it enumerates rather
+than naming tables — and the reason this harness is not extended to fake the `supabase_admin` entry:
+reproducing a default we cannot revoke would make the guard permanently red locally and teach
+everyone to ignore it.
+
 ## Trusting it
 
 It was validated rather than assumed. All existing suites pass with the same assertion count and the
