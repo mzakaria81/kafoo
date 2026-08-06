@@ -151,7 +151,7 @@ governance and provides none. Check references resolve before trusting the rule 
 
 ### Observation 7: Persistent session state must commit independently of a deliverable approval gate
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Already resolved: CLAUDE.md pins the workspace to .claude/skill-observations/ and requires it be committed
 **Date:** 2026-07-30
 **Session context:** Designing release signing custody (T039). The brainstorming skill's HARD-GATE forbids writing the design document until the user approves the design, while the repository's stop hook requires a clean working tree and CLAUDE.md requires the observation log to be committed and pushed or it is lost when the ephemeral container is destroyed.
 
@@ -231,7 +231,7 @@ governance and provides none. Check references resolve before trusting the rule 
 
 ### Observation 12: A pipeline's exit status is the last command's, so piping a check into a pager silently disarms it
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-07-30
 **Session context:** Running a project's mandatory verification gate before committing, written as `./scripts/verify.sh 2>&1 | tail -5 && git add -A && git commit`. An earlier `cd` in the same persistent shell meant the script path no longer resolved.
 
@@ -313,7 +313,7 @@ governance and provides none. Check references resolve before trusting the rule 
 
 ### Observation 17: A credential that works is not evidence you are pointed at the right system
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-07-31
 **Session context:** About to run a project's authorization test suite against its deployed database, using credentials already present in the session environment.
 
@@ -329,7 +329,7 @@ governance and provides none. Check references resolve before trusting the rule 
 
 ### Observation 18: A test that has never run may be unrunnable, not merely unexecuted
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-07-31
 **Session context:** Writing instructions for a human to execute a database authorization suite that had been written, reviewed and merged months earlier but never once executed.
 
@@ -345,7 +345,7 @@ governance and provides none. Check references resolve before trusting the rule 
 
 ### Observation 19: A verification step that lives only in prose is re-done by hand or not at all
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-01
 **Session context:** Checking environment variables and Supabase branching capability for Kafoo,
 after a prior session had run against an unrelated project's credentials.
@@ -431,7 +431,7 @@ can open a shell, not by what the code uses. Unreferenced credentials are theref
 
 ### Observation 22: A pinned dependency version inside a conditionally-skipped step is never validated by anything
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-01
 **Session context:** Installing the Supabase CLI into the shared toolchain script and pinning it to
 the version CI uses.
@@ -543,7 +543,7 @@ with no invalidation, and check it on a schedule rather than trusting the copy.
 
 ### Observation 26: Documenting an external system's behaviour from its documentation produces a confident claim with no evidence behind it
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Preparing ephemeral database branches, then measuring the first branch that
 actually existed.
@@ -572,7 +572,7 @@ when, so the unmeasured ones stay visibly unmeasured instead of aging into appar
 
 ### Observation 27: An artefact created with the right name can be the wrong thing, and the name suppresses the check
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Confirming that a requested piece of infrastructure had been created.
 **Skill:** verification-before-completion
@@ -627,7 +627,7 @@ free-text field next to it usually tells you *why*, and it is almost always one 
 
 ### Observation 29: Reading a resource can disclose its secrets, so the read is part of the blast radius
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Inspecting a newly created database branch to confirm it had been built
 correctly.
@@ -655,7 +655,7 @@ and who can reach it.
 
 ### Observation 30: A local emulator that accepts what the real service rejects turns local testing into a source of false confidence
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** The first ephemeral environment ever built for this project failed immediately
 on a configuration file that had passed every local run.
@@ -684,7 +684,7 @@ amount of local rigour converts into confidence about it.
 
 ### Observation 31: When an experiment finally becomes possible, run it and record the result in the artefact that carried the guess
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** A hypothesis written into three files became testable the moment the first
 working ephemeral environment appeared.
@@ -712,7 +712,7 @@ normal workflow will destroy by default.
 
 ### Observation 32: A build-time constant lookup that defaults to empty turns a name mismatch into a shipped artefact
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Following up a user's remark that a credential already existed under a
 different name than the code expected.
@@ -800,7 +800,7 @@ you checked returns exactly the answer you expected.
 
 ### Observation 35: When the tests cannot run, re-express their intent rather than editing them to pass
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** The project's authorization suites turned out to be unrunnable for two
 independent environmental reasons, in the middle of a request to run them.
@@ -831,7 +831,7 @@ independently and leave the blocker visible.
 
 ### Observation 36: Mutation-test a green suite, because passing does not establish that it could fail
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Repairing authorization suites that had never executed, then deciding whether
 to trust them once they went green.
@@ -859,7 +859,7 @@ assertion fail for the reason it exists, you know it runs — not that it guards
 
 ### Observation 37: Validate the artefact you are shipping, not the equivalent one you developed with
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Promoting a working scratch script into a committed one used by continuous
 integration.
@@ -887,7 +887,7 @@ are two different files, only one of them has been tested, and it is not the one
 
 ### Observation 38: Enabling a platform feature can silently take over a responsibility your own pipeline still claims
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Investigating a failing deployment step after a merge, and finding the work had
 been done anyway.
@@ -1006,7 +1006,7 @@ escalating; the estimate is usually cheap and it decides whether the question is
 
 ### Observation 42: A gate that enumerates tracked files silently ignores uncommitted work — and still answers
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Adding an Edge Function unit-test step to the project's verification gate
 **Skill:** verification-before-completion, and ship-check
@@ -1039,7 +1039,7 @@ tick.
 
 ### Observation 43: Configuration read from documentation is a guess until one real call is made
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Skill:** verification-before-completion
 **Type:** open-source
@@ -1076,7 +1076,7 @@ the next person inherits evidence instead of a citation.
 
 ### Observation 44: A model allowlist can name the right models under the wrong billing namespace
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Delegating T081/T082/analyze-meal via `opencode-delegate`. The first dispatch,
 using the prefix the repository's own CLAUDE.md prescribed, failed with HTTP 401
@@ -1119,7 +1119,7 @@ plausible cause on the record is what stops anyone finding the real one.
 
 ### Observation 45: Measure the brief's premises before dispatch — the implementer cannot discover the task is wrong
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Implementing a task whose written specification asserted a measured cause ("the
 model wrapped the reply in a Markdown code fence despite the prompt forbidding one") and prescribed
@@ -1159,7 +1159,7 @@ without its evidence is the first thing a capable implementer overrides.
 
 ### Observation 46: A lesson applied at one call site and not its neighbours reads as fixed while still failing
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Reading a project's verification gate before delegating, to name its real
 commands in the brief.
@@ -1190,7 +1190,7 @@ not the fix — the thing you record as done.
 
 ### Observation 47: A gate check modelled on a neighbouring check inherits its unstated preconditions
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Reviewing a delegated implementation that added a drift check for a generated
 file, written in the style of the project's existing generated-code drift check.
@@ -1223,7 +1223,7 @@ confidence is resemblance to something that works, the confidence is unearned.
 
 ### Observation 48: A test that needs a new permission is usually an assertion in the wrong layer
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-02
 **Session context:** Reviewing a delegated implementation that asserted a security property by
 reading its own source file inside a unit test, and widened the whole test suite's sandbox to allow
@@ -1259,7 +1259,7 @@ narrower placement is frequently the weaker assertion too, so the cost buys less
 
 ### Observation 49: Golden discovery must not call expect at load time
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-03
 **Session context:** meal-analysis parser + golden fixtures in packages/ai
 **Skill:** test-driven-development / writing-plans
@@ -1279,7 +1279,7 @@ ordinary setup code and must fail with normal exceptions, not assertions.
 
 ### Observation 50: A parity check between two copies cannot see what is missing from both
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-03
 **Session context:** Reviewing delegated work that introduced a new user-facing error key. The
 project's localization gate was green and the string did not exist in any language.
@@ -1322,7 +1322,7 @@ defect is this check shaped to be blind to".
 
 ### Observation 51: "It does not exist" is only ever a claim about where you looked
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-03
 **Session context:** A user relayed a suggestion to use a `opencode-quota` command. Asked to check
 whether it helps, I reported that the tool did not exist. The user corrected me: it is a
@@ -1362,7 +1362,7 @@ it is for the person who knows better to push back.
 
 ### Observation 52: A test named after a property is read as coverage of it, and that is what makes a vacuous one dangerous
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-03
 **Session context:** Reviewing delegated work that was asked to assert an analytics attribute was
 emitted. The delivered suite passed, the gate passed, and deleting the attribute from the
@@ -1458,7 +1458,7 @@ dangerous than no check because it is read as a pass.
 
 ### Observation 55: A delegated agent's completion report is not evidence, and its narration reads like one
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-04
 **Session context:** Delegating a Flutter screen and controller to a separate CLI agent
 **Skill:** opencode-delegate
@@ -1511,7 +1511,7 @@ eventually live, and verify the test fails without the fix.
 
 ### Observation 57: AutoDispose controller drops async analysis without a listener
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-04
 **Session context:** T034/T035 Meal conversation persist + analysis
 **Skill:** test-driven-development
@@ -1534,7 +1534,7 @@ path is never exercised.
 
 ### Observation 58: Publishing blocked without manual cuisine/category path when AI fails
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Already resolved: apps/mobile/lib/features/meal/presentation/meal_fallback_question.dart supplies the manual cuisine/category path
 **Date:** 2026-08-04
 **Session context:** T038 + estimate approval on Meal summary
 **Skill:** New skill candidate: none — product gap for orchestrator
@@ -1630,7 +1630,7 @@ clauses are invisible to exactly the check meant to find them.
 
 ### Observation 62: Sequential delegation accumulates duplication no single brief can see
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** Kafoo E2, three user stories delegated as three briefs against the same screen
 **Skill:** opencode-delegate
@@ -1675,7 +1675,7 @@ task-observer to harvest — that is success, not a missed observation.
 
 ### Observation 64: A copyWith that cannot express null makes "clear this field" a silent no-op
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** Kafoo E2, resuming a half-finished Meal draft (T097)
 **Skill:** test-driven-development
@@ -1705,7 +1705,7 @@ asking for it gets no error, no warning, and the old value.
 
 ### Observation 65: A negative authorization test can be masked by a sibling policy, and passes for the wrong reason
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** Adding a column to an existing table whose row-level security already had four policies, and writing the test proving a non-owner cannot write it.
 **Skill:** test-driven-development
@@ -1719,7 +1719,7 @@ asking for it gets no error, no warning, and the old value.
 **Principle:** "Seen to fail" is only evidence when the failure has the same cause as the property being claimed. A test that fails because the feature is missing has not yet demonstrated it can fail because the feature is wrong — and where several guards overlap, the only proof is to break the specific one the test names and watch that test, alone, go red.
 ### Observation 66: A mutation test whose mutation silently fails reports "check is asleep"
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** WP-001 — proving verify.sh's `rls coverage` step does real work, by removing an RLS line and watching the step go red
 **Skill:** test-driven-development
@@ -1745,7 +1745,7 @@ asleep, or that the mutation never happened — and those have opposite remedies
 
 ### Observation 67: A delegated implementer confirms the brief's errors instead of catching them
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** WP-001 — delegating E2 documentation updates to OpenCode with a fact-dense brief
 **Skill:** opencode-delegate
@@ -1775,7 +1775,7 @@ conclusion — and treat facts copied from a narrative summary as unverified unt
 
 ### Observation 68: A reused local database silently runs the suites against a stale schema
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** WP-001 — merging main into a branch after a parallel worker landed a migration, then re-running the authorization suites to confirm a documented assertion count
 **Skill:** test-driven-development
@@ -1803,7 +1803,7 @@ independently derived expectation of what should have run can, which is why a de
 worth checking against the observed one.
 ### Observation 69: Pin a measuring instrument's output before refactoring it
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** WP-003 — generalising a live-model eval harness from one prompt to two, where
 the acceptance criterion was "without changing what it measures for the existing prompt"
@@ -1915,7 +1915,7 @@ look" will report the reassuring one.
 
 ### Observation 73: Ownership rules that cover the artifact do not cover incidents against it
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Already resolved: coordination/README.md, "A worker's PR stays the worker's until it merges"
 **Date:** 2026-08-05
 **Session context:** Two agent sessions independently resolved the same merge conflict on one pull request, minutes apart, having each concluded correctly that it was theirs to fix.
 **Skill:** New skill candidate: multi-agent-work-coordination
@@ -1930,7 +1930,7 @@ look" will report the reassuring one.
 
 ### Observation 74: Gate scripts need mutation proof, not only green baseline
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-05
 **Session context:** extend localization parity check (ARB structural parity)
 **Skill:** verification-before-completion
@@ -1945,7 +1945,7 @@ look" will report the reassuring one.
 
 ### Observation 75: Ship a new check as a report first, and the false-alarm rate stops being a guess
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development and verification-before-completion, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-06
 **Session context:** WP-009 / T100 — teaching the meal-description golden corpus to notice that the model had stated three facts the Cook never gave, all of which the corpus marked PASS
 **Skill:** test-driven-development (and verification-before-completion)
@@ -1960,7 +1960,7 @@ look" will report the reassuring one.
 
 ### Observation 76: A delegated run that produces no output is indistinguishable from one that is thinking
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-06
 **Session context:** WP-009 — dispatching the implementation half of the package to a CLI implementer before doing the analysis in-session
 **Skill:** opencode-delegate
@@ -1975,7 +1975,7 @@ look" will report the reassuring one.
 
 ### Observation 77: A detector improvement silently buys slack in the corpus-level test that depends on it
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to test-driven-development, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-06
 **Session context:** WP-009 — widening a shared register-marker registry, which fed a separate corpus-level assertion counting how many fixtures carry a marker
 **Skill:** test-driven-development
@@ -1989,7 +1989,7 @@ look" will report the reassuring one.
 **Principle:** An assertion pinned tight against a derived measurement inherits a dependency on the thing doing the measuring. Improving the instrument loosens the assertion without breaking it, so tightness has to be re-verified whenever the instrument changes — and the only way to verify tightness is to make the assertion fail on purpose.
 ### Observation 78: A locally-reconstructed spend ledger reported OK while the provider had already refused
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-06
 **Session context:** WP-010, measuring E2 latency against production. Dispatching the script change to a delegated implementer.
 **Skill:** opencode-delegate
@@ -2018,7 +2018,7 @@ epistemic direction: the only trustworthy answer it can give is "stop".
 
 ### Observation 79: A blocking relay hung for 49 minutes on a child that had already failed
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to opencode-delegate, staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-06
 **Session context:** WP-010. The same dispatch as Observation 75.
 **Skill:** opencode-delegate
@@ -2104,7 +2104,7 @@ data beside it, which is worse than a blank.
 
 ### Observation 82: A backlog whose entries are never closed cannot be triaged by status
 
-**Status:** OPEN
+**Status:** ACTIONED (2026-08-06) — Applied to task-observer (closing obligation in SKILL.md, re-check pass in weekly-review.md), staged in skill-updates/2026-08-06/ (weekly review)
 **Date:** 2026-08-06
 **Session context:** Reviewing the observation log for the founder. 81 entries, every one marked
 OPEN, `last-review-date.txt` reading `never`, spanning ten days.
