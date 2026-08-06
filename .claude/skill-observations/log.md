@@ -1942,3 +1942,114 @@ look" will report the reassuring one.
 **Suggested improvement:** When adding or strengthening a verify.sh step, require one red run per refused condition (mutation or fixture), then restore — same discipline as RLS negative tests seen to fail.
 
 **Principle:** A check that has never been seen to fail is not known to check anything.
+
+### Observation 75: A locally-reconstructed spend ledger reported OK while the provider had already refused
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-010, measuring E2 latency against production. Dispatching the script change to a delegated implementer.
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Prerequisites / choosing the implementer — the pre-dispatch budget check
+
+**Issue:** The repository's spend ledger was run before dispatching, as its own rules require. It
+printed `OK to dispatch` with the week at $11.15 of a $30 cap — 37%. The dispatch then failed five
+seconds in with the provider's own message: `AI_APICallError: Weekly usage limit reached. Resets in
+3 days`. The ledger was not stale in the ordinary sense; it was structurally incapable of being
+right, because it reconstructs a remote quota from rows this repository happens to have recorded. Any
+spend from another machine, another repository, or a session that died before committing its row is
+invisible to it. Its green verdict therefore carries no information about whether a dispatch will be
+accepted, while *looking* exactly like a verdict that does.
+
+**Suggested improvement:** In the "Prerequisites" and budget-check guidance, state that a
+locally-reconstructed spend figure can only ever prove a *lower bound* on consumption, so its "OK"
+is an absence of evidence rather than evidence of headroom. Recommend that the pre-dispatch check be
+treated as advisory and that the authoritative signal is the provider's own acceptance of the first
+call — which means a dispatch failing on a quota error should be reported as a distinct, expected
+outcome rather than as an anomaly.
+
+**Principle:** A view of a remote quota reconstructed from local records can prove that spending
+happened, never that headroom remains. Presenting such a view as a go/no-go verdict inverts its
+epistemic direction: the only trustworthy answer it can give is "stop".
+
+### Observation 76: A blocking relay hung for 49 minutes on a child that had already failed
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-010. The same dispatch as Observation 75.
+**Skill:** opencode-delegate
+**Type:** open-source
+**Phase/Area:** Step 3, "Wait for completion" / the relay's failure detection
+
+**Issue:** The child CLI hit a terminal provider error five seconds after launch and then neither
+exited nor produced output. The relay blocked on it for 49 minutes until killed by hand. Its event
+file stayed at 0 bytes, and the orchestrator had no way to tell "working silently" from "dead":
+the documented completion signal is `result.json` existing with a status, which never appeared, and
+the guidance to "read the working tree, not a status line" gave the same answer for both states — an
+untouched tree. The failure was discoverable the whole time, but only in the child's own log file,
+which the skill never mentions. Diagnosis took reading that log directly.
+
+**Suggested improvement:** Add to "Wait for completion" that a run producing zero events *and* zero
+touched files after a few minutes should be diagnosed rather than waited out, and name the child's
+log location as the place to look. Recommend always passing an explicit timeout, and note that a
+quota or auth error can leave the child alive and silent rather than exiting — so a watchdog is the
+only thing that bounds it.
+
+**Principle:** When the completion signal and the failure signal are the same observation — nothing
+happening — waiting cannot distinguish them. A blocking wrapper needs either a bounded timeout or a
+documented place to look for the child's own error, or its silence is unfalsifiable.
+
+### Observation 77: A generated report that rewrites a whole document deletes the parts a partial run did not measure
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-010. Splitting a three-phase measurement script so one phase could be made unreachable, then running only two of the three.
+**Skill:** New skill candidate: generated-report-integrity
+**Type:** open-source
+**Phase/Area:** Reporting from partial runs
+
+**Issue:** The script regenerated its whole report file from the runs of the current invocation. Once
+one phase was deliberately skipped, that phase's section printed "NOT MEASURED in this run" and the
+rewrite deleted a real twelve-run measurement that had been taken earlier and was still valid. The
+wording was true of the run and false of the project, and the deletion was silent — the document
+would simply have stopped containing a number it once contained. The same coupling had already
+claimed a hand-written analysis section, which no longer existed after the first regeneration.
+
+Two distinct defects share one root: a full-file generator makes every unmeasured section an
+active deletion, and it makes any hand-added prose survive exactly until the next run.
+
+**Suggested improvement:** Where a generator owns a whole document, a skipped section must carry the
+prior measurement forward with its provenance and date attached, rather than printing an
+absence — and prose the document needs permanently has to be generated too, not appended by hand.
+Distinguish "not measured in this run" from "not measured ever" explicitly; they read the same and
+mean opposite things.
+
+**Principle:** A generator that owns an entire document turns every gap in the current run into a
+deletion of the record. Partial-run reporting must therefore carry provenance, not just results:
+"measured elsewhere, on this date" is a fact worth keeping, and "not measured now" is not the same
+claim as "unknown".
+
+### Observation 78: Generated prose branched on a verdict, and the untested branch shipped wrong
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** WP-010. The first time a measured latency exceeded its budget.
+**Skill:** New skill candidate: generated-report-integrity
+**Type:** open-source
+**Phase/Area:** Verdict-dependent prose in generated output
+
+**Issue:** A report line read "a median inside the budget does not mean every Cook is inside it, and
+N of these would have waited longer" whenever any run exceeded the budget. It had only ever run when
+the median passed. The first measurement that failed printed that sentence directly underneath a
+verdict stating the median was over — the qualifier contradicted the row above it. Nothing was wrong
+with the number; the explanation attached to it asserted the opposite of the finding, in the one
+report anybody would read closely.
+
+**Suggested improvement:** Treat conditional prose in a generated report as code with untested
+branches. Any sentence whose correctness depends on a computed verdict needs its other branch
+exercised before the output is trusted — a fixture with a failing value is enough, and cheaper than
+discovering it in front of a reader who is deciding something.
+
+**Principle:** Prose generated under one branch of a condition is untested code until the other
+branch runs. The failure mode is not a crash but a confident sentence asserting the opposite of the
+data beside it, which is worse than a blank.
