@@ -131,11 +131,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 20));
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text(l10n.myMealsEmpty), findsNothing);
+    expect(find.text(l10n.myMealsEmpty('other')), findsNothing);
 
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.myMealsEmpty), findsNothing);
+    expect(find.text(l10n.myMealsEmpty('other')), findsNothing);
     expect(find.text(_published.title!), findsOneWidget);
   });
 
@@ -145,7 +145,7 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.myMealsEmpty), findsOneWidget);
+    expect(find.text(l10n.myMealsEmpty('other')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
@@ -169,8 +169,8 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealMakeUnavailable), findsOneWidget);
-    expect(find.text(l10n.mealMakeAvailable), findsOneWidget);
+    expect(find.text(l10n.mealMakeUnavailable('other')), findsOneWidget);
+    expect(find.text(l10n.mealMakeAvailable('other')), findsOneWidget);
   });
 
   testWidgets('a retired Meal offers no action at all', (tester) async {
@@ -178,8 +178,8 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealMakeUnavailable), findsNothing);
-    expect(find.text(l10n.mealMakeAvailable), findsNothing);
+    expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
+    expect(find.text(l10n.mealMakeAvailable('other')), findsNothing);
   });
 
   testWidgets(
@@ -196,7 +196,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: firstRow,
-        matching: find.text(l10n.mealMakeUnavailable),
+        matching: find.text(l10n.mealMakeUnavailable('other')),
       ),
     );
     await tester.pumpAndSettle();
@@ -214,19 +214,19 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.mealMakeUnavailable));
+    await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealLastOnOfferWarning), findsOneWidget);
+    expect(find.text(l10n.mealLastOnOfferWarning('other')), findsOneWidget);
     expect(repo.setStatusArgs, isEmpty);
 
-    await tester.tap(find.text(l10n.mealLastOnOfferCancel));
+    await tester.tap(find.text(l10n.mealLastOnOfferCancel('other')));
     await tester.pumpAndSettle();
     expect(repo.setStatusArgs, isEmpty);
 
-    await tester.tap(find.text(l10n.mealMakeUnavailable));
+    await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.mealLastOnOfferConfirm));
+    await tester.tap(find.text(l10n.mealLastOnOfferConfirm('other')));
     await tester.pumpAndSettle();
 
     expect(repo.setStatusArgs, hasLength(1));
@@ -251,7 +251,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: firstRow,
-        matching: find.text(l10n.mealMakeUnavailable),
+        matching: find.text(l10n.mealMakeUnavailable('other')),
       ),
     );
     await tester.pumpAndSettle();
@@ -276,13 +276,13 @@ void main() {
     await tester.tap(
       find.descendant(
         of: firstRow,
-        matching: find.text(l10n.mealMakeUnavailable),
+        matching: find.text(l10n.mealMakeUnavailable('other')),
       ),
     );
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealAvailabilityError), findsOneWidget);
+    expect(find.text(l10n.mealAvailabilityError('other')), findsOneWidget);
   });
 
   testWidgets(
@@ -296,7 +296,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: firstRow,
-        matching: find.text(l10n.mealRetire),
+        matching: find.text(l10n.mealRetire('other')),
       ),
     );
     await tester.pumpAndSettle();
@@ -304,21 +304,21 @@ void main() {
     expect(find.text(l10n.mealRetireWarning), findsOneWidget);
     expect(repo.setStatusArgs, isEmpty);
 
-    await tester.tap(find.text(l10n.mealRetireCancel));
+    await tester.tap(find.text(l10n.mealRetireCancel('other')));
     await tester.pumpAndSettle();
     expect(repo.setStatusArgs, isEmpty);
 
     await tester.tap(
       find.descendant(
         of: firstRow,
-        matching: find.text(l10n.mealRetire),
+        matching: find.text(l10n.mealRetire('other')),
       ),
     );
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.text(l10n.mealRetireConfirm),
+        matching: find.text(l10n.mealRetireConfirm('other')),
       ),
     );
     await tester.pumpAndSettle();
@@ -345,14 +345,14 @@ void main() {
     await tester.tap(
       find.descendant(
         of: firstRow,
-        matching: find.text(l10n.mealRetire),
+        matching: find.text(l10n.mealRetire('other')),
       ),
     );
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.text(l10n.mealRetireConfirm),
+        matching: find.text(l10n.mealRetireConfirm('other')),
       ),
     );
     await tester.pumpAndSettle();
@@ -372,10 +372,10 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealMakeUnavailable), findsNothing);
-    expect(find.text(l10n.mealMakeAvailable), findsNothing);
-    expect(find.text(l10n.mealRetire), findsNothing);
-    expect(find.text(l10n.mealDeleteDraft), findsNothing);
+    expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
+    expect(find.text(l10n.mealMakeAvailable('other')), findsNothing);
+    expect(find.text(l10n.mealRetire('other')), findsNothing);
+    expect(find.text(l10n.mealDeleteDraft('other')), findsNothing);
   });
 
   test(
@@ -401,9 +401,9 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealDeleteDraft), findsOneWidget);
+    expect(find.text(l10n.mealDeleteDraft('other')), findsOneWidget);
 
-    final deleteButton = find.text(l10n.mealDeleteDraft);
+    final deleteButton = find.text(l10n.mealDeleteDraft('other'));
     final draftRow = find.byType(MyMealRow).first;
     expect(
       find.descendant(of: draftRow, matching: deleteButton),
@@ -435,13 +435,13 @@ void main() {
 
     expect(repo.lastDeletedMealId, isNull);
 
-    await tester.tap(find.text(l10n.mealDeleteDraft));
+    await tester.tap(find.text(l10n.mealDeleteDraft('other')));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealDeleteDraftWarning), findsOneWidget);
+    expect(find.text(l10n.mealDeleteDraftWarning('other')), findsOneWidget);
     expect(repo.lastDeletedMealId, isNull);
 
-    await tester.tap(find.text(l10n.mealDeleteDraftConfirm));
+    await tester.tap(find.text(l10n.mealDeleteDraftConfirm('other')));
     await tester.pumpAndSettle();
 
     expect(repo.lastDeletedMealId, _draft.id);
@@ -457,9 +457,9 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.mealDeleteDraft));
+    await tester.tap(find.text(l10n.mealDeleteDraft('other')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.mealDeleteDraftConfirm));
+    await tester.tap(find.text(l10n.mealDeleteDraftConfirm('other')));
     await tester.pumpAndSettle();
 
     expect(events, isEmpty);
@@ -477,7 +477,7 @@ void main() {
     expect(find.text(_published.title!), findsOneWidget);
     expect(find.text(l10n.myMealsStatusDraft), findsOneWidget);
     expect(find.text(l10n.myMealsStatusPublished), findsOneWidget);
-    expect(find.text(l10n.mealLoadError), findsNothing);
+    expect(find.text(l10n.mealLoadError('other')), findsNothing);
     expect(find.byType(MyMealRow), findsNWidgets(2));
   });
 
@@ -503,10 +503,10 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealDeleteDraft), findsOneWidget);
-    expect(find.text(l10n.mealMakeUnavailable), findsNothing);
-    expect(find.text(l10n.mealMakeAvailable), findsNothing);
-    expect(find.text(l10n.mealRetire), findsNothing);
+    expect(find.text(l10n.mealDeleteDraft('other')), findsOneWidget);
+    expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
+    expect(find.text(l10n.mealMakeAvailable('other')), findsNothing);
+    expect(find.text(l10n.mealRetire('other')), findsNothing);
   });
 
   // The schema dropped NOT NULL from title along with the other four answers,
@@ -527,7 +527,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.myMealsUntitledDraft), findsOneWidget);
-    expect(find.text(l10n.mealLoadError), findsNothing);
+    expect(find.text(l10n.mealLoadError('other')), findsNothing);
     expect(find.byType(MyMealRow), findsNWidgets(2));
 
     final rendered = tester
@@ -546,9 +546,9 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealResumeDraft), findsOneWidget);
+    expect(find.text(l10n.mealResumeDraft('other')), findsOneWidget);
 
-    final resumeButton = find.text(l10n.mealResumeDraft);
+    final resumeButton = find.text(l10n.mealResumeDraft('other'));
     final draftRow = find.byType(MyMealRow).first;
     expect(
       find.descendant(of: draftRow, matching: resumeButton),
@@ -604,7 +604,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.mealResumeDraft));
+    await tester.tap(find.text(l10n.mealResumeDraft('other')));
     await tester.pumpAndSettle();
 
     // Callback fired with the right CookMeal

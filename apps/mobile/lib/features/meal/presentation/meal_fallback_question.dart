@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -35,8 +36,10 @@ class MealFallbackQuestion extends ConsumerWidget {
       MealFallbackStepId.category => l10n.mealConvPromptCategory,
     };
     final hint = switch (step) {
-      MealFallbackStepId.cuisine => l10n.mealConvHintCuisine,
-      MealFallbackStepId.category => l10n.mealConvHintCategory,
+      MealFallbackStepId.cuisine =>
+        l10n.mealConvHintCuisine(context.addressForm),
+      MealFallbackStepId.category =>
+        l10n.mealConvHintCategory(context.addressForm),
     };
 
     final choices = switch (step) {
@@ -77,7 +80,7 @@ class MealFallbackQuestion extends ConsumerWidget {
               const SizedBox(height: KafooSpacing.lg),
               if (error != null) ...[
                 Text(
-                  l10n.mealSaveError,
+                  l10n.mealSaveError(context.addressForm),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.error,
                   ),

@@ -168,6 +168,18 @@ the check, who at that moment is an unrelated stranger.
 publishing in E2 and conversational search reuse it. That is why it is a family with a `kind`
 rather than one event per surface.
 
+**`input` has a third value, `chosen`, from T090.** The Kitchen Profile conversation's fifth step —
+`step: address_form` — offers two buttons rather than a text field or a microphone, because the
+answer is one of exactly two values and there is nothing for a Cook to phrase. Recording that tap
+as `typed` would inflate the typed share on the one step where typing was never offered, and the
+comparison `input` exists to support is between a flow people can speak and a flow they fall back
+to typing. The values are therefore `voice`, `typed`, `chosen`.
+
+**The chosen form itself is never an attribute.** `step: address_form` says the question was
+answered; which ending the Cook picked is their data and stays in `kitchen_profiles`. FR-037 is the
+rule — an event records *which* step, never *what* was said — and it does not stop applying because
+an answer happens to be short enough to fit in an attribute.
+
 **`ConversationStarted` carries `speech_locale`** because a bare `input: voice` cannot answer
 whether Egyptian Arabic was actually used. The value is the locale id passed to the on-device
 recogniser — `ar-EG` when the handset has it, or another Arabic locale such as `ar-SA` when it

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -176,7 +177,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
               value: draft.title ?? '',
               editing: _editingCookField == MealStepId.dish,
               controller: _editController,
-              editLabel: l10n.convEdit,
+              editLabel: l10n.convEdit(context.addressForm),
               onEdit: () => _beginCookEdit(MealStepId.dish, draft.title ?? ''),
               onCommit: () => _commitCookEdit(MealStepId.dish),
             ),
@@ -186,7 +187,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
               multiline: true,
               editing: _editingCookField == MealStepId.description,
               controller: _editController,
-              editLabel: l10n.convEdit,
+              editLabel: l10n.convEdit(context.addressForm),
               onEdit: () => _beginCookEdit(
                 MealStepId.description,
                 draft.description ?? '',
@@ -203,7 +204,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
               value: draft.price ?? '',
               editing: _editingCookField == MealStepId.price,
               controller: _editController,
-              editLabel: l10n.convEdit,
+              editLabel: l10n.convEdit(context.addressForm),
               onEdit: () => _beginCookEdit(MealStepId.price, draft.price ?? ''),
               onCommit: () => _commitCookEdit(MealStepId.price),
             ),
@@ -225,7 +226,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: KafooSpacing.sm),
             Text(
-              l10n.mealSummaryEstimatesNotice,
+              l10n.mealSummaryEstimatesNotice(context.addressForm),
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.outline),
             ),
@@ -238,7 +239,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                 ),
               )
             else if (estimateFields.isEmpty)
-              Text(l10n.mealSummaryNoEstimates,
+              Text(l10n.mealSummaryNoEstimates(context.addressForm),
                   style: theme.textTheme.bodyMedium)
             else
               for (final field in estimateFields)
@@ -251,7 +252,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                   isCookOwn: state.corrections.contains(field),
                   editing: _editingEstimateField == field,
                   controller: _editController,
-                  editLabel: l10n.convEdit,
+                  editLabel: l10n.convEdit(context.addressForm),
                   approveLabel: l10n.mealSummaryApprove,
                   approvedLabel: l10n.mealSummaryApproved,
                   badgeLabel: l10n.mealSummaryEstimateBadge,
@@ -277,7 +278,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
             if (state.error != null && !_publishFailed) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealSaveError,
+                l10n.mealSaveError(context.addressForm),
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.error),
               ),
@@ -285,7 +286,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
             if (_publishFailed) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealPublishError,
+                l10n.mealPublishError(context.addressForm),
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.error),
               ),
@@ -317,7 +318,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(l10n.mealSummaryConfirm),
+                    : Text(l10n.mealSummaryConfirm(context.addressForm)),
               ),
             ],
           ],

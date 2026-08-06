@@ -29,6 +29,22 @@ class _UnavailableVoiceInput extends VoiceInput {
   Future<void> cancel() async {}
 }
 
+/// Answers whatever question is on screen, whether it is typed or chosen.
+///
+/// The last step offers two buttons instead of a text field, so a walk that
+/// assumed a TextField at every step would stop one question short of the end
+/// — and would have reported the conversation finished when it had not.
+Future<void> _answerCurrentStep(WidgetTester tester, String text) async {
+  if (find.byType(TextField).evaluate().isEmpty) {
+    // The form-of-address step. Either button completes it; masculine is first.
+    await tester.tap(find.byType(FilledButton).first);
+  } else {
+    await tester.enterText(find.byType(TextField), text);
+    await tester.tap(find.byType(FilledButton));
+  }
+  await tester.pumpAndSettle();
+}
+
 Widget _testApp(Widget child) {
   return MaterialApp(
     locale: const Locale('ar'),
@@ -65,14 +81,15 @@ void main() {
         findsOneWidget,
         reason: 'step $step showed more than one unanswered question',
       );
-      expect(find.byType(TextField), findsOneWidget);
+      // Exactly one way to answer, whichever kind of question it is: one text
+      // field, or the two choices and no text field.
+      final isChoice = step == ConversationStepId.values.length - 1;
+      expect(find.byType(TextField), isChoice ? findsNothing : findsOneWidget);
 
-      await tester.enterText(find.byType(TextField), 'إجابة $step');
-      await tester.tap(find.byType(FilledButton));
-      await tester.pumpAndSettle();
+      await _answerCurrentStep(tester, 'إجابة $step');
     }
 
-    // All four answered — the conversation has handed off to the summary,
+    // All five answered — the conversation has handed off to the summary,
     // so no question remains on screen.
     expect(find.byType(ConversationQuestion), findsNothing);
   });
@@ -119,9 +136,7 @@ void main() {
     await tester.pumpAndSettle();
 
     for (var step = 0; step < ConversationStepId.values.length; step++) {
-      await tester.enterText(find.byType(TextField), 'إجابة $step');
-      await tester.tap(find.byType(FilledButton));
-      await tester.pumpAndSettle();
+      await _answerCurrentStep(tester, 'إجابة $step');
     }
 
     // The summary is on screen; the Cook has not confirmed.

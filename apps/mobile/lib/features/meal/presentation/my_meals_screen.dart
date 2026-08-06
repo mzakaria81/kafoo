@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
@@ -65,12 +66,16 @@ class MyMealsScreen extends ConsumerWidget {
 /// One function rather than a copy in each of the two widgets that render an
 /// error: a second switch is a second place to forget a key, and the fallback
 /// shows the raw key to the Cook, which is the failure this must not have.
-String _errorMessage(AppLocalizations l10n, AppError error) =>
+String _errorMessage(
+  AppLocalizations l10n,
+  String addressForm,
+  AppError error,
+) =>
     switch (error.messageKey) {
-      'mealLoadError' => l10n.mealLoadError,
-      'mealAvailabilityError' => l10n.mealAvailabilityError,
-      'mealDeleteError' => l10n.mealDeleteError,
-      _ => l10n.mealLoadError,
+      'mealLoadError' => l10n.mealLoadError(addressForm),
+      'mealAvailabilityError' => l10n.mealAvailabilityError(addressForm),
+      'mealDeleteError' => l10n.mealDeleteError(addressForm),
+      _ => l10n.mealLoadError(addressForm),
     };
 
 class _ErrorState extends ConsumerWidget {
@@ -87,13 +92,13 @@ class _ErrorState extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _errorMessage(l10n, error),
+            _errorMessage(l10n, context.addressForm, error),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: KafooSpacing.md),
           FilledButton(
             onPressed: () => ref.invalidate(myMealsControllerProvider),
-            child: Text(l10n.mealLoadRetry),
+            child: Text(l10n.mealLoadRetry(context.addressForm)),
           ),
         ],
       ),
@@ -108,8 +113,8 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Center(
-      child:
-          Text(l10n.myMealsEmpty, style: Theme.of(context).textTheme.bodyLarge),
+      child: Text(l10n.myMealsEmpty(context.addressForm),
+          style: Theme.of(context).textTheme.bodyLarge),
     );
   }
 }
@@ -122,7 +127,7 @@ class _InlineError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final message = _errorMessage(l10n, error);
+    final message = _errorMessage(l10n, context.addressForm, error);
     return Padding(
       padding: const EdgeInsetsDirectional.only(
         start: KafooSpacing.lg,
@@ -193,29 +198,29 @@ class MyMealRow extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     final retire = _MealAction(
-      label: l10n.mealRetire,
+      label: l10n.mealRetire(context.addressForm),
       mealTitle: _title(l10n),
       // Retirement is always confirmed. It is the one action on this screen
       // that cannot be undone by taking the same action again.
       warning: l10n.mealRetireWarning,
-      confirmLabel: l10n.mealRetireConfirm,
-      cancelLabel: l10n.mealRetireCancel,
+      confirmLabel: l10n.mealRetireConfirm(context.addressForm),
+      cancelLabel: l10n.mealRetireCancel(context.addressForm),
       onConfirmed: () => controller.setStatus(meal, MealStatus.archived),
     );
 
     final actions = switch (meal.status) {
       MealStatus.published => [
           _MealAction(
-            label: l10n.mealMakeUnavailable,
+            label: l10n.mealMakeUnavailable(context.addressForm),
             mealTitle: _title(l10n),
             // Only when this is the Cook's last Meal on offer. Taking any
             // other one off the menu is ordinary and reversible, and putting a
             // dialog in front of it teaches Cooks to dismiss dialogs.
             warning: controller.wouldCloseKitchen(meal)
-                ? l10n.mealLastOnOfferWarning
+                ? l10n.mealLastOnOfferWarning(context.addressForm)
                 : null,
-            confirmLabel: l10n.mealLastOnOfferConfirm,
-            cancelLabel: l10n.mealLastOnOfferCancel,
+            confirmLabel: l10n.mealLastOnOfferConfirm(context.addressForm),
+            cancelLabel: l10n.mealLastOnOfferCancel(context.addressForm),
             onConfirmed: () =>
                 controller.setStatus(meal, MealStatus.unavailable),
           ),
@@ -223,23 +228,23 @@ class MyMealRow extends ConsumerWidget {
         ],
       MealStatus.unavailable => [
           _MealAction(
-            label: l10n.mealMakeAvailable,
+            label: l10n.mealMakeAvailable(context.addressForm),
             mealTitle: _title(l10n),
             // Putting a Meal back on the menu never closes a kitchen.
             warning: null,
-            confirmLabel: l10n.mealLastOnOfferConfirm,
-            cancelLabel: l10n.mealLastOnOfferCancel,
+            confirmLabel: l10n.mealLastOnOfferConfirm(context.addressForm),
+            cancelLabel: l10n.mealLastOnOfferCancel(context.addressForm),
             onConfirmed: () => controller.setStatus(meal, MealStatus.published),
           ),
           retire,
         ],
       MealStatus.draft => [
           _MealAction(
-            label: l10n.mealResumeDraft,
+            label: l10n.mealResumeDraft(context.addressForm),
             mealTitle: _title(l10n),
             warning: null,
-            confirmLabel: l10n.mealRetireConfirm,
-            cancelLabel: l10n.mealRetireCancel,
+            confirmLabel: l10n.mealRetireConfirm(context.addressForm),
+            cancelLabel: l10n.mealRetireCancel(context.addressForm),
             onConfirmed: () async {
               ref
                   .read(mealConversationControllerProvider.notifier)
@@ -248,11 +253,11 @@ class MyMealRow extends ConsumerWidget {
             },
           ),
           _MealAction(
-            label: l10n.mealDeleteDraft,
+            label: l10n.mealDeleteDraft(context.addressForm),
             mealTitle: _title(l10n),
-            warning: l10n.mealDeleteDraftWarning,
-            confirmLabel: l10n.mealDeleteDraftConfirm,
-            cancelLabel: l10n.mealRetireCancel,
+            warning: l10n.mealDeleteDraftWarning(context.addressForm),
+            confirmLabel: l10n.mealDeleteDraftConfirm(context.addressForm),
+            cancelLabel: l10n.mealRetireCancel(context.addressForm),
             onConfirmed: () => controller.deleteDraft(meal),
           ),
         ],

@@ -63,7 +63,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the dish row by tapping the Change button.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
 
     // Type a new value.
@@ -89,7 +89,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the dish row and change the title.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بلدي');
     await tester.pump();
@@ -117,7 +117,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Commit title change.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بلدي');
     await tester.pump();
@@ -126,7 +126,7 @@ void main() {
     expect(repo.updateDraftArgs.last.carriesAnalysedField, isFalse);
 
     // Commit description change.
-    await tester.tap(find.text(l10n.convEdit).at(1));
+    await tester.tap(find.text(l10n.convEdit('other')).at(1));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'عدس ورز ومكرونة');
     await tester.pump();
@@ -135,7 +135,7 @@ void main() {
     expect(repo.updateDraftArgs.last.carriesAnalysedField, isFalse);
 
     // Commit price change.
-    await tester.tap(find.text(l10n.convEdit).at(2));
+    await tester.tap(find.text(l10n.convEdit('other')).at(2));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '40');
     await tester.pump();
@@ -157,7 +157,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Commit a price change.
-    await tester.tap(find.text(l10n.convEdit).at(2));
+    await tester.tap(find.text(l10n.convEdit('other')).at(2));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '40');
     await tester.pump();
@@ -170,7 +170,7 @@ void main() {
     expect(priceEvents.single.attributes['changed'], 'price');
 
     // Commit a title change.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بلدي');
     await tester.pump();
@@ -196,7 +196,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the dish row and commit the identical value.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.check));
     await tester.pumpAndSettle();
@@ -211,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the dish row, clear it, commit.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '');
     await tester.pump();
@@ -228,7 +228,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Begin editing dish.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بلدي');
     await tester.pump();
@@ -236,7 +236,7 @@ void main() {
     // Now begin editing price — this should abandon the dish edit.
     // With dish in edit mode, only 2 Change buttons remain (description, price),
     // so the price is at(1).
-    await tester.tap(find.text(l10n.convEdit).at(1));
+    await tester.tap(find.text(l10n.convEdit('other')).at(1));
     await tester.pumpAndSettle();
 
     // Nothing has been written.
@@ -249,7 +249,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the dish row and type a new value.
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بلدي');
     await tester.pump();
@@ -260,7 +260,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.check));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealSaveError), findsOneWidget);
+    expect(find.text(l10n.mealSaveError('other')), findsOneWidget);
   });
 
   // The bug this catches shipped once: feedback used a plain `??` in copyWith,
@@ -272,7 +272,7 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بالعدس');
     await tester.pump();
@@ -281,14 +281,14 @@ void main() {
     expect(find.text(l10n.mealEditSaved), findsOneWidget);
 
     repo.failOperations = true;
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بالحمص');
     await tester.pump();
     await tester.tap(find.byIcon(Icons.check));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealSaveError), findsOneWidget);
+    expect(find.text(l10n.mealSaveError('other')), findsOneWidget);
     expect(find.text(l10n.mealEditSaved), findsNothing);
   });
 
@@ -299,7 +299,7 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'كشري بلدي');
     await tester.pump();
@@ -307,7 +307,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.mealEditSaved), findsOneWidget);
 
-    await tester.tap(find.text(l10n.convEdit).first);
+    await tester.tap(find.text(l10n.convEdit('other')).first);
     await tester.pumpAndSettle();
     expect(find.text(l10n.mealEditSaved), findsNothing);
   });

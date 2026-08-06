@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -81,7 +82,8 @@ class _RecoveryEmailPromptState extends State<RecoveryEmailPrompt> {
       case Failure():
         setState(() {
           _busy = false;
-          _error = AppLocalizations.of(context).recoveryEmailError;
+          _error = AppLocalizations.of(context)
+              .recoveryEmailError(context.addressForm);
         });
     }
   }
@@ -118,9 +120,11 @@ class _RecoveryEmailPromptState extends State<RecoveryEmailPrompt> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.recoveryEmailTitle, style: theme.textTheme.titleLarge),
+          Text(l10n.recoveryEmailTitle(context.addressForm),
+              style: theme.textTheme.titleLarge),
           const SizedBox(height: KafooSpacing.sm),
-          Text(l10n.recoveryEmailBody, style: theme.textTheme.bodyMedium),
+          Text(l10n.recoveryEmailBody(context.addressForm),
+              style: theme.textTheme.bodyMedium),
           const SizedBox(height: KafooSpacing.lg),
           TextField(
             controller: _emailController,
@@ -144,7 +148,7 @@ class _RecoveryEmailPromptState extends State<RecoveryEmailPrompt> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(l10n.recoveryEmailAttach),
+                : Text(l10n.recoveryEmailAttach(context.addressForm)),
           ),
           const SizedBox(height: KafooSpacing.sm),
           // Declining is a first-class choice, not a greyed-out afterthought.

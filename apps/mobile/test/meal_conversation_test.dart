@@ -263,7 +263,7 @@ void main() {
 
     // The error message is visible and the conversation is still alive
     // (TextField still present so the Cook can retry).
-    expect(find.text(l10n.mealSaveError), findsOneWidget);
+    expect(find.text(l10n.mealSaveError('other')), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
     expect(repo.createDraftCalls, 1);
   });
@@ -281,7 +281,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Voice unavailable message is shown
-    expect(find.text(l10n.convVoiceUnavailable), findsOneWidget);
+    expect(find.text(l10n.convVoiceUnavailable('other')), findsOneWidget);
 
     // But typing works and advances the conversation
     expect(find.byType(TextField), findsOneWidget);
@@ -412,7 +412,7 @@ void main() {
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.mealSaveError), findsOneWidget);
+    expect(find.text(l10n.mealSaveError('other')), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
     expect(find.text('عدس ورز ومكرونة'), findsOneWidget);
     expect(repo.updateDraftCalls, 1);
@@ -618,7 +618,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text(l10n.mealSaveError), findsNothing);
+    expect(find.text(l10n.mealSaveError('other')), findsNothing);
     // Still on photo step — conversation usable.
     expect(find.byType(OutlinedButton), findsOneWidget);
   });
@@ -651,7 +651,7 @@ void main() {
     // OutlinedButton (skip). Assert by finding both and checking that the
     // disclosure Text is hit-tested before the button.
     final disclosureFinder = find.text(l10n.mealConvPhotoDisclosure);
-    final skipFinder = find.text(l10n.mealConvPhotoSkip);
+    final skipFinder = find.text(l10n.mealConvPhotoSkip('other'));
     expect(disclosureFinder, findsOneWidget);
     expect(skipFinder, findsOneWidget);
 
@@ -684,7 +684,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Decline the photo.
-    await tester.tap(find.text(l10n.mealConvPhotoSkip));
+    await tester.tap(find.text(l10n.mealConvPhotoSkip('other')));
     await tester.pumpAndSettle();
 
     // Price step is on screen.
@@ -884,7 +884,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Decline photo
-      await tester.tap(find.text(l10n.mealConvPhotoSkip));
+      await tester.tap(find.text(l10n.mealConvPhotoSkip('other')));
       await tester.pumpAndSettle();
 
       final photoEvents = events
@@ -1185,11 +1185,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Photo step: both buttons visible
-      expect(find.text(l10n.mealConvPhotoAdd), findsOneWidget);
-      expect(find.text(l10n.mealConvPhotoSkip), findsOneWidget);
+      expect(find.text(l10n.mealConvPhotoAdd('other')), findsOneWidget);
+      expect(find.text(l10n.mealConvPhotoSkip('other')), findsOneWidget);
 
       // Tap add photo
-      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.tap(find.text(l10n.mealConvPhotoAdd('other')));
       await tester.pumpAndSettle();
 
       // Upload was called for the draft's meal id
@@ -1226,17 +1226,17 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap add photo — upload will fail
-      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.tap(find.text(l10n.mealConvPhotoAdd('other')));
       await tester.pumpAndSettle();
 
       // Error is shown
-      expect(find.text(l10n.mealPhotoError), findsOneWidget);
+      expect(find.text(l10n.mealPhotoError('other')), findsOneWidget);
 
       // Still on photo step
-      expect(find.text(l10n.mealConvPhotoSkip), findsOneWidget);
+      expect(find.text(l10n.mealConvPhotoSkip('other')), findsOneWidget);
 
       // Skip still works
-      await tester.tap(find.text(l10n.mealConvPhotoSkip));
+      await tester.tap(find.text(l10n.mealConvPhotoSkip('other')));
       await tester.pumpAndSettle();
 
       // Reached price step
@@ -1263,17 +1263,17 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap add photo — picker returns null
-      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.tap(find.text(l10n.mealConvPhotoAdd('other')));
       await tester.pumpAndSettle();
 
       // No upload was attempted
       expect(repo.uploadPhotoCalls, 0);
 
       // No error on screen
-      expect(find.text(l10n.mealPhotoError), findsNothing);
+      expect(find.text(l10n.mealPhotoError('other')), findsNothing);
 
       // Still on photo step
-      expect(find.text(l10n.mealConvPhotoSkip), findsOneWidget);
+      expect(find.text(l10n.mealConvPhotoSkip('other')), findsOneWidget);
     });
 
     testWidgets('attaching a photo emits ConversationStepCompleted',
@@ -1302,7 +1302,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Attach photo
-      await tester.tap(find.text(l10n.mealConvPhotoAdd));
+      await tester.tap(find.text(l10n.mealConvPhotoAdd('other')));
       await tester.pumpAndSettle();
 
       // Exactly one ConversationStepCompleted for photo

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -53,13 +54,14 @@ class _SignInScreenState extends State<SignInScreen> {
     } on AuthException catch (e) {
       final l10n = AppLocalizations.of(context);
       if (e.message.contains('rate') || e.statusCode == '429') {
-        setState(() => _error = l10n.signInRateLimited(5));
+        setState(() => _error = l10n.signInRateLimited(5, context.addressForm));
       } else {
-        setState(() => _error = l10n.signInNetworkError);
+        setState(() => _error = l10n.signInNetworkError(context.addressForm));
       }
     } on Exception catch (_) {
       if (!mounted) return;
-      setState(() => _error = AppLocalizations.of(context).signInNetworkError);
+      setState(() => _error =
+          AppLocalizations.of(context).signInNetworkError(context.addressForm));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -104,7 +106,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(l10n.signInContinue),
+                    : Text(l10n.signInContinue(context.addressForm)),
               ),
               const SizedBox(height: KafooSpacing.sm),
               // The second way in, for someone who has lost their number. It
@@ -120,7 +122,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     builder: (_) => const EmailSignInScreen(),
                   ),
                 ),
-                child: Text(l10n.signInLostNumber),
+                child: Text(l10n.signInLostNumber(context.addressForm)),
               ),
             ],
           ),

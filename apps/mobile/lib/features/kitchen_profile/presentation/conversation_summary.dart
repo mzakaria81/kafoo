@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -54,6 +55,9 @@ class _KitchenConversationSummaryState
         ConversationStepId.story => widget.draft.story ?? '',
         ConversationStepId.area => widget.draft.area ?? '',
         ConversationStepId.deliveryTerms => widget.draft.deliveryTerms ?? '',
+        // Has no text answer. Its row renders the chosen word itself, and is
+        // built outside the free-text loop.
+        ConversationStepId.addressForm => '',
       };
 
   void _setValue(ConversationStepId step, String value) {
@@ -66,6 +70,9 @@ class _KitchenConversationSummaryState
         widget.draft.area = value;
       case ConversationStepId.deliveryTerms:
         widget.draft.deliveryTerms = value;
+      case ConversationStepId.addressForm:
+        // Unreachable: only the free-text steps reach the text editor.
+        return;
     }
   }
 
@@ -75,6 +82,7 @@ class _KitchenConversationSummaryState
         ConversationStepId.story => l10n.kitchenConvLabelStory,
         ConversationStepId.area => l10n.kitchenConvLabelArea,
         ConversationStepId.deliveryTerms => l10n.kitchenConvLabelDeliveryTerms,
+        ConversationStepId.addressForm => l10n.kitchenConvLabelAddressForm,
       };
 
   void _beginEdit(ConversationStepId step) {
@@ -100,8 +108,8 @@ class _KitchenConversationSummaryState
       if (bytes != null && mounted) setState(() => _photoBytes = bytes);
     } on Exception catch (_) {
       if (mounted) {
-        setState(
-            () => _error = AppLocalizations.of(context).kitchenConvPhotoError);
+        setState(() => _error = AppLocalizations.of(context)
+            .kitchenConvPhotoError(context.addressForm));
       }
     }
   }
@@ -123,8 +131,8 @@ class _KitchenConversationSummaryState
       if (upload case Success(value: final path)) {
         photoPath = path;
       } else if (mounted) {
-        setState(
-            () => _error = AppLocalizations.of(context).kitchenConvPhotoError);
+        setState(() => _error = AppLocalizations.of(context)
+            .kitchenConvPhotoError(context.addressForm));
       }
     }
 
@@ -133,6 +141,7 @@ class _KitchenConversationSummaryState
       story: draft.story!,
       area: draft.area!,
       deliveryTerms: draft.deliveryTerms!,
+      addressForm: draft.addressForm,
       photoPath: photoPath,
     );
 
@@ -152,7 +161,8 @@ class _KitchenConversationSummaryState
       case Failure():
         setState(() {
           _saving = false;
-          _error = AppLocalizations.of(context).kitchenConvSaveError;
+          _error = AppLocalizations.of(context)
+              .kitchenConvSaveError(context.addressForm);
         });
     }
   }
@@ -166,16 +176,29 @@ class _KitchenConversationSummaryState
         child: ListView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           children: [
-            for (final step in ConversationStepId.values)
+            for (final step in ConversationStepId.freeText)
               _SummaryRow(
                 label: _labelOf(l10n, step),
                 value: _valueOf(step),
                 editing: _editing == step,
                 controller: _editController,
-                editLabel: l10n.convEdit,
+                editLabel: l10n.convEdit(context.addressForm),
                 onEdit: () => _beginEdit(step),
                 onCommit: _commitEdit,
               ),
+            // Always both choices, never an "edit" button that swaps in a text
+            // field. A mis-tap on the last question of the conversation is the
+            // likeliest way this value goes in wrong, and correcting it here
+            // should cost one tap rather than the three that editing a typed
+            // answer costs.
+            _AddressFormRow(
+              label: _labelOf(l10n, ConversationStepId.addressForm),
+              masculine: l10n.kitchenConvAddressFormMasculine,
+              feminine: l10n.kitchenConvAddressFormFeminine,
+              selected: widget.draft.addressForm,
+              onChanged: (form) =>
+                  setState(() => widget.draft.addressForm = form),
+            ),
             const Divider(height: KafooSpacing.xl),
             Text(l10n.kitchenConvLabelPhoto,
                 style: Theme.of(context).textTheme.labelLarge),
@@ -193,7 +216,7 @@ class _KitchenConversationSummaryState
                 minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
               ),
               icon: const Icon(Icons.photo_camera_outlined),
-              label: Text(l10n.kitchenConvPhotoAdd),
+              label: Text(l10n.kitchenConvPhotoAdd(context.addressForm)),
             ),
             if (_error != null) ...[
               const SizedBox(height: KafooSpacing.md),
@@ -214,10 +237,78 @@ class _KitchenConversationSummaryState
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(l10n.kitchenConvSummaryConfirm),
+                  : Text(l10n.kitchenConvSummaryConfirm(context.addressForm)),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The form-of-address row: two choices, the current one filled.
+class _AddressFormRow extends StatelessWidget {
+  const _AddressFormRow({
+    required this.label,
+    required this.masculine,
+    required this.feminine,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String masculine;
+  final String feminine;
+  final AddressForm? selected;
+  final ValueChanged<AddressForm> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(bottom: KafooSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.labelLarge),
+          const SizedBox(height: KafooSpacing.xs),
+          Row(
+            children: [
+              for (final (form, text) in [
+                (AddressForm.masculine, masculine),
+                (AddressForm.feminine, feminine),
+              ]) ...[
+                Expanded(
+                  child: Semantics(
+                    selected: selected == form,
+                    button: true,
+                    child: selected == form
+                        ? FilledButton(
+                            onPressed: () => onChanged(form),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(
+                                KafooSpacing.minTapTarget,
+                              ),
+                            ),
+                            child: Text(text),
+                          )
+                        : OutlinedButton(
+                            onPressed: () => onChanged(form),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(
+                                KafooSpacing.minTapTarget,
+                              ),
+                            ),
+                            child: Text(text),
+                          ),
+                  ),
+                ),
+                if (form == AddressForm.masculine)
+                  const SizedBox(width: KafooSpacing.sm),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

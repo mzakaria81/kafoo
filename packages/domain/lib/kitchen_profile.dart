@@ -53,10 +53,16 @@ final class KitchenProfileDraft {
   String? area;
   String? deliveryTerms;
   String? photoPath;
+  AddressForm? addressForm;
 
+  /// [photoPath] is absent here because a Cook can publish without a
+  /// photograph. [addressForm] is present because from T090 the Cook is asked
+  /// during Kitchen Profile creation, so a draft that has not been answered is
+  /// an unfinished conversation rather than a complete profile with a blank.
   bool get isComplete =>
       displayName != null &&
       story != null &&
       area != null &&
-      deliveryTerms != null;
+      deliveryTerms != null &&
+      addressForm != null;
 }

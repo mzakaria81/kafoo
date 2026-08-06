@@ -255,7 +255,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: _rowFor(l10n.mealSummaryLabelDish),
-        matching: find.widgetWithText(TextButton, l10n.convEdit),
+        matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
       ),
     );
     await tester.pumpAndSettle();
@@ -327,7 +327,7 @@ void main() {
 
     expect(repo.publishCalls, 0);
     expect(find.byType(MealSummaryScreen), findsOneWidget);
-    expect(find.text(l10n.mealSummaryNoEstimates), findsOneWidget);
+    expect(find.text(l10n.mealSummaryNoEstimates('other')), findsOneWidget);
 
     // Confirm is now ENABLED, and that is the point of T096: before the
     // fallback questions existed this assertion was `isNull`, because a Meal
@@ -336,7 +336,7 @@ void main() {
     // invented — and it is still the Cook's tap that publishes, which is why
     // publishCalls is asserted on either side of it (FR-014, SC-005).
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNotNull,
         reason: 'a Cook who answered the fallback questions can publish');
@@ -382,7 +382,7 @@ void main() {
     );
 
     expect(find.text(l10n.mealSummaryEstimatesTitle), findsOneWidget);
-    expect(find.text(l10n.mealSummaryEstimatesNotice), findsOneWidget);
+    expect(find.text(l10n.mealSummaryEstimatesNotice('other')), findsOneWidget);
 
     // Five estimates, each with the badge while unapproved.
     expect(find.text(l10n.mealSummaryEstimateBadge), findsNWidgets(5));
@@ -419,7 +419,7 @@ void main() {
     expect(find.text(l10n.mealSummaryNeedsApproval), findsOneWidget);
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNull);
 
@@ -456,13 +456,13 @@ void main() {
     expect(find.text(l10n.mealSummaryNeedsApproval), findsNothing);
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNotNull);
 
     await _tapVisible(
       tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
 
     expect(repo.publishCalls, 1);
@@ -504,7 +504,7 @@ void main() {
     expect(
       tester
           .widget<FilledButton>(
-            find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+            find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
           )
           .onPressed,
       isNull,
@@ -514,7 +514,7 @@ void main() {
       tester,
       find.descendant(
         of: _estimateRowFor(l10n.mealSummaryLabelCalories),
-        matching: find.widgetWithText(TextButton, l10n.convEdit),
+        matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
       ),
     );
     await tester.enterText(find.byType(TextField), '900');
@@ -527,7 +527,7 @@ void main() {
     );
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNotNull,
         reason: 'editing calories must count as approving it');
@@ -549,7 +549,7 @@ void main() {
     await _approveAllViaController(tester);
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNotNull,
         reason: 'missing allergens must not block publishing');
@@ -576,10 +576,10 @@ void main() {
 
     await _tapVisible(
       tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
 
-    expect(find.text(l10n.mealPublishError), findsOneWidget);
+    expect(find.text(l10n.mealPublishError('other')), findsOneWidget);
     expect(find.text(l10n.mealPublishedConfirmation), findsNothing);
     expect(
       events.where((e) => e.name == EventNames.mealPublished),
@@ -587,7 +587,7 @@ void main() {
     );
     // Fake still counts the attempt; the Meal must not look published.
     expect(repo.publishCalls, 1);
-    expect(find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+    expect(find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
         findsOneWidget);
   });
 
@@ -640,7 +640,7 @@ void main() {
     await _approveAllViaController(tester);
 
     final publishButton =
-        find.widgetWithText(FilledButton, l10n.mealSummaryConfirm);
+        find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other'));
     await tester.ensureVisible(publishButton);
     await tester.pumpAndSettle();
     await tester.tap(publishButton);
@@ -705,7 +705,7 @@ void main() {
 
     await _tapVisible(
       tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
 
     final completed = events
@@ -737,14 +737,14 @@ void main() {
 
     await _tapVisible(
       tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
 
     expect(
       events.where((e) => e.name == EventNames.conversationCompleted),
       isEmpty,
     );
-    expect(find.text(l10n.mealPublishError), findsOneWidget);
+    expect(find.text(l10n.mealPublishError('other')), findsOneWidget);
   });
 
   // --- T096: fallback answers on the summary --------------------------------
@@ -814,12 +814,12 @@ void main() {
     await _approveAllViaController(tester);
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNotNull);
     await _tapVisible(
       tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm),
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
 
     expect(find.text(l10n.mealPublishedConfirmation), findsOneWidget);
@@ -844,7 +844,7 @@ void main() {
       reason: 'approved allergens must still read as an estimate, not verified',
     );
 
-    expect(find.text(l10n.mealSummaryEstimatesNotice), findsOneWidget);
+    expect(find.text(l10n.mealSummaryEstimatesNotice('other')), findsOneWidget);
   });
 
   // The other half of the same claim, and the one that stops the badge being
@@ -873,7 +873,7 @@ void main() {
       tester,
       find.descendant(
         of: _estimateRowFor(l10n.mealSummaryLabelCalories),
-        matching: find.widgetWithText(TextButton, l10n.convEdit),
+        matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
       ),
     );
     await tester.enterText(find.byType(TextField), '950');
@@ -945,7 +945,7 @@ void main() {
         tester,
         find.descendant(
           of: _estimateRowFor(l10n.mealSummaryLabelCalories),
-          matching: find.widgetWithText(TextButton, l10n.convEdit),
+          matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
         ),
       );
       await tester.enterText(find.byType(TextField), '950');
@@ -1024,7 +1024,7 @@ void main() {
         tester,
         find.descendant(
           of: _estimateRowFor(l10n.mealSummaryLabelAllergens),
-          matching: find.widgetWithText(TextButton, l10n.convEdit),
+          matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
         ),
       );
       await tester.enterText(find.byType(TextField), 'قمح،سمسم');

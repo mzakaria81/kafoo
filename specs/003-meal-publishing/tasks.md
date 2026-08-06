@@ -788,14 +788,14 @@ converting along with them — accepted, not overlooked.
   authorization test first, and a default. **A form of address, never a gender**: the feature needs a
   verb ending, and `business-rules.md` forbids collecting a demographic field the feature does not
   need
-- [ ] T090 Add the fifth question to the Kitchen Profile conversation. This is a question the product
+- [x] T090 Add the fifth question to the Kitchen Profile conversation. **DONE 2026-08-06, WP-007.** Asked last, answered by choosing rather than by speaking or typing, and `KitchenProfileDraft.isComplete` now requires it — an unanswered form of address is an unfinished conversation, not a profile with a blank. The reason it is the one question the product rules permit is written on `ConversationStepId.addressForm`.
   rules would normally reject as a failure to infer — it is asked because it genuinely cannot be
   inferred, and guessing wrong is worse than asking. Say that in the code
-- [ ] T091 Convert the 56 gendered strings to ICU `select` in both ARB files, Arabic written first.
+- [x] T091 Convert the 56 gendered strings to ICU `select` in both ARB files, Arabic written first. **DONE 2026-08-06, WP-007.** **86 keys, not 56** — E2 nearly doubled the ARB file after the estimate was made. 82 switch on `addressForm`, 4 on `cookForm`. 41 were re-bracketed around only the words that differ, computed from the two branches and verified lossless, rather than duplicating whole paragraphs to change a verb ending. Per-key verdicts in `docs/ops/wp007-string-classification.md`.
   English carries identical branches only because the generator requires matching placeholders
-- [ ] T092 Supply the preference through a Riverpod provider and convert ~56 call sites. The two
+- [x] T092 Supply the preference through a Riverpod provider and convert ~56 call sites. **DONE 2026-08-06, WP-007, with one deliberate departure: an `InheritedWidget`, not a Riverpod provider.** The app has no `ProviderScope` above the Navigator, so a provider meant either adding a root scope or converting every plain widget in the tree to a consumer — both larger than the feature and neither buying anything for a value that is only ever read. `AddressFormScope` is installed by `MaterialApp.builder`, above the Navigator, because a scope inside `home` is invisible to every pushed route. 97 call sites in `lib/`, 106 in tests. The three `cookForm` sites are all in `PublicMealView`, which cannot reach the Cook — so it takes a **required** `cookAddressForm`, forcing E3's router to supply it rather than inherit a wrong default. Reasoning in ADR-0010.
   Customer-facing strings that describe a Cook read the **Cook's** stored form, not the reader's
-- [ ] T093 Extend the localization parity check. It compares key presence between locales and nothing
+- [x] T093 Extend the localization parity check. **DONE 2026-08-06, WP-007 (#33).** `scripts/check-l10n-parity.py` compares placeholder sets, select presence and branch names in both directions and refuses a select with no `other` branch. Built and mutation-tested **before** any string was converted, so the conversion could not ship unchecked. Uses a brace-matching scanner rather than a regex, which silently mis-parses the first nested select.
   else, so a `select` converted in Arabic and missed in English, or one missing its `other` branch,
   passes the gate today and fails at generation. The sweep must fix the check, not trust it
 - [ ] T100 Make the `meal-description` corpus able to see an invented fact. WP-003 measured three of

@@ -85,7 +85,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The body text asking the Cook to create a kitchen is on screen.
-    expect(find.text(l10n.mealNeedsKitchenBody), findsOneWidget);
+    expect(find.text(l10n.mealNeedsKitchenBody('other')), findsOneWidget);
 
     // No conversation question is rendered — the Meal has not started.
     expect(find.byType(ConversationQuestion), findsNothing);
@@ -149,7 +149,7 @@ void main() {
     expect(find.byType(ConversationQuestion), findsOneWidget);
 
     // The "make a kitchen" body is NOT on screen.
-    expect(find.text(l10n.mealNeedsKitchenBody), findsNothing);
+    expect(find.text(l10n.mealNeedsKitchenBody('other')), findsNothing);
   });
 
   // 4. A failed check does not send the Cook to make a second kitchen.
@@ -168,10 +168,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // The check-failed error is on screen.
-    expect(find.text(l10n.mealKitchenCheckError), findsOneWidget);
+    expect(find.text(l10n.mealKitchenCheckError('other')), findsOneWidget);
 
     // The "make a kitchen" body is NOT on screen — a failed check is not
     // treated as "no kitchen".
-    expect(find.text(l10n.mealNeedsKitchenBody), findsNothing);
+    expect(find.text(l10n.mealNeedsKitchenBody('other')), findsNothing);
   });
 }

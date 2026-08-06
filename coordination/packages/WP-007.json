@@ -10,8 +10,8 @@
   ],
   "acceptance_criteria": [
     "the Kitchen Profile conversation asks the fifth question, and the code says why a question that looks like a failure to infer is the right call here",
-    "all 56 gendered strings are ICU select in both ARB files, Arabic written first",
-    "roughly 56 call sites read the preference through a Riverpod provider; the two Customer-facing strings describing a Cook read the COOK's stored form, not the reader's",
+    "all 86 gendered strings are ICU select in both ARB files, Arabic written first (the estimate of 56 predated E2 nearly doubling the file)",
+    "97 call sites in lib/ read the preference through AddressFormScope; the Customer-facing strings describing a Cook read the COOK's stored form, not the reader's",
     "the localization parity check is extended to compare placeholders and select branches, not only key presence — the sweep must fix the check, not trust it",
     "./scripts/verify.sh passes"
   ],
@@ -28,15 +28,15 @@
     "shared_files": []
   },
   "execution_mode": "EXCLUSIVE",
-  "status": "BLOCKED",
+  "status": "COMPLETED",
   "owner": "worker-d",
   "priority": 2,
   "spend_envelope_usd": 3.0,
   "suggested_model": "opencode-go/grok-4.5",
   "branch": "claude/caveman-full-7k5toq",
   "pr": 33,
-  "blocked_reason": "T093 is done and in PR #33: the parity check is extended and mutation-tested, and the 179-key classification is written up. T090, T091 and T092 are NOT done. The conversion was written and then backed out: the ARB change and the call sites that pass the new placeholder are one change, and landing half of it left the branch unable to compile. The dispatch that would have written the ~86 call sites ran two hours and produced nothing. The finished Arabic survives at commit 9edda73 on claude/caveman-full-7k5toq and can be cherry-picked once the wiring exists — do that rather than re-converting, because the minimisation in it was verified lossless. NEEDS THE FOUNDER on one point before it can finish: four Customer-facing strings address the CUSTOMER in the second person and Kafoo stores a form of address for Cooks only. Giving Customers one is a new category of personal data for a new population.",
   "notes": "The fifth question's wording is the founder's, approved 2026-08-05: عشان أكلمك صح — أقولّك \"كمّل\" ولا \"كمّلي\"؟ — built from first-person verbs only, because a question asked to learn the Cook's form cannot itself be gendered. EXCLUSIVE because it rewrites both ARB files and ~56 call sites across every feature. Every user-facing package touches the ARBs, so nothing else can run beside it without a merge nobody wants to resolve. It also changes verify.sh, which every other package depends on to know whether it passed. Not split further: converting the strings without the call sites leaves the app broken, and extending the parity check after the conversion means the conversion shipped unchecked.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-06T05:35:00Z"
+  "updated_at": "2026-08-06T00:00:00Z",
+  "completion_notes": "Landed in two pieces. T093 first, in PR #33: the parity check had to be able to see a broken translation before 86 strings were converted, because a conversion that ships past a check which cannot fail is worse than no check. T090/T091/T092 here.\n\nFounder decision 2026-08-06 unblocked it: Customers are addressed as men for now, so the four Customer-facing strings keep their Customer-directed verbs ungendered and switch only the Cook-describing clause on cookForm. No new personal-data field for Customers. ADR-0010 records it as a deferral rather than a conclusion.\n\nOne deliberate departure from the brief: the preference reaches widgets through an InheritedWidget (AddressFormScope), not a Riverpod provider. The app has no ProviderScope above the Navigator — E1 shipped without a state-management package and E2 added Riverpod only inside the Meal feature — so a provider meant adding a root scope or converting every plain widget to a consumer. It is installed by MaterialApp.builder because a scope inside home is invisible to every pushed route.\n\nPublicMealView takes a REQUIRED cookAddressForm. Nothing routes there yet, so there is no caller to get it right today; required is what stops E3's router inheriting a default filled in with the wrong person's grammar.\n\nMutation-tested: forcing icuAddressForm to masculine, making AddressFormScope.of ignore the tree, and dropping the answer from create() each turn test/address_form_test.dart red."
 }

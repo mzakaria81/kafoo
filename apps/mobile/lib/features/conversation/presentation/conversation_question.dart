@@ -17,21 +17,28 @@ class ConversationQuestion extends StatelessWidget {
   });
 
   final String prompt;
-  final String hint;
+
+  /// An example answer, or null for a question that offers its answers instead
+  /// of inviting one. Nothing is rendered when it is null — an empty line of
+  /// hint text under a question reads as a hint that failed to load.
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hint = this.hint;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(prompt, style: theme.textTheme.headlineSmall),
-        const SizedBox(height: KafooSpacing.xs),
-        Text(
-          hint,
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: theme.colorScheme.outline),
-        ),
+        if (hint != null) ...[
+          const SizedBox(height: KafooSpacing.xs),
+          Text(
+            hint,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.outline),
+          ),
+        ],
       ],
     );
   }

@@ -20,6 +20,10 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
   bool failUpdates;
 
   int createCalls = 0;
+
+  /// What the last create() was told to store. Recorded so a test can prove the
+  /// Cook's answer reached the repository rather than only reaching the draft.
+  AddressForm? createdAddressForm;
   int uploadCalls = 0;
   int updateCalls = 0;
 
@@ -37,9 +41,11 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
     required String story,
     required String area,
     required String deliveryTerms,
+    required AddressForm? addressForm,
     String? photoPath,
   }) async {
     createCalls++;
+    createdAddressForm = addressForm;
     return Success(KitchenProfile(
       id: 'test-id',
       cookId: 'test-cook',
@@ -48,6 +54,7 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
       area: area,
       deliveryTerms: deliveryTerms,
       photoPath: photoPath,
+      addressForm: addressForm,
     ));
   }
 

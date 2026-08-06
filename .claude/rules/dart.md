@@ -14,6 +14,13 @@ touching an annotated class.
 
 Providers are declared next to the feature they serve, not in a global `providers.dart`.
 
+**There is no `ProviderScope` above the Navigator, and that is why `AddressFormScope` is an
+`InheritedWidget`.** E1 shipped without a state-management package; E2 added Riverpod inside the
+Meal feature only. A value every screen reads and none writes — the Cook's form of address — would
+otherwise have meant a root scope plus converting every plain widget in the tree to a consumer, for
+nothing Riverpod does better. It is the documented exception, reasoned in ADR-0010, not a second
+pattern to copy. Anything with state, async, or a dependency to override is still Riverpod.
+
 ## Layering
 
 ```

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -64,7 +65,8 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
       case Failure():
         setState(() {
           _busy = false;
-          _error = AppLocalizations.of(context).changePhoneError;
+          _error = AppLocalizations.of(context)
+              .changePhoneError(context.addressForm);
         });
     }
   }
@@ -96,7 +98,8 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
       case Failure():
         setState(() {
           _busy = false;
-          _error = AppLocalizations.of(context).changePhoneError;
+          _error = AppLocalizations.of(context)
+              .changePhoneError(context.addressForm);
         });
     }
   }
@@ -105,14 +108,14 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.changePhoneTitle)),
+      appBar: AppBar(title: Text(l10n.changePhoneTitle(context.addressForm))),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.changePhoneBody),
+              Text(l10n.changePhoneBody(context.addressForm)),
               const SizedBox(height: KafooSpacing.lg),
               TextField(
                 controller: _phoneController,
@@ -133,7 +136,7 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
                   textDirection: TextDirection.ltr,
                   maxLength: 6,
                   decoration: InputDecoration(
-                    labelText: l10n.codeTitle,
+                    labelText: l10n.codeTitle(context.addressForm),
                     errorText: _error,
                   ),
                   onSubmitted: (_) => _confirmChange(),
@@ -153,7 +156,7 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(l10n.signInContinue),
+                    : Text(l10n.signInContinue(context.addressForm)),
               ),
             ],
           ),
