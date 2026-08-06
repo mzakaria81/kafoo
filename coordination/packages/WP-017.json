@@ -1,0 +1,53 @@
+{
+  "id": "WP-017",
+  "title": "Honour an exclusion exactly",
+  "objective": "A Customer who says no meat is never shown meat. Measurement established that matching by meaning gets this backwards, so it is a filter and never a phrase.",
+  "tasks": [
+    "T166",
+    "T167",
+    "T168",
+    "T169",
+    "T170",
+    "T171",
+    "T172",
+    "T173",
+    "T174",
+    "T175"
+  ],
+  "acceptance_criteria": [
+    "an excluded food appears ZERO times across the exclusion test set — one occurrence is a failure of the feature, not a ranking miss (SC-005)",
+    "a Meal whose relevant field is empty is WITHHELD, not shown (FR-021) — an unknown is a possible yes",
+    "an exclusion is never relaxed to fill the screen (FR-020)",
+    "a recognised negation marker whose noun does not map returns the unparsed marker, and Kafoo says it did not understand — it NEVER returns results as though no exclusion was asked for",
+    "discovery_exclusion_test.sql written and SEEN TO FAIL first",
+    "the interface states what was filtered on and NEVER states that a Meal is safe",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-013",
+    "WP-015"
+  ],
+  "scope": {
+    "files": [
+      "supabase/tests/discovery_exclusion_test.sql",
+      "packages/domain/lib/exclusion.dart"
+    ],
+    "shared_files": [
+      "supabase/migrations/",
+      "apps/mobile/lib/l10n/app_ar.arb",
+      "apps/mobile/lib/l10n/app_en.arb"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 4,
+  "spend_envelope_usd": 2.5,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "grok-4.5 because this is health-adjacent and the model table reserves that row for subtle logic near safety. Measured 2026-08-06: asking for food with no meat returned meat dishes, first correct answer at rank 6, precision@5 of 0.00. A Customer excluding a food is usually doing so for dietary, religious or health reasons, so serving them the opposite is a betrayal rather than a poor result. The sharp edge is that meals.allergens is frequently an AI estimate carrying nutrition_source — hence 'states what it filtered on, never that a Meal is safe'. Touches search_meals, which WP-013 created; serialised behind it by dependency.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T18:00:00Z"
+}

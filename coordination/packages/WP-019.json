@@ -1,0 +1,61 @@
+{
+  "id": "WP-019",
+  "title": "Close E3 — documentation, cost, and the acceptance criteria by name",
+  "objective": "Bring every document the epic made stale back to true, price a search, and walk the acceptance criteria individually.",
+  "tasks": [
+    "T190",
+    "T191",
+    "T192",
+    "T193",
+    "T194",
+    "T195",
+    "T197",
+    "T198",
+    "T199",
+    "T200",
+    "T201"
+  ],
+  "acceptance_criteria": [
+    "domain-model.md records the embedding column and the rule that a Meal without one is browsable but not searchable — Definition of Done item 6",
+    "event-model.md records that SearchFailed now means 'judged', not 'scored below a line'",
+    "HANDOFF.md and CLAUDE.md's repo map updated, including that packages/domain cannot be imported from apps/web",
+    "a search is priced end to end; the judgement runs once per search, so it is the entire cost of discovery",
+    "quickstart.md walked end to end by someone with none of this context",
+    "SC-001 to SC-013 verified individually BY NAME — four are stated as zero and one occurrence is a failure",
+    "./scripts/verify.sh passes, then /ship-check"
+  ],
+  "dependencies": [
+    "WP-011",
+    "WP-012",
+    "WP-013",
+    "WP-014",
+    "WP-015",
+    "WP-016",
+    "WP-017",
+    "WP-018"
+  ],
+  "scope": {
+    "files": [
+      "docs/product/domain-model.md",
+      "docs/product/event-model.md",
+      "docs/HANDOFF.md",
+      "CLAUDE.md",
+      "specs/004-customer-discovery/quickstart.md"
+    ],
+    "shared_files": [
+      "CLAUDE.md"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 6,
+  "spend_envelope_usd": 1.5,
+  "suggested_model": "opencode-go/deepseek-v4-flash",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "deepseek-v4-flash because this is the mechanical row of the model table and E3's earlier packages will have spent the expensive one. T191 is here only as a record — the founder decision it names must actually be answered before WP-015 builds T215, not at the end. Documentation drift is part of the change, not follow-up work: item 6 of the Definition of Done is not optional.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T18:00:00Z"
+}

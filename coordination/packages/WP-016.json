@@ -1,0 +1,53 @@
+{
+  "id": "WP-016",
+  "title": "Make Kafoo say when it has nothing",
+  "objective": "The relevance judgement that replaces a score threshold, because measurement established that no threshold works.",
+  "tasks": [
+    "T156",
+    "T157",
+    "T158",
+    "T159",
+    "T160",
+    "T161",
+    "T162",
+    "T163",
+    "T164",
+    "T165",
+    "T217"
+  ],
+  "acceptance_criteria": [
+    "judge-results cannot reorder, filter, add or remove a Meal, and may only name Meals it was given",
+    "golden cases cover: results plainly answer; nothing answers; RESULTS TOPICALLY CLOSE BUT WRONG; a request inviting a popularity claim; one inviting a proximity claim; adversarial text in the request",
+    "the topically-close-but-wrong case passes — if the judgement only catches obviously unrelated results it has bought nothing a score already failed to do",
+    "a failed, slow or malformed judgement leaves results exactly as they are",
+    "judge-results holds no service-role key and writes nothing (FR-018, T217)",
+    "SC-004 verified by name — 100%, and it does not degrade with corpus size",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-015"
+  ],
+  "scope": {
+    "files": [
+      "supabase/functions/judge-results/",
+      "prompts/discovery-judgement.md",
+      "packages/ai/test/goldens/"
+    ],
+    "shared_files": [
+      "apps/mobile/lib/l10n/app_ar.arb",
+      "apps/mobile/lib/l10n/app_en.arb"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 4,
+  "spend_envelope_usd": 2.5,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "This exists because both candidate thresholds measured BACKWARDS — a query the corpus cannot answer scored higher than one answered correctly. Within a corpus that is entirely food, every food query is topically similar to everything, and a better model does not fix that. The E2 finding applies directly: replaying meal-description against a real model caught it stating things the Cook never said while three golden cases marked all of it PASS. The same failure here names food nobody is cooking.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T18:00:00Z"
+}

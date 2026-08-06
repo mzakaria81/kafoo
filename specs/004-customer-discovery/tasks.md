@@ -9,6 +9,20 @@ description: "Task list for E3 — Customer Discovery"
 must be true; a work package in `coordination/packages/` says who is doing it, what it may spend,
 and what else it collides with.
 
+**All 120 tasks below are grouped into WP-011 to WP-019**, each owned by exactly one package:
+
+| Package | Tasks | What it is |
+|---|---|---|
+| **WP-011** | T101–T121 | Browse — the MVP. No migration, no Edge Function, no vendor |
+| **WP-012** | T176–T182, T184–T189, T196 | The web surface and its static half. **Starts immediately, alongside WP-011** |
+| **WP-013** | T122–T131, T202–T206, T211 | The migration: `pgvector`, the ranking function, area matching |
+| **WP-014** | T132–T140, T214 | The embedding capability, and the one function that writes |
+| **WP-015** | T141–T155, T207–T210, T212, T213, T215, T216 | Search itself. The largest package |
+| **WP-016** | T156–T165, T217 | The relevance judgement |
+| **WP-017** | T166–T175 | Exclusions |
+| **WP-018** | T183, T218–T220 | Discovery on the web |
+| **WP-019** | T190–T195, T197–T201 | Documentation, cost, and the criteria by name |
+
 **This file is the reasoning; the packages are the state.**
 
 **Only the coordinator edits planning state here**, and only after pulling `main`. Two sessions each
@@ -91,7 +105,7 @@ searching. Only Meals on offer appear; the kitchen with only drafts is absent en
 - [ ] T115 [US1] Meal card widget in `packages/ui/` — title, price, kitchen name. Wrap any network image in a named widget and assert on that; `Image.network` cannot resolve under the test binding and takes its subtree with it
 - [ ] T116 [US1] Route from a Meal to its Kitchen Profile, reusing E2's public kitchen view
 - [ ] T117 [US1] Empty state — Kafoo says in words that nothing is on offer (FR-006), never a blank screen
-- [ ] T118 [P] [US1] Arabic and English strings for the browse screen in both ARB files, Arabic first
+- [ ] T118 [US1] Arabic and English strings for the browse screen in both ARB files, Arabic first
 - [ ] T119 [US1] Confirm by hand that a Cook with only drafts is absent from browse, and that taking the last Meal off the menu removes the kitchen — quickstart §4 rows 1 and 12
 - [ ] T120 [P] [US1] Accessibility pass on the browse screen — semantic labels, tap targets, text scaling, RTL
 - [ ] T121 [US1] Verify SC-001 by name: a Customer reaches a Meal's full details within three actions of arriving, without searching and without signing in
@@ -151,7 +165,7 @@ in a different language from the Meals, return the right Meals.
 - [ ] T147 [US2] Results render as soon as `discover` returns, with no await on any judgement — FR-011
 - [ ] T148 [US2] The zero-state of search is browse, and so is the fallback when nothing matched — FR-012
 - [ ] T149 [P] [US2] Widget tests for search: loading, results, error, and voice-unavailable
-- [ ] T150 [P] [US2] Arabic and English strings for search in both ARB files, Arabic first
+- [ ] T150 [US2] Arabic and English strings for search in both ARB files, Arabic first
 - [ ] T151 [US2] Emit `SearchPerformed` with `result_count`. Assert by test that **no phrase** reaches the event, a log line, or an error carrying the request
 - [ ] T152 [US2] Backfill vectors for Meals published before this feature — a script, not a migration, and an incomplete run must leave Meals harder to find rather than lost
 - [ ] T153 [US2] Promote `scripts/spike-discovery-embeddings.py` to a retrieval-quality regression with a recorded baseline, and decide whether it runs in the gate or nightly — it calls a vendor and costs money, which `verify.sh` has never done
@@ -162,17 +176,17 @@ in a different language from the Meals, return the right Meals.
 
 Added 2026-08-06 after `/speckit-analyze` found FR-022 and FR-024 had a parser and nothing else.
 
-- [ ] T202 [US2] Arabic normalisation in `packages/domain/lib/area.dart` — unify alef forms, `ة` to `ه`, `ى` to `ي`, strip diacritics and tatweel, drop a leading definite article, collapse whitespace, fold Latin case. **A Cook's stored area is never rewritten**; normalisation happens at comparison time
-- [ ] T203 [P] [US2] Unit tests for the pairs in `research.md` §8 — `الدقي`/`الدقى`, `المهندسين`/`مهندسين`, `العجوزه`/`العجوزة`, `إمبابة`/`امبابة`, with and without diacritics
-- [ ] T204 [US2] Area alias table in `packages/domain/lib/area.dart` for places with a genuine second name — `مصر الجديدة`/`هليوبوليس`/`Heliopolis`, `المعادي`/`Maadi`. Small, explicit, additive, and the same shape as the exclusion vocabulary
-- [ ] T205 [US2] Test that the alias table does **not** merge two different neighbourhoods — FR-022a governs spelling, not meaning, and a tolerance loose enough to catch a typo is loose enough to match a different place
-- [ ] T206 [US2] Normalised area predicate inside `search_meals`, applied to the Cook's stored area at comparison time
+- [ ] T202 [US2] Write `normalise_area(text)` as an **`IMMUTABLE` SQL function** in the migration — unify alef forms, `ة` to `ه`, `ى` to `ي`, strip diacritics and tatweel, drop a leading definite article, collapse whitespace, fold case. **In SQL and nowhere else**: normalisation written in both Dart and SQL is one rule in two languages, which is the drift ADR-0008 Amendment 1 warns about appearing inside a single feature
+- [ ] T203 [P] [US2] pgTAP tests for the pairs in `research.md` §8 — `الدقي`/`الدقى`, `المهندسين`/`مهندسين`, `العجوزه`/`العجوزة`, `إمبابة`/`امبابة`, with and without diacritics
+- [ ] T204 [US2] Fold the alias list for places with a genuine second name into the same function — `مصر الجديدة`/`هليوبوليس`/`Heliopolis`, `المعادي`/`Maadi`. **No alias table**: a table would be a new table needing RLS in the same migration, and a list that changes through a reviewed migration is better than one that changes through a row
+- [ ] T205 [US2] Test that the alias list does **not** merge two different neighbourhoods — FR-022a governs spelling, not meaning, and a tolerance loose enough to catch a typo is loose enough to match a different place
+- [ ] T206 [US2] Add an **expression index** on `normalise_area(kitchen_profiles.area)` and use it in `search_meals`. A Cook's stored area is never rewritten. **Ceiling worth writing down: changing `normalise_area` silently invalidates this index** — Postgres will not recompute it, so any migration touching the function must `REINDEX` in the same file
 - [ ] T207 [US2] Accept an area as part of the **one sentence** a Customer says — `عايز حاجة من غير لحمة في المهندسين`. Not a second control; three inputs would be the form Principle IV forbids
 - [ ] T208 [US2] Empty-area state: Kafoo says the named area has nothing **and** names the areas that do, and the Customer must choose one before anything from it is shown — FR-024 and FR-024a. Widening is never Kafoo's action
 - [ ] T209 [US2] Assert that no distance is stated and no ordering by proximity exists — FR-024b. Kafoo has no notion of where an area is
 - [ ] T210 [US2] Assert that offering another area never states or implies that a kitchen there will deliver — FR-024c. Delivery terms are words, not a radius
 - [ ] T211 [P] [US2] Write the area cases into `supabase/tests/discovery_rls_test.sql`, **seen to fail first**: a differently-spelled area reaches the same kitchens, and an area nobody wrote returns zero rows rather than everything
-- [ ] T212 [P] [US2] Arabic and English strings for the area and empty-area states in both ARB files, Arabic first
+- [ ] T212 [US2] Arabic and English strings for the area and empty-area states in both ARB files, Arabic first
 - [ ] T213 [US2] Verify FR-022, FR-022a, FR-022b, FR-024, FR-024a, FR-024b and FR-024c by name
 
 #### Before this story ships
@@ -198,7 +212,7 @@ something on offer — it does not say the same thing.
 - [ ] T160 [US3] Call `judge-results` **after** results are on screen, never before, and never awaited alongside them
 - [ ] T161 [US3] When the judgement fails, times out, or returns nonsense, results stay exactly as they are and the Customer loses a sentence
 - [ ] T162 [US3] Present "nothing matched" with named alternatives that are genuinely on offer at that moment — FR-015
-- [ ] T163 [P] [US3] Arabic and English strings for the nothing-matched state, Arabic first, Egyptian register
+- [ ] T163 [US3] Arabic and English strings for the nothing-matched state, Arabic first, Egyptian register
 - [ ] T164 [US3] Emit `SearchFailed` when the judgement says nothing answers, and `RecommendationAccepted` when a Customer opens a named alternative
 - [ ] T165 [US3] Verify SC-004 by name — **100%**, and it does not degrade with corpus size
 - [ ] T217 [P] [US3] `deno test` proving `judge-results` holds no service-role key and writes nothing — FR-018. It is write-free by construction today, and nothing currently stops that changing
@@ -223,7 +237,7 @@ precision@5 of 0.00. This phase exists because that measurement happened.
 - [ ] T171 [US4] Never relax an exclusion to fill the screen — FR-020
 - [ ] T172 [P] [US4] Write `supabase/tests/discovery_exclusion_test.sql`, **seen to fail first**: a Meal containing the excluded thing appears at no position, and a Meal with an empty ingredient list is withheld
 - [ ] T173 [US4] The interface states what was filtered on and **never states that a Meal is safe**. `meals.allergens` is frequently an AI estimate carrying `nutrition_source`, and the distinction between a filter and a medical claim is the whole point
-- [ ] T174 [P] [US4] Arabic and English strings for the exclusion states, Arabic first
+- [ ] T174 [US4] Arabic and English strings for the exclusion states, Arabic first
 - [ ] T175 [US4] Verify SC-005 by name — **zero** occurrences across the exclusion test set. One is a failure of the feature, not a ranking miss
 
 ---
@@ -240,7 +254,8 @@ visible obeys the same rules as inside Kafoo.
 - [ ] T177 [US5] Configure the Cloudflare Workers adapter and confirm a build deploys. Next reaches Cloudflare through an adapter rather than natively; this is the step most likely to cost a day
 - [ ] T178 [US5] Supabase client in `apps/web/lib/` using **only** the publishable key
 - [ ] T179 [US5] Add a check that fails the build if a service-role key reaches the bundle — `verify.sh` catches a *tracked* key, and a bundle is not a tracked file, so it does not inherit that protection
-- [ ] T180 [P] [US5] Arabic and English message files under `apps/web/messages/`, Arabic first, and RTL throughout
+- [ ] T196 [US5] Extend `scripts/verify.sh` to cover `apps/web/` — the vocabulary check, the localization parity check, and the synthetic-content check. **Before T180 ships strings, not after**: this was written into Polish originally, which would have left a whole surface shipping strings no check reads. The synthetic-content check is scoped to `supabase/migrations/` and `functions/` today, so FR-031 rests on a check that does not look at this feature's files
+- [ ] T180 [US5] Arabic and English message files under `apps/web/messages/`, Arabic first, and RTL throughout
 - [ ] T181 [US5] Kitchen page showing **exactly** the five public details and no sixth
 - [ ] T182 [US5] Meal page, reading the same data under the same policies
 - [ ] T183 [US5] Browse and search on the web, calling the same `discover` function — no second data path, no second visibility model
@@ -264,7 +279,6 @@ visible obeys the same rules as inside Kafoo.
 - [ ] T193 [P] Update `docs/product/event-model.md` — `SearchFailed` now means "judged", not "scored below a line", because `research.md` §4 established that no line exists
 - [ ] T194 [P] Update `docs/HANDOFF.md` — E3's state, the open cost question, and what the spike settled
 - [ ] T195 [P] Update `CLAUDE.md`'s repo map with `apps/web/`, and the constraint that `packages/domain/` cannot be imported there
-- [ ] T196 Extend `scripts/verify.sh`'s vocabulary and localization checks to cover `apps/web/` — a new surface that no check reads is a surface with no rules
 - [ ] T197 Price a search end to end. The judgement runs once per search rather than once per failure, so it is the entire cost of discovery, and the free tier's 1,000 requests a day cannot serve it
 - [ ] T198 [P] Accessibility review of every new screen on both surfaces
 - [ ] T199 Walk `quickstart.md` end to end as someone with none of this context

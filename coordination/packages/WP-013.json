@@ -1,0 +1,57 @@
+{
+  "id": "WP-013",
+  "title": "Make a Meal findable by meaning, safely",
+  "objective": "The migration that gives discovery its foundation: pgvector, the embedding column, the ranking function that runs as the caller, and area matching that ignores spelling.",
+  "tasks": [
+    "T122",
+    "T123",
+    "T124",
+    "T125",
+    "T126",
+    "T127",
+    "T128",
+    "T129",
+    "T130",
+    "T131",
+    "T202",
+    "T203",
+    "T204",
+    "T205",
+    "T206",
+    "T211"
+  ],
+  "acceptance_criteria": [
+    "discovery_rls_test.sql written and SEEN TO FAIL before the migration exists, with fixtures containing a Meal of every status — the failure output recorded in the PR",
+    "search_meals is SECURITY INVOKER; making it SECURITY DEFINER on purpose turns cases 2-6 red, and it is put back",
+    "a Cook cannot write meals.embedding (case 9), and that case was seen to fail first",
+    "meals.embedding is vector(768) and NULLABLE — a Meal without one is invisible to search and still visible to browsing",
+    "EXPLAIN ANALYZE shows the HNSW index in the plan; a sequential scan returns correct answers slowly and no test catches it",
+    "normalise_area is IMMUTABLE, lives in SQL and nowhere else, and the migration REINDEXes if it changes",
+    "mutate-policies.py reports zero clauses with no assertion behind them, and weakening the kitchen and meals policies TOGETHER turns cases 7-8 red",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-011"
+  ],
+  "scope": {
+    "files": [
+      "supabase/migrations/",
+      "supabase/tests/discovery_rls_test.sql"
+    ],
+    "shared_files": [
+      "supabase/tests/discovery_rls_test.sql"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 2,
+  "spend_envelope_usd": 3.0,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "grok-4.5 because this is the row the model table reserves for it: authorization and RLS. E3 adds no policy, which is exactly why this package is dangerous — every existing authorization test passes whether or not search leaks, because none of them travel a ranking path that did not previously exist. Two things must be broken on purpose here and both are in the acceptance criteria. The plan(N) line in discovery_rls_test.sql is declared shared: WP-017 adds cases to a different file, but any later package adding cases here edits this one line.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T18:00:00Z"
+}

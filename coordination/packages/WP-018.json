@@ -1,0 +1,44 @@
+{
+  "id": "WP-018",
+  "title": "Bring discovery to the surface that needs no install",
+  "objective": "Browse, search, area narrowing and the honesty layer on the web, so what is visible without installing is exactly what is visible inside Kafoo.",
+  "tasks": [
+    "T183",
+    "T218",
+    "T219",
+    "T220"
+  ],
+  "acceptance_criteria": [
+    "the web calls the same discover function — no second data path and no second visibility model",
+    "the web calls judge-results too; a surface with results and no honesty layer would ship the confident wrong answer this feature exists to prevent (FR-026)",
+    "area narrowing and the empty-area state match the app",
+    "the disclosure from T215 appears here as well",
+    "SC-009 verified field by field: what is visible without installing is identical to what is visible inside",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-012",
+    "WP-015",
+    "WP-016"
+  ],
+  "scope": {
+    "files": [
+      "apps/web/"
+    ],
+    "shared_files": [
+      "apps/web/messages/"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 5,
+  "spend_envelope_usd": 1.5,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "Analyze caught the gap this closes: T183 wired the web to discover but not to judge-results, which would have shipped a Customer-facing surface that returns results with nothing checking whether they answer the question. Small package, three dependencies, and it is the last thing between E3 and being done.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T18:00:00Z"
+}

@@ -228,15 +228,32 @@ none of them are ambiguities to a human reader:
 | `إمبابة` | `امبابة` | hamza forms |
 
 **Normalisation is a closed, deterministic transformation**: unify the alef forms, `ة` to `ه`, `ى` to
-`ي`, strip diacritics and tatweel, drop a leading definite article, collapse whitespace, fold Latin
-case. Both the Cook's stored area and the Customer's named area go through it at comparison time.
-The stored value is never rewritten — a Cook's own words stay as they wrote them.
+`ي`, strip diacritics and tatweel, drop a leading definite article, collapse whitespace, fold case.
 
-**The alias table is a different problem and needs a different answer.** `مصر الجديدة` and
-`هليوبوليس` and `Heliopolis` are the same place under three names, not three spellings of one, and no
-normalisation reaches that. So a small named list maps known second names onto one another. It is
-deliberately the same shape as the exclusion vocabulary in §3: small, explicit, additive, and it
-fails visibly rather than silently — an area nobody has aliased simply matches only what it says.
+**It lives in SQL and nowhere else — `normalise_area(text)`, `IMMUTABLE`.** Writing it in Dart for
+the Customer's side and SQL for the Cook's side would be one rule in two languages, and it would
+drift. That is exactly the failure ADR-0008 Amendment 1 names as the cost of a second front-end,
+arriving *inside a single feature* rather than across two surfaces — which makes it worth catching
+here, because the same mistake will be available every time E3's two clients want the same
+behaviour. The rule for this repository is the one the amendment already states: **the database is
+the arbiter, and a rule restated in a client is a convenience that may be wrong without being
+dangerous.**
+
+A Cook's stored area is never rewritten. Matching uses an **expression index** on
+`normalise_area(area)`, so no column is added to `kitchen_profiles` and its public face stays at
+exactly five details.
+
+**Ceiling, written down because it is silent.** Changing `normalise_area` does not recompute the
+expression index — Postgres keeps the old values and the index quietly disagrees with the function.
+Any migration touching the function must `REINDEX` in the same file. This is the same shape as
+everything else that has gone wrong in this repository: correct-looking results, no error, a wrong
+answer that arrives later.
+
+**The alias list is folded into the same function rather than into a table.** A table would be a new
+table, which needs RLS in the same migration by non-negotiable rule, for a handful of rows nobody
+writes at runtime. A list that changes through a reviewed migration is also better than one that
+changes through an `INSERT` — and the `REINDEX` obligation above then applies to alias changes too,
+which is the correct coupling rather than an accident.
 
 **What this deliberately does not do, and the boundary matters.** It does not merge two genuinely
 different neighbourhoods. FR-022a governs how a name is *written*; a Customer asking for one place
