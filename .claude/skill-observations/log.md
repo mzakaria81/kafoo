@@ -2101,3 +2101,70 @@ discovering it in front of a reader who is deciding something.
 **Principle:** Prose generated under one branch of a condition is untested code until the other
 branch runs. The failure mode is not a crash but a confident sentence asserting the opposite of the
 data beside it, which is worse than a blank.
+
+### Observation 82: Capability research that trusts official docs over the live tool surface
+
+> **Renumbered on 2026-08-06.** Written as 73 and 74 on a branch whose pull request had already
+> merged, so they never reached `main` and their numbers were taken there by different entries.
+> Carried forward here rather than rewritten.
+
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Researching whether Claude Code can automate Kafoo's coordinator/worker
+coordination model. Two sources disagreed about whether agent teams work in cloud sessions: the
+official docs state the feature can be enabled in a cloud environment with an environment
+variable, while a filed bug reports that the team tools are never injected in cloud hosts and was
+closed as a duplicate of an older tool-gating issue.
+
+**Skill:** dispatching-parallel-agents
+**Type:** open-source
+**Phase/Area:** Choosing a parallelism mechanism / pre-flight capability check
+
+**Issue:** Documentation describes the intended behaviour of a feature; it does not describe what
+the running host actually exposes. For experimental, host-gated features the two diverge silently,
+and the failure mode is a plan built on a capability that never materialises. In this session the
+decisive evidence was neither document — it was the running session's own tool inventory (the
+team-coordination tools were absent while the task-list tools were present) and the unset
+environment variable. That check cost one command and outranked both written sources.
+
+**Suggested improvement:** Add a pre-flight step to the skill's mechanism-selection guidance:
+before committing to a parallelism mechanism, confirm it exists in the current host by inspecting
+the live tool surface and the gating environment variable, not by reading the documentation for
+it. Note explicitly that experimental features are commonly gated per host (terminal vs cloud vs
+editor extension) and that documentation rarely tracks the gate.
+
+**Principle:** For any experimental or host-gated capability, the running environment is the
+authority and the documentation is a claim about intent. Verify against the live tool surface
+before designing around the feature; when a document and a defect report disagree, the cheap
+direct observation settles it and should be made first, not last.
+
+### Observation 83: Autonomous execution silently voids stop-and-ask rules
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Evaluating scheduled/triggered autonomous sessions as a way to dispatch
+delegated work packages without a human relaying each hand-off.
+
+**Skill:** dispatching-parallel-agents
+**Type:** open-source
+**Phase/Area:** Delegation safety / choosing what may run unattended
+
+**Issue:** Project rules commonly instruct a delegated agent to stop and ask a human when it hits
+a defined class of decision — irreversible actions, cost, new data collection, anything outside
+the brief. Those rules are written assuming a human is attached to the session. An autonomously
+triggered run has no human attached and no permission prompts, so the rule does not fail loudly;
+the agent simply has nobody to ask and proceeds. Automation therefore removes a safety control
+without any step in the process where its removal is visible.
+
+**Suggested improvement:** When the skill recommends unattended or triggered execution, require
+the dispatcher to state which escalation rules the work could hit, and to either exclude that work
+from autonomous dispatch or rewrite the instruction so the escalation becomes an artefact rather
+than a question — stop and leave a written blocker, open a draft rather than push, record the
+decision as pending. An escalation path that requires a live human must be converted, not
+inherited.
+
+**Principle:** Escalation rules encode an assumption that a human is reachable. Removing the human
+does not trigger them; it dissolves them. Any move to unattended execution must re-express every
+"ask first" rule as an artefact the absent human will later find, or exclude the work that depends
+on one.
