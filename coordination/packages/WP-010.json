@@ -4,7 +4,7 @@
   "objective": "Measure description-finished to first estimate on the real deployment, so the 2-second voice budget stops being arithmetic before E3 is planned against it.",
   "acceptance_criteria": [
     "description-finished to first estimate is measured against production, at least 12 runs, reported as median and range with the run count stated",
-    "the figure is compared to the 2s voice budget and the verdict stated plainly — if the budget is missed, that is the finding, reported to the founder, and NOT an invitation to optimise or to move the budget",
+    "the figure is compared to the 2s voice budget and the verdict stated plainly \u2014 if the budget is missed, that is the finding, reported to the founder, and NOT an invitation to optimise or to move the budget",
     "the composite arithmetic currently in docs/ops/measuring-e2.md is replaced by the measurement, and the report says which parts of the old estimate were wrong and by how much",
     "teardown deletes the throwaway Cook and verifies zero rows remain, read as anon rather than as a role that cannot see them",
     "the report states explicitly whether anything was left behind in production, including nothing"
@@ -24,15 +24,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "ASSIGNED",
+  "status": "IN_PROGRESS",
   "owner": "worker-e",
   "priority": 1,
   "spend_envelope_usd": 0.5,
   "suggested_model": "opencode-go/qwen3.6-plus",
-  "branch": null,
+  "branch": "claude/focused-curie-03v28k",
   "pr": null,
   "blocked_reason": null,
-  "notes": "Stood down 2026-08-05 so WP-007 could run: WP-007 is EXCLUSIVE and nothing may be active beside it. The founder confirmed worker-b is not working on this. Nothing is lost — the package had not started. FOUNDER APPROVED WRITING TO PRODUCTION ON 2026-08-05, UNDER CONSTRAINTS THAT ARE NOT NEGOTIABLE AND ARE THE ONLY REASON THE APPROVAL EXISTS. Draft Meals only — never publish one, never call the publish path, never upload a photo. A Cook whose Meals are all drafts is not discoverable, which is what makes this run invisible to every person rather than merely short-lived; business-rules.md lists synthetic Cooks and Meals in production as product-fatal, and the approval turns on nothing ever being visible. If a run needs a published Meal to work, STOP and report rather than publishing one: confirm-to-on-offer is already measured at 189 ms median on a preview branch and does not need re-running. One throwaway Cook, deleted at the end, teardown verified as anon — WP-002 already found that verifying with service_role reads a permission failure as 'zero rows remaining' and prints success. Never print, log, echo or commit a credential; production has a live model key and the report must contain measurements only. Gemini free tier is 15 requests per minute; do not iterate against the live model to tune the script. The budget is the founder's — measure and report, never adjust it.",
+  "notes": "Stood down 2026-08-05 so WP-007 could run: WP-007 is EXCLUSIVE and nothing may be active beside it. The founder confirmed worker-b is not working on this. Nothing is lost \u2014 the package had not started. FOUNDER APPROVED WRITING TO PRODUCTION ON 2026-08-05, UNDER CONSTRAINTS THAT ARE NOT NEGOTIABLE AND ARE THE ONLY REASON THE APPROVAL EXISTS. Draft Meals only \u2014 never publish one, never call the publish path, never upload a photo. A Cook whose Meals are all drafts is not discoverable, which is what makes this run invisible to every person rather than merely short-lived; business-rules.md lists synthetic Cooks and Meals in production as product-fatal, and the approval turns on nothing ever being visible. If a run needs a published Meal to work, STOP and report rather than publishing one: confirm-to-on-offer is already measured at 189 ms median on a preview branch and does not need re-running. One throwaway Cook, deleted at the end, teardown verified as anon \u2014 WP-002 already found that verifying with service_role reads a permission failure as 'zero rows remaining' and prints success. Never print, log, echo or commit a credential; production has a live model key and the report must contain measurements only. Gemini free tier is 15 requests per minute; do not iterate against the live model to tune the script. The budget is the founder's \u2014 measure and report, never adjust it.",
   "created_at": "2026-08-05T21:00:00Z",
-  "updated_at": "2026-08-06T07:10:00Z"
+  "updated_at": "2026-08-06T08:00:00Z"
 }
