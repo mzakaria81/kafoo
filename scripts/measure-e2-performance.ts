@@ -10,6 +10,13 @@
 //      One PostgREST PATCH that sets the Meal's status to published.
 //      This is what a Cook waits between tapping "publish" and seeing the Meal on offer.
 //
+//      OFF BY DEFAULT, AND REFUSED OUTRIGHT AGAINST PRODUCTION. See `resolvePhases`: this phase
+//      creates a *published* Meal, and a published Meal that no Cook cooks is synthetic content on
+//      a real marketplace — `.claude/rules/business-rules.md` calls that product-fatal. Running
+//      this script against production was approved on 2026-08-05 on exactly one condition, that
+//      nothing it creates is ever discoverable, which holds only while every Meal stays a draft.
+//      The figure is already measured on a preview branch and carried forward in the report.
+//
 //   3. model cost of one published Meal
 //      Input and output tokens per analysis, so a dollar figure per Meal can be computed.
 //      A Meal published with a photo costs two analyses (the second carries the image).
@@ -26,6 +33,9 @@
 //
 //   DENO_CERT=/root/.ccr/ca-bundle.crt deno run \
 //     --allow-net --allow-env --allow-read --allow-write scripts/measure-e2-performance.ts
+//
+// Phases are selected with --phases=<list>, default `latency,cost`. `publish` must be asked for by
+// name and cannot be granted against production at all.
 //
 // RATE LIMIT: the free tier allows 15 requests per minute on the fast-tier model. Every
 // model-touching call is spaced by SPACING_MS below.
@@ -50,6 +60,40 @@ const INPUT_RATE_PER_M = 0.25;
 const OUTPUT_RATE_PER_M = 1.50;
 const PROMPT_ID = "meal-analysis";
 const MAX_TOKENS = 2048;
+
+/// The confirm → on-offer measurement this script no longer re-runs.
+///
+/// Measured on 2026-08-05 against the pull request's Supabase preview branch — a real Supabase with
+/// real Auth, real PostgREST and real Edge Functions, colder than production and otherwise the same
+/// stack. It is carried forward rather than re-measured because the phase that produces it is
+/// refused against production; see `resolvePhases`. Reported as measured elsewhere, never as a
+/// production number.
+const PRIOR_PUBLISH = {
+  runs: 12,
+  medianMs: 189.5,
+  minMs: 179,
+  maxMs: 420,
+  meanMs: 224.9,
+  budgetMs: 3000,
+  measuredOn: "2026-08-05",
+  where: "a Supabase preview branch, not production",
+} as const;
+
+/// The composite estimate the description-finished → first estimate measurement replaces.
+///
+/// Recorded in docs/ops/measuring-e2.md on 2026-08-05, when the analysis phase could not run: all
+/// twelve calls returned HTTP 502 `provider_misconfigured`, because Supabase does not copy a parent
+/// project's secrets into a preview branch and `analyze-meal` therefore had no model credential
+/// there. Each part below was measured. They were never measured together, and a sum of three
+/// medians is not a median of the sum — which is the whole reason this comparison is worth
+/// printing rather than quietly dropping.
+const PRIOR_ESTIMATE = {
+  persistMs: 220, //           12 runs, preview branch
+  edgeBeforeModelMs: 740, //   12 runs, the failed calls' own timings
+  modelCallMs: 1397, //         8 runs, this container straight to the provider
+  composedMs: 2357, //         220 + 740 + 1397
+  verdict: "misses the 2000 ms budget",
+} as const;
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -129,6 +173,17 @@ function usableFixtures(fixtures: Fixture[]): Fixture[] {
 // ---------------------------------------------------------------------------
 // Stats helpers
 // ---------------------------------------------------------------------------
+
+/// Signed difference from an estimate to a measurement, in ms and as a share of the estimate.
+/// Signed on purpose: "412 ms" leaves the reader to work out which way an estimate was wrong.
+function signedDelta(estimate: number, measured: number): string {
+  const diff = measured - estimate;
+  const sign = diff >= 0 ? "+" : "−";
+  const pct = estimate === 0 ? 0 : (diff / estimate) * 100;
+  return `${sign}${Math.abs(diff).toFixed(1)} ms (${sign}${
+    Math.abs(pct).toFixed(1)
+  }%)`;
+}
 
 function stats(
   values: number[],
@@ -782,6 +837,8 @@ async function teardown(
   serviceRoleKey: string,
   userJwt: string,
   userId: string,
+  userEmail: string,
+  userPassword: string,
   mealIds: string[],
 ): Promise<string> {
   const lines: string[] = [];
@@ -864,6 +921,39 @@ async function teardown(
     );
   }
 
+  // 4. Verify the DRAFTS went too — which step 3 cannot see and must not pretend to.
+  //
+  // `anon` is shown published Meals only, so the check above proves nothing about a draft: a
+  // leftover draft and a clean table look identical to it. Nothing that can read a draft is
+  // available here either — the Cook's own JWT dies with the Cook, and `service_role` holds no
+  // SELECT on `meals` by design (that is the trap WP-002 found, where a 42501 was read as "zero
+  // rows").
+  //
+  // So prove the root of the cascade is gone instead of the leaves. `meals.cook_id` is
+  // `REFERENCES auth.users(id) ON DELETE CASCADE`, so if the auth user no longer exists then no
+  // Meal can still reference it — a foreign key is not a best effort. A sign-in that fails is that
+  // proof, and it needs no SELECT privilege at all.
+  const signInRes = await fetch(
+    `${supabaseUrl}/auth/v1/token?grant_type=password`,
+    {
+      method: "POST",
+      headers: { "apikey": publishableKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, password: userPassword }),
+    },
+  );
+  if (signInRes.status === 200) {
+    lines.push(
+      "  LOUD WARNING: the test Cook can still sign in, so the account was NOT deleted and its " +
+        "draft Meals are still there. Delete it by hand.",
+    );
+  } else {
+    lines.push(
+      `  Verified: the test Cook can no longer sign in (HTTP ${signInRes.status}), so the account is ` +
+        "gone — and every Meal of theirs with it, drafts included, by ON DELETE CASCADE.",
+    );
+  }
+  await signInRes.body?.cancel();
+
   return lines.join("\n");
 }
 
@@ -877,6 +967,7 @@ function generateReport(
   analysisRuns: AnalysisRun[],
   publishRuns: PublishRun[],
   costRuns: TokenUsage[],
+  phases: Set<Phase>,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
   const lines: string[] = [];
@@ -906,6 +997,37 @@ function generateReport(
   );
   lines.push(
     `- **Request spacing**: ${SPACING_MS} ms (free tier allows 15 requests per minute)`,
+  );
+  lines.push("");
+
+  // Where the numbers came from. Generated rather than hand-written, because this document is
+  // rewritten in full on every run — a hand-added section survives exactly until the next one, and
+  // the section this replaces was hand-added.
+  lines.push("## Where these numbers came from");
+  lines.push("");
+  lines.push(
+    `Phases run: **${
+      [...phases].join(", ")
+    }**. Neither the project URL nor the project ref is`,
+  );
+  lines.push(
+    "printed here; this file is committed, and a measurement report has no business carrying either.",
+  );
+  lines.push("");
+  lines.push(
+    phases.has("latency")
+      ? "- **Description-finished → first estimate**: measured in this run, against the live production project. Every Meal it created was a **draft**, and every draft was deleted as it went; the publish path was never called."
+      : "- **Description-finished → first estimate**: not run. No figure in this document comes from this run.",
+  );
+  lines.push(
+    publishRuns.length > 0
+      ? "- **Confirm → on-offer**: measured in this run."
+      : `- **Confirm → on-offer**: **not measured in this run, and deliberately not.** The phase creates a published Meal, which is refused against production — see below. The figure carried forward is from ${PRIOR_PUBLISH.where}, ${PRIOR_PUBLISH.measuredOn}.`,
+  );
+  lines.push(
+    phases.has("cost")
+      ? "- **Model cost**: measured in this run, calling the provider directly. No database row is involved."
+      : "- **Model cost**: not run.",
   );
   lines.push("");
 
@@ -1082,11 +1204,18 @@ function generateReport(
         aVerdict === "PASS" ? "is within" : "exceeds"
       } the ${aBudget} ms budget across ${runs} runs.`,
     );
+    // The qualifier depends on which way the verdict went. It read "a median inside the budget does
+    // not mean every Cook is inside it" unconditionally, which is a sentence about a PASS printed
+    // underneath an OVER — and the first real OVER put it there, saying the opposite of the row above.
     lines.push(
       `- **Runs over budget**: ${aOver} of ${runs}${
         aOver === 0
           ? "" // nothing to qualify
-          : ` — a median inside the budget does not mean every Cook is inside it, and ${aOver} of these would have waited longer than ${aBudget} ms.`
+          : aVerdict === "PASS"
+          ? ` — a median inside the budget does not mean every Cook is inside it, and ${aOver} of these would have waited longer than ${aBudget} ms.`
+          : ` — the median is over, and so were ${aOver} of the individual runs. ${
+            runs - aOver
+          } came in under, so this is not a feature that is always slow; it is one that is slow more often than not.`
       }`,
     );
     lines.push("");
@@ -1117,6 +1246,74 @@ function generateReport(
       );
     }
     lines.push("");
+
+    // What the estimate got wrong. Also generated, for the reason given above: a measurement that
+    // silently replaces an estimate teaches nobody anything, and the next person to build an
+    // estimate out of three medians has no way to find out how the last one went.
+    const priorAnalyse = PRIOR_ESTIMATE.edgeBeforeModelMs +
+      PRIOR_ESTIMATE.modelCallMs;
+    lines.push("## What the estimate got wrong");
+    lines.push("");
+    lines.push(
+      "This section replaces an estimate. Until this run the number above was arithmetic: three",
+    );
+    lines.push(
+      "medians measured separately and added together, because the analysis phase could not run at",
+    );
+    lines.push(
+      "all against a preview branch with no model credential. Its parts were",
+    );
+    lines.push(
+      `${PRIOR_ESTIMATE.persistMs} ms to persist the description, ${PRIOR_ESTIMATE.edgeBeforeModelMs} ms for the Edge Function before the model call, and`,
+    );
+    lines.push(
+      `${PRIOR_ESTIMATE.modelCallMs} ms for one model call — composed to ≈${
+        (PRIOR_ESTIMATE.composedMs / 1000).toFixed(1)
+      } s, with the verdict that it`,
+    );
+    lines.push(`${PRIOR_ESTIMATE.verdict}.`);
+    lines.push("");
+    lines.push("| Span | Estimated | Measured | Difference |");
+    lines.push("|---|---|---|---|");
+    lines.push(
+      `| Whole span | ${PRIOR_ESTIMATE.composedMs} ms | ${
+        aStats.median.toFixed(1)
+      } ms | ${signedDelta(PRIOR_ESTIMATE.composedMs, aStats.median)} |`,
+    );
+    lines.push(
+      `| Persisting the description | ${PRIOR_ESTIMATE.persistMs} ms | ${
+        persistStats.median.toFixed(1)
+      } ms | ${signedDelta(PRIOR_ESTIMATE.persistMs, persistStats.median)} |`,
+    );
+    lines.push(
+      `| The analysis call | ${priorAnalyse} ms | ${
+        nStats.median.toFixed(1)
+      } ms | ${signedDelta(priorAnalyse, nStats.median)} |`,
+    );
+    lines.push("");
+    lines.push(
+      `The two halves of the estimated analysis call — ${PRIOR_ESTIMATE.edgeBeforeModelMs} ms of Edge Function and ${PRIOR_ESTIMATE.modelCallMs} ms of`,
+    );
+    lines.push(
+      "model — cannot be compared on their own, and the table does not pretend otherwise. The model",
+    );
+    lines.push(
+      "call was timed from a container straight to the provider; the measurement times it from inside",
+    );
+    lines.push(
+      "the Edge Function, on Supabase's own network. Only their sum is comparable.",
+    );
+    lines.push("");
+    lines.push(
+      aVerdict === "OVER"
+        ? `**The estimate's verdict held.** It said the budget is missed, and the measurement agrees: median ${
+          aStats.median.toFixed(1)
+        } ms against a ${aBudget} ms budget.`
+        : `**The estimate's verdict did not hold.** It said the budget is missed. The measurement disagrees: median ${
+          aStats.median.toFixed(1)
+        } ms is inside the ${aBudget} ms budget.`,
+    );
+    lines.push("");
   }
 
   // Phase 2 summary
@@ -1128,10 +1325,60 @@ function generateReport(
   lines.push("## Confirm → on-offer");
   lines.push("");
   if (publishRuns.length === 0) {
+    // Carried forward rather than blanked. The generator used to print "NOT MEASURED in this run"
+    // here, which is true of the run and false of the repository: the number exists, it was measured
+    // over 12 runs, and rewriting this file would have deleted it. An honest report of a partial run
+    // says which parts are fresh, not that the rest never happened.
+    const priorVerdict = PRIOR_PUBLISH.medianMs <= PRIOR_PUBLISH.budgetMs
+      ? "PASS"
+      : "OVER";
     lines.push(
-      "**NOT MEASURED in this run.** Zero runs completed, so there is no number here. See the note",
+      "**Not measured in this run, and deliberately not.** This phase sets a Meal's status to",
     );
-    lines.push("above \u2014 an empty sample is not a fast result.");
+    lines.push(
+      "`published`. On the production project that would put a Meal nobody cooks in front of real",
+    );
+    lines.push(
+      "Customers, which `.claude/rules/business-rules.md` lists as product-fatal \u2014 so the phase is",
+    );
+    lines.push(
+      "refused against production outright, not merely left out of the default. Running this script",
+    );
+    lines.push(
+      "against production was approved on the condition that nothing it creates is ever",
+    );
+    lines.push(
+      "discoverable, and that holds only while every Meal it makes stays a draft.",
+    );
+    lines.push("");
+    lines.push(
+      `**Carried forward from ${PRIOR_PUBLISH.measuredOn}, measured on ${PRIOR_PUBLISH.where}.** This is a real`,
+    );
+    lines.push(
+      "measurement of the same stack, and it is not a production number:",
+    );
+    lines.push("");
+    lines.push(`- **Runs**: ${PRIOR_PUBLISH.runs}`);
+    lines.push(`- **Minimum**: ${PRIOR_PUBLISH.minMs} ms`);
+    lines.push(`- **Median**: ${PRIOR_PUBLISH.medianMs.toFixed(1)} ms`);
+    lines.push(`- **Maximum**: ${PRIOR_PUBLISH.maxMs} ms`);
+    lines.push(`- **Mean**: ${PRIOR_PUBLISH.meanMs.toFixed(1)} ms`);
+    lines.push(`- **Budget**: ${PRIOR_PUBLISH.budgetMs} ms`);
+    lines.push(
+      `- **Verdict**: **${priorVerdict}** \u2014 median ${
+        PRIOR_PUBLISH.medianMs.toFixed(1)
+      } ms ${
+        priorVerdict === "PASS" ? "is within" : "exceeds"
+      } the ${PRIOR_PUBLISH.budgetMs} ms budget across ${PRIOR_PUBLISH.runs} runs.`,
+    );
+    lines.push("");
+    lines.push(
+      "A preview branch is colder than a used production project, so if anything this is the",
+    );
+    lines.push(
+      "pessimistic end of the range. It is one PostgREST PATCH; nothing in the grants or policies",
+    );
+    lines.push("since has changed what it does.");
     lines.push("");
   } else {
     lines.push(`- **Runs**: ${runs}`);
@@ -1166,6 +1413,16 @@ function generateReport(
 
   lines.push("## Model cost per published Meal");
   lines.push("");
+  if (costRuns.length === 0) {
+    // An empty token table under a live-looking heading reads as "measured, and it was nothing".
+    lines.push(
+      "**Not run.** The cost phase was not selected, so this document carries no cost figure from",
+    );
+    lines.push(
+      "this run. Re-run with `--phases=cost` to produce one; it touches no database.",
+    );
+    lines.push("");
+  }
   lines.push(
     "**Assumption:** input $0.25 per 1M tokens, output $1.50 per 1M tokens (standard",
   );
@@ -1414,6 +1671,80 @@ function generateReport(
 // Argument parsing
 // ---------------------------------------------------------------------------
 
+export type Phase = "latency" | "cost" | "publish";
+
+const ALL_PHASES: readonly Phase[] = ["latency", "cost", "publish"];
+const DEFAULT_PHASES: readonly Phase[] = ["latency", "cost"];
+
+/// Which phases this invocation may run, and the one it may never run against production.
+///
+/// THIS IS A GUARD, NOT A CONVENTION, and the difference is the reason the function exists. The
+/// publish phase sets a Meal's status to `published`. On the live project that is a synthetic Meal
+/// on a real marketplace, which `.claude/rules/business-rules.md` lists as product-fatal, and the
+/// founder's approval to run this script against production on 2026-08-05 was given only on the
+/// terms that nothing it creates is ever discoverable — true only while every Meal stays a draft.
+///
+/// So `publish` is absent from the default, must be named explicitly, AND is refused outright when
+/// the target is production. There is deliberately no override flag and no environment variable
+/// that grants it. "Remember not to publish" is what this repository has been burned by; a phase
+/// nobody can reach cannot be reached by mistake either.
+///
+/// FAILS CLOSED. A missing or empty SUPABASE_PROJECT_REF refuses `publish` rather than allowing it:
+/// without the production project's ref there is no way to prove the target is *not* production,
+/// and an unprovable claim about a production write is a no.
+///
+/// Takes `env` as a parameter rather than reading Deno.env directly, so the guard is testable
+/// without a live environment — see scripts/measure_e2_phases_test.ts, whose production case was
+/// seen to fail before this text was written.
+export function resolvePhases(
+  args: string[],
+  env: (key: string) => string | undefined,
+): Set<Phase> {
+  const flag = args.find((a) => a.startsWith("--phases="));
+  const requested = flag === undefined
+    ? [...DEFAULT_PHASES]
+    : flag.slice("--phases=".length).split(",").map((p) => p.trim()).filter((
+      p,
+    ) => p.length > 0);
+
+  if (requested.length === 0) {
+    throw new Error(
+      `--phases= needs at least one of ${ALL_PHASES.join(", ")}`,
+    );
+  }
+
+  for (const p of requested) {
+    if (!ALL_PHASES.includes(p as Phase)) {
+      throw new Error(
+        `--phases: unknown phase "${p}" (accepted: ${ALL_PHASES.join(", ")})`,
+      );
+    }
+  }
+
+  const phases = new Set(requested as Phase[]);
+
+  if (phases.has("publish")) {
+    const url = (env("SUPABASE_URL") ?? "").trim();
+    const productionRef = (env("SUPABASE_PROJECT_REF") ?? "").trim();
+    // Neither value is printed. This message can end up in a log or a report.
+    const refusal =
+      "refusing the publish phase: it sets a Meal to `published`, and a published Meal " +
+      "nobody cooks is synthetic content on the real marketplace — product-fatal, not untidy. " +
+      "Run it against a Supabase preview branch instead.";
+    if (productionRef === "" || url === "") {
+      throw new Error(
+        `${refusal} SUPABASE_PROJECT_REF and SUPABASE_URL must both be set so the target can be ` +
+          `proven not to be production; one of them is not.`,
+      );
+    }
+    if (url.includes(productionRef)) {
+      throw new Error(`${refusal} The target is the production project.`);
+    }
+  }
+
+  return phases;
+}
+
 function printHelp(): void {
   console.log(`\
 Usage: deno run --allow-net --allow-env --allow-read --allow-write scripts/measure-e2-performance.ts [options]
@@ -1422,6 +1753,15 @@ Measure Kafoo's E2 performance numbers and per-Meal model cost.
 
 Options:
   --help          Show this help message and exit
+  --phases=<list> Comma-separated: latency, cost, publish (default: ${
+    DEFAULT_PHASES.join(",")
+  })
+                  latency  description-finished → first estimate. Writes draft Meals only.
+                  cost     model token cost. Touches no database.
+                  publish  confirm → on-offer. REFUSED against the production project, because
+                           it creates a published Meal and a published Meal nobody cooks is
+                           synthetic content on a real marketplace. Use a preview branch.
+                           There is no override flag; that absence is deliberate.
   --runs=<n>      Number of runs per phase (default: ${DEFAULT_RUNS})
   --no-teardown   Skip cleanup of test data (for debugging — prints a prominent warning)
   --dry-run       Validate environment and print the plan without making any call that costs
@@ -1455,18 +1795,24 @@ async function main(): Promise<void> {
   const noTeardown = Deno.args.includes("--no-teardown");
   const dryRun = Deno.args.includes("--dry-run");
 
-  // --only=cost runs Phase 3 alone: it talks to the model provider and touches no database, so it
-  // still produces a real number when the Supabase side is unavailable. Added because it was:
-  // on 2026-08-05 the live project had no table privileges (see the grant migration) and the two
-  // latency phases could not run, while the cost figure could. Half a measurement reported
-  // honestly beats waiting for all of it.
-  const onlyArg = Deno.args.find((a) => a.startsWith("--only="));
-  const only = onlyArg ? onlyArg.slice("--only=".length) : null;
-  if (only !== null && only !== "cost") {
-    console.error(`--only accepts "cost" only, got "${only}"`);
+  // Phase selection. `--phases=cost` alone still produces a real number when the Supabase side is
+  // unavailable — it talks to the model provider and touches no database. That mattered on
+  // 2026-08-05, when the live project had no table privileges (see the grant migration) and the
+  // latency phase could not run while the cost figure could: half a measurement reported honestly
+  // beats waiting for all of it.
+  //
+  // The refusal below is a hard stop rather than a warning. See `resolvePhases`.
+  let phases: Set<Phase>;
+  try {
+    phases = resolvePhases(Deno.args, (k) => Deno.env.get(k));
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
     Deno.exit(2);
   }
-  const costOnly = only === "cost";
+  const wantLatency = phases.has("latency");
+  const wantPublish = phases.has("publish");
+  const wantCost = phases.has("cost");
+  const needsCook = wantLatency || wantPublish;
 
   const runsArg = Deno.args.find((a) => a.startsWith("--runs="));
   const runs = runsArg ? Number(runsArg.slice("--runs=".length)) : DEFAULT_RUNS;
@@ -1519,19 +1865,34 @@ async function main(): Promise<void> {
     console.error(
       `Fixtures loaded: ${allFixtures.length} total, ${testFixtures.length} usable for E2`,
     );
+    console.error(`Phases selected: ${[...phases].join(", ")}`);
     console.error(`Plan:`);
     console.error(
-      `  Phase 0: create throwaway Cook (measure-XXXX@kafoo.invalid)`,
+      needsCook
+        ? `  Phase 0: create throwaway Cook (measure-XXXX@kafoo.invalid)`
+        : `  Phase 0: SKIPPED — no Cook, no row written`,
     );
     console.error(
-      `  Phase 1: ${runs} analysis runs, cycling through ${testFixtures.length} fixtures, ${SPACING_MS} ms apart`,
+      wantLatency
+        ? `  Phase 1: ${runs} analysis runs, cycling through ${testFixtures.length} fixtures, ${SPACING_MS} ms apart, draft Meals only`
+        : `  Phase 1: SKIPPED`,
     );
-    console.error(`  Phase 2: ${runs} publish runs, one fresh Meal each`);
     console.error(
-      `  Phase 3: ${allFixtures.length} cost calls (text) + 1 image call, ${SPACING_MS} ms apart`,
+      wantPublish
+        ? `  Phase 2: ${runs} publish runs, one fresh Meal each`
+        : `  Phase 2: SKIPPED — the publish phase was not asked for`,
+    );
+    console.error(
+      wantCost
+        ? `  Phase 3: ${allFixtures.length} cost calls (text) + 1 image call, ${SPACING_MS} ms apart`
+        : `  Phase 3: SKIPPED`,
     );
     console.error(`  Phase 4: write report to ${REPORT_PATH}`);
-    console.error(`  Teardown: delete ${runs + runs} Meals and the test Cook`);
+    console.error(
+      needsCook
+        ? `  Teardown: delete the test Cook; every Meal of theirs goes with it`
+        : `  Teardown: nothing to tear down`,
+    );
     console.error("");
     console.error(
       "No model calls will be made. No Supabase rows will be written.",
@@ -1561,9 +1922,9 @@ async function main(): Promise<void> {
     let analysisRuns: AnalysisRun[] = [];
     let publishRuns: PublishRun[] = [];
 
-    if (costOnly) {
+    if (!needsCook) {
       console.error(
-        "--only=cost: skipping Phases 0-2. No Cook is created and no row is written.",
+        "No database phase selected: skipping Phases 0-2. No Cook is created and no row is written.",
       );
       console.error("");
     } else {
@@ -1585,39 +1946,46 @@ async function main(): Promise<void> {
       console.error("");
 
       // Phase 1
-      console.error(
-        `Phase 1: description-finished → first estimate (${runs} runs)...`,
-      );
-      analysisRuns = await runAnalysisPhase(
-        supabaseUrl,
-        publishableKey,
-        cook.userJwt,
-        cook.userId,
-        testFixtures,
-        runs,
-      );
-      console.error("");
+      if (wantLatency) {
+        console.error(
+          `Phase 1: description-finished → first estimate (${runs} runs)...`,
+        );
+        analysisRuns = await runAnalysisPhase(
+          supabaseUrl,
+          publishableKey,
+          cook.userJwt,
+          cook.userId,
+          testFixtures,
+          runs,
+        );
+        console.error("");
+      }
 
-      // Phase 2
-      console.error(`Phase 2: confirm → on-offer (${runs} runs)...`);
-      publishRuns = await runPublishPhase(
-        supabaseUrl,
-        publishableKey,
-        cook.userJwt,
-        cook.userId,
-        testFixtures,
-        runs,
-      );
-      for (const r of publishRuns) allMealIds.push(r.mealId);
-      console.error("");
+      // Phase 2. Reachable only on a project `resolvePhases` proved is not production.
+      if (wantPublish) {
+        console.error(`Phase 2: confirm → on-offer (${runs} runs)...`);
+        publishRuns = await runPublishPhase(
+          supabaseUrl,
+          publishableKey,
+          cook.userJwt,
+          cook.userId,
+          testFixtures,
+          runs,
+        );
+        for (const r of publishRuns) allMealIds.push(r.mealId);
+        console.error("");
+      }
     }
 
     // Phase 3
-    console.error(
-      `Phase 3: model cost (${allFixtures.length} fixtures + 1 image)...`,
-    );
-    const costRuns = await runCostPhase(allFixtures);
-    console.error("");
+    let costRuns: TokenUsage[] = [];
+    if (wantCost) {
+      console.error(
+        `Phase 3: model cost (${allFixtures.length} fixtures + 1 image)...`,
+      );
+      costRuns = await runCostPhase(allFixtures);
+      console.error("");
+    }
 
     // Phase 4
     console.error("Phase 4: writing report...");
@@ -1627,6 +1995,7 @@ async function main(): Promise<void> {
       analysisRuns,
       publishRuns,
       costRuns,
+      phases,
     );
     Deno.writeTextFileSync(REPORT_PATH, report);
     console.error(`  Wrote ${REPORT_PATH}`);
@@ -1641,6 +2010,8 @@ async function main(): Promise<void> {
         serviceRoleKey,
         cook.userJwt,
         cook.userId,
+        cook.userEmail,
+        cook.userPassword,
         allMealIds,
       );
       console.error(summary);

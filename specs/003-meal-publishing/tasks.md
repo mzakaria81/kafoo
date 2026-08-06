@@ -616,6 +616,39 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 - [x] T073 [P] Confirm every new screen renders under RTL with `EdgeInsetsDirectional` and `start`/`end`, never `left`/`right` (SC-009). Swept `apps/mobile/lib` and `packages/ui/lib`: zero non-directional `EdgeInsets`, zero `left:`/`right:`, zero `Alignment.centerLeft/Right`, zero `TextAlign.left/right`. The public Meal view is in the `accessibility_test.dart` sweep, which asserts `Directionality.of(context) == rtl` on the rendered tree rather than reading the source
 - [x] T074 [P] Confirm semantic labels and ≥48dp tap targets on every new screen — the `accessibility-reviewer` agent carries the checklist. The public Meal view joins the `accessibility_test.dart` sweep for all three checks (RTL, ≥48dp, no clipping at 200% text scale), **with `onOpenKitchen` supplied** — it is the screen's only interactive widget, so without it the tap-target sweep would have passed by having nothing to measure
 - [x] T075 **Measure and record two numbers**: description-finished to first estimate (budget 2s), and confirm to on-offer (budget 3s). E1 left its launch baseline unmeasured and the budget is still unverified a feature later — do not repeat that **PARTIALLY DONE 2026-08-05, WP-002.** Confirm-to-on-offer measured at 189 ms median over 12 runs against a 3s budget. Description-to-first-estimate NOT measured: every call returned 502 because Supabase does not copy model credentials into a preview branch, and moving one was correctly refused. Composed arithmetic puts it near 2.4s and is recorded as arithmetic, not as a measurement. The remaining half is WP-010: the grants landed, so a Cook can now create a Meal on production, and the founder approved measuring there on 2026-08-05 — drafts only, never published, so nothing is ever discoverable.
+
+  **NOW FULLY MEASURED — 2026-08-06, WP-010. Description-finished to first estimate is 2177 ms
+  median over 12 runs against a 2000 ms budget, so it MISSES, and 8 of the 12 individual runs
+  missed too.** Range 1837–2608 ms, mean 2185 ms. Against production, every Meal a draft, deleted
+  as it went. The split is 181.5 ms to persist the description and 1997.5 ms for the analysis call,
+  which is where any fix would have to go — the persist half could vanish entirely and the median
+  would still be inside the budget only by 3 ms.
+
+  **The arithmetic it replaces was closer than it had any right to be.** ≈2357 ms composed against
+  2177 ms measured: −180 ms, −7.6%. The persist estimate was the loosest part at −17.5% (220 ms
+  estimated, 181.5 ms measured) and the analysis call came in at −6.5% (2137 ms against 1997.5 ms).
+  Its verdict held: it said the budget is missed and the budget is missed. That is a good outcome
+  for the estimate and not a reason to trust the next one — a sum of medians agreeing with a median
+  of sums to within 8% once is luck about variance, not a method.
+
+  **Confirm-to-on-offer was deliberately NOT re-run**, and the script can no longer be asked to.
+  `resolvePhases` refuses the publish phase against production outright, with no override flag: it
+  creates a `published` Meal, and a published Meal nobody cooks is product-fatal. The 189.5 ms
+  preview-branch figure is carried forward in the report, labelled as measured elsewhere.
+
+  **Production is clean.** The throwaway Cook was deleted as service_role; anon sees 0 published
+  Meals for it, and the project has 0 published Meals in total. Drafts are invisible to anon, so
+  that check could not prove they went — teardown now also proves the Cook cannot sign in (HTTP
+  400), and `meals.cook_id REFERENCES auth.users(id) ON DELETE CASCADE` does the rest. Nothing was
+  left behind.
+
+  **Cost re-measured on the same run and effectively unchanged**: $0.81 per 1,000 Meals without a
+  photo, $1.97 with one, against $0.82 and $1.99 on 2026-08-05.
+
+  **The founder accepted the measurement on 2026-08-06.** That closes T075 — the number is measured,
+  reported and trusted. It does not move the budget and it is not a decision about the miss: what
+  2177 ms against 2000 ms means for E3 is still open, and belongs to whoever plans E3 rather than to
+  this task. Anyone reading the budget as met has misread this line.
 - [x] T076 Measure the cost of one published Meal against the chosen provider and put the figure to the founder, alongside E1's still-open per-verification cost (T073 in E1) **DONE 2026-08-05, WP-002.** $0.82 per 1,000 Meals published without a photo, $1.99 with one. Beside it, E1's still-open per-verification cost at roughly $0.45 a sign-in on list prices — one sign-in costs what 550 published Meals cost.
 - [x] T097 **Let a Cook resume a draft rather than starting again.** FR-033's third clause, and it had no task anywhere in this epic until 2026-08-05. The other two clauses — see every draft, delete any of them — are T053 and T060, and because both cite FR-033 the requirement read as covered by every traceability check. Resuming means restoring a half-finished conversation from a persisted draft, which is why it is its own task and not a line inside T053 — **DONE 2026-08-05.** `MealConversationController.resume()` seeds the conversation's `MealDraft` from the stored row and the existing step logic asks the next unanswered question; no second conversation, no resume mode. A draft with no photo path is asked about the photo again, because declining is not persisted and so is indistinguishable from not having been asked.
 
