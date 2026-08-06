@@ -21,19 +21,21 @@
     ],
     "shared_files": [
       "supabase/tests/",
-      "supabase/migrations/"
+      "supabase/migrations/",
+      "docs/ops/",
+      "specs/003-meal-publishing/tasks.md"
     ]
   },
-  "execution_mode": "EXCLUSIVE",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "execution_mode": "PARALLEL",
+  "status": "IN_PROGRESS",
+  "owner": "coordinator",
   "priority": 3,
   "spend_envelope_usd": 3.0,
   "suggested_model": "opencode-go/grok-4.5",
-  "branch": null,
+  "branch": "claude/caveman-full-7k5toq",
   "pr": null,
   "blocked_reason": null,
-  "notes": "Found during WP-006. The assertion 'non-owner cannot write another Cook's address form' passed with the UPDATE policy weakened to USING (true), because that fixture's kitchen has no Meal on offer and the SELECT policy refuses the statement before the UPDATE policy is consulted. kitchen_profiles_rls_test.sql had PREDICTED this at case 3, in a comment written while kitchens were still private: the masking would begin the day open kitchens became publicly readable. E2 shipped that change and nothing re-read the warning. So this is not a hunt for a hypothetical — it is one confirmed instance plus a documented mechanism for producing more, and 76 assertions nobody has mutation-tested. EXCLUSIVE because it edits supabase/tests/ across every suite and touches migrations transiently; two workers mutating policies against the same database would read each other's mutations as their own results. THE WHOLE PACKAGE IS A READ OF EXISTING GUARANTEES, NOT A WIDENING: if a masked assertion is found, the fix is to move the test, never to change the policy. A policy change coming out of this package is a stop-and-report to the founder.\n\nUPDATE 2026-08-06: the TRUNCATE criterion was landed on its own, because it was the one item the founder had held back for approval and he gave it. The rest of this package — mutation-testing 76 assertions across seven suites — is untouched and is still what the package is for. Nothing about the revoke changes that work: it was a grant-layer narrowing, not a policy change, and the masked-assertion problem lives entirely in the policy layer.",
+  "notes": "Found during WP-006. The assertion 'non-owner cannot write another Cook's address form' passed with the UPDATE policy weakened to USING (true), because that fixture's kitchen has no Meal on offer and the SELECT policy refuses the statement before the UPDATE policy is consulted. kitchen_profiles_rls_test.sql had PREDICTED this at case 3, in a comment written while kitchens were still private: the masking would begin the day open kitchens became publicly readable. E2 shipped that change and nothing re-read the warning. So this is not a hunt for a hypothetical — it is one confirmed instance plus a documented mechanism for producing more, and 76 assertions nobody has mutation-tested. EXCLUSIVE because it edits supabase/tests/ across every suite and touches migrations transiently; two workers mutating policies against the same database would read each other's mutations as their own results. THE WHOLE PACKAGE IS A READ OF EXISTING GUARANTEES, NOT A WIDENING: if a masked assertion is found, the fix is to move the test, never to change the policy. A policy change coming out of this package is a stop-and-report to the founder.\n\nUPDATE 2026-08-06: the TRUNCATE criterion was landed on its own, because it was the one item the founder had held back for approval and he gave it. The rest of this package — mutation-testing 76 assertions across seven suites — is untouched and is still what the package is for. Nothing about the revoke changes that work: it was a grant-layer narrowing, not a policy change, and the masked-assertion problem lives entirely in the policy layer.\n\nEXCLUSIVE DROPPED 2026-08-06, coordinator's decision, with the reasoning because the flag was set on a premise that does not hold. It read 'two workers mutating policies against the same database would read each other's mutations as their own results'. Sessions run in separate containers and scripts/local-db.sh builds a Postgres inside each one, so there is no shared database to race on; this package never touches production or a preview branch. The file reason — editing supabase/tests/ across every suite — is real, and no remaining package touches supabase/tests/ at all. What genuinely collides is docs/ops/ and specs/*/tasks.md, where every package adds its own file or its own block; those are declared in shared_files instead of shutting the whole repository down for one package.",
   "created_at": "2026-08-05T18:40:00Z",
-  "updated_at": "2026-08-06T00:00:00Z"
+  "updated_at": "2026-08-06T07:10:00Z"
 }
