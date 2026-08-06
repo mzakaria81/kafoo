@@ -29,15 +29,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "IN_PROGRESS",
+  "status": "READY_FOR_REVIEW",
   "owner": "worker-f",
   "priority": 2,
   "spend_envelope_usd": 1.5,
   "suggested_model": "opencode-go/grok-4.5",
   "branch": "claude/caveman-skill-full-mode-o83ixd",
-  "pr": null,
+  "pr": "https://github.com/mzakaria81/kafoo/pull/41",
   "blocked_reason": null,
   "notes": "From WP-003's handoff. The register problem IS solved — zero Modern Standard markers across all eight drafts, and that is not what this package is about. The model instead adds facts: 'with the fresh greens' onto a Cook who said 'greens', 'cooks crisp in the oven' onto a hawawshi, and 'so it reaches you hot' where the Cook said 'so it comes out hot'. The prompt forbids all three in prose and the model ignored the prose, which is exactly why the last criterion forbids touching the prompt first: changing words without a check moves the problem out of sight rather than fixing it. ORDER MATTERS AND IS NOT NEGOTIABLE — report before assert, assert closed vocabularies before the general check. Arabic prefixes (بال، وال) make naive word matching flag correct drafts, so the general check needs a measured false-alarm rate to be tuned against. Gemini free tier is 15 requests per minute and the script refuses to run below 4000ms spacing; eight fixtures take about 40 seconds. The scorer is unit-testable without a live call — that is what scripts/replay_goldens_test.ts is for. Do not iterate against the live model. This package owns register_markers.json, which WP-003 deliberately left alone because two other sessions were live.",
   "created_at": "2026-08-05T20:40:00Z",
-  "updated_at": "2026-08-06T09:00:00Z"
+  "updated_at": "2026-08-06T09:55:00Z"
 }
