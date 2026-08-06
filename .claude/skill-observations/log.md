@@ -2356,3 +2356,67 @@ better assertion at the outer one.
 layers guarding one rule will each keep the other's tests green, so the number of places a rule is
 enforced is also the number of separate assertions it needs. Mutate one layer at a time and require
 something to go red at that layer.
+
+### Observation 90: A guard tested an identity the caller's own context can rewrite
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Implementing a database-level guard meant to stop client code writing a
+particular column. The guard tested the effective user name and refused when it was one of the
+client-facing roles.
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Choosing what a guard tests
+
+**Issue:** The identity being tested is one the platform deliberately rewrites in certain call
+frames — a privilege-elevating function replaces it with the function's owner. So the guard refused
+a direct write and permitted the identical write when routed through any such function that
+client-facing code could call. The codebase already contained functions of that kind against the
+same table, so the route was live rather than theoretical. The guard was also a **blocklist**: it
+named the identities to refuse rather than the ones to permit, so it failed open for anything not on
+the list, which is the direction that matters. It was caught by a reviewer who executed the bypass
+rather than reasoning about it.
+
+**Suggested improvement:** Two rules. First, prefer an **allowlist** in any guard: name who may, and
+refuse everyone else, so an identity nobody anticipated is refused rather than admitted. Second,
+when a guard rests on an identity or a context value, ask explicitly **which layers can rewrite it**
+before relying on it — and prefer a value the platform propagates without resetting, keeping the
+weaker check as a fallback for callers that carry no such value at all. A test for a guard must
+include the *indirect* route, not only the direct one; the direct route is the one the implementer
+was already thinking about.
+
+**Principle:** A guard is only as trustworthy as the stability of the thing it inspects. Before
+resting a refusal on an identity, enumerate what can change that identity between the caller and the
+guard — and write the assertion for the path that changes it, because the path that does not is the
+one that will pass anyway.
+
+### Observation 91: Every defect in the batch failed in the safe direction, which is why none had been noticed
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** A review of one feature returned several independent defects in filtering and
+text-normalisation logic. Reviewing them together revealed something the individual reports did not.
+**Skill:** requesting-code-review
+**Type:** open-source
+**Phase/Area:** Deciding what to look for, and what a passing system proves
+
+**Issue:** Four separate defects — an identity entry in a character mapping, a described-but-absent
+trimming step, an empty collection treated differently from an absent one, and an unescaped
+metacharacter in a pattern match — all produced the same *shape* of wrong answer: too few results.
+None produced an error, a crash, or a visibly wrong item. In a system whose correct answer is "some
+subset", under-returning is invisible: the user assumes the thing they wanted does not exist, and
+the operator sees a working feature. Three of the four were in logic whose own comments named the
+exact cases it failed on, and none of the four had an assertion. The system was fully green
+throughout.
+
+**Suggested improvement:** When requesting or planning a review of filtering, matching or
+normalisation logic, ask specifically for **defects that fail closed** and say so — they are
+systematically under-reported because they generate no signal. Concretely: for every filter, assert
+a case that MUST be returned, not only cases that must be excluded; and where code carries a comment
+naming the inputs it handles, turn each named input into an assertion, because a comment is where an
+author records intent they did not test.
+
+**Principle:** Defects that fail in the safe direction are the ones that survive longest, precisely
+because nothing complains. Absence of a complaint is evidence about how a system fails, not about
+whether it works — so a review of anything that narrows a result set should hunt for
+over-narrowing first.
