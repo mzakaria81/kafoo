@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { fill, messages } from '@/lib/messages';
+import { mealPreview } from '@/lib/preview';
 import { mealOnOffer, photoUrl } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
@@ -16,15 +17,20 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // What a shared reference reveals BEFORE it is opened. FR-027a caps it at
   // three things, and this is the whole of the enforcement — everything below
   // renders on the page, which only someone who tapped it ever sees.
+  const preview = mealPreview(
+    item.meal,
+    item.kitchen,
+    photoUrl('meal-photos', item.meal.photo_path),
+  );
   return {
-    title: item.meal.title,
+    title: preview.title,
     description: fill(messages().browseKitchenLabel, {
-      kitchen: item.kitchen.display_name,
+      kitchen: preview.kitchen,
     }),
     openGraph: {
-      title: item.meal.title,
-      description: item.kitchen.display_name,
-      images: photoUrl('meal-photos', item.meal.photo_path) ?? undefined,
+      title: preview.title,
+      description: preview.kitchen,
+      images: preview.image ?? undefined,
     },
   };
 }

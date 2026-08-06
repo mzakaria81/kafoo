@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { fill, messages } from '@/lib/messages';
+import { kitchenPreview } from '@/lib/preview';
 import { kitchenOnOffer, photoUrl } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
@@ -18,13 +19,17 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // the delivery terms, not how many Meals there are. A fourth here is a
   // failure of the feature even if the page below is correct, because this is
   // what reaches every member of a group chat who never taps the link.
+  const preview = kitchenPreview(
+    found.kitchen,
+    photoUrl('kitchen-photos', found.kitchen.photo_path),
+  );
   return {
-    title: found.kitchen.display_name,
-    description: found.kitchen.area,
+    title: preview.title,
+    description: preview.area,
     openGraph: {
-      title: found.kitchen.display_name,
-      description: found.kitchen.area,
-      images: photoUrl('kitchen-photos', found.kitchen.photo_path) ?? undefined,
+      title: preview.title,
+      description: preview.area,
+      images: preview.image ?? undefined,
     },
   };
 }

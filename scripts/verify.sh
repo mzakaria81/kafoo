@@ -375,6 +375,17 @@ run "localization parity" bash -c '
   [ -f "$ar" ] && [ -f "$en" ] || { echo "   arb files not present yet — skipping"; exit 0; }
   python3 scripts/check-l10n-parity.py'
 
+# The web surface's own checks — its type-check and its preview-cap assertions. Skipped with a
+# LOUD notice when node_modules is absent rather than silently, because a check that reports
+# success on having inspected nothing is the failure this gate keeps meeting.
+run "web surface" bash -c '
+  [ -f apps/web/package.json ] || { echo "   apps/web not present yet — skipping"; exit 0; }
+  if [ ! -d apps/web/node_modules ]; then
+    echo "   apps/web/node_modules absent — NOT CHECKED. Run: (cd apps/web && npm ci)"
+    exit 0
+  fi
+  cd apps/web && npx tsc --noEmit && node --test lib/*.test.mjs > /dev/null'
+
 # The Customer web surface carries its own ar/en messages rather than the app's ARB files, so the
 # parity check above does not see them. Two locales that drift are how a Customer meets an English
 # string on an Arabic-first surface — and ar is the SOURCE here, not the fallback.
