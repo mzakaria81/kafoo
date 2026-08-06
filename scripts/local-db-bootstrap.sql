@@ -71,6 +71,26 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
 
+-- THE FOUR PRIVILEGES PRODUCTION ACTUALLY HANDS OUT, REPRODUCED ON PURPOSE.
+--
+-- Measured against the live project on 2026-08-05 and again on 2026-08-06: anon, authenticated and
+-- service_role hold TRUNCATE, REFERENCES, TRIGGER and MAINTAIN on every table in public. They
+-- arrive by default privilege, which is why every table has them and why a table created tomorrow
+-- would have them too.
+--
+-- Omitting them here was the same class of mistake as the ALL-on-TABLES line the note above
+-- describes, pointing the other way: the harness was quieter than production, so an assertion that
+-- these privileges are absent passed locally no matter what production held. A negative test that
+-- cannot fail is the failure mode this repository keeps finding, and the fix is for the stand-in to
+-- start where production starts.
+--
+-- `..._revoke_unused_table_privileges.sql` takes them away again. Delete that migration and the
+-- guard in `supabase/tests/data_api_grants_test.sql` turns red, naming every table — which is the
+-- proof that both the grant here and the revoke there are doing what they claim.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES
+  TO anon, authenticated, service_role;
+
 -- Supabase's auth.users, cut down to the columns Kafoo's foreign keys and helpers touch.
 -- Columns are exactly those tests.create_supabase_user in supabase/seed.sql writes, plus the keys
 -- Kafoo's own migrations reference. Real auth.users has many more; adding them here would be
