@@ -26,7 +26,7 @@
 -- ────────────────────────────────────────────────────────────────────────────────────────────────
 
 BEGIN;
-SELECT plan(21);
+SELECT plan(27);
 
 SELECT tests.create_supabase_user('cook@discovery.kafoo');
 SELECT tests.create_supabase_user('other@discovery.kafoo');
@@ -54,16 +54,16 @@ SELECT tests.clear_authentication();
 -- pass without the function ever refusing anything.
 SELECT tests.authenticate_as('cook@discovery.kafoo');
 INSERT INTO public.meals
-  (id, cook_id, title, description, price, cuisine, category, status)
+  (id, cook_id, title, description, price, cuisine, category, status, ingredients)
 VALUES
   ('dddddddd-0000-4000-8000-000000000001', tests.user_id('cook@discovery.kafoo'),
-   'كشري', 'عدس ومكرونة وأرز', 35.00, 'egyptian', 'main', 'published'),
+   'كشري', 'عدس ومكرونة وأرز', 35.00, 'egyptian', 'main', 'published', ARRAY['عدس','مكرونة']),
   ('dddddddd-0000-4000-8000-000000000002', tests.user_id('cook@discovery.kafoo'),
-   'ملوخية', 'ملوخية بالفراخ', 55.00, 'egyptian', 'main', 'draft'),
+   'ملوخية', 'ملوخية بالفراخ', 55.00, 'egyptian', 'main', 'draft', ARRAY['ملوخية']),
   ('dddddddd-0000-4000-8000-000000000003', tests.user_id('cook@discovery.kafoo'),
-   'محشي', 'ورق عنب', 60.00, 'egyptian', 'main', 'unavailable'),
+   'محشي', 'ورق عنب', 60.00, 'egyptian', 'main', 'unavailable', ARRAY['أرز']),
   ('dddddddd-0000-4000-8000-000000000004', tests.user_id('cook@discovery.kafoo'),
-   'رقاق', 'رقاق باللحمة', 80.00, 'egyptian', 'main', 'archived');
+   'رقاق', 'رقاق باللحمة', 80.00, 'egyptian', 'main', 'archived', ARRAY['لحمة']);
 SELECT tests.clear_authentication();
 
 -- The second Cook has one Meal on offer, so their kitchen is discoverable.
@@ -71,6 +71,8 @@ SELECT tests.authenticate_as('other@discovery.kafoo');
 INSERT INTO public.meals (id, cook_id, title, description, price, cuisine, category, status)
 VALUES ('dddddddd-0000-4000-8000-000000000005', tests.user_id('other@discovery.kafoo'),
         'فتة', 'فتة لحمة', 100.00, 'egyptian', 'main', 'published');
+UPDATE public.meals SET ingredients = ARRAY['عيش','لحمة']
+  WHERE id = 'dddddddd-0000-4000-8000-000000000005';
 SELECT tests.clear_authentication();
 
 -- The third Cook has only a draft, so their kitchen has never opened.
@@ -180,6 +182,27 @@ SELECT throws_ok(
 SELECT tests.clear_authentication();
 SELECT tests.authenticate_as_anon();
 
+-- 9b. And cannot reach around the trigger through a SECURITY DEFINER function.
+--
+--     This is the assertion that was missing, and the hole was real: SECURITY DEFINER rewrites
+--     current_user to the function owner, so a trigger testing current_user alone waved the write
+--     through. Demonstrated by rls-reviewer 2026-08-07. The definer function is created inside this
+--     transaction and rolled back with it.
+SELECT tests.clear_authentication();
+CREATE FUNCTION public.zz_definer_probe(mid uuid) RETURNS void
+  LANGUAGE sql SECURITY DEFINER AS
+  $probe$ UPDATE public.meals SET embedding = array_fill(0.9::real, ARRAY[768])::vector
+            WHERE id = mid $probe$;
+GRANT EXECUTE ON FUNCTION public.zz_definer_probe(uuid) TO authenticated;
+
+SELECT tests.authenticate_as('cook@discovery.kafoo');
+SELECT throws_ok(
+  $$SELECT public.zz_definer_probe('dddddddd-0000-4000-8000-000000000001')$$,
+  '42501'
+);
+SELECT tests.clear_authentication();
+SELECT tests.authenticate_as_anon();
+
 -- 10. Another signed-in person cannot write someone else's vector.
 SELECT tests.clear_authentication();
 SELECT tests.authenticate_as('other@discovery.kafoo');
@@ -260,6 +283,21 @@ SELECT is(
   (SELECT public.normalise_area('الدقي') = public.normalise_area('الدقى')),
   true, 'final ya and alef maqsura do not make two areas');
 
+-- 15b-15d. The three cases the function's comments name and no assertion covered until
+--           2026-08-07. ة mapped to itself, so العجوزة and العجوزه were two areas and مصر الجديدة
+--           could never reach its own alias; and the trim the comment described was absent.
+SELECT is(
+  (SELECT public.normalise_area('العجوزة') = public.normalise_area('العجوزه')),
+  true, 'ta marbuta and ha do not make two areas');
+
+SELECT is(
+  (SELECT public.normalise_area('مصر الجديدة') = public.normalise_area('هليوبوليس')),
+  true, 'a place with a second name is reachable by both');
+
+SELECT is(
+  (SELECT public.normalise_area(' المهندسين ') = public.normalise_area('المهندسين')),
+  true, 'surrounding whitespace does not make two areas');
+
 -- 16. And it must NOT merge two different neighbourhoods. A tolerance loose enough to catch a typo
 --     is loose enough to match a different place, and that failure is invisible.
 SELECT is(
@@ -276,6 +314,18 @@ SELECT is(
 SELECT is(
   (SELECT COUNT(*)::int FROM public.search_meals(:qv, NULL, 'أسوان')),
   0, 'an area no Cook wrote returns zero rows, never the whole marketplace');
+
+-- 22-23. Exclusion edge cases. Both failed in the SAFE direction — over-exclusion — which is
+--         exactly why neither would have been reported by anyone.
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.search_meals(:qv, ARRAY[]::text[])),
+  (SELECT COUNT(*)::int FROM public.search_meals(:qv)),
+  'excluding nothing is the same as passing no exclusions');
+
+SELECT is(
+  (SELECT COUNT(*)::int FROM public.search_meals(:qv, ARRAY['%'])),
+  (SELECT COUNT(*)::int FROM public.search_meals(:qv)),
+  'a literal percent is a character, not a wildcard that empties the marketplace');
 
 SELECT * FROM finish();
 ROLLBACK;

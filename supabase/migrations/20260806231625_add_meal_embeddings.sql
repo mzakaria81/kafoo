@@ -71,19 +71,47 @@ CREATE INDEX meals_embedding_hnsw ON public.meals
 --
 -- RLS does NOT give you this. `cook updates own meals` permits a Cook to update their own row, and
 -- that includes this column.
+--
+-- IT TESTS THE JWT CLAIM FIRST, BECAUSE current_user ALONE IS BYPASSABLE. Demonstrated by
+-- rls-reviewer on 2026-08-07: a Cook's direct UPDATE is refused, and the identical UPDATE routed
+-- through any postgres-owned SECURITY DEFINER function executable by `authenticated` succeeds —
+-- the trigger sees current_user = 'postgres' and waves it through. This table already carries a
+-- SECURITY DEFINER trigger, so the pattern is live rather than hypothetical, and the next definer
+-- RPC that copies or reseeds a Meal would carry a client's vector through in silence.
+--
+-- PostgREST sets `request.jwt.claims` as a transaction-local GUC and SECURITY DEFINER does not
+-- reset it, so the claim survives the frame that rewrites current_user. The current_user branch is
+-- KEPT rather than replaced: under the publishable-key scheme the app already uses, an anonymous
+-- request may carry no claims at all, and an allowlist with no claim to read must still refuse.
 CREATE OR REPLACE FUNCTION public.protect_meal_embedding()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = ''
 AS $$
+DECLARE
+  -- nullif and a guarded cast, because the GUC is EMPTY rather than absent once a session has
+  -- cleared it, and ''::jsonb raises "invalid input syntax for type json" — which would make this
+  -- trigger throw on every write to meals rather than on the one it exists to refuse.
+  claim_role text := (
+    SELECT nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'
+  );
 BEGIN
-  -- The service role and the table owner may write it: that is embed-meal, and the backfill.
-  -- Everyone reachable from a client — `authenticated` and `anon` — may not.
-  IF current_user IN ('authenticated', 'anon') THEN
+  IF (claim_role IS NOT NULL AND claim_role <> 'service_role')
+     OR (claim_role IS NULL AND current_user NOT IN ('postgres', 'service_role')) THEN
     IF TG_OP = 'INSERT' AND NEW.embedding IS NOT NULL THEN
       RAISE EXCEPTION 'meals.embedding is written by Kafoo, not by a client'
         USING ERRCODE = 'insufficient_privilege';
     END IF;
-    IF TG_OP = 'UPDATE' AND NEW.embedding IS DISTINCT FROM OLD.embedding THEN
+    -- The comparison is written out and the operator schema-qualified, because
+    -- `IS DISTINCT FROM` resolves the vector `=` operator through search_path — which this
+    -- function deliberately empties. Left implicit it raises
+    -- "operator does not exist: public.vector = public.vector" and the trigger fails OPEN on
+    -- every write, which is the direction that matters.
+    IF TG_OP = 'UPDATE' AND (
+         (NEW.embedding IS NULL) <> (OLD.embedding IS NULL)
+         OR (NEW.embedding IS NOT NULL AND OLD.embedding IS NOT NULL
+             AND NEW.embedding OPERATOR(public.<>) OLD.embedding)
+       ) THEN
       RAISE EXCEPTION 'meals.embedding is written by Kafoo, not by a client'
         USING ERRCODE = 'insufficient_privilege';
     END IF;
@@ -121,6 +149,7 @@ LANGUAGE sql
 IMMUTABLE
 PARALLEL SAFE
 STRICT
+SET search_path = ''
 AS $$
   SELECT
     -- The alias list lives here rather than in a table. A table would be a NEW table needing RLS in
@@ -146,9 +175,25 @@ AS $$
           -- Unify the letters Arabic writes more than one way, strip the diacritics most typing
           -- omits, and remove tatweel. Latin is case-folded so "Maadi" and "maadi" are one area.
           translate(
-            lower(value),
+            -- COLLATE "C" pins the case mapping, which is what makes IMMUTABLE honest. lower()
+            -- otherwise resolves collation from its argument — measured, lower('MAADI' COLLATE
+            -- "tr-x-icu") is 'maadı', which misses the alias below. The expression index stores
+            -- values computed at build time and Postgres will not recompute them, so an ICU or
+            -- glibc bump would silently make the index disagree with the function and a kitchen
+            -- would stop being findable by area. Pinning it removes the whole class.
+            --
+            -- btrim and the whitespace collapse were DESCRIBED in the comment below and absent
+            -- from the body until 2026-08-07: normalise_area(' المهندسين') did not equal
+            -- normalise_area('المهندسين'), because the anchor never reached the article past a
+            -- leading space. An area typed by a Customer arrives from speech and is not trimmed
+            -- for us.
+            regexp_replace(btrim(lower(value COLLATE "C")), '[[:space:]]+', ' ', 'g'),
+            -- ة maps to ه. It mapped to ITSELF until 2026-08-07 — an identity entry that made
+            -- العجوزة and العجوزه two different areas, and put مصر الجديدة permanently out of
+            -- reach of the heliopolis alias below. Both are named in this file's own comments as
+            -- the cases the function exists to solve, and neither had an assertion.
             'أإآٱىة',
-            'ااااية'
+            'اااايه'
           ),
           '[ً-ْـ]', '', 'g'
         ),
@@ -220,14 +265,21 @@ AS $$
     -- treated as a possible yes. This hides Meals that are perfectly fine, and that is the correct
     -- direction to be wrong in.
     AND (
+      -- NULL and '{}' must mean the same thing. They did not: an empty array fell through to the
+      -- withhold-on-unknown branch and removed every Meal whose ingredients and allergens are both
+      -- empty, so a Customer who excluded NOTHING lost Meals.
       exclude_terms IS NULL
+      OR cardinality(exclude_terms) = 0
       OR (
         (cardinality(m.ingredients) > 0 OR cardinality(m.allergens) > 0)
         AND NOT EXISTS (
           SELECT 1 FROM unnest(exclude_terms) AS term
           WHERE EXISTS (
             SELECT 1 FROM unnest(m.ingredients || m.allergens) AS item
-            WHERE item ILIKE '%' || term || '%'
+            -- The term is escaped. Unescaped, a literal % in a Customer's phrase is a wildcard —
+            -- measured, ARRAY['%'] excluded every Meal in the marketplace. It fails in the safe
+            -- direction, which is exactly why nobody would have noticed.
+            WHERE item ILIKE '%' || replace(replace(replace(term, '\', '\\'), '%', '\%'), '_', '\_') || '%'
           )
         )
       )

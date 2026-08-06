@@ -124,9 +124,15 @@ run_tests() {
 
     # A suite that errors out before its plan produces NO "not ok" at all, so counting failures is
     # not enough — an empty result has to be a failure too, or a broken suite reports as a clean one.
-    if printf '%s\n' "${out}" | grep -qE '^not ok|^ERROR|^psql:'; then
+    #
+    # '# Looks like' catches a PLAN MISMATCH, and it was missing until 2026-08-07. pgTAP reports a
+    # wrong plan as a comment rather than a failure, so a suite that silently stopped running
+    # assertions — or had one deleted — went green through here and through the Authorization
+    # workflow. That is not hypothetical: supabase/tests/policy_isolation_test.sql planned 9 while
+    # running 10 from WP-008 until this branch, and nothing anywhere noticed.
+    if printf '%s\n' "${out}" | grep -qE '^not ok|^ERROR|^psql:|^# Looks like'; then
       failed=1
-      printf '%s\n' "${out}" | grep -E '^(not ok|ERROR|psql:)' | head -20
+      printf '%s\n' "${out}" | grep -E '^(not ok|ERROR|psql:|# Looks like)' | head -20
     elif ! printf '%s\n' "${out}" | grep -qE '^ok '; then
       failed=1
       echo "   no assertions ran — the suite failed before its plan" >&2
