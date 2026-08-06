@@ -97,6 +97,29 @@ Kafoo's schema reaches a sequence or a public function through the API roles yet
 production evidence either way — and inventing a rule from no measurement is what produced the line
 above.
 
+### The same mistake, pointing the other way (2026-08-06)
+
+Removing that line fixed the harness being *louder* than production. It left the harness **quieter**
+than production, and that hid something too.
+
+Production grants `TRUNCATE`, `REFERENCES`, `TRIGGER` and `MAINTAIN` to all three API roles on every
+table, through a default privilege owned by `postgres`. The bootstrap granted none of them. So an
+assertion that `anon` cannot `TRUNCATE` passed locally on the first run, before any migration
+existed to make it true — a negative test that could not fail, which is the exact failure this
+directory keeps turning up.
+
+The bootstrap now reproduces that default privilege, and
+`supabase/migrations/20260806063454_revoke_unused_table_privileges.sql` takes the four privileges
+away again — including from the default, so the next table does not inherit them either. Delete that
+migration and the guard in `data_api_grants_test.sql` goes red, naming every table, role and
+privilege. That red was seen before the migration was written.
+
+**The rule this leaves behind: a stand-in is wrong in both directions.** Granting something
+production does not grant makes the suite greener than reality. *Withholding* something production
+does grant makes a negative assertion unfalsifiable, which looks like coverage and is not. When you
+add a role, a grant or a default privilege here, the question is not "is this enough for the tests
+to pass" — it is "does this match what was measured against the live project, and on what date".
+
 ## Trusting it
 
 It was validated rather than assumed. All existing suites pass with the same assertion count and the
