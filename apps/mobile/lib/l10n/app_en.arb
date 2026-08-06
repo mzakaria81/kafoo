@@ -4,33 +4,68 @@
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
-  "publishMeal": "Publish Meal",
+  "publishMeal": "{addressForm, select, feminine{Publish Meal} other{Publish Meal}}",
   "@publishMeal": {
-    "description": "Action a Cook takes to move a Meal from draft to published."
+    "description": "Action a Cook takes to move a Meal from draft to published.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "archiveMeal": "Archive Meal",
+  "archiveMeal": "{addressForm, select, feminine{Archive Meal} other{Archive Meal}}",
   "@archiveMeal": {
-    "description": "Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history."
+    "description": "Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "acceptOrder": "Accept Order",
+  "acceptOrder": "{addressForm, select, feminine{Accept Order} other{Accept Order}}",
   "@acceptOrder": {
-    "description": "Action the owning Cook takes to agree to cook an Order."
+    "description": "Action the owning Cook takes to agree to cook an Order.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "rejectOrder": "Reject Order",
+  "rejectOrder": "{addressForm, select, feminine{Reject Order} other{Reject Order}}",
   "@rejectOrder": {
-    "description": "Action the owning Cook takes to decline an Order."
+    "description": "Action the owning Cook takes to decline an Order.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "orderRejected": "The Cook could not take this Order right now. Try another Meal, or order from another Cook.",
+  "orderRejected": "{cookForm, select, feminine{The Cook could not take this Order right now. Try another Meal, or order from another Cook.} other{The Cook could not take this Order right now. Try another Meal, or order from another Cook.}}",
   "@orderRejected": {
-    "description": "Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next."
+    "description": "Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next. Customer-directed verbs (جرب / اطلب; EN Try / order) stay ungendered in both branches — Kafoo stores no form of address for Customers; wiring those verbs to cookForm would be wrong. Only the Cook-describing clause differs by cookForm.",
+    "placeholders": {
+      "cookForm": {
+        "type": "String"
+      }
+    }
   },
-  "networkUnavailable": "No internet connection. Check that you are online and try again.",
+  "networkUnavailable": "{addressForm, select, feminine{No internet connection. Check that you are online and try again.} other{No internet connection. Check that you are online and try again.}}",
   "@networkUnavailable": {
-    "description": "Shown when a request fails for connectivity reasons."
+    "description": "Shown when a request fails for connectivity reasons.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "aiEstimateNotice": "These are AI Assistant estimates. The Cook has not confirmed them yet.",
+  "aiEstimateNotice": "{cookForm, select, feminine{These are AI Assistant estimates. The Cook has not confirmed them yet.} other{These are AI Assistant estimates. The Cook has not confirmed them yet.}}",
   "@aiEstimateNotice": {
-    "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
+    "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact. cookForm describes the Cook who must confirm estimates, not the reader.",
+    "placeholders": {
+      "cookForm": {
+        "type": "String"
+      }
+    }
   },
   "signInTitle": "Welcome to Kafoo",
   "@signInTitle": {
@@ -40,22 +75,35 @@
   "@signInPhoneLabel": {
     "description": "Label for the phone number input field."
   },
-  "signInContinue": "Continue",
+  "signInContinue": "{addressForm, select, feminine{Continue} other{Continue}}",
   "@signInContinue": {
-    "description": "Button to submit the phone number and request an OTP."
+    "description": "Button to submit the phone number and request an OTP.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "signInRateLimited": "Too many attempts. Wait {minutes} minutes and try again.",
+  "signInRateLimited": "{addressForm, select, feminine{Too many attempts. Wait {minutes} minutes and try again.} other{Too many attempts. Wait {minutes} minutes and try again.}}",
   "@signInRateLimited": {
     "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
     "placeholders": {
       "minutes": {
         "type": "int"
+      },
+      "addressForm": {
+        "type": "String"
       }
     }
   },
-  "codeTitle": "Enter the code",
+  "codeTitle": "{addressForm, select, feminine{Enter the code} other{Enter the code}}",
   "@codeTitle": {
-    "description": "Heading on the OTP code entry screen."
+    "description": "Heading on the OTP code entry screen.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "codeSubtitle": "We sent a code to {phone}",
   "@codeSubtitle": {
@@ -66,37 +114,79 @@
       }
     }
   },
-  "codeWrongCode": "Wrong code. Try again.",
+  "codeWrongCode": "{addressForm, select, feminine{Wrong code. Try again.} other{Wrong code. Try again.}}",
   "@codeWrongCode": {
-    "description": "Shown when the OTP is incorrect."
+    "description": "Shown when the OTP is incorrect.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "codeExpired": "Code has expired. Request a new one.",
+  "codeExpired": "{addressForm, select, feminine{Code has expired. Request a new one.} other{Code has expired. Request a new one.}}",
   "@codeExpired": {
-    "description": "Shown when the OTP has expired (distinct from wrong code)."
+    "description": "Shown when the OTP has expired (distinct from wrong code).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "codeResend": "Send a new code",
+  "codeResend": "{addressForm, select, feminine{Send a new code} other{Send a new code}}",
   "@codeResend": {
-    "description": "Button to request a new OTP without restarting sign-in."
+    "description": "Button to request a new OTP without restarting sign-in.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "signInNetworkError": "No internet connection. Check that you are online and try again.",
+  "signInNetworkError": "{addressForm, select, feminine{No internet connection. Check that you are online and try again.} other{No internet connection. Check that you are online and try again.}}",
   "@signInNetworkError": {
-    "description": "Shown when sign-in fails due to connectivity, not a wrong code."
+    "description": "Shown when sign-in fails due to connectivity, not a wrong code.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "kitchenConvPromptDisplayName": "What is your kitchen called?",
   "@kitchenConvPromptDisplayName": {
     "description": "First question in the Kitchen Profile conversation."
   },
-  "kitchenConvPromptStory": "Tell me about your cooking. What do you make and how?",
+  "kitchenConvPromptStory": "{addressForm, select, feminine{Tell me about your cooking. What do you make and how?} other{Tell me about your cooking. What do you make and how?}}",
   "@kitchenConvPromptStory": {
-    "description": "Second question: the Cook's story."
+    "description": "Second question: the Cook's story.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "kitchenConvPromptArea": "Which area do you cook in?",
+  "kitchenConvPromptArea": "{addressForm, select, feminine{Which area do you cook in?} other{Which area do you cook in?}}",
   "@kitchenConvPromptArea": {
-    "description": "Third question: the Cook's area."
+    "description": "Third question: the Cook's area.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "kitchenConvPromptDeliveryTerms": "How do people receive their food from you?",
   "@kitchenConvPromptDeliveryTerms": {
     "description": "Fourth question: delivery or pickup terms."
+  },
+  "kitchenConvPromptAddressForm": "So I address you properly — do I say \"kammil\" or \"kammili\"?",
+  "@kitchenConvPromptAddressForm": {
+    "description": "Fifth Kitchen Profile conversation question: asks which grammatical form of address to use. Deliberately first-person only so the question itself is not gendered. No addressForm placeholder."
+  },
+  "kitchenConvAddressFormMasculine": "Kammil",
+  "@kitchenConvAddressFormMasculine": {
+    "description": "Answer label choosing masculine form of address (ungendered label text)."
+  },
+  "kitchenConvAddressFormFeminine": "Kammili",
+  "@kitchenConvAddressFormFeminine": {
+    "description": "Answer label choosing feminine form of address (ungendered label text)."
   },
   "kitchenConvHintDisplayName": "e.g. Om Ali's Kitchen",
   "@kitchenConvHintDisplayName": {
@@ -114,29 +204,54 @@
   "@kitchenConvHintDeliveryTerms": {
     "description": "Hint text below the delivery terms question."
   },
-  "convContinue": "Continue",
+  "convContinue": "{addressForm, select, feminine{Continue} other{Continue}}",
   "@convContinue": {
-    "description": "Button to confirm the current answer and move to the next step."
+    "description": "Button to confirm the current answer and move to the next step.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "convVoiceHint": "Say your answer out loud",
+  "convVoiceHint": "{addressForm, select, feminine{Say your answer out loud} other{Say your answer out loud}}",
   "@convVoiceHint": {
-    "description": "Shown next to the microphone button."
+    "description": "Shown next to the microphone button.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "convVoiceUnavailable": "Voice recognition is not available. You can type your answer instead.",
+  "convVoiceUnavailable": "{addressForm, select, feminine{Voice recognition is not available. You can type your answer instead.} other{Voice recognition is not available. You can type your answer instead.}}",
   "@convVoiceUnavailable": {
-    "description": "Shown when on-device speech recognition is not available."
+    "description": "Shown when on-device speech recognition is not available.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "kitchenConvSummaryTitle": "Here is what you told us",
   "@kitchenConvSummaryTitle": {
     "description": "Heading on the summary screen."
   },
-  "kitchenConvSummaryConfirm": "Looks good, save",
+  "kitchenConvSummaryConfirm": "{addressForm, select, feminine{Looks good, save} other{Looks good, save}}",
   "@kitchenConvSummaryConfirm": {
-    "description": "Button to confirm the summary and write the Kitchen Profile."
+    "description": "Button to confirm the summary and write the Kitchen Profile.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "convEdit": "Change",
+  "convEdit": "{addressForm, select, feminine{Change} other{Change}}",
   "@convEdit": {
-    "description": "Button to edit a single answer on the summary screen."
+    "description": "Button to edit a single answer on the summary screen.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "kitchenConvLabelDisplayName": "Kitchen name",
   "@kitchenConvLabelDisplayName": {
@@ -158,17 +273,32 @@
   "@kitchenConvLabelPhoto": {
     "description": "Label for the optional photo on the summary screen."
   },
-  "kitchenConvPhotoAdd": "Add a photo",
+  "kitchenConvPhotoAdd": "{addressForm, select, feminine{Add a photo} other{Add a photo}}",
   "@kitchenConvPhotoAdd": {
-    "description": "Button to add a kitchen photo on the summary screen."
+    "description": "Button to add a kitchen photo on the summary screen.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "kitchenConvSaveError": "Something went wrong saving. Please try again.",
+  "kitchenConvSaveError": "{addressForm, select, feminine{Something went wrong saving. Please try again.} other{Something went wrong saving. Please try again.}}",
   "@kitchenConvSaveError": {
-    "description": "Shown if writing the Kitchen Profile to Supabase fails."
+    "description": "Shown if writing the Kitchen Profile to Supabase fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "kitchenConvPhotoError": "The photo could not be uploaded. You can continue without one.",
+  "kitchenConvPhotoError": "{addressForm, select, feminine{The photo could not be uploaded. You can continue without one.} other{The photo could not be uploaded. You can continue without one.}}",
   "@kitchenConvPhotoError": {
-    "description": "Shown if photo upload fails. The Cook can proceed without a photo."
+    "description": "Shown if photo upload fails. The Cook can proceed without a photo.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "kitchenExistsTitle": "You already have a kitchen",
   "@kitchenExistsTitle": {
@@ -190,9 +320,14 @@
   "@kitchenEditNewValue": {
     "description": "Labels the field holding the replacement value."
   },
-  "kitchenEditSave": "Save change",
+  "kitchenEditSave": "{addressForm, select, feminine{Save change} other{Save change}}",
   "@kitchenEditSave": {
-    "description": "Button confirming a single-detail change."
+    "description": "Button confirming a single-detail change.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "kitchenEditCancel": "Cancel",
   "@kitchenEditCancel": {
@@ -202,9 +337,14 @@
   "@kitchenEditSaved": {
     "description": "Brief confirmation shown after one detail changes."
   },
-  "removeAccountEntry": "Delete my account",
+  "removeAccountEntry": "{addressForm, select, feminine{Delete my account} other{Delete my account}}",
   "@removeAccountEntry": {
-    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was."
+    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "removeAccountTitle": "Delete account",
   "@removeAccountTitle": {
@@ -214,33 +354,58 @@
   "@removeAccountBody": {
     "description": "States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034)."
   },
-  "removeAccountConfirm": "Delete my account",
+  "removeAccountConfirm": "{addressForm, select, feminine{Delete my account} other{Delete my account}}",
   "@removeAccountConfirm": {
-    "description": "The single confirmation button. There is no second are-you-sure."
+    "description": "The single confirmation button. There is no second are-you-sure.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "removeAccountCancel": "Back",
   "@removeAccountCancel": {
     "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."
   },
-  "removeAccountError": "We could not delete your account. It is unchanged — please try again.",
+  "removeAccountError": "{addressForm, select, feminine{We could not delete your account. It is unchanged — please try again.} other{We could not delete your account. It is unchanged — please try again.}}",
   "@removeAccountError": {
-    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
+    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "recoveryEmailTitle": "Add an email address?",
+  "recoveryEmailTitle": "{addressForm, select, feminine{Add an email address?} other{Add an email address?}}",
   "@recoveryEmailTitle": {
-    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed."
+    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "recoveryEmailBody": "If you lose your number, an email address is how you get back into your account. It is not required, and you can skip it.",
+  "recoveryEmailBody": "{addressForm, select, feminine{If you lose your number, an email address is how you get back into your account. It is not required, and you can skip it.} other{If you lose your number, an email address is how you get back into your account. It is not required, and you can skip it.}}",
   "@recoveryEmailBody": {
-    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath."
+    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "recoveryEmailLabel": "Your email address",
   "@recoveryEmailLabel": {
     "description": "Label for the email input on the invitation."
   },
-  "recoveryEmailAttach": "Add email",
+  "recoveryEmailAttach": "{addressForm, select, feminine{Add email} other{Add email}}",
   "@recoveryEmailAttach": {
-    "description": "Button attaching the address to the existing account."
+    "description": "Button attaching the address to the existing account.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "recoveryEmailDecline": "Not now",
   "@recoveryEmailDecline": {
@@ -250,101 +415,201 @@
   "@recoveryEmailAttached": {
     "description": "Shown after the address is attached and a confirmation message is sent."
   },
-  "recoveryEmailError": "We could not add that address. Please try again.",
+  "recoveryEmailError": "{addressForm, select, feminine{We could not add that address. Please try again.} other{We could not add that address. Please try again.}}",
   "@recoveryEmailError": {
-    "description": "Shown when attaching the address fails."
+    "description": "Shown when attaching the address fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "signInLostNumber": "Can't reach your number?",
+  "signInLostNumber": "{addressForm, select, feminine{Can't reach your number?} other{Can't reach your number?}}",
   "@signInLostNumber": {
-    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009)."
+    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "emailSignInTitle": "Sign in by email",
+  "emailSignInTitle": "{addressForm, select, feminine{Sign in by email} other{Sign in by email}}",
   "@emailSignInTitle": {
-    "description": "Heading on the email sign-in screen, reached only from the lost-number route."
+    "description": "Heading on the email sign-in screen, reached only from the lost-number route.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "emailSignInBody": "If you added an email address to your account before, enter it here and we will send you a code.",
+  "emailSignInBody": "{addressForm, select, feminine{If you added an email address to your account before, enter it here and we will send you a code.} other{If you added an email address to your account before, enter it here and we will send you a code.}}",
   "@emailSignInBody": {
-    "description": "Explains that this route works only for an address already attached from inside the account (FR-007)."
+    "description": "Explains that this route works only for an address already attached from inside the account (FR-007).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "emailSignInLabel": "Email address",
   "@emailSignInLabel": {
     "description": "Label for the email field on the email sign-in screen."
   },
-  "emailSignInUnknown": "That address is not linked to any account. Try signing in with your phone number.",
+  "emailSignInUnknown": "{addressForm, select, feminine{That address is not linked to any account. Try signing in with your phone number.} other{That address is not linked to any account. Try signing in with your phone number.}}",
   "@emailSignInUnknown": {
-    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within."
+    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "changePhoneTitle": "Change phone number",
+  "changePhoneTitle": "{addressForm, select, feminine{Change phone number} other{Change phone number}}",
   "@changePhoneTitle": {
-    "description": "Heading on the change-of-number screen."
+    "description": "Heading on the change-of-number screen.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "changePhoneBody": "Enter your new number. We will send a code to it, and once you confirm, the old number will stop reaching your account.",
+  "changePhoneBody": "{addressForm, select, feminine{Enter your new number. We will send a code to it, and once you confirm, the old number will stop reaching your account.} other{Enter your new number. We will send a code to it, and once you confirm, the old number will stop reaching your account.}}",
   "@changePhoneBody": {
-    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026)."
+    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "changePhoneLabel": "New number",
   "@changePhoneLabel": {
     "description": "Label for the new phone number field."
   },
-  "changePhoneEntry": "Change phone number",
+  "changePhoneEntry": "{addressForm, select, feminine{Change phone number} other{Change phone number}}",
   "@changePhoneEntry": {
-    "description": "Entry point to the change-of-number flow."
+    "description": "Entry point to the change-of-number flow.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "changePhoneDone": "Your number has changed. The old one no longer reaches your account.",
   "@changePhoneDone": {
     "description": "Confirmation shown after the new number is verified."
   },
-  "changePhoneError": "We could not change your number. Your old number still works — please try again.",
+  "changePhoneError": "{addressForm, select, feminine{We could not change your number. Your old number still works — please try again.} other{We could not change your number. Your old number still works — please try again.}}",
   "@changePhoneError": {
-    "description": "Shown when the change fails, stating the old number still works."
+    "description": "Shown when the change fails, stating the old number still works.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "aiMealAnalysisInvalid": "We could not read the AI Assistant's reply. Try again, or fill the details in yourself.",
+  "aiMealAnalysisInvalid": "{addressForm, select, feminine{We could not read the AI Assistant's reply. Try again, or fill the details in yourself.} other{We could not read the AI Assistant's reply. Try again, or fill the details in yourself.}}",
   "@aiMealAnalysisInvalid": {
-    "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it."
+    "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "aiPromptNotStubbed": "The AI Assistant is not available right now. Carry on yourself and we will try again later.",
+  "aiPromptNotStubbed": "{addressForm, select, feminine{The AI Assistant is not available right now. Carry on yourself and we will try again later.} other{The AI Assistant is not available right now. Carry on yourself and we will try again later.}}",
   "@aiPromptNotStubbed": {
-    "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable."
+    "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "analyzeMealUnauthorized": "Sign in first and try again.",
+  "analyzeMealUnauthorized": "{addressForm, select, feminine{Sign in first and try again.} other{Sign in first and try again.}}",
   "@analyzeMealUnauthorized": {
-    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in."
+    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "analyzeMealNotOwned": "This Meal is not yours.",
   "@analyzeMealNotOwned": {
     "description": "Shown when the Cook tries to analyze a Meal that belongs to someone else."
   },
-  "analyzeMealRateLimited": "Too many attempts. Wait a bit and try again.",
+  "analyzeMealRateLimited": "{addressForm, select, feminine{Too many attempts. Wait a bit and try again.} other{Too many attempts. Wait a bit and try again.}}",
   "@analyzeMealRateLimited": {
-    "description": "Shown when the model provider rate-limits the request."
+    "description": "Shown when the model provider rate-limits the request.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "analyzeMealTimeout": "The response took too long. Try again.",
+  "analyzeMealTimeout": "{addressForm, select, feminine{The response took too long. Try again.} other{The response took too long. Try again.}}",
   "@analyzeMealTimeout": {
-    "description": "Shown when the model provider times out."
+    "description": "Shown when the model provider times out.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "analyzeMealInvalidResponse": "We could not understand the AI Assistant's reply. Try again, or fill the details in yourself.",
+  "analyzeMealInvalidResponse": "{addressForm, select, feminine{We could not understand the AI Assistant's reply. Try again, or fill the details in yourself.} other{We could not understand the AI Assistant's reply. Try again, or fill the details in yourself.}}",
   "@analyzeMealInvalidResponse": {
-    "description": "Shown when the model provider returns a response that fails validation."
+    "description": "Shown when the model provider returns a response that fails validation.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "analyzeMealProviderError": "The AI Assistant is not available right now. Try again later, or fill the details in yourself.",
+  "analyzeMealProviderError": "{addressForm, select, feminine{The AI Assistant is not available right now. Try again later, or fill the details in yourself.} other{The AI Assistant is not available right now. Try again later, or fill the details in yourself.}}",
   "@analyzeMealProviderError": {
-    "description": "Shown when the model provider has an auth, upstream, or configuration error."
+    "description": "Shown when the model provider has an auth, upstream, or configuration error.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "analyzeMealServerError": "Something went wrong on our side. Please try again.",
+  "analyzeMealServerError": "{addressForm, select, feminine{Something went wrong on our side. Please try again.} other{Something went wrong on our side. Please try again.}}",
   "@analyzeMealServerError": {
-    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured)."
+    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "analyzeMealUnknownError": "An unexpected error occurred. Try again, or fill the details in yourself.",
+  "analyzeMealUnknownError": "{addressForm, select, feminine{An unexpected error occurred. Try again, or fill the details in yourself.} other{An unexpected error occurred. Try again, or fill the details in yourself.}}",
   "@analyzeMealUnknownError": {
-    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash."
+    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealSaveError": "We could not save the Meal. Please try again.",
+  "mealSaveError": "{addressForm, select, feminine{We could not save the Meal. Please try again.} other{We could not save the Meal. Please try again.}}",
   "@mealSaveError": {
-    "description": "Shown when creating, updating, or publishing a Meal fails."
+    "description": "Shown when creating, updating, or publishing a Meal fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealPhotoError": "The photo could not be uploaded. You can continue without one.",
+  "mealPhotoError": "{addressForm, select, feminine{The photo could not be uploaded. You can continue without one.} other{The photo could not be uploaded. You can continue without one.}}",
   "@mealPhotoError": {
-    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
+    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealConvPromptDish": "What did you cook?",
   "@mealConvPromptDish": {
@@ -354,9 +619,14 @@
   "@mealConvHintDish": {
     "description": "Hint below the dish question."
   },
-  "mealConvPromptDescription": "Tell me about it. What's in it and how is it made?",
+  "mealConvPromptDescription": "{addressForm, select, feminine{Tell me about it. What's in it and how is it made?} other{Tell me about it. What's in it and how is it made?}}",
   "@mealConvPromptDescription": {
-    "description": "Second question: the description every AI-inferred field is derived from."
+    "description": "Second question: the description every AI-inferred field is derived from.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealConvHintDescription": "For example: lentils, rice and pasta, with fried onion on top",
   "@mealConvHintDescription": {
@@ -366,25 +636,45 @@
   "@mealConvPromptPhoto": {
     "description": "Third question: the optional photograph. The only step a Cook may decline."
   },
-  "mealConvHintPhoto": "A photo gets you more orders, and you can skip it if you would rather not",
+  "mealConvHintPhoto": "{addressForm, select, feminine{A photo gets you more orders, and you can skip it if you would rather not} other{A photo gets you more orders, and you can skip it if you would rather not}}",
   "@mealConvHintPhoto": {
-    "description": "Hint below the photo question. Says plainly that it can be skipped."
+    "description": "Hint below the photo question. Says plainly that it can be skipped.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealConvPhotoDisclosure": "If you send a photo, the assistant will look at it to estimate the ingredients and calories. We will not use it for anything else.",
   "@mealConvPhotoDisclosure": {
     "description": "FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses."
   },
-  "mealConvPhotoSkip": "Continue without a photo",
+  "mealConvPhotoSkip": "{addressForm, select, feminine{Continue without a photo} other{Continue without a photo}}",
   "@mealConvPhotoSkip": {
-    "description": "Button that declines the photo and continues the conversation."
+    "description": "Button that declines the photo and continues the conversation.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealConvPhotoAdd": "Add a photo of the Meal",
+  "mealConvPhotoAdd": "{addressForm, select, feminine{Add a photo of the Meal} other{Add a photo of the Meal}}",
   "@mealConvPhotoAdd": {
-    "description": "Button to attach a photo to a Meal during the conversation (T041)."
+    "description": "Button to attach a photo to a Meal during the conversation (T041).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealConvPromptPrice": "What do you sell it for?",
+  "mealConvPromptPrice": "{addressForm, select, feminine{What do you sell it for?} other{What do you sell it for?}}",
   "@mealConvPromptPrice": {
-    "description": "Fourth question: the price of the whole Meal."
+    "description": "Fourth question: the price of the whole Meal.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealConvHintPrice": "The price of the whole dish, in pounds",
   "@mealConvHintPrice": {
@@ -398,17 +688,27 @@
   "@mealConvPromptCuisine": {
     "description": "Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing."
   },
-  "mealConvHintCuisine": "Pick the closest one",
+  "mealConvHintCuisine": "{addressForm, select, feminine{Pick the closest one} other{Pick the closest one}}",
   "@mealConvHintCuisine": {
-    "description": "Hint below the fallback cuisine question."
+    "description": "Hint below the fallback cuisine question.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealConvPromptCategory": "And what sort of dish is it? A main, a dessert, a soup?",
   "@mealConvPromptCategory": {
     "description": "Fallback question: what sort of dish it is, asked only when the estimate is missing."
   },
-  "mealConvHintCategory": "Pick the closest one",
+  "mealConvHintCategory": "{addressForm, select, feminine{Pick the closest one} other{Pick the closest one}}",
   "@mealConvHintCategory": {
-    "description": "Hint below the fallback category question."
+    "description": "Hint below the fallback category question.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealSummaryTitle": "Here is what you told me about this Meal",
   "@mealSummaryTitle": {
@@ -434,9 +734,14 @@
   "@mealSummaryNoPhoto": {
     "description": "Shown in place of a photo when the Cook declined one."
   },
-  "mealSummaryConfirm": "Looks right, publish it",
+  "mealSummaryConfirm": "{addressForm, select, feminine{Looks right, publish it} other{Looks right, publish it}}",
   "@mealSummaryConfirm": {
-    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this."
+    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "cuisineEgyptian": "Egyptian",
   "@cuisineEgyptian": {
@@ -518,9 +823,14 @@
   "@mealSummaryEstimatesTitle": {
     "description": "Heading of the AI estimate section on the Meal summary."
   },
-  "mealSummaryEstimatesNotice": "These are estimates from the assistant, not confirmed facts. Check them and confirm each one before you publish.",
+  "mealSummaryEstimatesNotice": "{addressForm, select, feminine{These are estimates from the assistant, not confirmed facts. Check them and confirm each one before you publish.} other{These are estimates from the assistant, not confirmed facts. Check them and confirm each one before you publish.}}",
   "@mealSummaryEstimatesNotice": {
-    "description": "FR-012: AI-derived values are shown as estimates, never as verified fact."
+    "description": "FR-012: AI-derived values are shown as estimates, never as verified fact.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealSummaryEstimateBadge": "Estimate",
   "@mealSummaryEstimateBadge": {
@@ -567,13 +877,23 @@
       }
     }
   },
-  "mealSummaryNoEstimates": "The assistant could not estimate anything. Write the details yourself.",
+  "mealSummaryNoEstimates": "{addressForm, select, feminine{The assistant could not estimate anything. Write the details yourself.} other{The assistant could not estimate anything. Write the details yourself.}}",
   "@mealSummaryNoEstimates": {
-    "description": "Shown when the AI Assistant produced nothing usable (FR-014)."
+    "description": "Shown when the AI Assistant produced nothing usable (FR-014).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealPublishError": "We could not publish this Meal. Please try again.",
+  "mealPublishError": "{addressForm, select, feminine{We could not publish this Meal. Please try again.} other{We could not publish this Meal. Please try again.}}",
   "@mealPublishError": {
-    "description": "Shown when putting the Meal on offer fails."
+    "description": "Shown when putting the Meal on offer fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealPublishedConfirmation": "This Meal is on the menu now.",
   "@mealPublishedConfirmation": {
@@ -582,31 +902,50 @@
   "publicMealPriceValue": "{price} EGP",
   "@publicMealPriceValue": {
     "description": "The price of the whole Meal on the Customer's public view. The price is passed through as the exact string stored in the database — never reformatted, never rounded.",
-    "placeholders": { "price": { "type": "String" } }
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
   },
   "publicMealOpenKitchen": "See the kitchen",
   "@publicMealOpenKitchen": {
-    "description": "Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025)."
+    "description": "Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025). Addresses the Customer in the second person (شوف / See). Kafoo stores no form of address for Customers; do not wire to addressForm or cookForm. Left ungendered on purpose."
   },
   "publicMealCaloriesUnknown": "Calories not worked out",
   "@publicMealCaloriesUnknown": {
     "description": "Shown when a Meal carries no calorie figure. A missing estimate is stated, never rendered as an empty row or a zero."
   },
-  "publicMealAllergensUnknown": "No allergens listed. If you have an allergy, ask the Cook.",
+  "publicMealAllergensUnknown": "{cookForm, select, feminine{No allergens listed. If you have an allergy, ask the Cook.} other{No allergens listed. If you have an allergy, ask the Cook.}}",
   "@publicMealAllergensUnknown": {
-    "description": "Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear."
+    "description": "Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear. Customer-directed verb (اسأل / ask) stays ungendered in both branches — Kafoo stores no form of address for Customers; wiring it to cookForm would be wrong. Only الطباخ/الطباخة differs by cookForm.",
+    "placeholders": {
+      "cookForm": {
+        "type": "String"
+      }
+    }
   },
-  "publicMealNutritionFromCook": "These figures are the Cook's own.",
+  "publicMealNutritionFromCook": "{cookForm, select, feminine{These figures are the Cook's own.} other{These figures are the Cook's own.}}",
   "@publicMealNutritionFromCook": {
-    "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate."
+    "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate. No Customer-directed verb. cookForm genders the Cook being described (الطباخ نفسه / الطباخة نفسها). Wiring this to the reader's form would be wrong.",
+    "placeholders": {
+      "cookForm": {
+        "type": "String"
+      }
+    }
   },
   "myMealsTitle": "My Meals",
   "@myMealsTitle": {
     "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
   },
-  "myMealsEmpty": "No Meals yet. Start one.",
+  "myMealsEmpty": "{addressForm, select, feminine{No Meals yet. Start one.} other{No Meals yet. Start one.}}",
   "@myMealsEmpty": {
-    "description": "Shown when the Cook has no Meals at any status."
+    "description": "Shown when the Cook has no Meals at any status.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "myMealsStatusDraft": "Draft",
   "@myMealsStatusDraft": {
@@ -624,73 +963,153 @@
   "@myMealsStatusArchived": {
     "description": "Status word for a Meal retired permanently."
   },
-  "mealMakeUnavailable": "Take it off the menu",
+  "mealMakeUnavailable": "{addressForm, select, feminine{Take it off the menu} other{Take it off the menu}}",
   "@mealMakeUnavailable": {
-    "description": "Action a Cook takes to take a published Meal off the menu."
+    "description": "Action a Cook takes to take a published Meal off the menu.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealMakeAvailable": "Put it back on the menu",
+  "mealMakeAvailable": "{addressForm, select, feminine{Put it back on the menu} other{Put it back on the menu}}",
   "@mealMakeAvailable": {
-    "description": "Action a Cook takes to put an unavailable Meal back on the menu."
+    "description": "Action a Cook takes to put an unavailable Meal back on the menu.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealLastOnOfferWarning": "This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.",
+  "mealLastOnOfferWarning": "{addressForm, select, feminine{This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.} other{This is the last Meal on your menu. If you take it off, nobody will find your kitchen until you put something back.}}",
   "@mealLastOnOfferWarning": {
-    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable."
+    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealLastOnOfferConfirm": "Take it off anyway",
+  "mealLastOnOfferConfirm": "{addressForm, select, feminine{Take it off anyway} other{Take it off anyway}}",
   "@mealLastOnOfferConfirm": {
-    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu."
+    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealLastOnOfferCancel": "Leave it on the menu",
+  "mealLastOnOfferCancel": "{addressForm, select, feminine{Leave it on the menu} other{Leave it on the menu}}",
   "@mealLastOnOfferCancel": {
-    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu."
+    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealLoadError": "We could not load your Meals. Try again.",
+  "mealLoadError": "{addressForm, select, feminine{We could not load your Meals. Try again.} other{We could not load your Meals. Try again.}}",
   "@mealLoadError": {
-    "description": "Shown when fetching the Cook's own Meals fails."
+    "description": "Shown when fetching the Cook's own Meals fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealAvailabilityError": "We could not change the Meal. Try again.",
+  "mealAvailabilityError": "{addressForm, select, feminine{We could not change the Meal. Try again.} other{We could not change the Meal. Try again.}}",
   "@mealAvailabilityError": {
-    "description": "Shown when changing a Meal's status fails."
+    "description": "Shown when changing a Meal's status fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealDeleteError": "We could not delete the draft. Try again.",
+  "mealDeleteError": "{addressForm, select, feminine{We could not delete the draft. Try again.} other{We could not delete the draft. Try again.}}",
   "@mealDeleteError": {
-    "description": "Shown when deleting a draft Meal fails."
+    "description": "Shown when deleting a draft Meal fails.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealLoadRetry": "Try again",
+  "mealLoadRetry": "{addressForm, select, feminine{Try again} other{Try again}}",
   "@mealLoadRetry": {
-    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
+    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealRetire": "Retire it permanently",
+  "mealRetire": "{addressForm, select, feminine{Retire it permanently} other{Retire it permanently}}",
   "@mealRetire": {
-    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row."
+    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealRetireWarning": "This Meal comes off the menu for good and can never go back on. It stays in your list, but nobody else will see it again.",
   "@mealRetireWarning": {
     "description": "Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list."
   },
-  "mealRetireConfirm": "Retire it permanently",
+  "mealRetireConfirm": "{addressForm, select, feminine{Retire it permanently} other{Retire it permanently}}",
   "@mealRetireConfirm": {
-    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle."
+    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealRetireCancel": "Leave it as it is",
+  "mealRetireCancel": "{addressForm, select, feminine{Leave it as it is} other{Leave it as it is}}",
   "@mealRetireCancel": {
-    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status."
+    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealDeleteDraft": "Delete the draft",
+  "mealDeleteDraft": "{addressForm, select, feminine{Delete the draft} other{Delete the draft}}",
   "@mealDeleteDraft": {
-    "description": "Action a Cook takes to delete a draft Meal that was never on offer."
+    "description": "Action a Cook takes to delete a draft Meal that was never on offer.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealDeleteDraftWarning": "This draft will be deleted for good and cannot be brought back.",
+  "mealDeleteDraftWarning": "{addressForm, select, feminine{This draft will be deleted for good and cannot be brought back.} other{This draft will be deleted for good and cannot be brought back.}}",
   "@mealDeleteDraftWarning": {
-    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good."
+    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealDeleteDraftConfirm": "Delete it",
+  "mealDeleteDraftConfirm": "{addressForm, select, feminine{Delete it} other{Delete it}}",
   "@mealDeleteDraftConfirm": {
-    "description": "Confirmation button on the draft-deletion dialog."
+    "description": "Confirmation button on the draft-deletion dialog.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealEditTitle": "Edit the Meal",
+  "mealEditTitle": "{addressForm, select, feminine{Edit the Meal} other{Edit the Meal}}",
   "@mealEditTitle": {
-    "description": "Heading on the Meal edit screen."
+    "description": "Heading on the Meal edit screen.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealEditSaved": "Changed.",
   "@mealEditSaved": {
@@ -704,21 +1123,41 @@
   "@mealNeedsKitchenTitle": {
     "description": "Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040)."
   },
-  "mealNeedsKitchenBody": "Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.",
+  "mealNeedsKitchenBody": "{addressForm, select, feminine{Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.} other{Before you offer a Meal, people need to know who is cooking it. Set up your kitchen first, then carry on.}}",
   "@mealNeedsKitchenBody": {
-    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered."
+    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealNeedsKitchenAction": "Set up my kitchen",
+  "mealNeedsKitchenAction": "{addressForm, select, feminine{Set up my kitchen} other{Set up my kitchen}}",
   "@mealNeedsKitchenAction": {
-    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one."
+    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealKitchenCheckError": "We couldn't check your kitchen. Try again.",
+  "mealKitchenCheckError": "{addressForm, select, feminine{We couldn't check your kitchen. Try again.} other{We couldn't check your kitchen. Try again.}}",
   "@mealKitchenCheckError": {
-    "description": "Shown when the Kitchen Profile existence check fails (network or server error)."
+    "description": "Shown when the Kitchen Profile existence check fails (network or server error).",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
-  "mealKitchenCheckRetry": "Try again",
+  "mealKitchenCheckRetry": "{addressForm, select, feminine{Try again} other{Try again}}",
   "@mealKitchenCheckRetry": {
-    "description": "Button that re-runs the Kitchen Profile existence check."
+    "description": "Button that re-runs the Kitchen Profile existence check.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "myMealsNoPriceYet": "No price yet",
   "@myMealsNoPriceYet": {
@@ -728,8 +1167,13 @@
   "@myMealsUntitledDraft": {
     "description": "Shown in place of a draft's dish name when the Cook has not answered the first question yet. The schema allows a title-less row, so the list must render one rather than break on it."
   },
-  "mealResumeDraft": "Carry on with this Meal",
+  "mealResumeDraft": "{addressForm, select, feminine{Carry on with this Meal} other{Carry on with this Meal}}",
   "@mealResumeDraft": {
-    "description": "Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one."
+    "description": "Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   }
 }
