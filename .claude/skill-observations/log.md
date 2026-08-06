@@ -2324,3 +2324,35 @@ issued.
 consumes the attention that would have noticed. When verification is chained to the action it
 guards, make the exit status of the verification itself the thing that gates — not the exit status
 of whatever the output was piped through.
+
+### Observation 89: Two layers each enforcing a rule made the test for it unable to fail
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Implementing a screen with three states — loading, content, and a failure — and
+a rule that a failure must not be presented as an empty result. A test asserted exactly that rule
+and passed.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Verifying that a passing test can fail
+
+**Issue:** The rule was enforced in two places without either being written as a fallback for the
+other: the view checked for the error case *before* asking the state object whether it was empty,
+and the state object also excluded the error case from its own emptiness answer. Deleting the guard
+inside the state object left every test green, because the view's ordering meant the mutated code
+path was never reached. Reordering the view would have been masked the same way by the guard. So
+the test named after the rule was passing on the strength of a different mechanism than the one it
+described, and the only reason this surfaced was a deliberate mutation run out of habit rather than
+because anything suggested a problem.
+
+**Suggested improvement:** When a rule is enforced at more than one layer, each layer needs its own
+assertion at its own level — an end-to-end test cannot distinguish "both defences work" from "one
+defence works and hides the other". Add to the skill: after writing a test for a rule, delete the
+implementation of that rule and confirm the test fails. If it does not, the test is describing a
+mechanism it is not exercising, and the fix is a narrower test at the layer that was mutated, not a
+better assertion at the outer one.
+
+**Principle:** Defence in depth makes each individual defence unfalsifiable from the outside. Two
+layers guarding one rule will each keep the other's tests green, so the number of places a rule is
+enforced is also the number of separate assertions it needs. Mutate one layer at a time and require
+something to go red at that layer.
