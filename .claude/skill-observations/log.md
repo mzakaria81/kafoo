@@ -2231,3 +2231,63 @@ sentence of the form "X happens only when Y", and nothing yet establishes that Y
 step. Measure the load-bearing ones before writing the document that spreads them across twenty
 requirements, because the cost of being wrong scales with how far the assumption has already
 propagated.
+
+### Observation 86: The remediation pass introduced three of the four findings the next pass caught
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** A cross-artifact consistency analysis produced ten findings. All ten were
+fixed. Re-running the same analysis found four new issues, and three of them had been created by
+the remediation itself.
+**Skill:** speckit-analyze
+**Type:** open-source
+**Phase/Area:** Remediation, and the decision about whether to re-analyse
+
+**Issue:** The fixes were written directly into the artifacts and were individually correct. What
+they were not was *consistent with the rest of the document*: a new task specified a transformation
+in one language while an existing task consumed it in another; new tasks inherited a parallel marker
+from the tasks beside them without checking that the marker was true there either; and a fix
+correctly moved one item earlier in the ordering while leaving an identical item, one phase over,
+where it was. None of the three would have been found by re-reading the fix. All three were found by
+re-running the whole analysis, which is only what happened because the user asked for it explicitly
+rather than because anything in the workflow required it.
+
+**Suggested improvement:** Make re-analysis the defined end of the remediation step rather than a
+separate thing a user may or may not request — the analysis is cheap relative to the implementation
+it gates, and a remediation pass is exactly the moment new inconsistency is introduced, because it
+adds material to a document whose invariants were established without it. Where a fix moves or
+reorders something, the check should specifically look for siblings of the moved item that were not
+moved.
+
+**Principle:** A fix is written against the finding, not against the document. The finding is local
+and the invariants are global, so remediation is one of the most likely moments to create the class
+of defect that was just removed. Re-run the whole check after fixing, not the part that failed.
+
+### Observation 87: A number identical to one already recorded as false was about to be trusted
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Sizing budgets for delegated work. A reporting tool printed a remaining-headroom
+figure and a verdict of "OK to proceed".
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Trusting a tool's own report of its state
+
+**Issue:** The figure printed was character-for-character the same as one recorded in the project's
+handoff document as a known false reading — the tool had previously reported that exact headroom
+while the underlying service refused work for being over the limit the tool said was clear. The
+tool's own output also flagged that every calibration day for the relevant model was outside the
+project's stated tolerance, which is the tool saying its correction has stopped holding. Both signals
+were present in a single screen of output and neither is what the eye goes to; the eye goes to the
+verdict line. It was caught only because the same string had been read earlier in the session in a
+document describing checks that could not fail.
+
+**Suggested improvement:** Where a project records known-false readings from its own tooling, the
+check that reads that tooling should compare against them rather than leaving it to whoever
+remembers. More generally: when a tool prints both a verdict and a caveat about its own accuracy,
+the caveat outranks the verdict, and a report that says its correction has stopped holding is not
+reporting a number — it is reporting that it cannot currently produce one.
+
+**Principle:** A tool's verdict and a tool's confidence in itself are two different outputs, and the
+second is the one that decides whether the first means anything. An unchanged number where movement
+was expected is evidence of a stuck reading, not of a stable quantity.
