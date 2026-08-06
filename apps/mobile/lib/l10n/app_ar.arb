@@ -4,68 +4,33 @@
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
-  "publishMeal": "{addressForm, select, feminine{انشري الأكلة} other{انشر الأكلة}}",
+  "publishMeal": "انشر الأكلة",
   "@publishMeal": {
-    "description": "Action a Cook takes to move a Meal from draft to published.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes to move a Meal from draft to published."
   },
-  "archiveMeal": "{addressForm, select, feminine{أرشفي الأكلة} other{أرشف الأكلة}}",
+  "archiveMeal": "أرشف الأكلة",
   "@archiveMeal": {
-    "description": "Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history."
   },
-  "acceptOrder": "{addressForm, select, feminine{اقبلي الطلب} other{اقبل الطلب}}",
+  "acceptOrder": "اقبل الطلب",
   "@acceptOrder": {
-    "description": "Action the owning Cook takes to agree to cook an Order.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action the owning Cook takes to agree to cook an Order."
   },
-  "rejectOrder": "{addressForm, select, feminine{ارفضي الطلب} other{ارفض الطلب}}",
+  "rejectOrder": "ارفض الطلب",
   "@rejectOrder": {
-    "description": "Action the owning Cook takes to decline an Order.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action the owning Cook takes to decline an Order."
   },
-  "orderRejected": "{cookForm, select, feminine{الطباخة مقدرتش تاخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخة تانية.} other{الطباخ مقدرش ياخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخ تاني.}}",
+  "orderRejected": "الطباخ مقدرش ياخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخ تاني.",
   "@orderRejected": {
-    "description": "Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next. Customer-directed verbs (جرب / اطلب; EN Try / order) stay ungendered in both branches — Kafoo stores no form of address for Customers; wiring those verbs to cookForm would be wrong. Only the Cook-describing clause differs by cookForm.",
-    "placeholders": {
-      "cookForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next."
   },
-  "networkUnavailable": "مفيش اتصال بالنت. {addressForm, select, feminine{اطمني إن النت شغال وجربي} other{اطمن إن النت شغال وجرب}} تاني.",
+  "networkUnavailable": "مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.",
   "@networkUnavailable": {
-    "description": "Shown when a request fails for connectivity reasons.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when a request fails for connectivity reasons."
   },
-  "aiEstimateNotice": "دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من {cookForm, select, feminine{الطباخة.} other{الطباخ.}}",
+  "aiEstimateNotice": "دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من الطباخ.",
   "@aiEstimateNotice": {
-    "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact. cookForm describes the Cook who must confirm estimates, not the reader.",
-    "placeholders": {
-      "cookForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact."
   },
   "signInTitle": "أهلاً بيك في كفو",
   "@signInTitle": {
@@ -75,35 +40,22 @@
   "@signInPhoneLabel": {
     "description": "Label for the phone number input field."
   },
-  "signInContinue": "{addressForm, select, feminine{كمّلي} other{كمّل}}",
+  "signInContinue": "كمّل",
   "@signInContinue": {
-    "description": "Button to submit the phone number and request an OTP.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to submit the phone number and request an OTP."
   },
-  "signInRateLimited": "{addressForm, select, feminine{جربت كتير. استني {minutes} دقيقة وبعدين جربي تاني.} other{جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.}}",
+  "signInRateLimited": "جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.",
   "@signInRateLimited": {
     "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
     "placeholders": {
       "minutes": {
         "type": "int"
-      },
-      "addressForm": {
-        "type": "String"
       }
     }
   },
-  "codeTitle": "{addressForm, select, feminine{ادخلي الكود} other{ادخل الكود}}",
+  "codeTitle": "ادخل الكود",
   "@codeTitle": {
-    "description": "Heading on the OTP code entry screen.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Heading on the OTP code entry screen."
   },
   "codeSubtitle": "اتبعتلك كود على رقم {phone}",
   "@codeSubtitle": {
@@ -114,79 +66,37 @@
       }
     }
   },
-  "codeWrongCode": "{addressForm, select, feminine{الكود غلط. جربي تاني.} other{الكود غلط. جرب تاني.}}",
+  "codeWrongCode": "الكود غلط. جرب تاني.",
   "@codeWrongCode": {
-    "description": "Shown when the OTP is incorrect.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the OTP is incorrect."
   },
-  "codeExpired": "الكود انتهى. {addressForm, select, feminine{اطلبي} other{اطلب}} كود جديد.",
+  "codeExpired": "الكود انتهى. اطلب كود جديد.",
   "@codeExpired": {
-    "description": "Shown when the OTP has expired (distinct from wrong code).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the OTP has expired (distinct from wrong code)."
   },
-  "codeResend": "{addressForm, select, feminine{ابعتي كود جديد} other{ابعت كود جديد}}",
+  "codeResend": "ابعت كود جديد",
   "@codeResend": {
-    "description": "Button to request a new OTP without restarting sign-in.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to request a new OTP without restarting sign-in."
   },
-  "signInNetworkError": "مفيش اتصال بالنت. {addressForm, select, feminine{اطمني إن النت شغال وجربي} other{اطمن إن النت شغال وجرب}} تاني.",
+  "signInNetworkError": "مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.",
   "@signInNetworkError": {
-    "description": "Shown when sign-in fails due to connectivity, not a wrong code.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when sign-in fails due to connectivity, not a wrong code."
   },
   "kitchenConvPromptDisplayName": "مطبخك اسمه إيه؟",
   "@kitchenConvPromptDisplayName": {
     "description": "First question in the Kitchen Profile conversation: the kitchen's display name."
   },
-  "kitchenConvPromptStory": "{addressForm, select, feminine{قوليلي عن طبخك. بتعملي إيه وبتعمليه} other{قولّي عن طبخك. بتعمل إيه وبتعمله}} إزاي؟",
+  "kitchenConvPromptStory": "قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟",
   "@kitchenConvPromptStory": {
-    "description": "Second question: the Cook's story — what they cook and how.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Second question: the Cook's story — what they cook and how."
   },
-  "kitchenConvPromptArea": "{addressForm, select, feminine{في أنهي منطقة بتشتغلي؟} other{في أنهي منطقة بتشتغل؟}}",
+  "kitchenConvPromptArea": "في أنهي منطقة بتشتغل؟",
   "@kitchenConvPromptArea": {
-    "description": "Third question: which area the Cook operates in.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Third question: which area the Cook operates in."
   },
   "kitchenConvPromptDeliveryTerms": "إزاي الناس بتاخد أكلها منك؟",
   "@kitchenConvPromptDeliveryTerms": {
     "description": "Fourth question: delivery or pickup terms."
-  },
-  "kitchenConvPromptAddressForm": "عشان أكلمك صح — أقولّك \"كمّل\" ولا \"كمّلي\"؟",
-  "@kitchenConvPromptAddressForm": {
-    "description": "Fifth Kitchen Profile conversation question: asks which grammatical form of address to use. Deliberately first-person only so the question itself is not gendered. No addressForm placeholder."
-  },
-  "kitchenConvAddressFormMasculine": "كمّل",
-  "@kitchenConvAddressFormMasculine": {
-    "description": "Answer label choosing masculine form of address (ungendered label text)."
-  },
-  "kitchenConvAddressFormFeminine": "كمّلي",
-  "@kitchenConvAddressFormFeminine": {
-    "description": "Answer label choosing feminine form of address (ungendered label text)."
   },
   "kitchenConvHintDisplayName": "مثلاً: مطبخ أم علي",
   "@kitchenConvHintDisplayName": {
@@ -204,54 +114,29 @@
   "@kitchenConvHintDeliveryTerms": {
     "description": "Hint text shown below the delivery terms question."
   },
-  "convContinue": "{addressForm, select, feminine{كمّلي} other{كمّل}}",
+  "convContinue": "كمّل",
   "@convContinue": {
-    "description": "Button to confirm the current answer and proceed to the next step.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to confirm the current answer and proceed to the next step."
   },
-  "convVoiceHint": "{addressForm, select, feminine{قولي إجابتك بصوتك} other{قول إجابتك بصوتك}}",
+  "convVoiceHint": "قول إجابتك بصوتك",
   "@convVoiceHint": {
-    "description": "Shown next to the microphone button — prompts the Cook to speak.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown next to the microphone button — prompts the Cook to speak."
   },
-  "convVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن {addressForm, select, feminine{تكتبي} other{تكتب}} إجابتك بدل كده.",
+  "convVoiceUnavailable": "التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.",
   "@convVoiceUnavailable": {
-    "description": "Shown when on-device speech recognition is not available. Offers typing as a fallback.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when on-device speech recognition is not available. Offers typing as a fallback."
   },
   "kitchenConvSummaryTitle": "ده اللي قلته",
   "@kitchenConvSummaryTitle": {
     "description": "Heading on the summary screen shown after all questions are answered."
   },
-  "kitchenConvSummaryConfirm": "{addressForm, select, feminine{تمام، احفظي} other{تمام، احفظ}}",
+  "kitchenConvSummaryConfirm": "تمام، احفظ",
   "@kitchenConvSummaryConfirm": {
-    "description": "Button to confirm the summary and write the Kitchen Profile.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to confirm the summary and write the Kitchen Profile."
   },
-  "convEdit": "{addressForm, select, feminine{غيّري} other{غيّر}}",
+  "convEdit": "غيّر",
   "@convEdit": {
-    "description": "Button to edit a single answer on the summary screen.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to edit a single answer on the summary screen."
   },
   "kitchenConvLabelDisplayName": "اسم المطبخ",
   "@kitchenConvLabelDisplayName": {
@@ -273,32 +158,17 @@
   "@kitchenConvLabelPhoto": {
     "description": "Label for the optional photo on the summary screen."
   },
-  "kitchenConvPhotoAdd": "{addressForm, select, feminine{ضيفي صورة} other{ضيف صورة}}",
+  "kitchenConvPhotoAdd": "ضيف صورة",
   "@kitchenConvPhotoAdd": {
-    "description": "Button to add a kitchen photo on the summary screen.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to add a kitchen photo on the summary screen."
   },
-  "kitchenConvSaveError": "حصل مشكلة أثناء الحفظ. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "kitchenConvSaveError": "حصل مشكلة أثناء الحفظ. جرب تاني.",
   "@kitchenConvSaveError": {
-    "description": "Shown if writing the Kitchen Profile to Supabase fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown if writing the Kitchen Profile to Supabase fails."
   },
-  "kitchenConvPhotoError": "الصورة ما اتحملتش. ممكن {addressForm, select, feminine{تكملي} other{تكمل}} من غير صورة.",
+  "kitchenConvPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
   "@kitchenConvPhotoError": {
-    "description": "Shown if photo upload fails. The Cook can proceed without a photo (T038 requirement).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown if photo upload fails. The Cook can proceed without a photo (T038 requirement)."
   },
   "kitchenExistsTitle": "عندك مطبخ بالفعل",
   "@kitchenExistsTitle": {
@@ -320,14 +190,9 @@
   "@kitchenEditNewValue": {
     "description": "Labels the field holding the replacement value."
   },
-  "kitchenEditSave": "{addressForm, select, feminine{احفظي التغيير} other{احفظ التغيير}}",
+  "kitchenEditSave": "احفظ التغيير",
   "@kitchenEditSave": {
-    "description": "Button confirming a single-detail change.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button confirming a single-detail change."
   },
   "kitchenEditCancel": "إلغاء",
   "@kitchenEditCancel": {
@@ -337,14 +202,9 @@
   "@kitchenEditSaved": {
     "description": "Brief confirmation shown after one detail changes."
   },
-  "removeAccountEntry": "{addressForm, select, feminine{امسحي حسابي} other{امسح حسابي}}",
+  "removeAccountEntry": "امسح حسابي",
   "@removeAccountEntry": {
-    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was."
   },
   "removeAccountTitle": "مسح الحساب",
   "@removeAccountTitle": {
@@ -354,58 +214,33 @@
   "@removeAccountBody": {
     "description": "States plainly what removal takes with it. No guilt, no retention offer, no reason field (FR-034)."
   },
-  "removeAccountConfirm": "{addressForm, select, feminine{امسحي حسابي} other{امسح حسابي}}",
+  "removeAccountConfirm": "امسح حسابي",
   "@removeAccountConfirm": {
-    "description": "The single confirmation button. There is no second are-you-sure.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "The single confirmation button. There is no second are-you-sure."
   },
   "removeAccountCancel": "رجوع",
   "@removeAccountCancel": {
     "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."
   },
-  "removeAccountError": "مقدرناش نمسح الحساب. حسابك زي ما هو، {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "removeAccountError": "مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.",
   "@removeAccountError": {
-    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased."
   },
-  "recoveryEmailTitle": "{addressForm, select, feminine{تحبي تضيفي إيميل؟} other{تحب تضيف إيميل؟}}",
+  "recoveryEmailTitle": "تحب تضيف إيميل؟",
   "@recoveryEmailTitle": {
-    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed."
   },
-  "recoveryEmailBody": "لو ضاع منك رقمك، الإيميل هو اللي هيخليك {addressForm, select, feminine{توصلي لحسابك تاني. مش مطلوب، وممكن تسيبيه} other{توصل لحسابك تاني. مش مطلوب، وممكن تسيبه}} دلوقتي.",
+  "recoveryEmailBody": "لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.",
   "@recoveryEmailBody": {
-    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath."
   },
   "recoveryEmailLabel": "الإيميل بتاعك",
   "@recoveryEmailLabel": {
     "description": "Label for the email input on the invitation."
   },
-  "recoveryEmailAttach": "{addressForm, select, feminine{ضيفي الإيميل} other{ضيف الإيميل}}",
+  "recoveryEmailAttach": "ضيف الإيميل",
   "@recoveryEmailAttach": {
-    "description": "Button attaching the address to the existing account.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button attaching the address to the existing account."
   },
   "recoveryEmailDecline": "مش دلوقتي",
   "@recoveryEmailDecline": {
@@ -415,201 +250,101 @@
   "@recoveryEmailAttached": {
     "description": "Shown after the address is attached and a confirmation message is sent."
   },
-  "recoveryEmailError": "مقدرناش نضيف الإيميل. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "recoveryEmailError": "مقدرناش نضيف الإيميل. جرب تاني.",
   "@recoveryEmailError": {
-    "description": "Shown when attaching the address fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when attaching the address fails."
   },
-  "signInLostNumber": "{addressForm, select, feminine{مش قادرة توصلي لرقمك؟} other{مش قادر توصل لرقمك؟}}",
+  "signInLostNumber": "مش قادر توصل لرقمك؟",
   "@signInLostNumber": {
-    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009)."
   },
-  "emailSignInTitle": "{addressForm, select, feminine{ادخلي بالإيميل} other{ادخل بالإيميل}}",
+  "emailSignInTitle": "ادخل بالإيميل",
   "@emailSignInTitle": {
-    "description": "Heading on the email sign-in screen, reached only from the lost-number route.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Heading on the email sign-in screen, reached only from the lost-number route."
   },
-  "emailSignInBody": "لو {addressForm, select, feminine{كنتي ضايفة إيميل لحسابك قبل كده، اكتبيه} other{كنت ضايف إيميل لحسابك قبل كده، اكتبه}} هنا وهنبعتلك كود.",
+  "emailSignInBody": "لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.",
   "@emailSignInBody": {
-    "description": "Explains that this route works only for an address already attached from inside the account (FR-007).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Explains that this route works only for an address already attached from inside the account (FR-007)."
   },
   "emailSignInLabel": "الإيميل",
   "@emailSignInLabel": {
     "description": "Label for the email field on the email sign-in screen."
   },
-  "emailSignInUnknown": "الإيميل ده مش مربوط بأي حساب. {addressForm, select, feminine{جربي تدخلي} other{جرب تدخل}} برقم موبايلك.",
+  "emailSignInUnknown": "الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.",
   "@emailSignInUnknown": {
-    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within."
   },
-  "changePhoneTitle": "{addressForm, select, feminine{غيّري رقم الموبايل} other{غيّر رقم الموبايل}}",
+  "changePhoneTitle": "غيّر رقم الموبايل",
   "@changePhoneTitle": {
-    "description": "Heading on the change-of-number screen.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Heading on the change-of-number screen."
   },
-  "changePhoneBody": "{addressForm, select, feminine{اكتبي الرقم الجديد. هنبعتلك كود عليه، ولما تأكديه} other{اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده}} الرقم القديم هيبطل يوصل لحسابك.",
+  "changePhoneBody": "اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.",
   "@changePhoneBody": {
-    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "States that the old number stops reaching the identity immediately once confirmed (FR-026)."
   },
   "changePhoneLabel": "الرقم الجديد",
   "@changePhoneLabel": {
     "description": "Label for the new phone number field."
   },
-  "changePhoneEntry": "{addressForm, select, feminine{غيّري رقم الموبايل} other{غيّر رقم الموبايل}}",
+  "changePhoneEntry": "غيّر رقم الموبايل",
   "@changePhoneEntry": {
-    "description": "Entry point to the change-of-number flow.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Entry point to the change-of-number flow."
   },
   "changePhoneDone": "الرقم اتغيّر. الرقم القديم مبقاش يوصل لحسابك.",
   "@changePhoneDone": {
     "description": "Confirmation shown after the new number is verified."
   },
-  "changePhoneError": "مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "changePhoneError": "مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.",
   "@changePhoneError": {
-    "description": "Shown when the change fails, stating the old number still works.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the change fails, stating the old number still works."
   },
-  "aiMealAnalysisInvalid": "مش قادرين نفهم رد المساعد الذكي. {addressForm, select, feminine{جربي تاني، أو اكتبي} other{جرب تاني، أو اكتب}} التفاصيل بنفسك.",
+  "aiMealAnalysisInvalid": "مش قادرين نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.",
   "@aiMealAnalysisInvalid": {
-    "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it."
   },
-  "aiPromptNotStubbed": "المساعد الذكي مش متاح دلوقتي. {addressForm, select, feminine{كملي} other{كمل}} بنفسك وهنجرب تاني بعدين.",
+  "aiPromptNotStubbed": "المساعد الذكي مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.",
   "@aiPromptNotStubbed": {
-    "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable."
   },
-  "analyzeMealUnauthorized": "{addressForm, select, feminine{سجّلي دخولك الأول وجربي} other{سجل دخولك الأول وجرب}} تاني.",
+  "analyzeMealUnauthorized": "سجل دخولك الأول وجرب تاني.",
   "@analyzeMealUnauthorized": {
-    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the Edge Function rejects the request because the Cook is not signed in."
   },
   "analyzeMealNotOwned": "الأكلة دي مش ليك.",
   "@analyzeMealNotOwned": {
     "description": "Shown when the Cook tries to analyze a Meal that belongs to someone else."
   },
-  "analyzeMealRateLimited": "جربت كتير في وقت قليل. {addressForm, select, feminine{استني شوية وجربي} other{استنى شوية وجرب}} تاني.",
+  "analyzeMealRateLimited": "جربت كتير في وقت قليل. استنى شوية وجرب تاني.",
   "@analyzeMealRateLimited": {
-    "description": "Shown when the model provider rate-limits the request.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the model provider rate-limits the request."
   },
-  "analyzeMealTimeout": "الرد اخد وقت طويل. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "analyzeMealTimeout": "الرد اخد وقت طويل. جرب تاني.",
   "@analyzeMealTimeout": {
-    "description": "Shown when the model provider times out.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the model provider times out."
   },
-  "analyzeMealInvalidResponse": "مقدرناش نفهم رد المساعد الذكي. {addressForm, select, feminine{جربي تاني، أو اكتبي} other{جرب تاني، أو اكتب}} التفاصيل بنفسك.",
+  "analyzeMealInvalidResponse": "مقدرناش نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.",
   "@analyzeMealInvalidResponse": {
-    "description": "Shown when the model provider returns a response that fails validation.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the model provider returns a response that fails validation."
   },
-  "analyzeMealProviderError": "المساعد الذكي مش متاح دلوقتي. {addressForm, select, feminine{جربي تاني بعدين، أو اكتبي} other{جرب تاني بعدين، أو اكتب}} التفاصيل بنفسك.",
+  "analyzeMealProviderError": "المساعد الذكي مش متاح دلوقتي. جرب تاني بعدين، أو اكتب التفاصيل بنفسك.",
   "@analyzeMealProviderError": {
-    "description": "Shown when the model provider has an auth, upstream, or configuration error.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the model provider has an auth, upstream, or configuration error."
   },
-  "analyzeMealServerError": "حصل مشكلة من ناحيتنا. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "analyzeMealServerError": "حصل مشكلة من ناحيتنا. جرب تاني.",
   "@analyzeMealServerError": {
-    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured)."
   },
-  "analyzeMealUnknownError": "حصل مشكلة مش متوقعة. {addressForm, select, feminine{جربي تاني، أو اكتبي} other{جرب تاني، أو اكتب}} التفاصيل بنفسك.",
+  "analyzeMealUnknownError": "حصل مشكلة مش متوقعة. جرب تاني، أو اكتب التفاصيل بنفسك.",
   "@analyzeMealUnknownError": {
-    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash."
   },
-  "mealSaveError": "مقدرناش نحفظ الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "mealSaveError": "مقدرناش نحفظ الأكلة. جرب تاني.",
   "@mealSaveError": {
-    "description": "Shown when creating, updating, or publishing a Meal fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when creating, updating, or publishing a Meal fails."
   },
-  "mealPhotoError": "الصورة ما اتحملتش. ممكن {addressForm, select, feminine{تكملي} other{تكمل}} من غير صورة.",
+  "mealPhotoError": "الصورة ما اتحملتش. ممكن تكمل من غير صورة.",
   "@mealPhotoError": {
-    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo."
   },
   "mealConvPromptDish": "طبخت إيه؟",
   "@mealConvPromptDish": {
@@ -619,14 +354,9 @@
   "@mealConvHintDish": {
     "description": "Hint below the dish question."
   },
-  "mealConvPromptDescription": "{addressForm, select, feminine{قوليلي} other{قولّي}} عنها. فيها إيه وبتتعمل إزاي؟",
+  "mealConvPromptDescription": "قولّي عنها. فيها إيه وبتتعمل إزاي؟",
   "@mealConvPromptDescription": {
-    "description": "Second question: the description every AI-inferred field is derived from.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Second question: the description every AI-inferred field is derived from."
   },
   "mealConvHintDescription": "مثلاً: عدس ورز ومكرونة، وبنحمّر البصل فوقها",
   "@mealConvHintDescription": {
@@ -636,45 +366,25 @@
   "@mealConvPromptPhoto": {
     "description": "Third question: the optional photograph. The only step a Cook may decline."
   },
-  "mealConvHintPhoto": "الصورة بتخلّي الناس تطلب أكتر، {addressForm, select, feminine{وتقدري تعدّيها لو مش عايزة} other{وتقدر تعدّيها لو مش عايز}}",
+  "mealConvHintPhoto": "الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز",
   "@mealConvHintPhoto": {
-    "description": "Hint below the photo question. Says plainly that it can be skipped.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Hint below the photo question. Says plainly that it can be skipped."
   },
   "mealConvPhotoDisclosure": "لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.",
   "@mealConvPhotoDisclosure": {
     "description": "FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses."
   },
-  "mealConvPhotoSkip": "{addressForm, select, feminine{كمّلي من غير صورة} other{كمّل من غير صورة}}",
+  "mealConvPhotoSkip": "كمّل من غير صورة",
   "@mealConvPhotoSkip": {
-    "description": "Button that declines the photo and continues the conversation.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button that declines the photo and continues the conversation."
   },
-  "mealConvPhotoAdd": "{addressForm, select, feminine{ضيفي صورة للأكلة} other{ضيف صورة للأكلة}}",
+  "mealConvPhotoAdd": "ضيف صورة للأكلة",
   "@mealConvPhotoAdd": {
-    "description": "Button to attach a photo to a Meal during the conversation (T041).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button to attach a photo to a Meal during the conversation (T041)."
   },
-  "mealConvPromptPrice": "{addressForm, select, feminine{بتبيعيها بكام؟} other{بتبيعها بكام؟}}",
+  "mealConvPromptPrice": "بتبيعها بكام؟",
   "@mealConvPromptPrice": {
-    "description": "Fourth question: the price of the whole Meal.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Fourth question: the price of the whole Meal."
   },
   "mealConvHintPrice": "سعر الطبق كامل بالجنيه",
   "@mealConvHintPrice": {
@@ -688,27 +398,17 @@
   "@mealConvPromptCuisine": {
     "description": "Fallback question: which cuisine the Meal belongs to, asked only when the estimate is missing."
   },
-  "mealConvHintCuisine": "{addressForm, select, feminine{اختاري اللي أقرب لأكلتك} other{اختار اللي أقرب لأكلتك}}",
+  "mealConvHintCuisine": "اختار اللي أقرب لأكلتك",
   "@mealConvHintCuisine": {
-    "description": "Hint below the fallback cuisine question.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Hint below the fallback cuisine question."
   },
   "mealConvPromptCategory": "ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟",
   "@mealConvPromptCategory": {
     "description": "Fallback question: what sort of dish it is, asked only when the estimate is missing."
   },
-  "mealConvHintCategory": "{addressForm, select, feminine{اختاري اللي أقرب} other{اختار اللي أقرب}}",
+  "mealConvHintCategory": "اختار اللي أقرب",
   "@mealConvHintCategory": {
-    "description": "Hint below the fallback category question.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Hint below the fallback category question."
   },
   "mealSummaryTitle": "ده اللي قلته عن الأكلة",
   "@mealSummaryTitle": {
@@ -734,14 +434,9 @@
   "@mealSummaryNoPhoto": {
     "description": "Shown in place of a photo when the Cook declined one."
   },
-  "mealSummaryConfirm": "{addressForm, select, feminine{تمام، انشريها} other{تمام، انشرها}}",
+  "mealSummaryConfirm": "تمام، انشرها",
   "@mealSummaryConfirm": {
-    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this."
   },
   "cuisineEgyptian": "مصري",
   "@cuisineEgyptian": {
@@ -823,14 +518,9 @@
   "@mealSummaryEstimatesTitle": {
     "description": "Heading of the AI estimate section on the Meal summary."
   },
-  "mealSummaryEstimatesNotice": "دي تقديرات من المساعد، مش حاجة مؤكدة. {addressForm, select, feminine{راجعيها وأكّديها قبل ما تنشري.} other{راجعها وأكّدها قبل ما تنشر.}}",
+  "mealSummaryEstimatesNotice": "دي تقديرات من المساعد، مش حاجة مؤكدة. راجعها وأكّدها قبل ما تنشر.",
   "@mealSummaryEstimatesNotice": {
-    "description": "FR-012: AI-derived values are shown as estimates, never as verified fact.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "FR-012: AI-derived values are shown as estimates, never as verified fact."
   },
   "mealSummaryEstimateBadge": "تقدير",
   "@mealSummaryEstimateBadge": {
@@ -877,23 +567,13 @@
       }
     }
   },
-  "mealSummaryNoEstimates": "المساعد مقدرش يقدّر حاجة. {addressForm, select, feminine{اكتبي} other{اكتب}} التفاصيل بنفسك.",
+  "mealSummaryNoEstimates": "المساعد مقدرش يقدّر حاجة. اكتب التفاصيل بنفسك.",
   "@mealSummaryNoEstimates": {
-    "description": "Shown when the AI Assistant produced nothing usable (FR-014).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the AI Assistant produced nothing usable (FR-014)."
   },
-  "mealPublishError": "مقدرناش ننشر الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "mealPublishError": "مقدرناش ننشر الأكلة. جرب تاني.",
   "@mealPublishError": {
-    "description": "Shown when putting the Meal on offer fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when putting the Meal on offer fails."
   },
   "mealPublishedConfirmation": "الأكلة بقت على المنيو.",
   "@mealPublishedConfirmation": {
@@ -902,50 +582,31 @@
   "publicMealPriceValue": "{price} جنيه",
   "@publicMealPriceValue": {
     "description": "The price of the whole Meal on the Customer's public view. The price is passed through as the exact string stored in the database — never reformatted, never rounded.",
-    "placeholders": {
-      "price": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "price": { "type": "String" } }
   },
   "publicMealOpenKitchen": "شوف المطبخ",
   "@publicMealOpenKitchen": {
-    "description": "Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025). Addresses the Customer in the second person (شوف / See). Kafoo stores no form of address for Customers; do not wire to addressForm or cookForm. Left ungendered on purpose."
+    "description": "Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025)."
   },
   "publicMealCaloriesUnknown": "السعرات مش متحسبة",
   "@publicMealCaloriesUnknown": {
     "description": "Shown when a Meal carries no calorie figure. A missing estimate is stated, never rendered as an empty row or a zero."
   },
-  "publicMealAllergensUnknown": "مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل {cookForm, select, feminine{الطباخة.} other{الطباخ.}}",
+  "publicMealAllergensUnknown": "مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل الطباخ.",
   "@publicMealAllergensUnknown": {
-    "description": "Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear. Customer-directed verb (اسأل / ask) stays ungendered in both branches — Kafoo stores no form of address for Customers; wiring it to cookForm would be wrong. Only الطباخ/الطباخة differs by cookForm.",
-    "placeholders": {
-      "cookForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear."
   },
-  "publicMealNutritionFromCook": "الأرقام دي من {cookForm, select, feminine{الطباخة نفسها.} other{الطباخ نفسه.}}",
+  "publicMealNutritionFromCook": "الأرقام دي من الطباخ نفسه.",
   "@publicMealNutritionFromCook": {
-    "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate. No Customer-directed verb. cookForm genders the Cook being described (الطباخ نفسه / الطباخة نفسها). Wiring this to the reader's form would be wrong.",
-    "placeholders": {
-      "cookForm": {
-        "type": "String"
-      }
-    }
+    "description": "Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate."
   },
   "myMealsTitle": "أكلاتي",
   "@myMealsTitle": {
     "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
   },
-  "myMealsEmpty": "لسه مافيش أكلات. {addressForm, select, feminine{ابدئي} other{ابدأ}} واحدة.",
+  "myMealsEmpty": "لسه مافيش أكلات. ابدأ واحدة.",
   "@myMealsEmpty": {
-    "description": "Shown when the Cook has no Meals at any status.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the Cook has no Meals at any status."
   },
   "myMealsStatusDraft": "مسودة",
   "@myMealsStatusDraft": {
@@ -963,153 +624,73 @@
   "@myMealsStatusArchived": {
     "description": "Status word for a Meal retired permanently."
   },
-  "mealMakeUnavailable": "{addressForm, select, feminine{شيليها من المنيو} other{شيلها من المنيو}}",
+  "mealMakeUnavailable": "شيلها من المنيو",
   "@mealMakeUnavailable": {
-    "description": "Action a Cook takes to take a published Meal off the menu.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes to take a published Meal off the menu."
   },
-  "mealMakeAvailable": "{addressForm, select, feminine{رجّعيها للمنيو} other{رجّعها للمنيو}}",
+  "mealMakeAvailable": "رجّعها للمنيو",
   "@mealMakeAvailable": {
-    "description": "Action a Cook takes to put an unavailable Meal back on the menu.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes to put an unavailable Meal back on the menu."
   },
-  "mealLastOnOfferWarning": "دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما {addressForm, select, feminine{ترجّعي} other{ترجّع}} حاجة.",
+  "mealLastOnOfferWarning": "دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما ترجّع حاجة.",
   "@mealLastOnOfferWarning": {
-    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable."
   },
-  "mealLastOnOfferConfirm": "{addressForm, select, feminine{شيليها برضه} other{شيلها برضه}}",
+  "mealLastOnOfferConfirm": "شيلها برضه",
   "@mealLastOnOfferConfirm": {
-    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu."
   },
-  "mealLastOnOfferCancel": "{addressForm, select, feminine{سيبيها زي ما هي} other{سيبها زي ما هي}}",
+  "mealLastOnOfferCancel": "سيبها زي ما هي",
   "@mealLastOnOfferCancel": {
-    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Cancel button on the last-Meal warning dialog — leaves the Meal on the menu."
   },
-  "mealLoadError": "مانفعش نجيب أكلاتك. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "mealLoadError": "مانفعش نجيب أكلاتك. جرب تاني.",
   "@mealLoadError": {
-    "description": "Shown when fetching the Cook's own Meals fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when fetching the Cook's own Meals fails."
   },
-  "mealAvailabilityError": "مانفعش نغير حالة الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "mealAvailabilityError": "مانفعش نغير حالة الأكلة. جرب تاني.",
   "@mealAvailabilityError": {
-    "description": "Shown when changing a Meal's status fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when changing a Meal's status fails."
   },
-  "mealDeleteError": "مانفعش نمسح المسودة. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "mealDeleteError": "مانفعش نمسح المسودة. جرب تاني.",
   "@mealDeleteError": {
-    "description": "Shown when deleting a draft Meal fails.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when deleting a draft Meal fails."
   },
-  "mealLoadRetry": "{addressForm, select, feminine{حاولي تاني} other{حاول تاني}}",
+  "mealLoadRetry": "حاول تاني",
   "@mealLoadRetry": {
-    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says \"continue\" is copy rot."
   },
-  "mealRetire": "{addressForm, select, feminine{شيليها نهائي} other{شيلها نهائي}}",
+  "mealRetire": "شيلها نهائي",
   "@mealRetire": {
-    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row."
   },
   "mealRetireWarning": "الأكلة دي هتتشال من المنيو نهائي ومش هترجع تاني أبداً. هتفضل محفوظة في قايمتك بس محدش تاني هيشوفها.",
   "@mealRetireWarning": {
     "description": "Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list."
   },
-  "mealRetireConfirm": "{addressForm, select, feminine{شيليها نهائي} other{شيلها نهائي}}",
+  "mealRetireConfirm": "شيلها نهائي",
   "@mealRetireConfirm": {
-    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle."
   },
-  "mealRetireCancel": "{addressForm, select, feminine{سيبيها زي ما هي} other{سيبها زي ما هي}}",
+  "mealRetireCancel": "سيبها زي ما هي",
   "@mealRetireCancel": {
-    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Cancel button on the retirement dialog — leaves the Meal at its current status."
   },
-  "mealDeleteDraft": "{addressForm, select, feminine{امسحي المسودة} other{امسح المسودة}}",
+  "mealDeleteDraft": "امسح المسودة",
   "@mealDeleteDraft": {
-    "description": "Action a Cook takes to delete a draft Meal that was never on offer.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes to delete a draft Meal that was never on offer."
   },
-  "mealDeleteDraftWarning": "المسودة دي هتتمسح خالص ومش {addressForm, select, feminine{هتقدري ترجعيها.} other{هتقدر ترجعها.}}",
+  "mealDeleteDraftWarning": "المسودة دي هتتمسح خالص ومش هتقدر ترجعها.",
   "@mealDeleteDraftWarning": {
-    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good."
   },
-  "mealDeleteDraftConfirm": "{addressForm, select, feminine{امسحيها} other{امسحها}}",
+  "mealDeleteDraftConfirm": "امسحها",
   "@mealDeleteDraftConfirm": {
-    "description": "Confirmation button on the draft-deletion dialog.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Confirmation button on the draft-deletion dialog."
   },
-  "mealEditTitle": "{addressForm, select, feminine{عدّلي الأكلة} other{عدّل الأكلة}}",
+  "mealEditTitle": "عدّل الأكلة",
   "@mealEditTitle": {
-    "description": "Heading on the Meal edit screen.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Heading on the Meal edit screen."
   },
   "mealEditSaved": "اتغيّرت.",
   "@mealEditSaved": {
@@ -1123,41 +704,21 @@
   "@mealNeedsKitchenTitle": {
     "description": "Heading shown when a Cook without a Kitchen Profile tries to offer a Meal (FR-017, T040)."
   },
-  "mealNeedsKitchenBody": "قبل ما {addressForm, select, feminine{تعرضي أكلة، الناس لازم تعرف مين اللي بيطبخها. اعملي مطبخك الأول وبعدين كمّلي.} other{تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.}}",
+  "mealNeedsKitchenBody": "قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.",
   "@mealNeedsKitchenBody": {
-    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Body text explaining why a Kitchen Profile is needed before a Meal can be offered."
   },
-  "mealNeedsKitchenAction": "{addressForm, select, feminine{اعملي مطبخي} other{اعمل مطبخي}}",
+  "mealNeedsKitchenAction": "اعمل مطبخي",
   "@mealNeedsKitchenAction": {
-    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button that opens the Kitchen Profile conversation so the Cook can create one."
   },
-  "mealKitchenCheckError": "مقدرناش نتأكد من مطبخك. {addressForm, select, feminine{جربي} other{جرب}} تاني.",
+  "mealKitchenCheckError": "مقدرناش نتأكد من مطبخك. جرب تاني.",
   "@mealKitchenCheckError": {
-    "description": "Shown when the Kitchen Profile existence check fails (network or server error).",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Shown when the Kitchen Profile existence check fails (network or server error)."
   },
-  "mealKitchenCheckRetry": "{addressForm, select, feminine{جربي تاني} other{جرب تاني}}",
+  "mealKitchenCheckRetry": "جرب تاني",
   "@mealKitchenCheckRetry": {
-    "description": "Button that re-runs the Kitchen Profile existence check.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Button that re-runs the Kitchen Profile existence check."
   },
   "myMealsNoPriceYet": "لسه من غير سعر",
   "@myMealsNoPriceYet": {
@@ -1167,13 +728,8 @@
   "@myMealsUntitledDraft": {
     "description": "Shown in place of a draft's dish name when the Cook has not answered the first question yet. The schema allows a title-less row, so the list must render one rather than break on it."
   },
-  "mealResumeDraft": "{addressForm, select, feminine{كمّلي الأكلة دي} other{كمّل الأكلة دي}}",
+  "mealResumeDraft": "كمّل الأكلة دي",
   "@mealResumeDraft": {
-    "description": "Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one."
   }
 }
