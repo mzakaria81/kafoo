@@ -5,7 +5,8 @@
   "modelReply": "{\"description\":\"برجر لحمة بالصوص بتاعي وبطاطس. الصوص ده وصفة مبقولهاش لحد.\",\"basis\":{\"description\":\"الطباخ قال برجر لحمة وبطاطس وإن الصوص بتاعه سري\"}}",
   "expect": {
     "isEmpty": false,
-    "descriptionContains": ["برجر", "ده"],
+    "descriptionContains": ["برجر"],
+    "carriesEgyptianMarker": true,
     "maxSentences": 2
   }
 }

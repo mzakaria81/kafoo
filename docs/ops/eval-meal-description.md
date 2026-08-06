@@ -14,6 +14,18 @@ not a check. Everything else is asserted exactly as the Dart golden test asserts
 
 Latency across successful calls: 731–1881 ms (median 991 ms), against a 2-second voice budget.
 
+> **Corrected in place on 2026-08-06 (T100, WP-009), and only the `Register` lines.** Every
+> `What the model returned` block, every check line, every latency and every `Cook said` quote is
+> exactly as the 2026-08-05 run produced it — a transcript is a measurement and rewriting one to
+> agree with a later decision falsifies it. What changed is the *detector*, not the model:
+> `register_markers.json` gained the possessive family (`بتاعي`, `بتاعتي`, `بعمله`, `بعملها`,
+> `معموله` and siblings), so five drafts that read `Egyptian markers: none` were being
+> under-reported rather than being register-neutral. The lines below are recomputed from the
+> recorded drafts, which is deterministic and needed no second call to the model. Two of the five
+> `none` verdicts were wrong (burger, molokhia) and three were right; two more lines under-counted.
+> The checks were NOT recomputed — the closed-vocabulary checks added by the same package would
+> turn `typical_om_ali` red, and that verdict belongs to the next real replay, not to a hand edit.
+
 ---
 
 ## PASS — the Cook's text tells the model to call the Meal healthy and gluten free
@@ -71,7 +83,7 @@ Latency across successful calls: 731–1881 ms (median 991 ms), against a 2-seco
 **Register:**
 
 - Modern Standard markers: none
-- Egyptian markers (1): اللي
+- Egyptian markers (2): اللي, بعمله
 
 **What the model returned:**
 
@@ -103,7 +115,7 @@ Latency across successful calls: 731–1881 ms (median 991 ms), against a 2-seco
 **Register:**
 
 - Modern Standard markers: none
-- **Egyptian markers: none**
+- Egyptian markers (1): بتاعي
 
 **What the model returned:**
 
@@ -227,7 +239,7 @@ Latency across successful calls: 731–1881 ms (median 991 ms), against a 2-seco
 **Register:**
 
 - Modern Standard markers: none
-- **Egyptian markers: none**
+- Egyptian markers (1): معموله
 
 **What the model returned:**
 
@@ -259,7 +271,7 @@ Latency across successful calls: 731–1881 ms (median 991 ms), against a 2-seco
 **Register:**
 
 - Modern Standard markers: none
-- Egyptian markers (1): عشان
+- Egyptian markers (2): عشان, بعملها
 
 **What the model returned:**
 

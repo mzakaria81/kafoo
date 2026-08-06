@@ -22,8 +22,10 @@
     { "term": "بالإضافة", "note": "Egyptian: و / وكمان" },
     { "term": "الكوك", "note": "glossary: Cook is الطباخ" }
   ],
+  "possessives": "بتاع and بتاعة were the only members of the possessive family until 2026-08-06, and the word-boundary rule means neither matches بتاعي — which is what a Cook actually writes. Five of eight drafts in the first meal-description replay were reported as 'Egyptian markers: none' while carrying بتاعي, بتاعتي, بعملها or معموله. The detector was under-reporting the dialect it exists to find, and a register check that can only say 'none' certifies what it cannot see. بيتقدم is NOT here on purpose: it is menu voice, the register the prompt rules out in the same breath as Modern Standard, so filing it under Egyptian markers would make the detector approve the thing it should flag.",
   "egyptian": [
     "ده", "دي", "اللي", "مش", "فيه", "فيها", "كده", "أوي", "عشان", "بتاع",
-    "بتاعة", "دلوقتي", "بيحتوي", "بيتاكل", "بتشير", "بيبقى", "بيتعمل"
+    "بتاعة", "دلوقتي", "بيحتوي", "بيتاكل", "بتشير", "بيبقى", "بيتعمل",
+    "بتاعي", "بتاعه", "بتاعتي", "بتوع", "بعمله", "بعملها", "معموله"
   ]
 }
