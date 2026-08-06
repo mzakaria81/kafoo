@@ -30,10 +30,31 @@ draft — E2 case 1, unchanged. But *discovery* is the Customer-facing surface, 
 in a Cook's own search results would mean the ranking function returns rows on a different rule from
 the one it advertises. Search shows what is on offer. The Cook's own drafts have their own screen.
 
-**Cases 2 to 5 must be seen to fail before `search_meals` exists.** The way this passes for the wrong
-reason: the function is written `SECURITY DEFINER`, every Meal becomes findable, and these assertions
-still pass because the *test fixture* only inserted published Meals. Insert one of each status, then
-watch each assertion go red when the function is made `SECURITY DEFINER` on purpose.
+**Cases 2 to 5 were seen to fail before `search_meals` existed** — against a fixture carrying a Meal
+of every status, because one of published Meals only would let them pass without the function ever
+refusing anything.
+
+**But the mutation map came out differently from what this document first claimed, and the truth is
+more useful.** Measured 2026-08-07 against the real migration:
+
+| Weakened | What goes red |
+|---|---|
+| `SECURITY INVOKER` → `SECURITY DEFINER` | **case 14 only** |
+| The `status = 'published'` predicate removed | **case 6 only** |
+| **Both together** | cases 2, 3, 4, 5, 6, 14, 20 |
+
+This document originally said cases 2–5 go red under `SECURITY DEFINER`. **They do not.** Two guards
+sit in front of them — RLS refuses a stranger's draft, and the function filters to what is on offer
+— and each keeps the other's assertions green. It is E2's two-policy masking reproduced one layer
+up, and the lesson is the same: **the number of places a rule is enforced is the number of separate
+assertions it needs.**
+
+Case 14 is therefore not a formality. It is the *only* thing standing between `SECURITY DEFINER` and
+a silent change of meaning — and note what it actually guards. Today the two modes are almost
+behaviourally identical here, because the explicit status predicate does the same filtering RLS
+would. **Case 14 guards a policy that does not exist yet**: the first restriction added to published
+Meals — a blocked Cook, a region, a suspension — would be bypassed by a `DEFINER` function, and no
+behavioural test written today could see it coming.
 
 ## The embedding column is not writable by a Cook
 

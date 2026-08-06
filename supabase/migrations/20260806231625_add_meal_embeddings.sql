@@ -1,0 +1,256 @@
+-- Discovery's foundation: a Meal findable by meaning, and an area findable however it is spelled.
+--
+-- ONE FILE ON PURPOSE, same reasoning as the migration that created `meals`. The column, the index,
+-- the write protection, the area normalisation and the ranking function are one change: any of them
+-- landing without the others produces a database that works and a feature that is either unfindable
+-- or unsafe.
+--
+-- NO NEW TABLE, SO NO NEW OWNERSHIP QUESTION, AND NO NEW POLICY. `meals` keeps its four
+-- per-operation policies and `kitchen_profiles` keeps E2's widening SELECT. Discovery is a
+-- different way of asking the question E2 already answered — see
+-- specs/004-customer-discovery/research.md §2.
+--
+-- The proof obligation sits on this migration anyway, because every existing authorization test
+-- passes whether or not the new path leaks: none of them travel it.
+-- supabase/tests/discovery_rls_test.sql was written first and seen to fail.
+
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- The vector
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+--
+-- 768 DIMENSIONS, AND THE NUMBER IS LOAD-BEARING. Measured 2026-08-06 against pgvector 0.8.6 on
+-- the Postgres major version config.toml pins:
+--
+--     vector(768)   HNSW index -> CREATE INDEX
+--     vector(2000)  HNSW index -> CREATE INDEX
+--     vector(3072)  HNSW index -> ERROR: column cannot have more than 2000 dimensions
+--
+-- 3072 is the provider's DEFAULT output size, so it is what an implementation lands on by not
+-- choosing. It would produce a column that works perfectly and cannot be indexed: correct answers,
+-- sequential scans, no error anywhere, and a problem that only appears at a scale where it is
+-- expensive to fix. docs/ops/spike-discovery-embeddings.md measured that 768 also loses almost
+-- nothing in quality — 1536 moves MRR by 0.026.
+--
+-- NULLABLE, AND THE NULLABILITY IS A RULE RATHER THAN A DEFAULT. A Meal with no vector is invisible
+-- to search and still visible to browsing. That makes an incomplete backfill, an unreachable
+-- provider, or a failed embedding produce a Meal that is HARDER TO FIND — never one that is lost,
+-- and never a Cook who cannot publish because a model provider is down.
+ALTER TABLE public.meals ADD COLUMN embedding vector(768);
+
+COMMENT ON COLUMN public.meals.embedding IS
+  'A machine representation of title and description. Not a claim, shown to nobody, and never '
+  'written by a client — see protect_meal_embedding below. NULL means unsearchable, not lost.';
+
+-- The index the ranking function needs. Cosine distance, matching how the vectors are normalised
+-- before they are stored.
+CREATE INDEX meals_embedding_hnsw ON public.meals
+  USING hnsw (embedding vector_cosine_ops);
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- Nothing but Kafoo writes a vector
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+--
+-- WHY THIS IS A TRIGGER AND NOT A COLUMN PRIVILEGE. The obvious form is
+-- `REVOKE UPDATE (embedding) ON meals FROM authenticated`, and it does not work: E2 granted UPDATE
+-- at TABLE level, and Postgres does not let a column-level revoke carve a hole in a table-level
+-- grant. Measured rather than assumed —
+--
+--     GRANT UPDATE ON t TO r;  REVOKE UPDATE (b) ON t FROM r;
+--     has_column_privilege(r, t, 'b', 'UPDATE') -> still true
+--
+-- The alternative was to revoke the table grant and re-grant every column except this one, which
+-- works and quietly breaks the next migration that adds a column and forgets to grant it. A trigger
+-- is self-maintaining and fails loudly, which is the trade this repository prefers.
+--
+-- WHAT IT PREVENTS, and it is not hypothetical: a client that can supply the vector can supply the
+-- one nearest every query, and that Cook's Meal ranks first for everything — permanently,
+-- invisibly, and against every other Cook. Ranking manipulation is a trust failure in a
+-- marketplace, and Principle I outranks the convenience of a narrower guard.
+--
+-- RLS does NOT give you this. `cook updates own meals` permits a Cook to update their own row, and
+-- that includes this column.
+CREATE OR REPLACE FUNCTION public.protect_meal_embedding()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- The service role and the table owner may write it: that is embed-meal, and the backfill.
+  -- Everyone reachable from a client — `authenticated` and `anon` — may not.
+  IF current_user IN ('authenticated', 'anon') THEN
+    IF TG_OP = 'INSERT' AND NEW.embedding IS NOT NULL THEN
+      RAISE EXCEPTION 'meals.embedding is written by Kafoo, not by a client'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF TG_OP = 'UPDATE' AND NEW.embedding IS DISTINCT FROM OLD.embedding THEN
+      RAISE EXCEPTION 'meals.embedding is written by Kafoo, not by a client'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER protect_meal_embedding
+  BEFORE INSERT OR UPDATE ON public.meals
+  FOR EACH ROW EXECUTE FUNCTION public.protect_meal_embedding();
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- An area, however it is spelled
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+--
+-- `kitchen_profiles.area` is free text a Cook wrote about their own kitchen. It is not validated,
+-- standardised, or drawn from a list, and it never will be — it is one of exactly five public
+-- details, and adding structure to it is a change to that rule rather than a schema tweak.
+--
+-- Two Cooks writing the same neighbourhood disagree on spelling in ways Arabic makes routine, and
+-- none of them are ambiguous to a human reader: الدقي/الدقى, المهندسين/مهندسين, العجوزه/العجوزة,
+-- إمبابة/امبابة.
+--
+-- IN SQL AND NOWHERE ELSE. Writing this in Dart for the Customer's side and SQL for the Cook's side
+-- would be one rule in two languages, which is exactly the drift ADR-0008 Amendment 1 names as the
+-- cost of a second front-end — arriving inside a single feature rather than across two surfaces.
+--
+-- IMMUTABLE because the expression index below depends on it. CEILING WORTH KNOWING: changing this
+-- function does NOT recompute that index. Postgres keeps the old values and the index quietly
+-- disagrees with the function. Any migration touching this function must REINDEX in the same file.
+CREATE OR REPLACE FUNCTION public.normalise_area(value text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+AS $$
+  SELECT
+    -- The alias list lives here rather than in a table. A table would be a NEW table needing RLS in
+    -- this same migration, for a handful of rows nobody writes at runtime — and a list that changes
+    -- through a reviewed migration beats one that changes through an INSERT.
+    --
+    -- It handles places with a genuine SECOND NAME, which no normalisation reaches: مصر الجديدة and
+    -- هليوبوليس and Heliopolis are one place under three names, not three spellings of one.
+    CASE folded
+      WHEN 'مصر الجديده' THEN 'heliopolis'
+      WHEN 'هليوبوليس'   THEN 'heliopolis'
+      WHEN 'heliopolis'  THEN 'heliopolis'
+      WHEN 'معادي'       THEN 'maadi'
+      WHEN 'maadi'       THEN 'maadi'
+      ELSE folded
+    END
+  FROM (
+    SELECT
+      -- Collapse whitespace, then strip a leading definite article. Order matters: the article is
+      -- only recognisable once the string is trimmed.
+      regexp_replace(
+        regexp_replace(
+          -- Unify the letters Arabic writes more than one way, strip the diacritics most typing
+          -- omits, and remove tatweel. Latin is case-folded so "Maadi" and "maadi" are one area.
+          translate(
+            lower(value),
+            'أإآٱىة',
+            'ااااية'
+          ),
+          '[ً-ْـ]', '', 'g'
+        ),
+        '^(ال|el-|el |al-|al )', '', 'i'
+      )
+    AS folded
+  ) t
+$$;
+
+COMMENT ON FUNCTION public.normalise_area(text) IS
+  'Compares two ways of writing one area. Governs SPELLING, never meaning: two different '
+  'neighbourhoods must stay different. Changing this requires a REINDEX of kitchen_profiles_area_norm.';
+
+-- An expression index rather than a stored column, so a Kitchen Profile gains no field and its
+-- public face stays at exactly five details. A Cook's own words are never rewritten.
+CREATE INDEX kitchen_profiles_area_norm ON public.kitchen_profiles
+  (public.normalise_area(area));
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- The ranking function
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+--
+-- SECURITY INVOKER, AND THAT ONE WORD IS THE WHOLE AUTHORIZATION STORY. As DEFINER this function
+-- would make every Meal findable regardless of status, and no existing test would notice because
+-- none of them travel this path. discovery_rls_test.sql case 12 asserts the mode against the
+-- catalogue rather than inferring it from behaviour, precisely because a DEFINER function returns
+-- correct-looking results against a fixture that happens to be public.
+--
+-- RLS decides what is visible; this ranks only what survived. Discovery gains no authority of its
+-- own.
+--
+-- ORDER BY IS PLACED SO THE HNSW INDEX CAN BE USED. Written the other way — filtering in an outer
+-- query the planner cannot push into — Postgres scans every Meal, computes every distance, and
+-- returns THE RIGHT ANSWER SLOWLY. Nothing fails and no test catches it. Check the plan directly;
+-- correctness of results is not evidence.
+CREATE OR REPLACE FUNCTION public.search_meals(
+  query_embedding vector(768),
+  exclude_terms text[] DEFAULT NULL,
+  area_query text DEFAULT NULL
+)
+RETURNS SETOF public.meals
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+PARALLEL SAFE
+AS $$
+  SELECT m.*
+  FROM public.meals m
+  WHERE
+    -- ON OFFER, AND THIS LINE IS NOT REDUNDANT WITH RLS.
+    --
+    -- RLS is the FLOOR, not the ceiling: it stops a Customer reaching someone else's draft, and it
+    -- deliberately lets the owning Cook read their own. Without this predicate a Cook searching
+    -- discovery found their own unpublished drafts among the results — caught by
+    -- discovery_rls_test case 6, which is the case that exists because it sounded redundant.
+    -- Discovery shows what is on offer; the Cook's drafts have their own screen.
+    m.status = 'published'
+
+    -- A Meal with no vector is unsearchable. See the column comment: the failure mode of a missing
+    -- embedding is a Meal that is harder to find, never one that is lost.
+    AND m.embedding IS NOT NULL
+
+    -- Exclusions are a PREDICATE, never a phrase handed to a model. Measured 2026-08-06: asking for
+    -- food with no meat by meaning returned meat dishes at precision@5 of 0.00. A Customer
+    -- excluding a food is usually doing so for dietary, religious or health reasons, so being wrong
+    -- here is a betrayal rather than a poor result.
+    --
+    -- A Meal whose ingredients and allergens are BOTH empty is WITHHELD, not shown: an unknown is
+    -- treated as a possible yes. This hides Meals that are perfectly fine, and that is the correct
+    -- direction to be wrong in.
+    AND (
+      exclude_terms IS NULL
+      OR (
+        (cardinality(m.ingredients) > 0 OR cardinality(m.allergens) > 0)
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(exclude_terms) AS term
+          WHERE EXISTS (
+            SELECT 1 FROM unnest(m.ingredients || m.allergens) AS item
+            WHERE item ILIKE '%' || term || '%'
+          )
+        )
+      )
+    )
+
+    -- Narrowing by area matches the Cook's own words after normalisation, so a spelling never hides
+    -- a kitchen. An area nobody wrote returns NOTHING rather than everything — FR-024 forbids the
+    -- silent widening, and returning the whole marketplace is the silent widening.
+    AND (
+      area_query IS NULL
+      OR EXISTS (
+        SELECT 1 FROM public.kitchen_profiles k
+        WHERE k.cook_id = m.cook_id
+          AND public.normalise_area(k.area) = public.normalise_area(area_query)
+      )
+    )
+  ORDER BY m.embedding <=> query_embedding
+  LIMIT 50;
+$$;
+
+COMMENT ON FUNCTION public.search_meals(vector, text[], text) IS
+  'Ranks the Meals the CALLER may see. SECURITY INVOKER — making this DEFINER makes every Meal '
+  'findable regardless of status and no existing authorization test would notice.';
+
+GRANT EXECUTE ON FUNCTION public.search_meals(vector, text[], text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.normalise_area(text) TO anon, authenticated;
