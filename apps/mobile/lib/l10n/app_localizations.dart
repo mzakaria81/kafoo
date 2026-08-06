@@ -104,6 +104,24 @@ abstract class AppLocalizations {
   /// **'كفو'**
   String get appTitle;
 
+  /// Names the kitchen behind a Meal on a browse card. 'Who cooked this' is the first question a Customer asks.
+  ///
+  /// In ar, this message translates to:
+  /// **'من {kitchen}'**
+  String browseKitchenLabel(String kitchen);
+
+  /// FR-006. Shown when no Cook anywhere has a Meal on offer. Must be words rather than an empty screen, and must NOT be shown while the first load is still running or for a failure — those are different things.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.'**
+  String get browseNothingOnOffer;
+
+  /// Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010).
+  ///
+  /// In ar, this message translates to:
+  /// **'أكل النهاردة'**
+  String get browseTitle;
+
   /// Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing, so no addressForm select — ADR-0010 keeps Customer-directed verbs ungendered, and first-person plural has no gender in Arabic.
   ///
   /// In ar, this message translates to:

@@ -12,6 +12,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Kafoo';
 
   @override
+  String browseKitchenLabel(String kitchen) {
+    return 'from $kitchen';
+  }
+
+  @override
+  String get browseNothingOnOffer =>
+      'No food is on offer right now. Check back in a little while.';
+
+  @override
+  String get browseTitle => 'What\'s cooking';
+
+  @override
   String get discoveryLoadError =>
       'We couldn\'t load the food right now. Let\'s try again in a moment.';
 

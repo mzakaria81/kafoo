@@ -4,6 +4,21 @@
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
+  "browseKitchenLabel": "من {kitchen}",
+  "@browseKitchenLabel": {
+    "description": "Names the kitchen behind a Meal on a browse card. 'Who cooked this' is the first question a Customer asks.",
+    "placeholders": {
+      "kitchen": {"type": "String"}
+    }
+  },
+  "browseNothingOnOffer": "مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.",
+  "@browseNothingOnOffer": {
+    "description": "FR-006. Shown when no Cook anywhere has a Meal on offer. Must be words rather than an empty screen, and must NOT be shown while the first load is still running or for a failure \u2014 those are different things."
+  },
+  "browseTitle": "أكل النهاردة",
+  "@browseTitle": {
+    "description": "Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010)."
+  },
   "discoveryLoadError": "مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.",
   "@discoveryLoadError": {
     "description": "Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing, so no addressForm select — ADR-0010 keeps Customer-directed verbs ungendered, and first-person plural has no gender in Arabic."

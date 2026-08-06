@@ -12,6 +12,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appTitle => 'كفو';
 
   @override
+  String browseKitchenLabel(String kitchen) {
+    return 'من $kitchen';
+  }
+
+  @override
+  String get browseNothingOnOffer =>
+      'مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.';
+
+  @override
+  String get browseTitle => 'أكل النهاردة';
+
+  @override
   String get discoveryLoadError =>
       'مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.';
 
