@@ -81,9 +81,12 @@ pages at a size that fits the launch budget, which would collapse the technology
 
 1. ~~**Which technology renders it.**~~ **Closed 2026-08-06 by Amendment 1** — Next.js and
    TypeScript on Cloudflare Workers.
-2. **What a shared kitchen link contains.** A preview showing the kitchen's name and photo is the
-   entire point of the link, and it is also personal data leaving Kafoo's surface into a
-   conversation Kafoo cannot see. It needs its own answer before any link is shareable.
+2. ~~**What a shared kitchen link contains.**~~ **Closed 2026-08-06 by the founder, while specifying
+   E3** — a shared reference reveals exactly three things before it is opened: the kitchen's name,
+   its area, and its photo. Opening it shows the five details already public and no sixth. Kafoo
+   holds no personal name, phone number, address or location for a Cook, so there is nothing further
+   that could leak. Recorded as FR-027a to FR-027c and SC-012 to SC-013 in
+   `specs/004-customer-discovery/spec.md`.
 3. **Whether the Cook flows appear on the web at all.** This ADR commits to a *Customer* surface.
    Whether a Cook can publish a Meal from a browser is a separate question, and the conversation
    rule makes it a harder one.
@@ -108,7 +111,9 @@ trust rules unchanged. Never let a service-role key reach a client bundle.
 **Date:** 2026-08-06
 **Decider:** Founder
 **Amends:** Open dependency 1 above, and adds a consequence the original decision did not carry.
-Everything else in this ADR stands, including open dependencies 2 and 3, which remain open.
+Everything else in this ADR stands. Open dependency 2 was closed separately later the same day, in
+the course of specifying E3 — see the note against it above. **Open dependency 3, whether the Cook
+flows appear on the web at all, remains open and is not touched by anything here.**
 
 ## Why this was reopened
 

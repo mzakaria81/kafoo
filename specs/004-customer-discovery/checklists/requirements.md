@@ -33,14 +33,25 @@
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
 
-**On "No [NEEDS CLARIFICATION] markers remain":** three genuine open decisions exist and are
-recorded in an **Open questions** section rather than as inline markers. They are the founder's to
-answer, not an implementer's, and two of them (what a shared link reveals; whether a Customer may
-search for a Cook by name) touch personal data, which Kafoo's rules route to the founder by
-definition. The specification is complete and buildable without them: **Open question 1 gates only
-making anything shareable**, question 2 is excluded from scope by an explicit assumption, and
-question 3 is bounded by FR-024, which forbids the dangerous answer regardless of how the question
-is finally settled.
+**On "No [NEEDS CLARIFICATION] markers remain":** three open decisions were raised and **all three
+were answered by the founder on 2026-08-06**. They are recorded in Clarifications and carried into
+requirements: FR-027a to FR-027c (what a shared reference reveals, closing ADR-0008's second open
+dependency), the Deliberately out of scope section (no search for a Cook by name), and FR-024a to
+FR-024c (an empty area names the areas that are not empty and lets the Customer choose).
+
+Two of those answers were narrowed against what Kafoo actually holds rather than accepted as
+proposed, and the narrowing is the substance:
+
+- A proposal to show a Cook's **first name** and a **rating** in a shared reference was declined.
+  Kafoo stores no personal name for a Cook — only a Kitchen Profile display name the Cook chose —
+  so showing one would create a new category of personal data, and a rating shown before Reviews
+  exist is a fabricated measurement rather than an empty field. FR-027b and FR-027c exist to make
+  both refusals testable rather than remembered.
+- A proposal to offer nearby areas **with distances** ("Mohandessin, 2 km") was narrowed to naming
+  the areas without distances. Kafoo holds no coordinates for any area and, by the same session's
+  decision, no location for any Customer. FR-024b forbids the distance; FR-024c forbids implying
+  that a kitchen in another area will deliver, because delivery terms are words rather than a
+  radius.
 
 **On "Requirements are testable":** FR-021 (a Meal is withheld when an exclusion cannot be
 established) and FR-005 (discovery reflects the current moment) are the two most likely to be

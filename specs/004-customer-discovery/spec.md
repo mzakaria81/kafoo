@@ -71,6 +71,17 @@ has never collected anything about.
   mechanically from one that is answered, so "nothing found" has to be judged rather than counted.
 - Q: Can a Customer place an Order from what they discover? → A: **No.** Orders are E4. Discovery
   ends at a Meal and its kitchen.
+- Q: What may a shared reference to a kitchen reveal about a Cook before it is opened? → A: **The
+  kitchen's name, its area, and its photo. Nothing else.** Opening it shows the five details that
+  are already public and no sixth. Kafoo does not hold a Cook's personal name, phone number,
+  address or location, and this feature MUST NOT introduce any of them.
+- Q: Can a Customer search for a Cook by name? → A: **No.** Discovery is about food. A Customer
+  arrives wanting koshari, not wanting a named person. Following a Cook is the better answer to what
+  name search is reaching for, and it needs Orders to exist first — it is not in E3.
+- Q: What happens when the area a Customer named has nothing on offer but another area does? → A:
+  **Kafoo says the named area is empty and names the areas that do have food, then lets the Customer
+  choose.** It never switches areas by itself. It states no distance and implies no deliverability,
+  because Kafoo holds neither.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -287,6 +298,14 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
   data about Customers is created by this feature.
 - **FR-024**: When nothing is on offer in the area a Customer named, Kafoo MUST say so rather than
   silently showing kitchens elsewhere.
+- **FR-024a**: In that case Kafoo MUST also name the other areas that do have food on offer, and
+  MUST require the Customer to choose one before showing anything from it. Widening MUST be the
+  Customer's action, never Kafoo's.
+- **FR-024b**: Kafoo MUST NOT state a distance between areas, or order them by proximity. It holds
+  no location for any Customer, and no notion of where any area is or how far apart two areas are.
+  An area is a phrase a Cook wrote about their own kitchen, nothing more.
+- **FR-024c**: Offering another area MUST NOT state or imply that a kitchen there will deliver to the
+  Customer. Kafoo holds a Cook's delivery terms as words and cannot evaluate them.
 
 **Reaching discovery without an install**
 
@@ -296,6 +315,15 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
   neither more nor less — and MUST obey every rule in this specification unchanged.
 - **FR-027**: A kitchen with nothing on offer MUST NOT be reachable this way, on the same terms as
   FR-004.
+- **FR-027a**: A shared reference to a kitchen MUST reveal, before it is opened, exactly three
+  things: the kitchen's name, its area, and its photo. It MUST NOT reveal the Cook's story, their
+  delivery terms, how many Meals they have, or anything derived from them.
+- **FR-027b**: Kafoo MUST NOT introduce a Cook's personal name, phone number, address, or location
+  as part of this feature. A Kitchen Profile's public face stays at exactly five details, and the
+  Cook's phone number is never copied out of the record that authenticates them.
+- **FR-027c**: Nothing in discovery MUST display a rating, a review count, an order count, or any
+  other measure of a Cook's standing. None of these exist yet, and a placeholder for one is a
+  fabricated measurement rather than an empty field.
 
 **Language, measurement and trust**
 
@@ -343,6 +371,11 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
   verified field by field against the five public details of a Kitchen Profile.
 - **SC-010**: This feature adds **zero** new categories of personal data about Customers.
 - **SC-011**: No search phrase a Customer typed or spoke is recoverable from anything Kafoo records.
+- **SC-012**: A shared reference to a kitchen reveals exactly three things before it is opened —
+  name, area, photo — verified against the shared reference itself rather than the page it leads to.
+  Any fourth is a failure.
+- **SC-013**: This feature adds **zero** fields to a Kitchen Profile's public face, which stays at
+  five, and **zero** new personal details about a Cook.
 
 ## Assumptions
 
@@ -361,20 +394,23 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
 - **Discovery reads and never writes.** No Meal, Kitchen Profile or Customer record is created or
   changed by anything in this specification.
 
-## Open questions
+## Deliberately out of scope
 
-These are the founder's to answer and are not assumptions to be made by an implementer.
+**Searching for a Cook by name.** Discovery is about food. A Customer arrives wanting koshari, not
+wanting a named person, and a directory of Cooks is a different feature carrying a different privacy
+question. Excluded from E3 by the founder, 2026-08-06.
 
-1. **What a shared kitchen link reveals about a Cook.** Kafoo being reachable without an install
-   exists so a Cook can share their kitchen. What a shared link *shows before it is opened* — a
-   Cook's name, their photo — is personal information leaving Kafoo into a conversation Kafoo cannot
-   see, and it is also the entire mechanic that makes sharing work. This is ADR-0008's second open
-   dependency and it is unanswered. **Nothing may be made shareable until it is answered.**
+**Following a Cook.** This is the better answer to what name search reaches for — a Customer who
+liked Fatma's cooking should not have to search for her again — and it is stronger for retention
+than any name search would be. It is not in E3 for three reasons, each of which would be enough on
+its own: it is only meaningful once a Customer has *ordered* from a Cook, which is E4; it creates a
+lasting relationship between a Customer and a Cook, which is a new category of personal data; and
+telling a Customer that Fatma is cooking today requires a way of reaching them that Kafoo does not
+have. Recorded here so it is picked up deliberately rather than rediscovered.
 
-2. **Whether a Customer can search for a kitchen directly, or only for food.** This specification
-   assumes a Customer searches for Meals and reaches kitchens through them. Searching for a Cook by
-   name is a different feature with a different privacy question, and it is excluded here.
+**Anything a Cook does.** This feature is read-only and Customer-facing throughout. A Cook's view of
+how they are found — what Customers searched before reaching them, how often their kitchen appeared
+— is not part of it, and the measurement rules make most of it unanswerable by design.
 
-3. **What Kafoo shows when a Customer's area has nothing but a neighbouring one does.** FR-024 says
-   Kafoo must not silently widen. Whether it may *offer* to widen, and how a Customer would judge
-   whether a kitchen elsewhere can reach them when Kafoo holds no delivery radius, is unresolved.
+**Ordering, and everything that implies.** No basket, no price total, no fees, no availability
+window a Customer can act on. Discovery ends at a Meal and the kitchen behind it.
