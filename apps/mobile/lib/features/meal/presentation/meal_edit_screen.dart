@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/meal_edit_controller.dart';
 import 'meal_summary_rows.dart';
@@ -57,7 +58,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.mealEditTitle)),
+      appBar: AppBar(title: Text(l10n.mealEditTitle(context.addressForm))),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
@@ -67,7 +68,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
               value: currentMeal.title,
               editing: _editingField == MealEditField.title,
               controller: _editController,
-              editLabel: l10n.convEdit,
+              editLabel: l10n.convEdit(context.addressForm),
               onEdit: () => _beginEdit(MealEditField.title, currentMeal.title),
               onCommit: () => _commitEdit(MealEditField.title),
             ),
@@ -77,7 +78,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
               multiline: true,
               editing: _editingField == MealEditField.description,
               controller: _editController,
-              editLabel: l10n.convEdit,
+              editLabel: l10n.convEdit(context.addressForm),
               onEdit: () => _beginEdit(
                   MealEditField.description, currentMeal.description),
               onCommit: () => _commitEdit(MealEditField.description),
@@ -87,7 +88,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
               value: l10n.publicMealPriceValue(currentMeal.price),
               editing: _editingField == MealEditField.price,
               controller: _editController,
-              editLabel: l10n.convEdit,
+              editLabel: l10n.convEdit(context.addressForm),
               onEdit: () => _beginEdit(MealEditField.price, currentMeal.price),
               onCommit: () => _commitEdit(MealEditField.price),
             ),
@@ -105,7 +106,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
             if (editState.error != null) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealSaveError,
+                l10n.mealSaveError(context.addressForm),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.error,
                 ),

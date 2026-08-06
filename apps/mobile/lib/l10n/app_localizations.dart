@@ -107,44 +107,44 @@ abstract class AppLocalizations {
   /// Action a Cook takes to move a Meal from draft to published.
   ///
   /// In ar, this message translates to:
-  /// **'انشر الأكلة'**
-  String get publishMeal;
+  /// **'{addressForm, select, feminine{انشري الأكلة} other{انشر الأكلة}}'**
+  String publishMeal(String addressForm);
 
   /// Action a Cook takes to retire a Meal. Never 'delete' — archived Meals stay readable for Order history.
   ///
   /// In ar, this message translates to:
-  /// **'أرشف الأكلة'**
-  String get archiveMeal;
+  /// **'{addressForm, select, feminine{أرشفي الأكلة} other{أرشف الأكلة}}'**
+  String archiveMeal(String addressForm);
 
   /// Action the owning Cook takes to agree to cook an Order.
   ///
   /// In ar, this message translates to:
-  /// **'اقبل الطلب'**
-  String get acceptOrder;
+  /// **'{addressForm, select, feminine{اقبلي الطلب} other{اقبل الطلب}}'**
+  String acceptOrder(String addressForm);
 
   /// Action the owning Cook takes to decline an Order.
   ///
   /// In ar, this message translates to:
-  /// **'ارفض الطلب'**
-  String get rejectOrder;
+  /// **'{addressForm, select, feminine{ارفضي الطلب} other{ارفض الطلب}}'**
+  String rejectOrder(String addressForm);
 
-  /// Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next.
+  /// Shown to a Customer when a Cook rejects their Order. Actionable: names what to do next. Customer-directed verbs (جرب / اطلب; EN Try / order) stay ungendered in both branches — Kafoo stores no form of address for Customers; wiring those verbs to cookForm would be wrong. Only the Cook-describing clause differs by cookForm.
   ///
   /// In ar, this message translates to:
-  /// **'الطباخ مقدرش ياخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخ تاني.'**
-  String get orderRejected;
+  /// **'{cookForm, select, feminine{الطباخة مقدرتش تاخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخة تانية.} other{الطباخ مقدرش ياخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخ تاني.}}'**
+  String orderRejected(String cookForm);
 
   /// Shown when a request fails for connectivity reasons.
   ///
   /// In ar, this message translates to:
-  /// **'مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.'**
-  String get networkUnavailable;
+  /// **'مفيش اتصال بالنت. {addressForm, select, feminine{اطمني إن النت شغال وجربي} other{اطمن إن النت شغال وجرب}} تاني.'**
+  String networkUnavailable(String addressForm);
 
-  /// Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact.
+  /// Shown beside calories and allergens whose source is 'ai'. An AI estimate is never presented as verified fact. cookForm describes the Cook who must confirm estimates, not the reader.
   ///
   /// In ar, this message translates to:
-  /// **'دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من الطباخ.'**
-  String get aiEstimateNotice;
+  /// **'دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من {cookForm, select, feminine{الطباخة.} other{الطباخ.}}'**
+  String aiEstimateNotice(String cookForm);
 
   /// Heading on the phone-number sign-in screen.
   ///
@@ -161,20 +161,20 @@ abstract class AppLocalizations {
   /// Button to submit the phone number and request an OTP.
   ///
   /// In ar, this message translates to:
-  /// **'كمّل'**
-  String get signInContinue;
+  /// **'{addressForm, select, feminine{كمّلي} other{كمّل}}'**
+  String signInContinue(String addressForm);
 
   /// Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.
   ///
   /// In ar, this message translates to:
-  /// **'جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.'**
-  String signInRateLimited(int minutes);
+  /// **'{addressForm, select, feminine{جربت كتير. استني {minutes} دقيقة وبعدين جربي تاني.} other{جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.}}'**
+  String signInRateLimited(int minutes, String addressForm);
 
   /// Heading on the OTP code entry screen.
   ///
   /// In ar, this message translates to:
-  /// **'ادخل الكود'**
-  String get codeTitle;
+  /// **'{addressForm, select, feminine{ادخلي الكود} other{ادخل الكود}}'**
+  String codeTitle(String addressForm);
 
   /// Tells the person which number the OTP was sent to.
   ///
@@ -185,26 +185,26 @@ abstract class AppLocalizations {
   /// Shown when the OTP is incorrect.
   ///
   /// In ar, this message translates to:
-  /// **'الكود غلط. جرب تاني.'**
-  String get codeWrongCode;
+  /// **'{addressForm, select, feminine{الكود غلط. جربي تاني.} other{الكود غلط. جرب تاني.}}'**
+  String codeWrongCode(String addressForm);
 
   /// Shown when the OTP has expired (distinct from wrong code).
   ///
   /// In ar, this message translates to:
-  /// **'الكود انتهى. اطلب كود جديد.'**
-  String get codeExpired;
+  /// **'الكود انتهى. {addressForm, select, feminine{اطلبي} other{اطلب}} كود جديد.'**
+  String codeExpired(String addressForm);
 
   /// Button to request a new OTP without restarting sign-in.
   ///
   /// In ar, this message translates to:
-  /// **'ابعت كود جديد'**
-  String get codeResend;
+  /// **'{addressForm, select, feminine{ابعتي كود جديد} other{ابعت كود جديد}}'**
+  String codeResend(String addressForm);
 
   /// Shown when sign-in fails due to connectivity, not a wrong code.
   ///
   /// In ar, this message translates to:
-  /// **'مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.'**
-  String get signInNetworkError;
+  /// **'مفيش اتصال بالنت. {addressForm, select, feminine{اطمني إن النت شغال وجربي} other{اطمن إن النت شغال وجرب}} تاني.'**
+  String signInNetworkError(String addressForm);
 
   /// First question in the Kitchen Profile conversation: the kitchen's display name.
   ///
@@ -215,20 +215,38 @@ abstract class AppLocalizations {
   /// Second question: the Cook's story — what they cook and how.
   ///
   /// In ar, this message translates to:
-  /// **'قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟'**
-  String get kitchenConvPromptStory;
+  /// **'{addressForm, select, feminine{قوليلي عن طبخك. بتعملي إيه وبتعمليه} other{قولّي عن طبخك. بتعمل إيه وبتعمله}} إزاي؟'**
+  String kitchenConvPromptStory(String addressForm);
 
   /// Third question: which area the Cook operates in.
   ///
   /// In ar, this message translates to:
-  /// **'في أنهي منطقة بتشتغل؟'**
-  String get kitchenConvPromptArea;
+  /// **'{addressForm, select, feminine{في أنهي منطقة بتشتغلي؟} other{في أنهي منطقة بتشتغل؟}}'**
+  String kitchenConvPromptArea(String addressForm);
 
   /// Fourth question: delivery or pickup terms.
   ///
   /// In ar, this message translates to:
   /// **'إزاي الناس بتاخد أكلها منك؟'**
   String get kitchenConvPromptDeliveryTerms;
+
+  /// Fifth Kitchen Profile conversation question: asks which grammatical form of address to use. Deliberately first-person only so the question itself is not gendered. No addressForm placeholder.
+  ///
+  /// In ar, this message translates to:
+  /// **'عشان أكلمك صح — أقولّك \"كمّل\" ولا \"كمّلي\"؟'**
+  String get kitchenConvPromptAddressForm;
+
+  /// Answer label choosing masculine form of address (ungendered label text).
+  ///
+  /// In ar, this message translates to:
+  /// **'كمّل'**
+  String get kitchenConvAddressFormMasculine;
+
+  /// Answer label choosing feminine form of address (ungendered label text).
+  ///
+  /// In ar, this message translates to:
+  /// **'كمّلي'**
+  String get kitchenConvAddressFormFeminine;
 
   /// Hint text shown below the display name question.
   ///
@@ -257,20 +275,20 @@ abstract class AppLocalizations {
   /// Button to confirm the current answer and proceed to the next step.
   ///
   /// In ar, this message translates to:
-  /// **'كمّل'**
-  String get convContinue;
+  /// **'{addressForm, select, feminine{كمّلي} other{كمّل}}'**
+  String convContinue(String addressForm);
 
   /// Shown next to the microphone button — prompts the Cook to speak.
   ///
   /// In ar, this message translates to:
-  /// **'قول إجابتك بصوتك'**
-  String get convVoiceHint;
+  /// **'{addressForm, select, feminine{قولي إجابتك بصوتك} other{قول إجابتك بصوتك}}'**
+  String convVoiceHint(String addressForm);
 
   /// Shown when on-device speech recognition is not available. Offers typing as a fallback.
   ///
   /// In ar, this message translates to:
-  /// **'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.'**
-  String get convVoiceUnavailable;
+  /// **'التعرف على الصوت مش متاح. ممكن {addressForm, select, feminine{تكتبي} other{تكتب}} إجابتك بدل كده.'**
+  String convVoiceUnavailable(String addressForm);
 
   /// Heading on the summary screen shown after all questions are answered.
   ///
@@ -281,14 +299,14 @@ abstract class AppLocalizations {
   /// Button to confirm the summary and write the Kitchen Profile.
   ///
   /// In ar, this message translates to:
-  /// **'تمام، احفظ'**
-  String get kitchenConvSummaryConfirm;
+  /// **'{addressForm, select, feminine{تمام، احفظي} other{تمام، احفظ}}'**
+  String kitchenConvSummaryConfirm(String addressForm);
 
   /// Button to edit a single answer on the summary screen.
   ///
   /// In ar, this message translates to:
-  /// **'غيّر'**
-  String get convEdit;
+  /// **'{addressForm, select, feminine{غيّري} other{غيّر}}'**
+  String convEdit(String addressForm);
 
   /// Label for the display name field on the summary screen.
   ///
@@ -314,6 +332,12 @@ abstract class AppLocalizations {
   /// **'طريقة الاستلام'**
   String get kitchenConvLabelDeliveryTerms;
 
+  /// Label for the form-of-address row on the Kitchen Profile summary. Takes no placeholder: it names the setting rather than addressing the Cook, and the Cook may be about to change the very value it would switch on.
+  ///
+  /// In ar, this message translates to:
+  /// **'طريقة مخاطبتك'**
+  String get kitchenConvLabelAddressForm;
+
   /// Label for the optional photo on the summary screen.
   ///
   /// In ar, this message translates to:
@@ -323,20 +347,20 @@ abstract class AppLocalizations {
   /// Button to add a kitchen photo on the summary screen.
   ///
   /// In ar, this message translates to:
-  /// **'ضيف صورة'**
-  String get kitchenConvPhotoAdd;
+  /// **'{addressForm, select, feminine{ضيفي صورة} other{ضيف صورة}}'**
+  String kitchenConvPhotoAdd(String addressForm);
 
   /// Shown if writing the Kitchen Profile to Supabase fails.
   ///
   /// In ar, this message translates to:
-  /// **'حصل مشكلة أثناء الحفظ. جرب تاني.'**
-  String get kitchenConvSaveError;
+  /// **'حصل مشكلة أثناء الحفظ. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String kitchenConvSaveError(String addressForm);
 
   /// Shown if photo upload fails. The Cook can proceed without a photo (T038 requirement).
   ///
   /// In ar, this message translates to:
-  /// **'الصورة ما اتحملتش. ممكن تكمل من غير صورة.'**
-  String get kitchenConvPhotoError;
+  /// **'الصورة ما اتحملتش. ممكن {addressForm, select, feminine{تكملي} other{تكمل}} من غير صورة.'**
+  String kitchenConvPhotoError(String addressForm);
 
   /// Heading shown when a person who already has a Kitchen Profile tries to create another.
   ///
@@ -371,8 +395,8 @@ abstract class AppLocalizations {
   /// Button confirming a single-detail change.
   ///
   /// In ar, this message translates to:
-  /// **'احفظ التغيير'**
-  String get kitchenEditSave;
+  /// **'{addressForm, select, feminine{احفظي التغيير} other{احفظ التغيير}}'**
+  String kitchenEditSave(String addressForm);
 
   /// Button abandoning a single-detail change, leaving the previous value in place.
   ///
@@ -389,8 +413,8 @@ abstract class AppLocalizations {
   /// Entry point to account removal. Plain and literal — no euphemism, and no harder to find than creating the account was.
   ///
   /// In ar, this message translates to:
-  /// **'امسح حسابي'**
-  String get removeAccountEntry;
+  /// **'{addressForm, select, feminine{امسحي حسابي} other{امسح حسابي}}'**
+  String removeAccountEntry(String addressForm);
 
   /// Heading on the removal screen.
   ///
@@ -407,8 +431,8 @@ abstract class AppLocalizations {
   /// The single confirmation button. There is no second are-you-sure.
   ///
   /// In ar, this message translates to:
-  /// **'امسح حسابي'**
-  String get removeAccountConfirm;
+  /// **'{addressForm, select, feminine{امسحي حسابي} other{امسح حسابي}}'**
+  String removeAccountConfirm(String addressForm);
 
   /// Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035).
   ///
@@ -419,20 +443,20 @@ abstract class AppLocalizations {
   /// Shown when removal fails. States that the account is intact, so nobody is left unsure whether they are half-erased.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.'**
-  String get removeAccountError;
+  /// **'مقدرناش نمسح الحساب. حسابك زي ما هو، {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String removeAccountError(String addressForm);
 
   /// Heading on the recovery email invitation, shown once after a Kitchen Profile is confirmed.
   ///
   /// In ar, this message translates to:
-  /// **'تحب تضيف إيميل؟'**
-  String get recoveryEmailTitle;
+  /// **'{addressForm, select, feminine{تحبي تضيفي إيميل؟} other{تحب تضيف إيميل؟}}'**
+  String recoveryEmailTitle(String addressForm);
 
   /// The one sentence FR-028 requires: plainly what it is for. Says it is optional in the same breath.
   ///
   /// In ar, this message translates to:
-  /// **'لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.'**
-  String get recoveryEmailBody;
+  /// **'لو ضاع منك رقمك، الإيميل هو اللي هيخليك {addressForm, select, feminine{توصلي لحسابك تاني. مش مطلوب، وممكن تسيبيه} other{توصل لحسابك تاني. مش مطلوب، وممكن تسيبه}} دلوقتي.'**
+  String recoveryEmailBody(String addressForm);
 
   /// Label for the email input on the invitation.
   ///
@@ -443,8 +467,8 @@ abstract class AppLocalizations {
   /// Button attaching the address to the existing account.
   ///
   /// In ar, this message translates to:
-  /// **'ضيف الإيميل'**
-  String get recoveryEmailAttach;
+  /// **'{addressForm, select, feminine{ضيفي الإيميل} other{ضيف الإيميل}}'**
+  String recoveryEmailAttach(String addressForm);
 
   /// Button declining the invitation. Declining withholds nothing.
   ///
@@ -461,26 +485,26 @@ abstract class AppLocalizations {
   /// Shown when attaching the address fails.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نضيف الإيميل. جرب تاني.'**
-  String get recoveryEmailError;
+  /// **'مقدرناش نضيف الإيميل. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String recoveryEmailError(String addressForm);
 
   /// Discreet route for someone who has lost their phone number. Speaks to the situation, not the mechanism — registration never mentions email (SC-009).
   ///
   /// In ar, this message translates to:
-  /// **'مش قادر توصل لرقمك؟'**
-  String get signInLostNumber;
+  /// **'{addressForm, select, feminine{مش قادرة توصلي لرقمك؟} other{مش قادر توصل لرقمك؟}}'**
+  String signInLostNumber(String addressForm);
 
   /// Heading on the email sign-in screen, reached only from the lost-number route.
   ///
   /// In ar, this message translates to:
-  /// **'ادخل بالإيميل'**
-  String get emailSignInTitle;
+  /// **'{addressForm, select, feminine{ادخلي بالإيميل} other{ادخل بالإيميل}}'**
+  String emailSignInTitle(String addressForm);
 
   /// Explains that this route works only for an address already attached from inside the account (FR-007).
   ///
   /// In ar, this message translates to:
-  /// **'لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.'**
-  String get emailSignInBody;
+  /// **'لو {addressForm, select, feminine{كنتي ضايفة إيميل لحسابك قبل كده، اكتبيه} other{كنت ضايف إيميل لحسابك قبل كده، اكتبه}} هنا وهنبعتلك كود.'**
+  String emailSignInBody(String addressForm);
 
   /// Label for the email field on the email sign-in screen.
   ///
@@ -491,20 +515,20 @@ abstract class AppLocalizations {
   /// Shown when the address is not attached to any identity. An address can never claim an identity it was not attached to from within.
   ///
   /// In ar, this message translates to:
-  /// **'الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.'**
-  String get emailSignInUnknown;
+  /// **'الإيميل ده مش مربوط بأي حساب. {addressForm, select, feminine{جربي تدخلي} other{جرب تدخل}} برقم موبايلك.'**
+  String emailSignInUnknown(String addressForm);
 
   /// Heading on the change-of-number screen.
   ///
   /// In ar, this message translates to:
-  /// **'غيّر رقم الموبايل'**
-  String get changePhoneTitle;
+  /// **'{addressForm, select, feminine{غيّري رقم الموبايل} other{غيّر رقم الموبايل}}'**
+  String changePhoneTitle(String addressForm);
 
   /// States that the old number stops reaching the identity immediately once confirmed (FR-026).
   ///
   /// In ar, this message translates to:
-  /// **'اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.'**
-  String get changePhoneBody;
+  /// **'{addressForm, select, feminine{اكتبي الرقم الجديد. هنبعتلك كود عليه، ولما تأكديه} other{اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده}} الرقم القديم هيبطل يوصل لحسابك.'**
+  String changePhoneBody(String addressForm);
 
   /// Label for the new phone number field.
   ///
@@ -515,8 +539,8 @@ abstract class AppLocalizations {
   /// Entry point to the change-of-number flow.
   ///
   /// In ar, this message translates to:
-  /// **'غيّر رقم الموبايل'**
-  String get changePhoneEntry;
+  /// **'{addressForm, select, feminine{غيّري رقم الموبايل} other{غيّر رقم الموبايل}}'**
+  String changePhoneEntry(String addressForm);
 
   /// Confirmation shown after the new number is verified.
   ///
@@ -527,26 +551,26 @@ abstract class AppLocalizations {
   /// Shown when the change fails, stating the old number still works.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.'**
-  String get changePhoneError;
+  /// **'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String changePhoneError(String addressForm);
 
   /// Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.
   ///
   /// In ar, this message translates to:
-  /// **'مش قادرين نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.'**
-  String get aiMealAnalysisInvalid;
+  /// **'مش قادرين نفهم رد المساعد الذكي. {addressForm, select, feminine{جربي تاني، أو اكتبي} other{جرب تاني، أو اكتب}} التفاصيل بنفسك.'**
+  String aiMealAnalysisInvalid(String addressForm);
 
   /// Shown when no provider is configured for a prompt. Reachable only from a misconfigured build, but a Cook must still be told something actionable.
   ///
   /// In ar, this message translates to:
-  /// **'المساعد الذكي مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.'**
-  String get aiPromptNotStubbed;
+  /// **'المساعد الذكي مش متاح دلوقتي. {addressForm, select, feminine{كملي} other{كمل}} بنفسك وهنجرب تاني بعدين.'**
+  String aiPromptNotStubbed(String addressForm);
 
   /// Shown when the Edge Function rejects the request because the Cook is not signed in.
   ///
   /// In ar, this message translates to:
-  /// **'سجل دخولك الأول وجرب تاني.'**
-  String get analyzeMealUnauthorized;
+  /// **'{addressForm, select, feminine{سجّلي دخولك الأول وجربي} other{سجل دخولك الأول وجرب}} تاني.'**
+  String analyzeMealUnauthorized(String addressForm);
 
   /// Shown when the Cook tries to analyze a Meal that belongs to someone else.
   ///
@@ -557,50 +581,50 @@ abstract class AppLocalizations {
   /// Shown when the model provider rate-limits the request.
   ///
   /// In ar, this message translates to:
-  /// **'جربت كتير في وقت قليل. استنى شوية وجرب تاني.'**
-  String get analyzeMealRateLimited;
+  /// **'جربت كتير في وقت قليل. {addressForm, select, feminine{استني شوية وجربي} other{استنى شوية وجرب}} تاني.'**
+  String analyzeMealRateLimited(String addressForm);
 
   /// Shown when the model provider times out.
   ///
   /// In ar, this message translates to:
-  /// **'الرد اخد وقت طويل. جرب تاني.'**
-  String get analyzeMealTimeout;
+  /// **'الرد اخد وقت طويل. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String analyzeMealTimeout(String addressForm);
 
   /// Shown when the model provider returns a response that fails validation.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.'**
-  String get analyzeMealInvalidResponse;
+  /// **'مقدرناش نفهم رد المساعد الذكي. {addressForm, select, feminine{جربي تاني، أو اكتبي} other{جرب تاني، أو اكتب}} التفاصيل بنفسك.'**
+  String analyzeMealInvalidResponse(String addressForm);
 
   /// Shown when the model provider has an auth, upstream, or configuration error.
   ///
   /// In ar, this message translates to:
-  /// **'المساعد الذكي مش متاح دلوقتي. جرب تاني بعدين، أو اكتب التفاصيل بنفسك.'**
-  String get analyzeMealProviderError;
+  /// **'المساعد الذكي مش متاح دلوقتي. {addressForm, select, feminine{جربي تاني بعدين، أو اكتبي} other{جرب تاني بعدين، أو اكتب}} التفاصيل بنفسك.'**
+  String analyzeMealProviderError(String addressForm);
 
   /// Shown when Kafoo's own infrastructure has a problem (meal lookup, prompt missing, misconfigured).
   ///
   /// In ar, this message translates to:
-  /// **'حصل مشكلة من ناحيتنا. جرب تاني.'**
-  String get analyzeMealServerError;
+  /// **'حصل مشكلة من ناحيتنا. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String analyzeMealServerError(String addressForm);
 
   /// Fallback for any unrecognised error code from the Edge Function. A new code appearing later must degrade to a message, never to a crash.
   ///
   /// In ar, this message translates to:
-  /// **'حصل مشكلة مش متوقعة. جرب تاني، أو اكتب التفاصيل بنفسك.'**
-  String get analyzeMealUnknownError;
+  /// **'حصل مشكلة مش متوقعة. {addressForm, select, feminine{جربي تاني، أو اكتبي} other{جرب تاني، أو اكتب}} التفاصيل بنفسك.'**
+  String analyzeMealUnknownError(String addressForm);
 
   /// Shown when creating, updating, or publishing a Meal fails.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نحفظ الأكلة. جرب تاني.'**
-  String get mealSaveError;
+  /// **'مقدرناش نحفظ الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String mealSaveError(String addressForm);
 
   /// Shown when uploading a Meal photo fails. The Cook can proceed without a photo.
   ///
   /// In ar, this message translates to:
-  /// **'الصورة ما اتحملتش. ممكن تكمل من غير صورة.'**
-  String get mealPhotoError;
+  /// **'الصورة ما اتحملتش. ممكن {addressForm, select, feminine{تكملي} other{تكمل}} من غير صورة.'**
+  String mealPhotoError(String addressForm);
 
   /// First question in the Meal conversation: what the Cook made. Becomes the Meal's title.
   ///
@@ -617,8 +641,8 @@ abstract class AppLocalizations {
   /// Second question: the description every AI-inferred field is derived from.
   ///
   /// In ar, this message translates to:
-  /// **'قولّي عنها. فيها إيه وبتتعمل إزاي؟'**
-  String get mealConvPromptDescription;
+  /// **'{addressForm, select, feminine{قوليلي} other{قولّي}} عنها. فيها إيه وبتتعمل إزاي؟'**
+  String mealConvPromptDescription(String addressForm);
 
   /// Hint below the description question.
   ///
@@ -635,8 +659,8 @@ abstract class AppLocalizations {
   /// Hint below the photo question. Says plainly that it can be skipped.
   ///
   /// In ar, this message translates to:
-  /// **'الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز'**
-  String get mealConvHintPhoto;
+  /// **'الصورة بتخلّي الناس تطلب أكتر، {addressForm, select, feminine{وتقدري تعدّيها لو مش عايزة} other{وتقدر تعدّيها لو مش عايز}}'**
+  String mealConvHintPhoto(String addressForm);
 
   /// FR-029 disclosure, shown before a photo is used for estimates. Must appear before the Cook chooses.
   ///
@@ -647,20 +671,20 @@ abstract class AppLocalizations {
   /// Button that declines the photo and continues the conversation.
   ///
   /// In ar, this message translates to:
-  /// **'كمّل من غير صورة'**
-  String get mealConvPhotoSkip;
+  /// **'{addressForm, select, feminine{كمّلي من غير صورة} other{كمّل من غير صورة}}'**
+  String mealConvPhotoSkip(String addressForm);
 
   /// Button to attach a photo to a Meal during the conversation (T041).
   ///
   /// In ar, this message translates to:
-  /// **'ضيف صورة للأكلة'**
-  String get mealConvPhotoAdd;
+  /// **'{addressForm, select, feminine{ضيفي صورة للأكلة} other{ضيف صورة للأكلة}}'**
+  String mealConvPhotoAdd(String addressForm);
 
   /// Fourth question: the price of the whole Meal.
   ///
   /// In ar, this message translates to:
-  /// **'بتبيعها بكام؟'**
-  String get mealConvPromptPrice;
+  /// **'{addressForm, select, feminine{بتبيعيها بكام؟} other{بتبيعها بكام؟}}'**
+  String mealConvPromptPrice(String addressForm);
 
   /// Hint below the price question. Says whole dish, matching how calories are estimated.
   ///
@@ -683,8 +707,8 @@ abstract class AppLocalizations {
   /// Hint below the fallback cuisine question.
   ///
   /// In ar, this message translates to:
-  /// **'اختار اللي أقرب لأكلتك'**
-  String get mealConvHintCuisine;
+  /// **'{addressForm, select, feminine{اختاري اللي أقرب لأكلتك} other{اختار اللي أقرب لأكلتك}}'**
+  String mealConvHintCuisine(String addressForm);
 
   /// Fallback question: what sort of dish it is, asked only when the estimate is missing.
   ///
@@ -695,8 +719,8 @@ abstract class AppLocalizations {
   /// Hint below the fallback category question.
   ///
   /// In ar, this message translates to:
-  /// **'اختار اللي أقرب'**
-  String get mealConvHintCategory;
+  /// **'{addressForm, select, feminine{اختاري اللي أقرب} other{اختار اللي أقرب}}'**
+  String mealConvHintCategory(String addressForm);
 
   /// Heading of the Meal summary, shown before anything is on offer.
   ///
@@ -737,8 +761,8 @@ abstract class AppLocalizations {
   /// Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.
   ///
   /// In ar, this message translates to:
-  /// **'تمام، انشرها'**
-  String get mealSummaryConfirm;
+  /// **'{addressForm, select, feminine{تمام، انشريها} other{تمام، انشرها}}'**
+  String mealSummaryConfirm(String addressForm);
 
   /// Display name for the cuisineEgyptian value.
   ///
@@ -863,8 +887,8 @@ abstract class AppLocalizations {
   /// FR-012: AI-derived values are shown as estimates, never as verified fact.
   ///
   /// In ar, this message translates to:
-  /// **'دي تقديرات من المساعد، مش حاجة مؤكدة. راجعها وأكّدها قبل ما تنشر.'**
-  String get mealSummaryEstimatesNotice;
+  /// **'دي تقديرات من المساعد، مش حاجة مؤكدة. {addressForm, select, feminine{راجعيها وأكّديها قبل ما تنشري.} other{راجعها وأكّدها قبل ما تنشر.}}'**
+  String mealSummaryEstimatesNotice(String addressForm);
 
   /// Marks a single value as an AI estimate rather than something the Cook said.
   ///
@@ -929,14 +953,14 @@ abstract class AppLocalizations {
   /// Shown when the AI Assistant produced nothing usable (FR-014).
   ///
   /// In ar, this message translates to:
-  /// **'المساعد مقدرش يقدّر حاجة. اكتب التفاصيل بنفسك.'**
-  String get mealSummaryNoEstimates;
+  /// **'المساعد مقدرش يقدّر حاجة. {addressForm, select, feminine{اكتبي} other{اكتب}} التفاصيل بنفسك.'**
+  String mealSummaryNoEstimates(String addressForm);
 
   /// Shown when putting the Meal on offer fails.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش ننشر الأكلة. جرب تاني.'**
-  String get mealPublishError;
+  /// **'مقدرناش ننشر الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String mealPublishError(String addressForm);
 
   /// Confirms the Meal is now on offer.
   ///
@@ -950,7 +974,7 @@ abstract class AppLocalizations {
   /// **'{price} جنيه'**
   String publicMealPriceValue(String price);
 
-  /// Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025).
+  /// Link from a Meal to the Kitchen Profile of the Cook offering it (FR-025). Addresses the Customer in the second person (شوف / See). Kafoo stores no form of address for Customers; do not wire to addressForm or cookForm. Left ungendered on purpose.
   ///
   /// In ar, this message translates to:
   /// **'شوف المطبخ'**
@@ -962,17 +986,17 @@ abstract class AppLocalizations {
   /// **'السعرات مش متحسبة'**
   String get publicMealCaloriesUnknown;
 
-  /// Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear.
+  /// Shown when a Meal lists no allergens. Says nothing was listed rather than implying the Meal is safe — a Customer with an allergy must not read a blank as an all-clear. Customer-directed verb (اسأل / ask) stays ungendered in both branches — Kafoo stores no form of address for Customers; wiring it to cookForm would be wrong. Only الطباخ/الطباخة differs by cookForm.
   ///
   /// In ar, this message translates to:
-  /// **'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل الطباخ.'**
-  String get publicMealAllergensUnknown;
+  /// **'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل {cookForm, select, feminine{الطباخة.} other{الطباخ.}}'**
+  String publicMealAllergensUnknown(String cookForm);
 
-  /// Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate.
+  /// Provenance line shown when nutrition_source is 'cook' — the Cook changed the figures, so they are theirs rather than an AI estimate. No Customer-directed verb. cookForm genders the Cook being described (الطباخ نفسه / الطباخة نفسها). Wiring this to the reader's form would be wrong.
   ///
   /// In ar, this message translates to:
-  /// **'الأرقام دي من الطباخ نفسه.'**
-  String get publicMealNutritionFromCook;
+  /// **'الأرقام دي من {cookForm, select, feminine{الطباخة نفسها.} other{الطباخ نفسه.}}'**
+  String publicMealNutritionFromCook(String cookForm);
 
   /// Heading on the Cook's own list of Meals, showing every status including drafts.
   ///
@@ -983,8 +1007,8 @@ abstract class AppLocalizations {
   /// Shown when the Cook has no Meals at any status.
   ///
   /// In ar, this message translates to:
-  /// **'لسه مافيش أكلات. ابدأ واحدة.'**
-  String get myMealsEmpty;
+  /// **'لسه مافيش أكلات. {addressForm, select, feminine{ابدئي} other{ابدأ}} واحدة.'**
+  String myMealsEmpty(String addressForm);
 
   /// Status word for a Meal still in draft, not yet on offer.
   ///
@@ -1013,62 +1037,62 @@ abstract class AppLocalizations {
   /// Action a Cook takes to take a published Meal off the menu.
   ///
   /// In ar, this message translates to:
-  /// **'شيلها من المنيو'**
-  String get mealMakeUnavailable;
+  /// **'{addressForm, select, feminine{شيليها من المنيو} other{شيلها من المنيو}}'**
+  String mealMakeUnavailable(String addressForm);
 
   /// Action a Cook takes to put an unavailable Meal back on the menu.
   ///
   /// In ar, this message translates to:
-  /// **'رجّعها للمنيو'**
-  String get mealMakeAvailable;
+  /// **'{addressForm, select, feminine{رجّعيها للمنيو} other{رجّعها للمنيو}}'**
+  String mealMakeAvailable(String addressForm);
 
   /// Warning shown before a Cook takes their last Meal off the menu, explaining that their kitchen will become undiscoverable.
   ///
   /// In ar, this message translates to:
-  /// **'دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما ترجّع حاجة.'**
-  String get mealLastOnOfferWarning;
+  /// **'دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما {addressForm, select, feminine{ترجّعي} other{ترجّع}} حاجة.'**
+  String mealLastOnOfferWarning(String addressForm);
 
   /// Confirmation button on the last-Meal warning dialog — proceeds with taking the Meal off the menu.
   ///
   /// In ar, this message translates to:
-  /// **'شيلها برضه'**
-  String get mealLastOnOfferConfirm;
+  /// **'{addressForm, select, feminine{شيليها برضه} other{شيلها برضه}}'**
+  String mealLastOnOfferConfirm(String addressForm);
 
   /// Cancel button on the last-Meal warning dialog — leaves the Meal on the menu.
   ///
   /// In ar, this message translates to:
-  /// **'سيبها زي ما هي'**
-  String get mealLastOnOfferCancel;
+  /// **'{addressForm, select, feminine{سيبيها زي ما هي} other{سيبها زي ما هي}}'**
+  String mealLastOnOfferCancel(String addressForm);
 
   /// Shown when fetching the Cook's own Meals fails.
   ///
   /// In ar, this message translates to:
-  /// **'مانفعش نجيب أكلاتك. جرب تاني.'**
-  String get mealLoadError;
+  /// **'مانفعش نجيب أكلاتك. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String mealLoadError(String addressForm);
 
   /// Shown when changing a Meal's status fails.
   ///
   /// In ar, this message translates to:
-  /// **'مانفعش نغير حالة الأكلة. جرب تاني.'**
-  String get mealAvailabilityError;
+  /// **'مانفعش نغير حالة الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String mealAvailabilityError(String addressForm);
 
   /// Shown when deleting a draft Meal fails.
   ///
   /// In ar, this message translates to:
-  /// **'مانفعش نمسح المسودة. جرب تاني.'**
-  String get mealDeleteError;
+  /// **'مانفعش نمسح المسودة. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String mealDeleteError(String addressForm);
 
   /// Retries loading the Cook's own Meal list after a failure. Its own key rather than a borrowed one from the conversation flow — a retry button that says "continue" is copy rot.
   ///
   /// In ar, this message translates to:
-  /// **'حاول تاني'**
-  String get mealLoadRetry;
+  /// **'{addressForm, select, feminine{حاولي تاني} other{حاول تاني}}'**
+  String mealLoadRetry(String addressForm);
 
   /// Action a Cook takes to retire a published or unavailable Meal permanently. Shown on the Cook's Meal list row.
   ///
   /// In ar, this message translates to:
-  /// **'شيلها نهائي'**
-  String get mealRetire;
+  /// **'{addressForm, select, feminine{شيليها نهائي} other{شيلها نهائي}}'**
+  String mealRetire(String addressForm);
 
   /// Warning shown in the retirement confirmation dialog. States plainly that the Meal leaves the menu for good but stays in the Cook's list.
   ///
@@ -1079,38 +1103,38 @@ abstract class AppLocalizations {
   /// Confirmation button on the retirement dialog. Same words as the action itself — plain and unambiguous rather than a riddle.
   ///
   /// In ar, this message translates to:
-  /// **'شيلها نهائي'**
-  String get mealRetireConfirm;
+  /// **'{addressForm, select, feminine{شيليها نهائي} other{شيلها نهائي}}'**
+  String mealRetireConfirm(String addressForm);
 
   /// Cancel button on the retirement dialog — leaves the Meal at its current status.
   ///
   /// In ar, this message translates to:
-  /// **'سيبها زي ما هي'**
-  String get mealRetireCancel;
+  /// **'{addressForm, select, feminine{سيبيها زي ما هي} other{سيبها زي ما هي}}'**
+  String mealRetireCancel(String addressForm);
 
   /// Action a Cook takes to delete a draft Meal that was never on offer.
   ///
   /// In ar, this message translates to:
-  /// **'امسح المسودة'**
-  String get mealDeleteDraft;
+  /// **'{addressForm, select, feminine{امسحي المسودة} other{امسح المسودة}}'**
+  String mealDeleteDraft(String addressForm);
 
   /// Warning shown in the draft-deletion confirmation dialog. States plainly that the draft is gone for good.
   ///
   /// In ar, this message translates to:
-  /// **'المسودة دي هتتمسح خالص ومش هتقدر ترجعها.'**
-  String get mealDeleteDraftWarning;
+  /// **'المسودة دي هتتمسح خالص ومش {addressForm, select, feminine{هتقدري ترجعيها.} other{هتقدر ترجعها.}}'**
+  String mealDeleteDraftWarning(String addressForm);
 
   /// Confirmation button on the draft-deletion dialog.
   ///
   /// In ar, this message translates to:
-  /// **'امسحها'**
-  String get mealDeleteDraftConfirm;
+  /// **'{addressForm, select, feminine{امسحيها} other{امسحها}}'**
+  String mealDeleteDraftConfirm(String addressForm);
 
   /// Heading on the Meal edit screen.
   ///
   /// In ar, this message translates to:
-  /// **'عدّل الأكلة'**
-  String get mealEditTitle;
+  /// **'{addressForm, select, feminine{عدّلي الأكلة} other{عدّل الأكلة}}'**
+  String mealEditTitle(String addressForm);
 
   /// Brief confirmation shown after a single-field change on the Meal edit screen.
   ///
@@ -1133,26 +1157,26 @@ abstract class AppLocalizations {
   /// Body text explaining why a Kitchen Profile is needed before a Meal can be offered.
   ///
   /// In ar, this message translates to:
-  /// **'قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.'**
-  String get mealNeedsKitchenBody;
+  /// **'قبل ما {addressForm, select, feminine{تعرضي أكلة، الناس لازم تعرف مين اللي بيطبخها. اعملي مطبخك الأول وبعدين كمّلي.} other{تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.}}'**
+  String mealNeedsKitchenBody(String addressForm);
 
   /// Button that opens the Kitchen Profile conversation so the Cook can create one.
   ///
   /// In ar, this message translates to:
-  /// **'اعمل مطبخي'**
-  String get mealNeedsKitchenAction;
+  /// **'{addressForm, select, feminine{اعملي مطبخي} other{اعمل مطبخي}}'**
+  String mealNeedsKitchenAction(String addressForm);
 
   /// Shown when the Kitchen Profile existence check fails (network or server error).
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نتأكد من مطبخك. جرب تاني.'**
-  String get mealKitchenCheckError;
+  /// **'مقدرناش نتأكد من مطبخك. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
+  String mealKitchenCheckError(String addressForm);
 
   /// Button that re-runs the Kitchen Profile existence check.
   ///
   /// In ar, this message translates to:
-  /// **'جرب تاني'**
-  String get mealKitchenCheckRetry;
+  /// **'{addressForm, select, feminine{جربي تاني} other{جرب تاني}}'**
+  String mealKitchenCheckRetry(String addressForm);
 
   /// Shown on a draft Meal in the Cook's list when the price question has not been answered yet.
   ///
@@ -1169,8 +1193,8 @@ abstract class AppLocalizations {
   /// Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one.
   ///
   /// In ar, this message translates to:
-  /// **'كمّل الأكلة دي'**
-  String get mealResumeDraft;
+  /// **'{addressForm, select, feminine{كمّلي الأكلة دي} other{كمّل الأكلة دي}}'**
+  String mealResumeDraft(String addressForm);
 }
 
 class _AppLocalizationsDelegate

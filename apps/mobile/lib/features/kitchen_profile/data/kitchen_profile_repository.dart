@@ -23,6 +23,7 @@ abstract interface class KitchenProfileRepository {
     required String story,
     required String area,
     required String deliveryTerms,
+    required AddressForm? addressForm,
     String? photoPath,
   });
 
@@ -77,6 +78,7 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
     required String story,
     required String area,
     required String deliveryTerms,
+    required AddressForm? addressForm,
     String? photoPath,
   }) async {
     try {
@@ -92,6 +94,11 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
             'story': story,
             'area': area,
             'delivery_terms': deliveryTerms,
+            // Omitted rather than sent as null when unanswered: the column is
+            // nullable with no default, so leaving it out and writing NULL
+            // land in the same place, and omitting it keeps this insert
+            // truthful about what the Cook actually told us.
+            if (addressForm != null) 'address_form': addressForm.name,
             if (photoPath != null) 'photo_path': photoPath,
           })
           .select()
@@ -129,6 +136,7 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
         ConversationStepId.story => 'story',
         ConversationStepId.area => 'area',
         ConversationStepId.deliveryTerms => 'delivery_terms',
+        ConversationStepId.addressForm => 'address_form',
       };
 
   /// Uploads to `kitchen-photos/{uid}/kitchen.jpg`.

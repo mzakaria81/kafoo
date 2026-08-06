@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -63,9 +64,9 @@ class _CodeScreenState extends State<CodeScreen> {
       String errorText;
       if (msg.contains('expired') ||
           msg.contains('otp') && msg.contains('invalid')) {
-        errorText = l10n.codeExpired;
+        errorText = l10n.codeExpired(context.addressForm);
       } else {
-        errorText = l10n.codeWrongCode;
+        errorText = l10n.codeWrongCode(context.addressForm);
       }
       unawaited(emitEvent(
         EventNames.signInFailed,
@@ -77,8 +78,8 @@ class _CodeScreenState extends State<CodeScreen> {
       if (mounted) setState(() => _error = errorText);
     } on Exception catch (_) {
       if (mounted) {
-        setState(
-            () => _error = AppLocalizations.of(context).signInNetworkError);
+        setState(() => _error = AppLocalizations.of(context)
+            .signInNetworkError(context.addressForm));
       }
       unawaited(emitEvent(
         EventNames.signInFailed,
@@ -112,7 +113,7 @@ class _CodeScreenState extends State<CodeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                l10n.codeTitle,
+                l10n.codeTitle(context.addressForm),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: KafooSpacing.sm),
@@ -140,7 +141,7 @@ class _CodeScreenState extends State<CodeScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(l10n.signInContinue),
+                    : Text(l10n.signInContinue(context.addressForm)),
               ),
               const SizedBox(height: KafooSpacing.sm),
               TextButton(
@@ -148,7 +149,7 @@ class _CodeScreenState extends State<CodeScreen> {
                 style: TextButton.styleFrom(
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
                 ),
-                child: Text(l10n.codeResend),
+                child: Text(l10n.codeResend(context.addressForm)),
               ),
             ],
           ),

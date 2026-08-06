@@ -73,6 +73,50 @@ locales, not placeholders or `select` branches. A string converted in Arabic and
 or a `select` missing its `other` branch, passes the gate and fails at generation or at runtime. The
 sweep must extend the check, not rely on it.
 
+> Done first, in T093: `scripts/check-l10n-parity.py` now compares placeholder sets, select
+> presence and branch names in both directions, and refuses a select with no `other` branch. It was
+> built and mutation-tested **before** any string was converted, so the conversion could not ship
+> unchecked.
+
+## What landing it actually cost, 2026-08-06
+
+The estimates above were made against E2's ARB file. E2 nearly doubled it before this landed, so
+the numbers are recorded here rather than left to read as though they had held.
+
+**86 keys, not ~56**, out of 183. The per-key verdicts are in
+`docs/ops/wp007-string-classification.md`: 83 switch on the reader (`addressForm`), 4 describe a
+Cook to somebody else (`cookForm`), 22 are second-person but spelled identically for both forms in
+undiacritized Egyptian, and 70 address nobody. **97 call sites** in `lib/`, plus 106 in tests.
+
+**The preference reaches widgets through an `InheritedWidget`, not a Riverpod provider.** The app
+has no `ProviderScope` above the Navigator — E1 deliberately shipped without a state-management
+package and E2 added Riverpod only inside the Meal feature — so a provider would have meant either
+adding a root scope or converting every plain `StatelessWidget` in the tree to a consumer. Both are
+larger edits than the feature, and neither buys anything: the value is read, never written, by the
+widgets that need it. `AddressFormScope` is declared in `apps/mobile/lib/l10n/address_form.dart`
+and installed by `MaterialApp.builder`, which is above the Navigator — a scope inside `home` would
+be invisible to every pushed route, which is all of them.
+
+**Absent from the tree it answers `other`.** A screen shown outside the signed-in surface, and
+every widget test that does not care, renders masculine rather than crashing for want of a scope.
+That is the same rule as an unset stored value, applied one level out.
+
+## Settled 2026-08-06: Customers are addressed as men, for now
+
+Four Customer-facing strings address the **Customer** in the second person — `orderRejected`,
+`publicMealAllergensUnknown`, and their neighbours — while Kafoo stores a form of address for Cooks
+only. Giving Customers one would collect a new category of personal data from a new and much larger
+population, which is the founder's call and not an implementation detail.
+
+**Founder decision, 2026-08-06: Customers stay masculine for now.** So in those strings the
+Customer-directed verbs (`جرب`, `اطلب`, `اسأل`) sit *outside* any `select` and the Cook-describing
+clause switches on `cookForm`. Each carries an ARB `description` saying so, because the next person
+to read one of these strings will otherwise see a half-converted sentence and assume it was missed.
+
+This is a deferral, not a conclusion: it costs nothing to revisit, and revisiting it means asking
+Customers a question and answering the four privacy questions for a new field — not editing these
+strings again.
+
 ## Settled alongside this: the Arabic word for Cook is الطباخ
 
 Two words were in use — the ARB strings said **الطباخ**, the prompts said **الكوك**. Founder

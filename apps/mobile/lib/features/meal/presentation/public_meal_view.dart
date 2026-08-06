@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import 'meal_enum_labels.dart';
 
@@ -26,12 +27,28 @@ import 'meal_enum_labels.dart';
 class PublicMealView extends StatelessWidget {
   const PublicMealView({
     required this.meal,
+    required this.cookAddressForm,
     this.photoUrl,
     this.onOpenKitchen,
     super.key,
   });
 
   final Meal meal;
+
+  /// The stored form of address of the Cook who offers this Meal — the Cook
+  /// the nutrition lines *describe*, never the Customer reading them.
+  ///
+  /// Required rather than defaulted, and that is the point. Nothing routes to
+  /// this widget yet, so there is no caller to get it right today; making it
+  /// required means whoever writes the Customer browse surface in E3 has to
+  /// load the Cook's form and pass it, instead of finding a default already
+  /// filled in with the wrong person's grammar and never noticing. [Meal]
+  /// deliberately carries nothing that identifies its Cook, so this cannot be
+  /// derived here.
+  ///
+  /// Null is a legitimate value: a Cook who was never asked. It renders the
+  /// unset form, same as everywhere else.
+  final AddressForm? cookAddressForm;
 
   /// Resolved public URL for [Meal.photoPath], or null when the Cook added no
   /// photograph. A Meal without one renders correctly.
@@ -95,7 +112,11 @@ class PublicMealView extends StatelessWidget {
                 ),
 
               // 8. Nutrition block.
-              _NutritionBlock(meal: meal, isEstimate: isEstimate),
+              _NutritionBlock(
+                meal: meal,
+                isEstimate: isEstimate,
+                cookForm: icuAddressForm(cookAddressForm),
+              ),
 
               // 9. Kitchen Profile link.
               if (onOpenKitchen != null) ...[
@@ -194,10 +215,19 @@ class _PublicMealDetail extends StatelessWidget {
 }
 
 class _NutritionBlock extends StatelessWidget {
-  const _NutritionBlock({required this.meal, required this.isEstimate});
+  const _NutritionBlock({
+    required this.meal,
+    required this.isEstimate,
+    required this.cookForm,
+  });
 
   final Meal meal;
   final bool isEstimate;
+
+  /// The ICU branch for the Cook being described. Not the reader's form —
+  /// these three sentences are about the Cook, and a Customer reading them is
+  /// not the person being addressed.
+  final String cookForm;
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +240,7 @@ class _NutritionBlock extends StatelessWidget {
 
     final allergensValue = meal.allergens.isNotEmpty
         ? meal.allergens.join('، ')
-        : l10n.publicMealAllergensUnknown;
+        : l10n.publicMealAllergensUnknown(cookForm);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,8 +259,8 @@ class _NutritionBlock extends StatelessWidget {
           padding: const EdgeInsetsDirectional.only(bottom: KafooSpacing.lg),
           child: Text(
             isEstimate
-                ? l10n.aiEstimateNotice
-                : l10n.publicMealNutritionFromCook,
+                ? l10n.aiEstimateNotice(cookForm)
+                : l10n.publicMealNutritionFromCook(cookForm),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.outline,
             ),

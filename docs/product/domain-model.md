@@ -156,6 +156,18 @@ product that addresses a Cook at all has already chosen one; ADR-0010 decided to
 keep guessing. It is deliberately not a gender: the narrower field cannot be repurposed for ranking
 or advertising, and it is the only version of this field defensible at the visibility it needs.
 
+**It is asked, and asking is what makes the Kitchen Profile complete.** From T090 the conversation
+has five steps, not four — display name, story, area, delivery terms, then the form of address —
+and a draft with the first four answered is an unfinished conversation rather than a complete
+profile with a blank. A fifth question is normally a failure to infer, and Kafoo's product rules
+treat it as one. This is the exception because it genuinely cannot be inferred: an Egyptian given
+name does not reliably carry the form, and the app must pick a verb ending on the first sentence it
+says. It is asked last, and it is the only step answered by choosing rather than by speaking or
+typing.
+
+Everything before it is therefore asked in the unset form. That is the cost of asking rather than
+guessing, and it is bounded: four sentences, once, before the Cook has told Kafoo anything.
+
 It is readable wherever the Kitchen Profile is — which, per Discoverability below, includes
 anonymous visitors of a kitchen with food on offer. That is required rather than incidental: two
 Customer-facing strings describe a Cook and need the **Cook's** form, not the reader's. Only the
@@ -279,3 +291,4 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
 | 2026-07-30 | E1: added the Person shape (identity vs credential, one account holds both roles) and the derived-discoverability rule for Kitchen Profile. Invariants 11 and 12 added. |
 | 2026-07-31 | Settled E1's Open Question 2: a phone credential expires with dormancy while the Person does not. Invariant 13 added. ADR-0007. |
 | 2026-08-05 | Kitchen Profile gained a form of address — grammatical, not demographic, readable wherever the kitchen is and writable only by its Cook. ADR-0010, T089. |
+| 2026-08-06 | The Kitchen Profile conversation asks the form of address as a fifth and final step, and a profile is not complete without an answer. Customers are addressed as men for now: Kafoo stores a form of address for Cooks only, so a Customer-directed verb stays ungendered. ADR-0010, T090–T093. |

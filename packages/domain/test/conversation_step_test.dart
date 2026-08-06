@@ -14,6 +14,7 @@ void main() {
         story: null,
         area: null,
         deliveryTerms: null,
+        addressForm: null,
       );
       final next = nextUnansweredStep(steps);
       expect(next, isNotNull);
@@ -30,6 +31,7 @@ void main() {
         story: null,
         area: null,
         deliveryTerms: null,
+        addressForm: null,
       );
       final next = nextUnansweredStep(steps);
       expect(next?.id, ConversationStepId.story);
@@ -43,22 +45,41 @@ void main() {
         story: 'بنطبخ أكل بيتي زي ما أمهاتنا كانت بتعمل',
         area: 'المعادي',
         deliveryTerms: 'توصيل في نص ساعة',
+        addressForm: AddressForm.feminine,
       );
       expect(nextUnansweredStep(steps), isNull);
     });
 
-    test('sequence is always the same four steps in order', () {
+    // T090: the form of address is a question, not a setting with a default.
+    // Leaving it unanswered must leave the conversation unfinished — otherwise
+    // the Cook is never asked and every one of them is addressed as a man,
+    // which is the whole failure ADR-0010 exists to end.
+    test('the four kitchen details alone do not finish the conversation', () {
+      final steps = kitchenProfileSteps(
+        displayName: 'مطبخ أم علي',
+        story: 'بنطبخ أكل بيتي زي ما أمهاتنا كانت بتعمل',
+        area: 'المعادي',
+        deliveryTerms: 'توصيل في نص ساعة',
+        addressForm: null,
+      );
+      expect(nextUnansweredStep(steps)?.id, ConversationStepId.addressForm);
+    });
+
+    test('sequence is always the same five steps in order', () {
       final steps = kitchenProfileSteps(
         displayName: null,
         story: null,
         area: null,
         deliveryTerms: null,
+        addressForm: null,
       );
       expect(steps.map((s) => s.id), [
         ConversationStepId.displayName,
         ConversationStepId.story,
         ConversationStepId.area,
         ConversationStepId.deliveryTerms,
+        // Last: it is about the conversation rather than about the kitchen.
+        ConversationStepId.addressForm,
       ]);
     });
 
@@ -68,6 +89,7 @@ void main() {
         story: 'بنطبخ أكل بيتي',
         area: null,
         deliveryTerms: null,
+        addressForm: null,
       );
       expect(nextUnansweredStep(steps)?.id, ConversationStepId.area);
     });

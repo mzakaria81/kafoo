@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../kitchen_profile/data/kitchen_profile_repository.dart';
@@ -130,7 +131,7 @@ class _NeedsKitchenScreen extends StatelessWidget {
               ),
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealNeedsKitchenBody,
+                l10n.mealNeedsKitchenBody(context.addressForm),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: KafooSpacing.xl),
@@ -139,7 +140,7 @@ class _NeedsKitchenScreen extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
                 ),
-                child: Text(l10n.mealNeedsKitchenAction),
+                child: Text(l10n.mealNeedsKitchenAction(context.addressForm)),
               ),
             ],
           ),
@@ -166,7 +167,7 @@ class _CheckFailedScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                l10n.mealKitchenCheckError,
+                l10n.mealKitchenCheckError(context.addressForm),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: KafooSpacing.xl),
@@ -175,7 +176,7 @@ class _CheckFailedScreen extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
                 ),
-                child: Text(l10n.mealKitchenCheckRetry),
+                child: Text(l10n.mealKitchenCheckRetry(context.addressForm)),
               ),
             ],
           ),

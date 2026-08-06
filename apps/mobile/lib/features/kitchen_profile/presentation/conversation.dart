@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -104,7 +105,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.convContinue),
+            child: Text(l10n.convContinue(context.addressForm)),
           ),
         ],
       ),
@@ -118,6 +119,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
       story: _draft.story,
       area: _draft.area,
       deliveryTerms: _draft.deliveryTerms,
+      addressForm: _draft.addressForm,
     );
     return nextUnansweredStep(steps)?.id;
   }
@@ -159,10 +161,32 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
           _draft.area = answer;
         case ConversationStepId.deliveryTerms:
           _draft.deliveryTerms = answer;
+        case ConversationStepId.addressForm:
+          // Unreachable: this step has no free-text answer, and _build never
+          // shows the text field on it. Handled rather than defaulted so that
+          // adding a sixth step is a compile error here.
+          return;
       }
       _answerController.clear();
     });
 
+    _recordStepCompleted(step);
+  }
+
+  /// The one step that is answered by choosing rather than by speaking or
+  /// typing. Kept separate from [_acceptAnswer] because there is no text to
+  /// trim, no voice transcript to confirm, and nothing to clear.
+  void _acceptAddressForm(AddressForm form) {
+    setState(() => _draft.addressForm = form);
+    // 'chosen' rather than 'typed' or 'voice': the funnel measures how an
+    // answer arrived, and calling a tap a typed answer would misreport the one
+    // step where typing was never offered. The chosen form itself is not an
+    // attribute — that is the Cook's data, not a measurement (FR-037).
+    _inputMode = 'chosen';
+    _recordStepCompleted(ConversationStepId.addressForm);
+  }
+
+  void _recordStepCompleted(ConversationStepId step) {
     // The drop-off signal the whole funnel exists for. Records which step was
     // answered and how — never the answer itself (FR-037).
     unawaited(emitEvent(
@@ -203,20 +227,34 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
     }
   }
 
-  String _promptFor(AppLocalizations l10n, ConversationStepId step) =>
+  // The Cook's own form is not known until the last step, so every question
+  // before it is asked in the unset form. That is the sequence's cost and it is
+  // the reason the question is asked at all rather than inferred later.
+  String _promptFor(
+    AppLocalizations l10n,
+    ConversationStepId step,
+    String form,
+  ) =>
       switch (step) {
+        // Two of these four carry no gendered word, so they take no form. That
+        // asymmetry is the ARB's to decide, not this screen's.
         ConversationStepId.displayName => l10n.kitchenConvPromptDisplayName,
-        ConversationStepId.story => l10n.kitchenConvPromptStory,
-        ConversationStepId.area => l10n.kitchenConvPromptArea,
+        ConversationStepId.story => l10n.kitchenConvPromptStory(form),
+        ConversationStepId.area => l10n.kitchenConvPromptArea(form),
         ConversationStepId.deliveryTerms => l10n.kitchenConvPromptDeliveryTerms,
+        // No placeholder, on purpose: a question asked in order to learn the
+        // Cook's form cannot itself be gendered, so it is built from
+        // first-person verbs.
+        ConversationStepId.addressForm => l10n.kitchenConvPromptAddressForm,
       };
 
-  String _hintFor(AppLocalizations l10n, ConversationStepId step) =>
+  String? _hintFor(AppLocalizations l10n, ConversationStepId step) =>
       switch (step) {
         ConversationStepId.displayName => l10n.kitchenConvHintDisplayName,
         ConversationStepId.story => l10n.kitchenConvHintStory,
         ConversationStepId.area => l10n.kitchenConvHintArea,
         ConversationStepId.deliveryTerms => l10n.kitchenConvHintDeliveryTerms,
+        ConversationStepId.addressForm => null,
       };
 
   @override
@@ -241,42 +279,77 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
               // Exactly one question is built, ever. There is no list of
               // questions to accidentally render two of.
               ConversationQuestion(
-                prompt: _promptFor(l10n, step),
+                prompt: _promptFor(l10n, step, context.addressForm),
                 hint: _hintFor(l10n, step),
               ),
               const SizedBox(height: KafooSpacing.lg),
-              TextField(
-                controller: _answerController,
-                maxLines: step == ConversationStepId.story ? 4 : 1,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _acceptAnswer(),
-              ),
-              const SizedBox(height: KafooSpacing.md),
-              if (_voiceAvailable)
-                VoiceButton(
-                  listening: _listening,
-                  label: l10n.convVoiceHint,
-                  onPressed: _toggleListening,
-                )
+              if (step == ConversationStepId.addressForm)
+                ..._addressFormChoices(l10n)
               else
-                // research.md §3: recognition missing is the likeliest
-                // real-world outcome. Say so plainly and keep the flow whole.
-                Text(
-                  l10n.convVoiceUnavailable,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              const Spacer(),
-              FilledButton(
-                onPressed: _acceptAnswer,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                child: Text(l10n.convContinue),
-              ),
+                ..._freeTextAnswer(l10n, step),
             ],
           ),
         ),
       ),
     );
   }
+
+  /// Two buttons, no text field and no microphone.
+  ///
+  /// The answer is one of exactly two values, so there is nothing for a Cook to
+  /// phrase and offering a text box would only invite an answer the app then
+  /// has to reject. Each button is labelled with the word it would produce —
+  /// كمّل or كمّلي — so the choice is shown rather than described.
+  List<Widget> _addressFormChoices(AppLocalizations l10n) => [
+        FilledButton(
+          onPressed: () => _acceptAddressForm(AddressForm.masculine),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+          ),
+          child: Text(l10n.kitchenConvAddressFormMasculine),
+        ),
+        const SizedBox(height: KafooSpacing.md),
+        FilledButton(
+          onPressed: () => _acceptAddressForm(AddressForm.feminine),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+          ),
+          child: Text(l10n.kitchenConvAddressFormFeminine),
+        ),
+      ];
+
+  List<Widget> _freeTextAnswer(
+    AppLocalizations l10n,
+    ConversationStepId step,
+  ) =>
+      [
+        TextField(
+          controller: _answerController,
+          maxLines: step == ConversationStepId.story ? 4 : 1,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _acceptAnswer(),
+        ),
+        const SizedBox(height: KafooSpacing.md),
+        if (_voiceAvailable)
+          VoiceButton(
+            listening: _listening,
+            label: l10n.convVoiceHint(context.addressForm),
+            onPressed: _toggleListening,
+          )
+        else
+          // research.md §3: recognition missing is the likeliest
+          // real-world outcome. Say so plainly and keep the flow whole.
+          Text(
+            l10n.convVoiceUnavailable(context.addressForm),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        const Spacer(),
+        FilledButton(
+          onPressed: _acceptAnswer,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+          ),
+          child: Text(l10n.convContinue(context.addressForm)),
+        ),
+      ];
 }

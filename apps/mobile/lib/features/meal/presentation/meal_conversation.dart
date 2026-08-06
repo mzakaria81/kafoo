@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -172,15 +173,16 @@ class _MealConversationScreenState
 
   String _promptFor(AppLocalizations l10n, MealStepId step) => switch (step) {
         MealStepId.dish => l10n.mealConvPromptDish,
-        MealStepId.description => l10n.mealConvPromptDescription,
+        MealStepId.description =>
+          l10n.mealConvPromptDescription(context.addressForm),
         MealStepId.photo => l10n.mealConvPromptPhoto,
-        MealStepId.price => l10n.mealConvPromptPrice,
+        MealStepId.price => l10n.mealConvPromptPrice(context.addressForm),
       };
 
   String _hintFor(AppLocalizations l10n, MealStepId step) => switch (step) {
         MealStepId.dish => l10n.mealConvHintDish,
         MealStepId.description => l10n.mealConvHintDescription,
-        MealStepId.photo => l10n.mealConvHintPhoto,
+        MealStepId.photo => l10n.mealConvHintPhoto(context.addressForm),
         MealStepId.price => l10n.mealConvHintPrice,
       };
 
@@ -248,12 +250,12 @@ class _MealConversationScreenState
                 if (_voiceAvailable)
                   VoiceButton(
                     listening: _listening,
-                    label: l10n.convVoiceHint,
+                    label: l10n.convVoiceHint(context.addressForm),
                     onPressed: _toggleListening,
                   )
                 else
                   Text(
-                    l10n.convVoiceUnavailable,
+                    l10n.convVoiceUnavailable(context.addressForm),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
               ],
@@ -280,7 +282,7 @@ class _MealConversationScreenState
                       minimumSize:
                           const Size.fromHeight(KafooSpacing.minTapTarget),
                     ),
-                    child: Text(l10n.mealConvPhotoAdd),
+                    child: Text(l10n.mealConvPhotoAdd(context.addressForm)),
                   ),
                 const SizedBox(height: KafooSpacing.sm),
                 OutlinedButton(
@@ -289,7 +291,7 @@ class _MealConversationScreenState
                     minimumSize:
                         const Size.fromHeight(KafooSpacing.minTapTarget),
                   ),
-                  child: Text(l10n.mealConvPhotoSkip),
+                  child: Text(l10n.mealConvPhotoSkip(context.addressForm)),
                 ),
               ] else
                 FilledButton(
@@ -298,7 +300,7 @@ class _MealConversationScreenState
                     minimumSize:
                         const Size.fromHeight(KafooSpacing.minTapTarget),
                   ),
-                  child: Text(l10n.convContinue),
+                  child: Text(l10n.convContinue(context.addressForm)),
                 ),
             ],
           ),
@@ -313,7 +315,7 @@ class _MealConversationScreenState
   /// failure to write the draft.
   String _errorText(AppLocalizations l10n, AppError error) =>
       switch (error.messageKey) {
-        'mealPhotoError' => l10n.mealPhotoError,
-        _ => l10n.mealSaveError,
+        'mealPhotoError' => l10n.mealPhotoError(context.addressForm),
+        _ => l10n.mealSaveError(context.addressForm),
       };
 }

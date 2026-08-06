@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
@@ -77,8 +78,10 @@ class _EmailSignInScreenState extends State<EmailSignInScreen> {
         setState(() {
           _busy = false;
           _error = error.messageKey == 'emailSignInUnknown'
-              ? AppLocalizations.of(context).emailSignInUnknown
-              : AppLocalizations.of(context).signInNetworkError;
+              ? AppLocalizations.of(context)
+                  .emailSignInUnknown(context.addressForm)
+              : AppLocalizations.of(context)
+                  .signInNetworkError(context.addressForm);
         });
     }
   }
@@ -114,7 +117,8 @@ class _EmailSignInScreenState extends State<EmailSignInScreen> {
         ));
         setState(() {
           _busy = false;
-          _error = AppLocalizations.of(context).codeWrongCode;
+          _error =
+              AppLocalizations.of(context).codeWrongCode(context.addressForm);
         });
     }
   }
@@ -123,14 +127,14 @@ class _EmailSignInScreenState extends State<EmailSignInScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.emailSignInTitle)),
+      appBar: AppBar(title: Text(l10n.emailSignInTitle(context.addressForm))),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.emailSignInBody),
+              Text(l10n.emailSignInBody(context.addressForm)),
               const SizedBox(height: KafooSpacing.lg),
               TextField(
                 controller: _emailController,
@@ -151,7 +155,7 @@ class _EmailSignInScreenState extends State<EmailSignInScreen> {
                   textDirection: TextDirection.ltr,
                   maxLength: 6,
                   decoration: InputDecoration(
-                    labelText: l10n.codeTitle,
+                    labelText: l10n.codeTitle(context.addressForm),
                     errorText: _error,
                   ),
                   onSubmitted: (_) => _verify(),
@@ -169,7 +173,7 @@ class _EmailSignInScreenState extends State<EmailSignInScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(l10n.signInContinue),
+                    : Text(l10n.signInContinue(context.addressForm)),
               ),
             ],
           ),

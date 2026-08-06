@@ -12,28 +12,90 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appTitle => 'كفو';
 
   @override
-  String get publishMeal => 'انشر الأكلة';
+  String publishMeal(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'انشري الأكلة',
+        'other': 'انشر الأكلة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get archiveMeal => 'أرشف الأكلة';
+  String archiveMeal(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أرشفي الأكلة',
+        'other': 'أرشف الأكلة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get acceptOrder => 'اقبل الطلب';
+  String acceptOrder(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اقبلي الطلب',
+        'other': 'اقبل الطلب',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get rejectOrder => 'ارفض الطلب';
+  String rejectOrder(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ارفضي الطلب',
+        'other': 'ارفض الطلب',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get orderRejected =>
-      'الطباخ مقدرش ياخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخ تاني.';
+  String orderRejected(String cookForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      cookForm,
+      {
+        'feminine':
+            'الطباخة مقدرتش تاخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخة تانية.',
+        'other':
+            'الطباخ مقدرش ياخد الطلب دلوقتي. جرب أكلة تانية أو اطلب من طباخ تاني.',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get networkUnavailable =>
-      'مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.';
+  String networkUnavailable(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اطمني إن النت شغال وجربي',
+        'other': 'اطمن إن النت شغال وجرب',
+      },
+    );
+    return 'مفيش اتصال بالنت. $_temp0 تاني.';
+  }
 
   @override
-  String get aiEstimateNotice =>
-      'دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من الطباخ.';
+  String aiEstimateNotice(String cookForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      cookForm,
+      {
+        'feminine': 'الطباخة.',
+        'other': 'الطباخ.',
+      },
+    );
+    return 'دي تقديرات من المساعد الذكي، لسه محتاجة تأكيد من $_temp0';
+  }
 
   @override
   String get signInTitle => 'أهلاً بيك في كفو';
@@ -42,15 +104,40 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signInPhoneLabel => 'رقم موبايلك';
 
   @override
-  String get signInContinue => 'كمّل';
-
-  @override
-  String signInRateLimited(int minutes) {
-    return 'جربت كتير. استنى $minutes دقيقة وبعدين جرب تاني.';
+  String signInContinue(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'كمّلي',
+        'other': 'كمّل',
+      },
+    );
+    return '$_temp0';
   }
 
   @override
-  String get codeTitle => 'ادخل الكود';
+  String signInRateLimited(int minutes, String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربت كتير. استني $minutes دقيقة وبعدين جربي تاني.',
+        'other': 'جربت كتير. استنى $minutes دقيقة وبعدين جرب تاني.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String codeTitle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ادخلي الكود',
+        'other': 'ادخل الكود',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String codeSubtitle(String phone) {
@@ -58,29 +145,92 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get codeWrongCode => 'الكود غلط. جرب تاني.';
+  String codeWrongCode(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الكود غلط. جربي تاني.',
+        'other': 'الكود غلط. جرب تاني.',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get codeExpired => 'الكود انتهى. اطلب كود جديد.';
+  String codeExpired(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اطلبي',
+        'other': 'اطلب',
+      },
+    );
+    return 'الكود انتهى. $_temp0 كود جديد.';
+  }
 
   @override
-  String get codeResend => 'ابعت كود جديد';
+  String codeResend(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ابعتي كود جديد',
+        'other': 'ابعت كود جديد',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get signInNetworkError =>
-      'مفيش اتصال بالنت. اطمن إن النت شغال وجرب تاني.';
+  String signInNetworkError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اطمني إن النت شغال وجربي',
+        'other': 'اطمن إن النت شغال وجرب',
+      },
+    );
+    return 'مفيش اتصال بالنت. $_temp0 تاني.';
+  }
 
   @override
   String get kitchenConvPromptDisplayName => 'مطبخك اسمه إيه؟';
 
   @override
-  String get kitchenConvPromptStory => 'قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟';
+  String kitchenConvPromptStory(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قوليلي عن طبخك. بتعملي إيه وبتعمليه',
+        'other': 'قولّي عن طبخك. بتعمل إيه وبتعمله',
+      },
+    );
+    return '$_temp0 إزاي؟';
+  }
 
   @override
-  String get kitchenConvPromptArea => 'في أنهي منطقة بتشتغل؟';
+  String kitchenConvPromptArea(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'في أنهي منطقة بتشتغلي؟',
+        'other': 'في أنهي منطقة بتشتغل؟',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get kitchenConvPromptDeliveryTerms => 'إزاي الناس بتاخد أكلها منك؟';
+
+  @override
+  String get kitchenConvPromptAddressForm =>
+      'عشان أكلمك صح — أقولّك \"كمّل\" ولا \"كمّلي\"؟';
+
+  @override
+  String get kitchenConvAddressFormMasculine => 'كمّل';
+
+  @override
+  String get kitchenConvAddressFormFeminine => 'كمّلي';
 
   @override
   String get kitchenConvHintDisplayName => 'مثلاً: مطبخ أم علي';
@@ -97,23 +247,67 @@ class AppLocalizationsAr extends AppLocalizations {
       'مثلاً: بنوصّل في ساعة أو بتيجي تاخد بنفسك';
 
   @override
-  String get convContinue => 'كمّل';
+  String convContinue(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'كمّلي',
+        'other': 'كمّل',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get convVoiceHint => 'قول إجابتك بصوتك';
+  String convVoiceHint(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قولي إجابتك بصوتك',
+        'other': 'قول إجابتك بصوتك',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get convVoiceUnavailable =>
-      'التعرف على الصوت مش متاح. ممكن تكتب إجابتك بدل كده.';
+  String convVoiceUnavailable(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تكتبي',
+        'other': 'تكتب',
+      },
+    );
+    return 'التعرف على الصوت مش متاح. ممكن $_temp0 إجابتك بدل كده.';
+  }
 
   @override
   String get kitchenConvSummaryTitle => 'ده اللي قلته';
 
   @override
-  String get kitchenConvSummaryConfirm => 'تمام، احفظ';
+  String kitchenConvSummaryConfirm(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تمام، احفظي',
+        'other': 'تمام، احفظ',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get convEdit => 'غيّر';
+  String convEdit(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'غيّري',
+        'other': 'غيّر',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get kitchenConvLabelDisplayName => 'اسم المطبخ';
@@ -128,17 +322,46 @@ class AppLocalizationsAr extends AppLocalizations {
   String get kitchenConvLabelDeliveryTerms => 'طريقة الاستلام';
 
   @override
+  String get kitchenConvLabelAddressForm => 'طريقة مخاطبتك';
+
+  @override
   String get kitchenConvLabelPhoto => 'صورة المطبخ';
 
   @override
-  String get kitchenConvPhotoAdd => 'ضيف صورة';
+  String kitchenConvPhotoAdd(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ضيفي صورة',
+        'other': 'ضيف صورة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get kitchenConvSaveError => 'حصل مشكلة أثناء الحفظ. جرب تاني.';
+  String kitchenConvSaveError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'حصل مشكلة أثناء الحفظ. $_temp0 تاني.';
+  }
 
   @override
-  String get kitchenConvPhotoError =>
-      'الصورة ما اتحملتش. ممكن تكمل من غير صورة.';
+  String kitchenConvPhotoError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تكملي',
+        'other': 'تكمل',
+      },
+    );
+    return 'الصورة ما اتحملتش. ممكن $_temp0 من غير صورة.';
+  }
 
   @override
   String get kitchenExistsTitle => 'عندك مطبخ بالفعل';
@@ -156,7 +379,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get kitchenEditNewValue => 'الجديد';
 
   @override
-  String get kitchenEditSave => 'احفظ التغيير';
+  String kitchenEditSave(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'احفظي التغيير',
+        'other': 'احفظ التغيير',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get kitchenEditCancel => 'إلغاء';
@@ -165,7 +397,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get kitchenEditSaved => 'اتغيّر';
 
   @override
-  String get removeAccountEntry => 'امسح حسابي';
+  String removeAccountEntry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'امسحي حسابي',
+        'other': 'امسح حسابي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get removeAccountTitle => 'مسح الحساب';
@@ -175,27 +416,70 @@ class AppLocalizationsAr extends AppLocalizations {
       'هيتمسح حسابك وكل حاجة فيه: مطبخك وصورته. مش هينفع نرجّعهم بعد كده.';
 
   @override
-  String get removeAccountConfirm => 'امسح حسابي';
+  String removeAccountConfirm(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'امسحي حسابي',
+        'other': 'امسح حسابي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get removeAccountCancel => 'رجوع';
 
   @override
-  String get removeAccountError =>
-      'مقدرناش نمسح الحساب. حسابك زي ما هو، جرب تاني.';
+  String removeAccountError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مقدرناش نمسح الحساب. حسابك زي ما هو، $_temp0 تاني.';
+  }
 
   @override
-  String get recoveryEmailTitle => 'تحب تضيف إيميل؟';
+  String recoveryEmailTitle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تحبي تضيفي إيميل؟',
+        'other': 'تحب تضيف إيميل؟',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get recoveryEmailBody =>
-      'لو ضاع منك رقمك، الإيميل هو اللي هيخليك توصل لحسابك تاني. مش مطلوب، وممكن تسيبه دلوقتي.';
+  String recoveryEmailBody(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'توصلي لحسابك تاني. مش مطلوب، وممكن تسيبيه',
+        'other': 'توصل لحسابك تاني. مش مطلوب، وممكن تسيبه',
+      },
+    );
+    return 'لو ضاع منك رقمك، الإيميل هو اللي هيخليك $_temp0 دلوقتي.';
+  }
 
   @override
   String get recoveryEmailLabel => 'الإيميل بتاعك';
 
   @override
-  String get recoveryEmailAttach => 'ضيف الإيميل';
+  String recoveryEmailAttach(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ضيفي الإيميل',
+        'other': 'ضيف الإيميل',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get recoveryEmailDecline => 'مش دلوقتي';
@@ -205,86 +489,256 @@ class AppLocalizationsAr extends AppLocalizations {
       'تمام، ابعتنا لك رسالة تأكيد على الإيميل.';
 
   @override
-  String get recoveryEmailError => 'مقدرناش نضيف الإيميل. جرب تاني.';
+  String recoveryEmailError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مقدرناش نضيف الإيميل. $_temp0 تاني.';
+  }
 
   @override
-  String get signInLostNumber => 'مش قادر توصل لرقمك؟';
+  String signInLostNumber(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'مش قادرة توصلي لرقمك؟',
+        'other': 'مش قادر توصل لرقمك؟',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get emailSignInTitle => 'ادخل بالإيميل';
+  String emailSignInTitle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ادخلي بالإيميل',
+        'other': 'ادخل بالإيميل',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get emailSignInBody =>
-      'لو كنت ضايف إيميل لحسابك قبل كده، اكتبه هنا وهنبعتلك كود.';
+  String emailSignInBody(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'كنتي ضايفة إيميل لحسابك قبل كده، اكتبيه',
+        'other': 'كنت ضايف إيميل لحسابك قبل كده، اكتبه',
+      },
+    );
+    return 'لو $_temp0 هنا وهنبعتلك كود.';
+  }
 
   @override
   String get emailSignInLabel => 'الإيميل';
 
   @override
-  String get emailSignInUnknown =>
-      'الإيميل ده مش مربوط بأي حساب. جرب تدخل برقم موبايلك.';
+  String emailSignInUnknown(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تدخلي',
+        'other': 'جرب تدخل',
+      },
+    );
+    return 'الإيميل ده مش مربوط بأي حساب. $_temp0 برقم موبايلك.';
+  }
 
   @override
-  String get changePhoneTitle => 'غيّر رقم الموبايل';
+  String changePhoneTitle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'غيّري رقم الموبايل',
+        'other': 'غيّر رقم الموبايل',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get changePhoneBody =>
-      'اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده الرقم القديم هيبطل يوصل لحسابك.';
+  String changePhoneBody(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اكتبي الرقم الجديد. هنبعتلك كود عليه، ولما تأكديه',
+        'other': 'اكتب الرقم الجديد. هنبعتلك كود عليه، ولما تأكده',
+      },
+    );
+    return '$_temp0 الرقم القديم هيبطل يوصل لحسابك.';
+  }
 
   @override
   String get changePhoneLabel => 'الرقم الجديد';
 
   @override
-  String get changePhoneEntry => 'غيّر رقم الموبايل';
+  String changePhoneEntry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'غيّري رقم الموبايل',
+        'other': 'غيّر رقم الموبايل',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get changePhoneDone => 'الرقم اتغيّر. الرقم القديم مبقاش يوصل لحسابك.';
 
   @override
-  String get changePhoneError =>
-      'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، جرب تاني.';
+  String changePhoneError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، $_temp0 تاني.';
+  }
 
   @override
-  String get aiMealAnalysisInvalid =>
-      'مش قادرين نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.';
+  String aiMealAnalysisInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني، أو اكتبي',
+        'other': 'جرب تاني، أو اكتب',
+      },
+    );
+    return 'مش قادرين نفهم رد المساعد الذكي. $_temp0 التفاصيل بنفسك.';
+  }
 
   @override
-  String get aiPromptNotStubbed =>
-      'المساعد الذكي مش متاح دلوقتي. كمل بنفسك وهنجرب تاني بعدين.';
+  String aiPromptNotStubbed(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'كملي',
+        'other': 'كمل',
+      },
+    );
+    return 'المساعد الذكي مش متاح دلوقتي. $_temp0 بنفسك وهنجرب تاني بعدين.';
+  }
 
   @override
-  String get analyzeMealUnauthorized => 'سجل دخولك الأول وجرب تاني.';
+  String analyzeMealUnauthorized(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'سجّلي دخولك الأول وجربي',
+        'other': 'سجل دخولك الأول وجرب',
+      },
+    );
+    return '$_temp0 تاني.';
+  }
 
   @override
   String get analyzeMealNotOwned => 'الأكلة دي مش ليك.';
 
   @override
-  String get analyzeMealRateLimited =>
-      'جربت كتير في وقت قليل. استنى شوية وجرب تاني.';
+  String analyzeMealRateLimited(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'استني شوية وجربي',
+        'other': 'استنى شوية وجرب',
+      },
+    );
+    return 'جربت كتير في وقت قليل. $_temp0 تاني.';
+  }
 
   @override
-  String get analyzeMealTimeout => 'الرد اخد وقت طويل. جرب تاني.';
+  String analyzeMealTimeout(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'الرد اخد وقت طويل. $_temp0 تاني.';
+  }
 
   @override
-  String get analyzeMealInvalidResponse =>
-      'مقدرناش نفهم رد المساعد الذكي. جرب تاني، أو اكتب التفاصيل بنفسك.';
+  String analyzeMealInvalidResponse(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني، أو اكتبي',
+        'other': 'جرب تاني، أو اكتب',
+      },
+    );
+    return 'مقدرناش نفهم رد المساعد الذكي. $_temp0 التفاصيل بنفسك.';
+  }
 
   @override
-  String get analyzeMealProviderError =>
-      'المساعد الذكي مش متاح دلوقتي. جرب تاني بعدين، أو اكتب التفاصيل بنفسك.';
+  String analyzeMealProviderError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني بعدين، أو اكتبي',
+        'other': 'جرب تاني بعدين، أو اكتب',
+      },
+    );
+    return 'المساعد الذكي مش متاح دلوقتي. $_temp0 التفاصيل بنفسك.';
+  }
 
   @override
-  String get analyzeMealServerError => 'حصل مشكلة من ناحيتنا. جرب تاني.';
+  String analyzeMealServerError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'حصل مشكلة من ناحيتنا. $_temp0 تاني.';
+  }
 
   @override
-  String get analyzeMealUnknownError =>
-      'حصل مشكلة مش متوقعة. جرب تاني، أو اكتب التفاصيل بنفسك.';
+  String analyzeMealUnknownError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني، أو اكتبي',
+        'other': 'جرب تاني، أو اكتب',
+      },
+    );
+    return 'حصل مشكلة مش متوقعة. $_temp0 التفاصيل بنفسك.';
+  }
 
   @override
-  String get mealSaveError => 'مقدرناش نحفظ الأكلة. جرب تاني.';
+  String mealSaveError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مقدرناش نحفظ الأكلة. $_temp0 تاني.';
+  }
 
   @override
-  String get mealPhotoError => 'الصورة ما اتحملتش. ممكن تكمل من غير صورة.';
+  String mealPhotoError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تكملي',
+        'other': 'تكمل',
+      },
+    );
+    return 'الصورة ما اتحملتش. ممكن $_temp0 من غير صورة.';
+  }
 
   @override
   String get mealConvPromptDish => 'طبخت إيه؟';
@@ -293,7 +747,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealConvHintDish => 'مثلاً: كشري، محشي، فراخ بانيه';
 
   @override
-  String get mealConvPromptDescription => 'قولّي عنها. فيها إيه وبتتعمل إزاي؟';
+  String mealConvPromptDescription(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قوليلي',
+        'other': 'قولّي',
+      },
+    );
+    return '$_temp0 عنها. فيها إيه وبتتعمل إزاي؟';
+  }
 
   @override
   String get mealConvHintDescription =>
@@ -303,21 +766,56 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealConvPromptPhoto => 'في صورة للأكلة؟';
 
   @override
-  String get mealConvHintPhoto =>
-      'الصورة بتخلّي الناس تطلب أكتر، وتقدر تعدّيها لو مش عايز';
+  String mealConvHintPhoto(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'وتقدري تعدّيها لو مش عايزة',
+        'other': 'وتقدر تعدّيها لو مش عايز',
+      },
+    );
+    return 'الصورة بتخلّي الناس تطلب أكتر، $_temp0';
+  }
 
   @override
   String get mealConvPhotoDisclosure =>
       'لو بعت صورة، المساعد هيبصّ عليها عشان يقدّر المكوّنات والسعرات، ومش هنستخدمها في أي حاجة تانية.';
 
   @override
-  String get mealConvPhotoSkip => 'كمّل من غير صورة';
+  String mealConvPhotoSkip(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'كمّلي من غير صورة',
+        'other': 'كمّل من غير صورة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealConvPhotoAdd => 'ضيف صورة للأكلة';
+  String mealConvPhotoAdd(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ضيفي صورة للأكلة',
+        'other': 'ضيف صورة للأكلة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealConvPromptPrice => 'بتبيعها بكام؟';
+  String mealConvPromptPrice(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'بتبيعيها بكام؟',
+        'other': 'بتبيعها بكام؟',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get mealConvHintPrice => 'سعر الطبق كامل بالجنيه';
@@ -330,13 +828,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealConvPromptCuisine => 'الأكلة دي من أنهي مطبخ؟';
 
   @override
-  String get mealConvHintCuisine => 'اختار اللي أقرب لأكلتك';
+  String mealConvHintCuisine(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اختاري اللي أقرب لأكلتك',
+        'other': 'اختار اللي أقرب لأكلتك',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get mealConvPromptCategory => 'ودي أكلة إيه؟ طبق رئيسي، حلو، شوربة؟';
 
   @override
-  String get mealConvHintCategory => 'اختار اللي أقرب';
+  String mealConvHintCategory(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اختاري اللي أقرب',
+        'other': 'اختار اللي أقرب',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get mealSummaryTitle => 'ده اللي قلته عن الأكلة';
@@ -357,7 +873,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealSummaryNoPhoto => 'من غير صورة';
 
   @override
-  String get mealSummaryConfirm => 'تمام، انشرها';
+  String mealSummaryConfirm(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تمام، انشريها',
+        'other': 'تمام، انشرها',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get cuisineEgyptian => 'مصري';
@@ -420,8 +945,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealSummaryEstimatesTitle => 'تقديرات المساعد';
 
   @override
-  String get mealSummaryEstimatesNotice =>
-      'دي تقديرات من المساعد، مش حاجة مؤكدة. راجعها وأكّدها قبل ما تنشر.';
+  String mealSummaryEstimatesNotice(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'راجعيها وأكّديها قبل ما تنشري.',
+        'other': 'راجعها وأكّدها قبل ما تنشر.',
+      },
+    );
+    return 'دي تقديرات من المساعد، مش حاجة مؤكدة. $_temp0';
+  }
 
   @override
   String get mealSummaryEstimateBadge => 'تقدير';
@@ -456,11 +989,28 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get mealSummaryNoEstimates =>
-      'المساعد مقدرش يقدّر حاجة. اكتب التفاصيل بنفسك.';
+  String mealSummaryNoEstimates(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اكتبي',
+        'other': 'اكتب',
+      },
+    );
+    return 'المساعد مقدرش يقدّر حاجة. $_temp0 التفاصيل بنفسك.';
+  }
 
   @override
-  String get mealPublishError => 'مقدرناش ننشر الأكلة. جرب تاني.';
+  String mealPublishError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مقدرناش ننشر الأكلة. $_temp0 تاني.';
+  }
 
   @override
   String get mealPublishedConfirmation => 'الأكلة بقت على المنيو.';
@@ -477,17 +1027,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get publicMealCaloriesUnknown => 'السعرات مش متحسبة';
 
   @override
-  String get publicMealAllergensUnknown =>
-      'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل الطباخ.';
+  String publicMealAllergensUnknown(String cookForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      cookForm,
+      {
+        'feminine': 'الطباخة.',
+        'other': 'الطباخ.',
+      },
+    );
+    return 'مفيش حساسية متسجلة. لو عندك حساسية من حاجة، اسأل $_temp0';
+  }
 
   @override
-  String get publicMealNutritionFromCook => 'الأرقام دي من الطباخ نفسه.';
+  String publicMealNutritionFromCook(String cookForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      cookForm,
+      {
+        'feminine': 'الطباخة نفسها.',
+        'other': 'الطباخ نفسه.',
+      },
+    );
+    return 'الأرقام دي من $_temp0';
+  }
 
   @override
   String get myMealsTitle => 'أكلاتي';
 
   @override
-  String get myMealsEmpty => 'لسه مافيش أكلات. ابدأ واحدة.';
+  String myMealsEmpty(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ابدئي',
+        'other': 'ابدأ',
+      },
+    );
+    return 'لسه مافيش أكلات. $_temp0 واحدة.';
+  }
 
   @override
   String get myMealsStatusDraft => 'مسودة';
@@ -502,58 +1078,200 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myMealsStatusArchived => 'اتشالت خلاص';
 
   @override
-  String get mealMakeUnavailable => 'شيلها من المنيو';
+  String mealMakeUnavailable(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'شيليها من المنيو',
+        'other': 'شيلها من المنيو',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealMakeAvailable => 'رجّعها للمنيو';
+  String mealMakeAvailable(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'رجّعيها للمنيو',
+        'other': 'رجّعها للمنيو',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealLastOnOfferWarning =>
-      'دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما ترجّع حاجة.';
+  String mealLastOnOfferWarning(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'ترجّعي',
+        'other': 'ترجّع',
+      },
+    );
+    return 'دي آخر أكلة على المنيو. لو شيلتها، محدش هيلاقي مطبخك لحد ما $_temp0 حاجة.';
+  }
 
   @override
-  String get mealLastOnOfferConfirm => 'شيلها برضه';
+  String mealLastOnOfferConfirm(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'شيليها برضه',
+        'other': 'شيلها برضه',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealLastOnOfferCancel => 'سيبها زي ما هي';
+  String mealLastOnOfferCancel(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'سيبيها زي ما هي',
+        'other': 'سيبها زي ما هي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealLoadError => 'مانفعش نجيب أكلاتك. جرب تاني.';
+  String mealLoadError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مانفعش نجيب أكلاتك. $_temp0 تاني.';
+  }
 
   @override
-  String get mealAvailabilityError => 'مانفعش نغير حالة الأكلة. جرب تاني.';
+  String mealAvailabilityError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مانفعش نغير حالة الأكلة. $_temp0 تاني.';
+  }
 
   @override
-  String get mealDeleteError => 'مانفعش نمسح المسودة. جرب تاني.';
+  String mealDeleteError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مانفعش نمسح المسودة. $_temp0 تاني.';
+  }
 
   @override
-  String get mealLoadRetry => 'حاول تاني';
+  String mealLoadRetry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'حاولي تاني',
+        'other': 'حاول تاني',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealRetire => 'شيلها نهائي';
+  String mealRetire(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'شيليها نهائي',
+        'other': 'شيلها نهائي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get mealRetireWarning =>
       'الأكلة دي هتتشال من المنيو نهائي ومش هترجع تاني أبداً. هتفضل محفوظة في قايمتك بس محدش تاني هيشوفها.';
 
   @override
-  String get mealRetireConfirm => 'شيلها نهائي';
+  String mealRetireConfirm(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'شيليها نهائي',
+        'other': 'شيلها نهائي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealRetireCancel => 'سيبها زي ما هي';
+  String mealRetireCancel(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'سيبيها زي ما هي',
+        'other': 'سيبها زي ما هي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealDeleteDraft => 'امسح المسودة';
+  String mealDeleteDraft(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'امسحي المسودة',
+        'other': 'امسح المسودة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealDeleteDraftWarning =>
-      'المسودة دي هتتمسح خالص ومش هتقدر ترجعها.';
+  String mealDeleteDraftWarning(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'هتقدري ترجعيها.',
+        'other': 'هتقدر ترجعها.',
+      },
+    );
+    return 'المسودة دي هتتمسح خالص ومش $_temp0';
+  }
 
   @override
-  String get mealDeleteDraftConfirm => 'امسحها';
+  String mealDeleteDraftConfirm(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'امسحيها',
+        'other': 'امسحها',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealEditTitle => 'عدّل الأكلة';
+  String mealEditTitle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'عدّلي الأكلة',
+        'other': 'عدّل الأكلة',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get mealEditSaved => 'اتغيّرت.';
@@ -565,17 +1283,54 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mealNeedsKitchenTitle => 'لسه معندكش مطبخ';
 
   @override
-  String get mealNeedsKitchenBody =>
-      'قبل ما تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.';
+  String mealNeedsKitchenBody(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'تعرضي أكلة، الناس لازم تعرف مين اللي بيطبخها. اعملي مطبخك الأول وبعدين كمّلي.',
+        'other':
+            'تعرض أكلة، الناس لازم تعرف مين اللي بيطبخها. اعمل مطبخك الأول وبعدين كمّل.',
+      },
+    );
+    return 'قبل ما $_temp0';
+  }
 
   @override
-  String get mealNeedsKitchenAction => 'اعمل مطبخي';
+  String mealNeedsKitchenAction(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اعملي مطبخي',
+        'other': 'اعمل مطبخي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get mealKitchenCheckError => 'مقدرناش نتأكد من مطبخك. جرب تاني.';
+  String mealKitchenCheckError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مقدرناش نتأكد من مطبخك. $_temp0 تاني.';
+  }
 
   @override
-  String get mealKitchenCheckRetry => 'جرب تاني';
+  String mealKitchenCheckRetry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني',
+        'other': 'جرب تاني',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsNoPriceYet => 'لسه من غير سعر';
@@ -584,5 +1339,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myMealsUntitledDraft => 'مسودة من غير اسم';
 
   @override
-  String get mealResumeDraft => 'كمّل الأكلة دي';
+  String mealResumeDraft(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'كمّلي الأكلة دي',
+        'other': 'كمّل الأكلة دي',
+      },
+    );
+    return '$_temp0';
+  }
 }

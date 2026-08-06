@@ -92,7 +92,8 @@ Map<String, Widget> _screens() => {
       // onOpenKitchen is supplied so the Kitchen Profile link exists. It is
       // the only interactive widget on this screen, so without it the
       // tap-target sweep below would pass by having nothing to measure.
-      'public meal': PublicMealView(meal: _meal, onOpenKitchen: () {}),
+      'public meal': PublicMealView(
+          meal: _meal, cookAddressForm: null, onOpenKitchen: () {}),
       // A published Meal so the availability control exists for tap-target
       // measurement — the only interactive widget on this screen.
       'my meals': ProviderScope(

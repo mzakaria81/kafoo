@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/identity/presentation/change_phone_screen.dart';
 import 'features/identity/presentation/remove_account_screen.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
+import 'features/kitchen_profile/data/kitchen_profile_repository.dart';
 import 'features/kitchen_profile/presentation/conversation.dart';
+import 'l10n/address_form.dart';
 import 'l10n/app_localizations.dart';
 
 // URL and key come from --dart-define at build time. They must never be
@@ -66,6 +71,10 @@ class KafooApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: KafooColors.primary),
         useMaterial3: true,
       ),
+      // Above the Navigator on purpose. A pushed route is not a descendant of
+      // the widget that pushed it, so a scope placed inside [home] would be
+      // invisible to every screen reached by pushing — which is all of them.
+      builder: (context, child) => _AddressFormLoader(child: child!),
       home: const _AuthGate(),
     );
   }
@@ -90,6 +99,71 @@ class _AuthGate extends StatelessWidget {
       },
     );
   }
+}
+
+/// Reads the signed-in Cook's form of address once, and publishes it to
+/// everything below.
+///
+/// It renders its child immediately in the unset form and swaps in the stored
+/// one when the read lands, rather than holding a spinner over the whole
+/// signed-in surface. A grammatical preference is not worth a blocked first
+/// frame against a 2 s launch budget, and the unset form is a correct sentence
+/// rather than a placeholder — so the worst case is one repaint, not a flash of
+/// something wrong.
+///
+/// Someone who is not a Cook has no Kitchen Profile and therefore no stored
+/// form. They get `other`, which is the same answer they got before this
+/// existed.
+class _AddressFormLoader extends StatefulWidget {
+  const _AddressFormLoader({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_AddressFormLoader> createState() => _AddressFormLoaderState();
+}
+
+class _AddressFormLoaderState extends State<_AddressFormLoader> {
+  static const _repository = SupabaseKitchenProfileRepository();
+  late final StreamSubscription<AuthState> _auth;
+  AddressForm? _form;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-read on every auth change rather than once at startup. Signing in is
+    // what makes a Kitchen Profile readable at all, and signing out must drop
+    // the previous Cook's form — otherwise the next person on the same device
+    // is addressed in a stranger's grammar.
+    _auth = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+      unawaited(_load());
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_auth.cancel());
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final result = await _repository.findMine();
+    if (!mounted) return;
+    // A failed read is not worth surfacing: the consequence is that a Cook is
+    // addressed in the unset form for this launch, which every Cook was until
+    // ADR-0010. Blocking the home screen on it would be the larger failure.
+    final form = switch (result) {
+      Success(value: final profile?) => profile.addressForm,
+      _ => null,
+    };
+    if (form != _form) setState(() => _form = form);
+  }
+
+  @override
+  Widget build(BuildContext context) => AddressFormScope(
+        form: icuAddressForm(_form),
+        child: widget.child,
+      );
 }
 
 /// The signed-in surface.
@@ -133,7 +207,7 @@ class _SignedInHome extends StatelessWidget {
                     builder: (_) => const ChangePhoneScreen(),
                   ),
                 ),
-                child: Text(l10n.changePhoneEntry),
+                child: Text(l10n.changePhoneEntry(context.addressForm)),
               ),
               const Spacer(),
               // SC-011: leaving is reachable in one step from the first screen
@@ -150,7 +224,7 @@ class _SignedInHome extends StatelessWidget {
                     builder: (_) => const RemoveAccountScreen(),
                   ),
                 ),
-                child: Text(l10n.removeAccountEntry),
+                child: Text(l10n.removeAccountEntry(context.addressForm)),
               ),
             ],
           ),

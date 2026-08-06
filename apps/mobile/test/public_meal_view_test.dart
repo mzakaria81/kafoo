@@ -53,7 +53,8 @@ void main() {
   testWidgets(
       'renders the dish, its price, its description and its ingredients',
       (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealAi)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealAi, cookAddressForm: null)));
     await tester.pumpAndSettle();
 
     expect(find.text('كشري'), findsWidgets);
@@ -66,13 +67,14 @@ void main() {
   });
 
   testWidgets('an AI-sourced figure is marked as an estimate', (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealAi)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealAi, cookAddressForm: null)));
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)));
 
     // The estimate notice text is on screen.
-    expect(find.text(l10n.aiEstimateNotice), findsOneWidget);
+    expect(find.text(l10n.aiEstimateNotice('other')), findsOneWidget);
 
     // The estimate badge appears once per marked row (calories + allergens = 2).
     expect(find.text(l10n.mealSummaryEstimateBadge), findsNWidgets(2));
@@ -80,19 +82,21 @@ void main() {
 
   testWidgets('a Cook-corrected figure is NOT marked as an estimate',
       (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealCook)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealCook, cookAddressForm: null)));
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)));
 
     // No estimate notice.
-    expect(find.text(l10n.aiEstimateNotice), findsNothing);
+    expect(find.text(l10n.aiEstimateNotice('other')), findsNothing);
 
     // No estimate badge.
     expect(find.text(l10n.mealSummaryEstimateBadge), findsNothing);
 
     // The "figures are the Cook's" text is present.
-    expect(find.text(l10n.publicMealNutritionFromCook), findsOneWidget);
+    expect(
+        find.text(l10n.publicMealNutritionFromCook('other')), findsOneWidget);
   });
 
   testWidgets('a Meal with no calorie figure says so', (tester) async {
@@ -110,7 +114,8 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _testApp(const PublicMealView(meal: mealNoCalories)),
+      _testApp(
+          const PublicMealView(meal: mealNoCalories, cookAddressForm: null)),
     );
     await tester.pumpAndSettle();
 
@@ -142,28 +147,31 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _testApp(const PublicMealView(meal: mealNoAllergens)),
+      _testApp(
+          const PublicMealView(meal: mealNoAllergens, cookAddressForm: null)),
     );
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)));
-    expect(find.text(l10n.publicMealAllergensUnknown), findsOneWidget);
-    expect(find.text(l10n.aiEstimateNotice), findsOneWidget);
+    expect(find.text(l10n.publicMealAllergensUnknown('other')), findsOneWidget);
+    expect(find.text(l10n.aiEstimateNotice('other')), findsOneWidget);
   });
 
   testWidgets(
       'an empty allergen list the Cook owns still says nothing was '
       'listed', (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealCook)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealCook, cookAddressForm: null)));
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)));
-    expect(find.text(l10n.publicMealAllergensUnknown), findsOneWidget);
+    expect(find.text(l10n.publicMealAllergensUnknown('other')), findsOneWidget);
   });
 
   testWidgets('exposes no identifier and no phone number by any route',
       (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealAi)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealAi, cookAddressForm: null)));
     await tester.pumpAndSettle();
 
     final rendered = tester
@@ -177,13 +185,15 @@ void main() {
   });
 
   testWidgets('shows the photo only when there is one', (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealAi)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealAi, cookAddressForm: null)));
     await tester.pumpAndSettle();
     expect(find.byType(MealPhoto), findsNothing);
 
     await tester.pumpWidget(_testApp(
       const PublicMealView(
         meal: _mealAi,
+        cookAddressForm: null,
         photoUrl: 'https://example.test/meal.jpg',
       ),
     ));
@@ -197,6 +207,7 @@ void main() {
     await tester.pumpWidget(_testApp(
       PublicMealView(
         meal: _mealAi,
+        cookAddressForm: null,
         onOpenKitchen: () => tapped = true,
       ),
     ));
@@ -214,7 +225,8 @@ void main() {
 
   testWidgets('the Kitchen Profile link is absent when onOpenKitchen is null',
       (tester) async {
-    await tester.pumpWidget(_testApp(const PublicMealView(meal: _mealAi)));
+    await tester.pumpWidget(
+        _testApp(const PublicMealView(meal: _mealAi, cookAddressForm: null)));
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)));

@@ -123,6 +123,35 @@ trusting the cascade.
 - Every string appears in Egyptian Arabic — conversational, not Modern Standard.
 - ARB parity is gated, so a missing Arabic key fails `verify.sh` rather than shipping in English.
 
+## 8. Being addressed in your own grammatical form (T090–T093)
+
+Arabic conjugates the second person and has no neutral form, so before this every Cook was
+addressed as a man. Checking it by hand needs two accounts, because the whole point is that two
+people see different words.
+
+1. Start a new Kitchen Profile and answer the first four questions. **Notice that they address you
+   as a man** — `في أنهي منطقة بتشتغل؟`. This is expected: Kafoo has not asked yet.
+2. The **fifth and last** question is `عشان أكلمك صح — أقولّك "كمّل" ولا "كمّلي"؟`, with two
+   buttons and **no text field and no microphone**. It is the only question answered by choosing.
+3. Choose **كمّلي**. On the summary, the row *طريقة مخاطبتك* shows both endings with كمّلي filled
+   in — tap the other one and it swaps, with no "edit" step in between.
+4. Confirm and save. Close the app completely and reopen it.
+5. **Now the app talks to you as a woman.** The clearest place to look is any error or empty state:
+   `لسه مافيش أكلات. ابدئي واحدة.` rather than `ابدأ واحدة`. What you are checking is the **verb
+   ending** — the difference is the trailing ي. Past-tense verbs and the possessive ـك are spelled
+   the same for both forms in undiacritized Egyptian, so a screen showing only those proves
+   nothing either way.
+6. Repeat with a second account choosing **كمّل**, and confirm the same screens read
+   `ابدأ واحدة`.
+7. Check the database directly: `kitchen_profiles.address_form` should read `feminine` for the
+   first account and `masculine` for the second. A profile saved before this shipped has NULL
+   there, is legal, and renders masculine — that is the unset form, not a bug.
+
+**A Customer is addressed as a man**, deliberately and for now: Kafoo stores a form of address for
+Cooks only, so the Customer-directed verbs in strings like `orderRejected` are ungendered. Only the
+*Cook* being described in those sentences changes — `الطباخ` versus `الطباخة`. Founder decision,
+2026-08-06; see ADR-0010.
+
 ## What this cannot prove locally
 
 Stated plainly, because a green local run is not the same as a working feature:

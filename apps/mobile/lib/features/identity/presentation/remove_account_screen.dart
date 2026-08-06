@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
+import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/account_repository.dart';
 
@@ -47,7 +48,8 @@ class _RemoveAccountScreenState extends State<RemoveAccountScreen> {
       case Failure():
         setState(() {
           _removing = false;
-          _error = AppLocalizations.of(context).removeAccountError;
+          _error = AppLocalizations.of(context)
+              .removeAccountError(context.addressForm);
         });
     }
   }
@@ -87,7 +89,7 @@ class _RemoveAccountScreenState extends State<RemoveAccountScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(l10n.removeAccountConfirm),
+                    : Text(l10n.removeAccountConfirm(context.addressForm)),
               ),
               const SizedBox(height: KafooSpacing.sm),
               TextButton(
