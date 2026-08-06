@@ -28,15 +28,15 @@
     "shared_files": []
   },
   "execution_mode": "EXCLUSIVE",
-  "status": "IN_PROGRESS",
+  "status": "BLOCKED",
   "owner": "worker-d",
   "priority": 2,
   "spend_envelope_usd": 3.0,
   "suggested_model": "opencode-go/grok-4.5",
   "branch": "claude/caveman-full-7k5toq",
-  "pr": null,
-  "blocked_reason": null,
+  "pr": 33,
+  "blocked_reason": "T093 is done and in PR #33: the parity check is extended and mutation-tested, and the 179-key classification is written up. T090, T091 and T092 are NOT done. The conversion was written and then backed out: the ARB change and the call sites that pass the new placeholder are one change, and landing half of it left the branch unable to compile. The dispatch that would have written the ~86 call sites ran two hours and produced nothing. The finished Arabic survives at commit 9edda73 on claude/caveman-full-7k5toq and can be cherry-picked once the wiring exists — do that rather than re-converting, because the minimisation in it was verified lossless. NEEDS THE FOUNDER on one point before it can finish: four Customer-facing strings address the CUSTOMER in the second person and Kafoo stores a form of address for Cooks only. Giving Customers one is a new category of personal data for a new population.",
   "notes": "The fifth question's wording is the founder's, approved 2026-08-05: عشان أكلمك صح — أقولّك \"كمّل\" ولا \"كمّلي\"؟ — built from first-person verbs only, because a question asked to learn the Cook's form cannot itself be gendered. EXCLUSIVE because it rewrites both ARB files and ~56 call sites across every feature. Every user-facing package touches the ARBs, so nothing else can run beside it without a merge nobody wants to resolve. It also changes verify.sh, which every other package depends on to know whether it passed. Not split further: converting the strings without the call sites leaves the app broken, and extending the parity check after the conversion means the conversion shipped unchecked.",
   "created_at": "2026-08-05T20:00:00Z",
-  "updated_at": "2026-08-05T21:45:00Z"
+  "updated_at": "2026-08-06T05:35:00Z"
 }
