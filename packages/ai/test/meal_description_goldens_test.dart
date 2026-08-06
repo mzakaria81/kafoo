@@ -11,6 +11,7 @@ import 'package:test/test.dart';
 void main() {
   final fixtures = _loadFixtures();
   final registry = _loadRegisterMarkers();
+  final vocabulary = _loadForbiddenVocabulary();
 
   test('corpus covers the required kinds', () {
     final kinds = fixtures.map((f) => f.kind).toList();
@@ -21,18 +22,23 @@ void main() {
     expect(kinds.where((k) => k == 'empty').length, greaterThanOrEqualTo(1));
   });
 
-  // At least four fixtures carry an Egyptian marker. This is corpus-level, not
+  // At least five fixtures carry an Egyptian marker. This is corpus-level, not
   // per-fixture: a short, entirely natural sentence like "حواوشي لحمة مفرومة
   // في عيش بلدي" contains none of the listed tokens, and demanding one per
   // fixture pushes an author to bend real sentences around a word list. At
   // corpus level it still proves the collection demonstrates dialect rather
   // than register-neutral prose.
   //
-  // Four is exactly what the corpus carries today, so this bites — losing one
-  // marker to a fixture edit turns it red rather than eating the slack. Scored
-  // over the parsed description and its basis, which are the two things shown
-  // to a Cook, not over the raw JSON around them.
-  test('corpus demonstrates Egyptian register (≥4 fixtures with a marker)', () {
+  // Five is exactly what the corpus carries today, so this bites — losing one
+  // marker to a fixture edit turns it red rather than eating the slack. It was
+  // four until 2026-08-06, and the corpus did not change: register_markers.json
+  // gained the possessive family, so typical_molokhia's بتاعتي is now visible
+  // where before it read as "Egyptian markers: none". Raising the threshold with
+  // the registry is what keeps the check tight instead of letting a detector
+  // improvement quietly buy slack. Scored over the parsed description and its
+  // basis, which are the two things shown to a Cook, not over the raw JSON
+  // around them.
+  test('corpus demonstrates Egyptian register (≥5 fixtures with a marker)', () {
     var count = 0;
     for (final fixture in fixtures) {
       final description = _parseDescription(fixture);
@@ -40,10 +46,40 @@ void main() {
       final text = '${description.value} ${description.basis}';
       if (_hasEgyptianMarker(text, registry)) count++;
     }
-    expect(count, greaterThanOrEqualTo(4),
+    expect(count, greaterThanOrEqualTo(5),
         reason: 'only $count fixture(s) carry an Egyptian marker — the corpus '
             'should demonstrate dialect, not register-neutral prose');
   });
+
+  // Two closed vocabularies, asserted for EVERY fixture rather than only where
+  // an author thought to forbid something. That is the whole point: on
+  // 2026-08-05 the live model wrote عشان توصلك سخنة — a delivery promise the
+  // Cook never made, over that Cook's name — and the corpus recorded the
+  // fixture as PASS, because two of eight fixtures forbid anything at all and
+  // neither of the rules that broke was asserted anywhere.
+  //
+  // A fixture with no description is skipped rather than passed. empty_garbage
+  // correctly produces none, and a passing check there would certify that a
+  // draft nobody wrote contains no delivery promise.
+  for (final fixture in fixtures) {
+    test('no forbidden vocabulary: ${fixture.name}', () {
+      final description = _parseDescription(fixture);
+      final text = description?.value;
+      if (text == null || text.isEmpty) return;
+
+      for (final family in vocabulary.keys) {
+        for (final term in vocabulary[family]!) {
+          expect(
+            text.contains(term),
+            isFalse,
+            reason: '${fixture.name}: description contains the $family term '
+                '"$term" in "$text" — the prompt forbids it and the model '
+                'ignored the prose',
+          );
+        }
+      }
+    });
+  }
 
   // The Dart matcher and the TypeScript one share data but not code. These are
   // the two cases the TypeScript suite pins, and they are where a
@@ -85,7 +121,7 @@ void main() {
       expect(analysis, isA<Success<MealAnalysis, AppError>>());
       final mealAnalysis = (analysis as Success<MealAnalysis, AppError>).value;
 
-      _assertExpect(fixture, mealAnalysis);
+      _assertExpect(fixture, mealAnalysis, registry);
 
       // Register assertions: non-empty descriptions and their basis must carry
       // zero Modern Standard markers.
@@ -114,7 +150,8 @@ void main() {
   }
 }
 
-void _assertExpect(_Fixture fixture, MealAnalysis analysis) {
+void _assertExpect(
+    _Fixture fixture, MealAnalysis analysis, _RegisterMarkers registry) {
   final expectMap = fixture.expect;
 
   if (expectMap.containsKey('isEmpty')) {
@@ -183,6 +220,25 @@ void _assertExpect(_Fixture fixture, MealAnalysis analysis) {
     );
   }
 
+  // "Is this Egyptian" asked as the property itself, rather than through one
+  // spelling of one function word. dialect_burger asserted the literal ده until
+  // 2026-08-06; the live model wrote an equally Egyptian sentence using بتاعي
+  // and the fixture failed it. Scored over the description only, not its basis
+  // — the basis is not what a Customer reads.
+  if (expectMap.containsKey('carriesEgyptianMarker')) {
+    final desc = analysis.description?.value;
+    expect(desc, isNotNull,
+        reason:
+            '${fixture.name}: no description to check for an Egyptian marker');
+    final carries = _hasEgyptianMarker(desc!, registry);
+    expect(
+      carries,
+      expectMap['carriesEgyptianMarker'],
+      reason: '${fixture.name}: carriesEgyptianMarker expected '
+          '${expectMap['carriesEgyptianMarker']}, got $carries in "$desc"',
+    );
+  }
+
   // Unknown key — fail loudly so a misspelled assertion does not silently
   // shrink the corpus.
   final knownKeys = {
@@ -191,6 +247,7 @@ void _assertExpect(_Fixture fixture, MealAnalysis analysis) {
     'descriptionNotContains',
     'descriptionInArabicScript',
     'maxSentences',
+    'carriesEgyptianMarker',
   };
   for (final key in expectMap.keys) {
     if (!knownKeys.contains(key)) {
@@ -295,6 +352,28 @@ _RegisterMarkers _loadRegisterMarkers() {
     }
   }
   throw StateError('register_markers.json not found');
+}
+
+/// The closed vocabularies from `description_vocabulary.json`, family → terms.
+///
+/// Shared with `scripts/replay-goldens.ts` so the live replay and this stub
+/// runner forbid the same words. Matching is plain substring, not the
+/// word-boundary rule the register markers use — the file says why.
+Map<String, List<String>> _loadForbiddenVocabulary() {
+  final candidates = [
+    File('test/goldens/description_vocabulary.json'),
+    File('packages/ai/test/goldens/description_vocabulary.json'),
+  ];
+  for (final file in candidates) {
+    if (file.existsSync()) {
+      final raw = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      return {
+        for (final family in ['delivery', 'health'])
+          family: (raw[family] as List).cast<String>(),
+      };
+    }
+  }
+  throw StateError('description_vocabulary.json not found');
 }
 
 final class _RegisterMarkers {
