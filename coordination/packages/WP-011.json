@@ -49,15 +49,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "IN_PROGRESS",
+  "owner": "overnight-session",
   "priority": 1,
   "spend_envelope_usd": 2.0,
   "suggested_model": "opencode-go/qwen3.6-plus",
-  "branch": null,
+  "branch": "claude/e3-start-7sfmcm",
   "pr": null,
   "blocked_reason": null,
   "notes": "The MVP, and deliberately the thinnest package in E3. Browsing is answered entirely by the policies E2 already shipped, so this ships before anything expensive is started. It also carries Setup and Foundational (T101-T110), because the domain entities it creates are what every later package builds on. T104 says to read the spike report before US2 starts; it is here so the next worker inherits it. Shares both ARB files with WP-013, WP-015, WP-016 and WP-017 — every user-facing package in this repository does.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T19:30:00Z"
+  "updated_at": "2026-08-06T21:05:00Z"
 }
