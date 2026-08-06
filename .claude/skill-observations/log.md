@@ -2136,3 +2136,98 @@ intends. When a recommendation is scoped by documents rather than by something t
 this conversation, the scope assumption is the load-bearing part of the recommendation and must be
 stated out loud alongside it. Otherwise the user reviews the answer without ever seeing the question
 it answered.
+
+### Observation 83: An error naming a resource state actually described a rate
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Measuring a third-party model's quality before committing a design to it. Part
+way through a sweep of candidate configurations, the service began returning an error whose text
+read "You exceeded your current quota, please check your plan and billing details."
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Interpreting an error before acting on it
+
+**Issue:** The message describes an exhausted allowance and points at billing. The actual condition
+was a per-minute rate limit, and the sweep was issuing requests faster than the window allowed.
+Taken literally, the message would have ended the measurement and retired a usable candidate on the
+grounds that the account had run out — a conclusion in the direction that closes doors, drawn from a
+message that was not lying so much as describing the wrong axis. What settled it was making a
+single call by hand: it succeeded immediately, which is impossible if an allowance is exhausted and
+expected if the limit is a rate. The retry logic had also been written with a backoff that topped
+out well short of the window it needed to cross, so it converted a recoverable condition into a
+reported failure.
+
+**Suggested improvement:** Add a rule to the debugging skill: when a third-party error describes a
+resource as exhausted, unavailable, missing or forbidden, issue ONE minimal call of the same kind
+before accepting it. Success proves the resource exists and the constraint is about pace, ordering
+or shape rather than supply. Where the code retries, check that the backoff can outlast the window
+the service actually meters on — a backoff shorter than the limit's period reports quota failures
+that waiting would have cleared.
+
+**Principle:** An error message names a symptom in the vendor's vocabulary, not the condition in
+yours. Before believing a negative that would end a line of work, call something you expect to
+succeed. A message about supply may be a message about speed, and the two lead to opposite actions.
+
+### Observation 84: A verdict was only auditable because the evidence was printed beside it
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** A measurement script classified each configuration with a computed verdict —
+whether two populations could be separated by a score. Two configurations printed the passing
+verdict. Both were wrong.
+
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** How a check reports its result
+
+**Issue:** The verdict was computed correctly from its inputs and was still meaningless: the
+separation it certified was smaller than the noise in the measurement, derived from a single
+example. Nothing about the word "separable" carries that. It was caught only because the same line
+also printed the raw gap the verdict was computed from — a number small enough that the verdict
+became obviously unsupportable the moment a human read it. Had the check printed only its verdict,
+the design resting on it would have been built and the failure would have surfaced in front of
+users, where a confident wrong answer is the specific failure the work existed to prevent.
+
+**Suggested improvement:** Add a rule: any check that emits a categorical verdict — pass/fail,
+separable/not, healthy/degraded — must emit the quantity it thresholded on, in the same line. Not in
+a debug mode, not behind a flag. A verdict is a claim; the number beside it is what lets a reader
+disagree. This costs one format string and is the difference between a check that can be audited and
+one that can only be trusted.
+
+**Principle:** A categorical verdict destroys the information needed to challenge it. Print the
+evidence alongside the conclusion, always — otherwise the only way to discover that a check is
+wrong is for the thing it was guarding to fail.
+
+### Observation 85: Measuring before specifying invalidated a mechanism, not a parameter
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** A design was approved and written up, with one assumption flagged as unmeasured
+and a recommendation to measure it before building. The measurement was then run, ahead of writing
+the specification.
+
+**Skill:** brainstorming
+**Type:** open-source
+**Phase/Area:** "Present design" / the boundary between design and specification
+
+**Issue:** The expectation was that measurement would tune the design — confirm a choice, settle a
+size. What it actually did was remove a mechanism the design depended on: a trigger the design used
+to decide when a component should act turned out to be undetectable in principle, not merely
+imprecise. Both alternatives tested came out backwards. Had the specification been written first,
+that mechanism would have been distributed through requirements and acceptance scenarios, and the
+correction would have been a rewrite rather than an edit to two paragraphs. The measurement also
+produced the opposite result on a related question — a capability the design had treated as risky
+turned out to work better than the requirement asked for — which shifted where the remaining risk
+sits.
+
+**Suggested improvement:** In the design step, separate assumptions by what their failure would
+cost: a parameter whose measurement changes a number, versus a mechanism whose measurement could
+remove a step. Mechanism-level assumptions should be measured before the specification is written,
+not merely flagged in it. The signal that an assumption is mechanism-level: the design contains a
+sentence of the form "X happens only when Y", and nothing yet establishes that Y is observable.
+
+**Principle:** Unmeasured assumptions are not equally risky. One sets a value; another holds up a
+step. Measure the load-bearing ones before writing the document that spreads them across twenty
+requirements, because the cost of being wrong scales with how far the assumption has already
+propagated.
