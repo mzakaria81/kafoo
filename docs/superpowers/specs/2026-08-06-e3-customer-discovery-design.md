@@ -123,10 +123,23 @@ does not.
 
 ### What the AI Assistant does in E3, and what it must not say
 
-**It speaks only when retrieval returns nothing.** That is the moment a Customer asked for
-something Kafoo could not serve, and a conversational reply changes the outcome instead of
-decorating it — naming what is actually on offer near what they asked for. It is also rare, so it
-costs a fraction of summarising every successful search.
+> **Corrected 2026-08-06 by the spike, before anything was built.** This section originally said the
+> AI Assistant speaks *only when retrieval returns nothing*, and that it would therefore be cheap
+> because failures are rare. **Kafoo cannot detect a failed search from the scores** — neither an
+> absolute cosine threshold nor a relative margin separates a query nothing answers from one that is
+> answered correctly, and both tests came out *backwards*. See
+> `docs/ops/spike-discovery-embeddings.md`. The architecture below is unchanged; the trigger and the
+> cost claim are not.
+
+**It judges relevance after retrieval, on every search.** It receives the query and the top handful
+of Meals and decides whether any of them honestly answer it. When none do, it says so and names what
+is actually on offer nearby — "nobody has koshari on offer right now; there are two other rice
+dishes." That is the moment a conversational reply changes the outcome instead of decorating it.
+
+**This is once per search, not once per failure.** Latency is unaffected — results are already on
+screen when the judgement arrives, which is the whole point of the ordering — but the model call is
+now the entire cost of search rather than a rare extra. **Measuring it is a task in E3, not an
+afterthought**, in the way E2 measured the cost of a published Meal.
 
 Summarising successful results is **deliberately not built**. Narrating three Meals a Customer can
 already see is the weakest use of a model call. If evidence later says Customers want it, it is an
@@ -190,20 +203,28 @@ The event model's existing rule stands unchanged and matters more here than anyw
 **`SearchPerformed` records that a search happened and how many results came back, never what was
 said.**
 
-## The largest risk, and what to do about it first
+## The largest risk — measured 2026-08-06, before anything was built
 
-**Nobody has measured whether embedding search works in Egyptian Arabic.**
+This section originally said nobody had measured whether embedding search works in Egyptian Arabic,
+and proposed a spike as E3's first work package. **The spike has run.** Full report:
+`docs/ops/spike-discovery-embeddings.md`. Three results, in the order they matter:
 
-The whole of Decision 2 rests on an embedding model placing `نفسي في حاجة خفيفة` near grilled
-chicken and salad in Kafoo's own corpus of Meals. That is assumed, not known. It is the same shape
-as the `ar-EG` speech-recognition risk that has sat unmeasured since E1 — an assumption about
-dialect quality that a benchmark cannot answer and that gets more expensive to discover the later
-it is found.
+- **Cross-language retrieval works, and beats what the rules ask for.** `burger` typed in Latin
+  script returns برجر at rank 1 while sharing no character with any Meal. `grilled chicken` and
+  `something spicy` in English both land at rank 1 against Arabic Meals. `ILIKE` scores zero on all
+  three by construction.
+- **Dialect retrieval is good enough to build on, with one exception.** `gemini-embedding-2` at 768
+  dimensions: top-1 correct on 14 of 19 queries, MRR 0.838, and it infers culture — `حلويات رمضان`
+  finds قطايف and كنافة though no Meal mentions Ramadan. **The exception is negation**: `أكل من غير
+  لحمة خالص` returns meat dishes, first correct answer at rank 6. Exclusion must be a filter in the
+  query, never a phrase handed to the embedding. That is a plan item.
+- **Nothing-matched cannot be detected from scores**, which is why the AI Assistant's trigger
+  changed above.
 
-**So E3's first work package should be a measurement spike, not code**, in the pattern WP-005 used
-for the Gemini Live API: take a realistic set of Meals, embed them, run Egyptian phrasings against
-them, and report whether the ranking is usable. If it is not, Decision 2 changes before anything is
-built on it rather than after.
+**Settled by the spike:** the model is `gemini-embedding-2` at **768 dimensions**. Doubling to 1536
+moves MRR by 0.026 and costs twice the storage and index. Gemini's default of 3072 **cannot ship at
+all** — pgvector's HNSW index refuses more than 2000 dimensions, so the column would work and be
+unindexable: correct answers, sequential scans, no error.
 
 ## Open, and not settled here
 
@@ -211,9 +232,11 @@ built on it rather than after.
    preview showing a Cook's name and photo is the entire point of the link, and it is also personal
    data leaving Kafoo's surface into a conversation Kafoo cannot see. It is the founder's call and
    it is needed before any link is shareable.
-2. **Which embedding model, and its cost per search.** Unmeasured. It goes through the provider
-   abstraction like every other model call, but which one — and whether it handles Egyptian Arabic
-   — is what the spike above exists to answer.
+2. ~~**Which embedding model.**~~ **Closed 2026-08-06 by the spike** — `gemini-embedding-2` at 768
+   dimensions, through the provider abstraction like every other model call. **What remains open is
+   the cost of the relevance judgement**, which the spike changed from a rare call to one per
+   search. Embedding itself is negligible; the judge call is the entire cost of search and needs
+   measuring the way E2 measured the cost of a published Meal.
 3. **Whether voice reaches search at all in E3.** Voice input inherits WP-004's unmeasured risk:
    `ar-EG` recognition has never run on a real handset, and it needs a phone bought in Egypt rather
    than a session. Typing must work regardless.
