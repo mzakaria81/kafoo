@@ -108,10 +108,10 @@ in a different language from the Meals, return the right Meals.
 
 ### The authorization tests, written first and seen to fail
 
-- [ ] T122 [US2] Write `supabase/tests/discovery_rls_test.sql` covering cases 1–8 of [contracts/authorization.md](contracts/authorization.md), with fixtures containing a Meal of **every** status — a fixture holding only published Meals lets these assertions pass for the wrong reason
+- [ ] T122 [US2] Write `supabase/tests/discovery_rls_test.sql` covering cases 1–8 of [contracts/authorization.md](contracts/authorization.md), **including its `plan(N)` line**, with fixtures containing a Meal of **every** status — a fixture holding only published Meals lets these assertions pass for the wrong reason
 - [ ] T123 [US2] Write cases 9–11 of the same contract — a Cook must not be able to write `meals.embedding`. The existing `cook updates own meals` policy permits it today, so this passes trivially in the wrong direction until something stops it
 - [ ] T124 [US2] **Run both and confirm they FAIL.** Record the failure output in the pull request. A negative test that passes on its first run is testing nothing
-- [ ] T125 [US2] Update the `plan(N)` count in `discovery_rls_test.sql` — this line is a known collision point between parallel workers and belongs in `scope.shared_files` of any work package touching it
+- [ ] T125 [US2] Declare `discovery_rls_test.sql`'s `plan(N)` line in `scope.shared_files` of every work package touching it — it is a known collision point between parallel workers, and two workers each adding a case will both edit this one line
 
 ### The migration
 
@@ -155,8 +155,31 @@ in a different language from the Meals, return the right Meals.
 - [ ] T151 [US2] Emit `SearchPerformed` with `result_count`. Assert by test that **no phrase** reaches the event, a log line, or an error carrying the request
 - [ ] T152 [US2] Backfill vectors for Meals published before this feature — a script, not a migration, and an incomplete run must leave Meals harder to find rather than lost
 - [ ] T153 [US2] Promote `scripts/spike-discovery-embeddings.py` to a retrieval-quality regression with a recorded baseline, and decide whether it runs in the gate or nightly — it calls a vendor and costs money, which `verify.sh` has never done
-- [ ] T154 [US2] Measure search latency against production the way E2 measured its budgets, and report it against the 1s budget rather than asserting it
+- [ ] T154 [US2] Measure search latency against production the way E2 measured its budgets, and report it against the 1s budget rather than asserting it. **Measure SC-007 separately**: the time from a request finishing to results being visible, with the judgement responding and with it stubbed to hang — the two must be the same, and a single latency number does not show that
 - [ ] T155 [US2] Verify SC-002 and SC-003 by name against the corpus
+
+#### Narrowing by area
+
+Added 2026-08-06 after `/speckit-analyze` found FR-022 and FR-024 had a parser and nothing else.
+
+- [ ] T202 [US2] Arabic normalisation in `packages/domain/lib/area.dart` — unify alef forms, `ة` to `ه`, `ى` to `ي`, strip diacritics and tatweel, drop a leading definite article, collapse whitespace, fold Latin case. **A Cook's stored area is never rewritten**; normalisation happens at comparison time
+- [ ] T203 [P] [US2] Unit tests for the pairs in `research.md` §8 — `الدقي`/`الدقى`, `المهندسين`/`مهندسين`, `العجوزه`/`العجوزة`, `إمبابة`/`امبابة`, with and without diacritics
+- [ ] T204 [US2] Area alias table in `packages/domain/lib/area.dart` for places with a genuine second name — `مصر الجديدة`/`هليوبوليس`/`Heliopolis`, `المعادي`/`Maadi`. Small, explicit, additive, and the same shape as the exclusion vocabulary
+- [ ] T205 [US2] Test that the alias table does **not** merge two different neighbourhoods — FR-022a governs spelling, not meaning, and a tolerance loose enough to catch a typo is loose enough to match a different place
+- [ ] T206 [US2] Normalised area predicate inside `search_meals`, applied to the Cook's stored area at comparison time
+- [ ] T207 [US2] Accept an area as part of the **one sentence** a Customer says — `عايز حاجة من غير لحمة في المهندسين`. Not a second control; three inputs would be the form Principle IV forbids
+- [ ] T208 [US2] Empty-area state: Kafoo says the named area has nothing **and** names the areas that do, and the Customer must choose one before anything from it is shown — FR-024 and FR-024a. Widening is never Kafoo's action
+- [ ] T209 [US2] Assert that no distance is stated and no ordering by proximity exists — FR-024b. Kafoo has no notion of where an area is
+- [ ] T210 [US2] Assert that offering another area never states or implies that a kitchen there will deliver — FR-024c. Delivery terms are words, not a radius
+- [ ] T211 [P] [US2] Write the area cases into `supabase/tests/discovery_rls_test.sql`, **seen to fail first**: a differently-spelled area reaches the same kitchens, and an area nobody wrote returns zero rows rather than everything
+- [ ] T212 [P] [US2] Arabic and English strings for the area and empty-area states in both ARB files, Arabic first
+- [ ] T213 [US2] Verify FR-022, FR-022a, FR-022b, FR-024, FR-024a, FR-024b and FR-024c by name
+
+#### Before this story ships
+
+- [ ] T214 [US2] Have `ai-boundary-reviewer` and `rls-reviewer` review the `embed-meal` diff **before it merges**. The plan argues that a service-role key on an AI path is acceptable here because an embedding is not a claim; that argument must be checked by something other than the document making it
+- [ ] T215 [US2] Disclose that a Customer's words leave Kafoo to be understood, before the first search, following E2's precedent for a Cook. **This ships with search, not after it** — as originally ordered it sat in Polish, which would have put search in front of Customers before they were told
+- [ ] T216 [US2] A Meal that goes off offer between being ranked and being opened tells the Customer it is no longer available — FR-005, and the one freshness case a Customer actually meets
 
 ---
 
@@ -178,6 +201,7 @@ something on offer — it does not say the same thing.
 - [ ] T163 [P] [US3] Arabic and English strings for the nothing-matched state, Arabic first, Egyptian register
 - [ ] T164 [US3] Emit `SearchFailed` when the judgement says nothing answers, and `RecommendationAccepted` when a Customer opens a named alternative
 - [ ] T165 [US3] Verify SC-004 by name — **100%**, and it does not degrade with corpus size
+- [ ] T217 [P] [US3] `deno test` proving `judge-results` holds no service-role key and writes nothing — FR-018. It is write-free by construction today, and nothing currently stops that changing
 
 ---
 
@@ -220,6 +244,9 @@ visible obeys the same rules as inside Kafoo.
 - [ ] T181 [US5] Kitchen page showing **exactly** the five public details and no sixth
 - [ ] T182 [US5] Meal page, reading the same data under the same policies
 - [ ] T183 [US5] Browse and search on the web, calling the same `discover` function — no second data path, no second visibility model
+- [ ] T218 [US5] Call `judge-results` from the web surface too, after results render. FR-026 requires what is visible without installing to be **exactly** what is visible inside Kafoo, and a web surface with results but no honesty layer would ship the confident wrong answer this feature exists to prevent
+- [ ] T219 [US5] Area narrowing and the empty-area state on the web, matching the app — FR-022 and FR-024 on both surfaces
+- [ ] T220 [US5] The disclosure from T215 on the web surface as well
 - [ ] T184 [US5] A kitchen with nothing on offer is not reachable — FR-027, same terms as in the app
 - [ ] T185 [US5] Shared-reference preview carrying **exactly** name, area and photo — FR-027a. Not the story, not the delivery terms, not a Meal count
 - [ ] T186 [US5] Assert that no rating, review count or order count appears anywhere — FR-027c. None exist, and a placeholder for one is a fabricated measurement rather than an empty field
@@ -231,8 +258,8 @@ visible obeys the same rules as inside Kafoo.
 
 ## Phase 8: Polish & cross-cutting
 
-- [ ] T190 Disclose that a Customer's words leave Kafoo to be understood, on both surfaces, following E2's precedent — `research.md` §5. Not recording a phrase is not the same as not sending it
-- [ ] T191 Route to the founder: whether a Customer may refuse that and fall back to browsing only. E2 let a Cook refuse; the symmetry argues yes, and it is not a session's call
+- [ ] T190 Confirm the disclosure shipped on **both** surfaces — T215 and T220. It was written here originally, which would have meant search reaching Customers a whole phase before they were told their words leave Kafoo. Kept as a check rather than deleted, because the ordering mistake is easy to make again
+- [ ] T191 **Answer before T215 is built, not here**: may a Customer refuse the disclosure and fall back to browsing only? E2 let a Cook refuse and the symmetry argues yes. It is the founder's call, and T215 cannot be finished without it
 - [ ] T192 [P] Update `docs/product/domain-model.md` with the embedding column and the rule that a Meal without one is browsable but not searchable — Definition of Done item 6, in the same commit
 - [ ] T193 [P] Update `docs/product/event-model.md` — `SearchFailed` now means "judged", not "scored below a line", because `research.md` §4 established that no line exists
 - [ ] T194 [P] Update `docs/HANDOFF.md` — E3's state, the open cost question, and what the spike settled
@@ -252,26 +279,33 @@ visible obeys the same rules as inside Kafoo.
 Setup (T101–T104)
    └─> Foundational (T105–T110)
           ├─> US1  Browse            (T111–T121)   ships alone, no new backend
-          ├─> US2  Search            (T122–T155)   needs US1's browse as its zero-state
-          │        └─> US3  Nothing matched (T156–T165)
-          │        └─> US4  Exclusions       (T166–T175)
-          └─> US5  Without installing (T176–T189)  needs US1 and US2 to exist; independent of US3/US4
-                                                    and can run in parallel with them
+          ├─> US2  Search            (T122–T155, T202–T216)   needs US1's browse as its zero-state
+          │        ├─> US3  Nothing matched (T156–T165, T217)
+          │        ├─> US4  Exclusions       (T166–T175)
+          │        └─> US5  the search half  (T183, T218, T219)
+          └─> US5  the static half   (T176–T182, T184–T189)   needs only US1
    └─> Polish (T190–T201)
 ```
 
-**US3 and US4 both depend on US2 and not on each other.** They can run in parallel by two workers,
-and both touch `search_meals` and the ARB files — declare those in `scope.shared_files`.
+**US5 splits, and the earlier note overstated its dependence.** Scaffolding the web app, the kitchen
+page, the Meal page and the shared preview need nothing from US2 — they read what E2 already
+published, under policies that already exist. Only browse-and-search on the web (T183, T218, T219)
+waits. **The static half can start alongside US1**, which is much earlier than the first version of
+this graph implied.
 
-**US5 is the parallelisable one.** It shares no source files with the app work; its only collisions
-are the ARB files and the deploy workflow.
+**US3 and US4 both depend on US2 and not on each other.** Two workers in parallel; both touch
+`search_meals` and the ARB files — declare those in `scope.shared_files`.
+
+**T191 blocks T215, and T215 blocks US2 shipping.** It is a founder decision, so it should be asked
+at the start of US2 rather than discovered at the end of it.
 
 ## Parallel execution
 
 - **T105, T106, T107** — three domain entities, three files, no dependencies
 - **T133, T134** — provider adapters, one file each
+- **T202–T205** — area normalisation and aliases, independent of the migration
+- **US5's static half alongside US1** — a second worker from the very beginning
 - **US3 and US4** — after US2 lands, two workers, serialised only on `search_meals` and `plan(N)`
-- **US5 alongside US3 and US4** — a third worker, colliding only on the ARB files
 
 ## Implementation strategy
 
@@ -285,5 +319,9 @@ Functions and the provider extension.
 **Then US3 and US4 together**, because search that always answers confidently is the failure this
 feature exists to prevent, and neither is optional once US2 exists.
 
-**US5 whenever a worker is free** after US2 — it is the only phase that shares almost no files with
-the rest.
+**US5's static half from the very beginning**, alongside US1, by a second worker. The web scaffold,
+the kitchen page, the Meal page and the shared preview read what E2 already published under policies
+that already exist — none of it waits on the migration. Only browse-and-search on the web needs US2.
+
+**T191 first, before anything in US2 is built.** It is a one-line founder decision that T215 cannot
+be completed without, and discovering that at the end of the largest phase is how a phase stalls.

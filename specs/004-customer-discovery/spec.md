@@ -78,6 +78,10 @@ has never collected anything about.
 - Q: Can a Customer search for a Cook by name? → A: **No.** Discovery is about food. A Customer
   arrives wanting koshari, not wanting a named person. Following a Cook is the better answer to what
   name search is reaching for, and it needs Orders to exist first — it is not in E3.
+- Q: A Cook writes their area one way and a Customer names it another — `الدقى` against `الدقي`,
+  `مهندسين` against `المهندسين`. → A: **Same area.** A Customer must not be blind to a kitchen
+  because of a spelling. This covers how a name is written, not what it means: two genuinely
+  different neighbourhoods stay different.
 - Q: What happens when the area a Customer named has nothing on offer but another area does? → A:
   **Kafoo says the named area is empty and names the areas that do have food, then lets the Customer
   choose.** It never switches areas by itself. It states no distance and implies no deliverability,
@@ -294,6 +298,11 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
 
 - **FR-022**: A Customer MUST be able to narrow discovery to an area, using the areas Cooks have
   stated about their own kitchens.
+- **FR-022a**: An area written differently by a Cook and a Customer MUST be treated as the same area.
+  A kitchen MUST NOT be unreachable because of a spelling. This governs how a name is *written* — two
+  genuinely different neighbourhoods remain different, and Kafoo MUST NOT merge them.
+- **FR-022b**: Where an area is widely known by more than one name, all of them MUST reach the same
+  kitchens. Kafoo MUST NOT require a Customer to guess which name a Cook happened to write.
 - **FR-023**: Kafoo MUST NOT collect, request, derive or store a Customer's location. No new personal
   data about Customers is created by this feature.
 - **FR-024**: When nothing is on offer in the area a Customer named, Kafoo MUST say so rather than

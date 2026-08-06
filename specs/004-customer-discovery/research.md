@@ -206,3 +206,52 @@ of an incomplete backfill is a Meal that is harder to find, never a Meal that is
 **Rejected**: embedding on every write (spends a model call on a price edit); a database trigger
 calling the vendor (a vendor credential inside Postgres); embedding lazily at search time (makes the
 first search for a Meal slow and unpredictable, and would need a write from the read path).
+
+## §8 — Matching an area a Cook wrote against an area a Customer named
+
+**Decision: normalise both sides, then compare exactly. A small alias table handles the areas that
+genuinely have two names. No embedding, no fuzzy distance, no model call.**
+
+**Rationale.** `kitchen_profiles.area` is free text a Cook wrote about their own kitchen. It is not
+validated, standardised, or drawn from a list, and it never will be — it is one of exactly five
+public details and adding structure to it is a change to that rule rather than a schema tweak.
+
+Two Cooks writing the same neighbourhood will disagree on spelling in ways Arabic makes routine, and
+none of them are ambiguities to a human reader:
+
+| Written | Also written | Why |
+|---|---|---|
+| `الدقي` | `الدقى` | final `ي` against `ى`, indistinguishable in speech |
+| `المهندسين` | `مهندسين` | the definite article dropped |
+| `المُهَنْدِسِين` | `المهندسين` | diacritics, which most typing omits |
+| `العجوزه` | `العجوزة` | `ة` against `ه`, ordinary in casual typing |
+| `إمبابة` | `امبابة` | hamza forms |
+
+**Normalisation is a closed, deterministic transformation**: unify the alef forms, `ة` to `ه`, `ى` to
+`ي`, strip diacritics and tatweel, drop a leading definite article, collapse whitespace, fold Latin
+case. Both the Cook's stored area and the Customer's named area go through it at comparison time.
+The stored value is never rewritten — a Cook's own words stay as they wrote them.
+
+**The alias table is a different problem and needs a different answer.** `مصر الجديدة` and
+`هليوبوليس` and `Heliopolis` are the same place under three names, not three spellings of one, and no
+normalisation reaches that. So a small named list maps known second names onto one another. It is
+deliberately the same shape as the exclusion vocabulary in §3: small, explicit, additive, and it
+fails visibly rather than silently — an area nobody has aliased simply matches only what it says.
+
+**What this deliberately does not do, and the boundary matters.** It does not merge two genuinely
+different neighbourhoods. FR-022a governs how a name is *written*; a Customer asking for one place
+must not be handed another. Fuzzy or edit-distance matching would cross that line — `المعادي` and
+`المعادى` are one area, but a tolerance loose enough to also catch a real typo is loose enough to
+match a different place, and the failure would be invisible.
+
+**Rejected**: embedding the area and matching by similarity (would make "Maadi" match "Zamalek",
+because both are areas — this is §4's problem restated, where everything in a category resembles
+everything else); edit-distance matching (crosses the boundary above); a canonical list of Egyptian
+neighbourhoods (turns a Cook's own words into a dropdown, which is the sixth-public-detail change
+this feature is not permitted to make); requiring Cooks to pick from a list (same, one step earlier).
+
+**Known ceiling, stated rather than discovered later**: a Cook who writes a landmark instead of a
+neighbourhood — "behind the mosque in Faisal" — is reachable by nobody naming an area. FR-024 makes
+that visible rather than silent, because a Customer is told their area is empty and offered the areas
+that are not. The fix is a better prompt when a Cook writes their area, and that is E2's screen
+rather than this feature's.
