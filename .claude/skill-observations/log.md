@@ -1927,3 +1927,18 @@ look" will report the reassuring one.
 **Suggested improvement:** State that a submission belongs to the session that opened it until it merges, and that reacting to conflicts, failing checks and review comments on it is that session's job — the coordinator's only moves are to merge it or to say why it is not being merged. Add the one exception explicitly, because it is the common case rather than an edge case: a session whose environment has been reclaimed cannot respond, so an unowned or demonstrably stale unit may be taken over, announced in the shared state before the branch is touched. Add a rule that a claim about a submission's status is not evidence — query the system of record first, whoever the claim came from.
 
 **Principle:** Assigning ownership of an artifact does not assign ownership of the events that happen to it. Wherever two roles can each derive a correct-looking duty toward the same object, name which one holds it and which one only observes — otherwise the collision is discovered by whichever mechanism happens to refuse the second writer, and that mechanism is not guaranteed to exist.
+
+### Observation 74: Gate scripts need mutation proof, not only green baseline
+
+**Status:** OPEN
+**Date:** 2026-08-05
+**Session context:** extend localization parity check (ARB structural parity)
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** proving a new gate step can fail
+
+**Issue:** A new parity checker that only runs green on current ARB files proves nothing about the defects it claims to catch. The brief required deliberate break-restore per rule before calling the step done.
+
+**Suggested improvement:** When adding or strengthening a verify.sh step, require one red run per refused condition (mutation or fixture), then restore — same discipline as RLS negative tests seen to fail.
+
+**Principle:** A check that has never been seen to fail is not known to check anything.
