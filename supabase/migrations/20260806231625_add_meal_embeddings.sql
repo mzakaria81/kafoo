@@ -239,6 +239,31 @@ LANGUAGE sql
 STABLE
 SECURITY INVOKER
 PARALLEL SAFE
+-- ⚠️ KNOWN DEFECT, NOT FIXED BY THE LINE BELOW. READ THIS BEFORE TRUSTING AN EMPTY RESULT.
+--
+-- An HNSW scan visits hnsw.ef_search candidates — 40 by default — and this function then
+-- post-filters them by status, exclusions and area. So a narrow filter over a large corpus can
+-- return NOTHING while matching Meals plainly exist: the 40 global nearest neighbours were all
+-- somewhere else.
+--
+-- Reproduced 2026-08-07: 5,000 published Meals in one area and 1 in another.
+--     SELECT count(*) ... WHERE area = 'أسوان'        -> 1   (genuinely on offer)
+--     SELECT count(*) FROM search_meals(v, NULL, 'أسوان') -> 0   (what a Customer is told)
+--
+-- THIS MATTERS BECAUSE OF WHAT KAFOO PROMISES. FR-024 says Kafoo tells a Customer their area is
+-- empty, and FR-024a then offers them the areas that are not. Both statements become untrue if
+-- "empty" can mean "the index stopped looking", and the Customer has no way to tell.
+--
+-- THE SET BELOW DOES NOT FIX IT, and that was measured rather than assumed. The function-local GUC
+-- IS visible inside the body — current_setting reads 'strict_order' — and the same query run
+-- directly with the same GUC returns the row correctly, while the call through this function still
+-- returns none. The difference appears to be the parameterised plan, and chasing it further is a
+-- design change (filtering before the vector search rather than after) that should be reviewed
+-- rather than written at 03:00. The setting is kept because it is directionally right and harmless.
+--
+-- UNTIL THIS IS RESOLVED, AN EMPTY AREA RESULT IS NOT EVIDENCE THE AREA IS EMPTY. Do not build
+-- FR-024's "we looked and there is nothing here" message on it.
+SET hnsw.iterative_scan = 'strict_order'
 AS $$
   SELECT m.*
   FROM public.meals m
