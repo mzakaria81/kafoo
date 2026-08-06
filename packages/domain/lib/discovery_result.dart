@@ -9,16 +9,36 @@
 /// without waiting for it, which is the one thing the design forbids.
 library;
 
+import 'kitchen_profile.dart';
 import 'meal.dart';
+
+/// A Meal as a Customer meets it: the offer, and whose kitchen it comes from.
+///
+/// A Meal alone is not enough to show anyone. "Who cooked this" is the question
+/// a Customer asks first, and Kafoo's answer is a Kitchen Profile — which is
+/// reused here whole rather than summarised, because its public face is already
+/// exactly the five details a Customer may see. Inventing a narrower type would
+/// create a second place where that list is decided.
+final class DiscoveredMeal {
+  /// Creates a Meal with the kitchen behind it.
+  const DiscoveredMeal({required this.meal, required this.kitchen});
+
+  /// The offer. Only ever one that is on offer — a Meal in any other state is
+  /// refused by the database, not filtered here.
+  final Meal meal;
+
+  /// The kitchen offering it. Always present: a Meal a Customer can reach
+  /// always has a findable kitchen, because the same rule makes both visible.
+  final KitchenProfile kitchen;
+}
 
 /// A Meal that answered a request, and where it ranked.
 final class DiscoveryResult {
   /// Creates a ranked result.
-  const DiscoveryResult({required this.meal, required this.rank});
+  const DiscoveryResult({required this.item, required this.rank});
 
-  /// The Meal. Only ever one that is on offer — a Meal in any other state is
-  /// refused by the database, not filtered here.
-  final Meal meal;
+  /// The Meal and its kitchen.
+  final DiscoveredMeal item;
 
   /// Where it placed, from 1. Presentation order, never a score.
   ///

@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'كفو'**
   String get appTitle;
 
+  /// Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing, so no addressForm select — ADR-0010 keeps Customer-directed verbs ungendered, and first-person plural has no gender in Arabic.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.'**
+  String get discoveryLoadError;
+
   /// Action a Cook takes to move a Meal from draft to published.
   ///
   /// In ar, this message translates to:

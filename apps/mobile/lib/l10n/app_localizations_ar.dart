@@ -12,6 +12,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appTitle => 'كفو';
 
   @override
+  String get discoveryLoadError =>
+      'مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.';
+
+  @override
   String publishMeal(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

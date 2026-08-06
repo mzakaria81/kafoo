@@ -4,6 +4,10 @@
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
+  "discoveryLoadError": "We couldn't load the food right now. Let's try again in a moment.",
+  "@discoveryLoadError": {
+    "description": "Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing, so no addressForm select — ADR-0010 keeps Customer-directed verbs ungendered, and first-person plural has no gender in Arabic."
+  },
   "publishMeal": "{addressForm, select, feminine{Publish Meal} other{Publish Meal}}",
   "@publishMeal": {
     "description": "Action a Cook takes to move a Meal from draft to published.",

@@ -303,34 +303,10 @@ class SupabaseMealRepository implements MealRepository {
 
   /// Maps a row that may still be a half-answered draft.
   ///
-  /// Nullable columns stay nullable. A null price stays null rather than
-  /// becoming the string `"null"`.
-  CookMeal _cookMealFromRow(Map<String, dynamic> row) {
-    final cuisineRaw = row['cuisine'] as String?;
-    final categoryRaw = row['category'] as String?;
-    return CookMeal(
-      id: row['id'] as String,
-      cookId: row['cook_id'] as String,
-      title: row['title'] as String?,
-      description: row['description'] as String?,
-      price: row['price']?.toString(),
-      cuisine: cuisineRaw == null ? null : Cuisine.tryFromWireName(cuisineRaw),
-      category: categoryRaw == null
-          ? null
-          : MealCategory.tryFromWireName(categoryRaw),
-      status: MealStatus.fromWireName(row['status'] as String),
-      ingredients: (row['ingredients'] as List?)?.cast<String>() ?? const [],
-      calories: row['calories'] as int?,
-      allergens: (row['allergens'] as List?)?.cast<String>() ?? const [],
-      nutritionSource: NutritionSource.fromWireName(
-        row['nutrition_source'] as String,
-      ),
-      photoPath: row['photo_path'] as String?,
-      publishedAt: row['published_at'] == null
-          ? null
-          : DateTime.parse(row['published_at'] as String),
-    );
-  }
+  /// Delegates to [CookMeal.fromRow]: the mapping is a rule and it now has one
+  /// home, because discovery reads the same table and a second copy of it would
+  /// drift.
+  CookMeal _cookMealFromRow(Map<String, dynamic> row) => CookMeal.fromRow(row);
 }
 
 /// The default [MealRepository] provider.

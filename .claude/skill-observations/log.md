@@ -2291,3 +2291,36 @@ reporting a number — it is reporting that it cannot currently produce one.
 **Principle:** A tool's verdict and a tool's confidence in itself are two different outputs, and the
 second is the one that decides whether the first means anything. An unchanged number where movement
 was expected is evidence of a stuck reading, not of a stable quantity.
+
+### Observation 88: A verification command reported success while running nothing
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Committing a chunk of implementation. The project's rule is that its full check
+script must be run before any work is declared done, and the commit command chained that run to the
+commit with `&&`.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Running the verification step itself
+
+**Issue:** An earlier command in the session had changed directory into a subpackage to run a
+mutation check, and the shell's working directory persisted. The verification script was invoked by
+a relative path, so it resolved to nothing. Because the invocation piped its output to a truncating
+command, **the exit status belonged to the pipe's last stage rather than to the missing script** —
+so the chain treated "file not found" as success and went on to commit and push. The command read
+exactly like every other verified commit before it, and the failure left no trace in the commit
+itself. Two genuine failures shipped: an unformatted file and a lint error. They were found only
+because the next verification run happened to be issued from the repository root.
+
+**Suggested improvement:** Two concrete rules for the skill. First, **invoke a verification script by
+an absolute or repository-anchored path**, never a relative one, because working directory is
+session state that earlier commands mutate. Second, **never pipe the verification command into
+anything when its exit status is being relied on** — or capture the status explicitly rather than
+inheriting the pipeline's. More generally, the assertion "I ran the check" should be supported by
+the check's own exit status, observed, rather than by the fact that a command containing it was
+issued.
+
+**Principle:** A guard that reports success without running is worse than no guard, because it also
+consumes the attention that would have noticed. When verification is chained to the action it
+guards, make the exit status of the verification itself the thing that gates — not the exit status
+of whatever the output was piped through.

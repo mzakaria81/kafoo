@@ -12,6 +12,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Kafoo';
 
   @override
+  String get discoveryLoadError =>
+      'We couldn\'t load the food right now. Let\'s try again in a moment.';
+
+  @override
   String publishMeal(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
