@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.'**
   String get browseNothingOnOffer;
 
+  /// Bar action on the browse screen shown to someone with no account. Customer-facing and ungendered (ADR-0010): a noun, not a verb, so it carries no grammatical form at all.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل الدخول'**
+  String get browseSignInEntry;
+
   /// Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010).
   ///
   /// In ar, this message translates to:

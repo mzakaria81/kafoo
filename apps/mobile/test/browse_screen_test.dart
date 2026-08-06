@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:kafoo_mobile/features/discovery/presentation/browse_screen.dart';
+import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
 import 'support/fake_discovery_repository.dart';
@@ -146,6 +147,33 @@ void main() {
     // The route to the kitchen has to carry the kitchen, because a Customer
     // reaching a Meal must be able to reach who cooked it (FR-003).
     expect(opened?.kitchen.displayName, 'مطبخ فاطمة');
+  });
+
+  testWidgets('a signed-out Customer reaches a Meal in one action (SC-001)',
+      (tester) async {
+    // SC-001 says a Meal's full details are reachable within three actions of
+    // arriving, WITHOUT signing in. The measurable part is that opening a Meal
+    // needs nothing the browse list did not already carry — no second fetch,
+    // no sign-in, no lookup of who cooked it. If PublicMealView can be built
+    // from what onOpen hands back, the hop is one action and the criterion
+    // holds; if it needed anything more, this would not compile.
+    DiscoveredMeal? opened;
+    await tester.pumpWidget(_app(
+      FakeDiscoveryRepository(onOffer: _onOffer),
+      onOpen: (item) => opened = item,
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('كشري'));
+    await tester.pumpAndSettle();
+
+    final item = opened!;
+    final view = PublicMealView(
+      meal: item.meal,
+      // The Cook's own stored form, carried by the card rather than looked up.
+      cookAddressForm: item.kitchen.addressForm,
+    );
+    expect(view.meal.title, 'كشري');
+    expect(view.cookAddressForm, item.kitchen.addressForm);
   });
 
   testWidgets('every Meal card is reachable by a screen reader',

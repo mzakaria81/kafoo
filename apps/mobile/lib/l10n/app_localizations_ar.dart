@@ -21,6 +21,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'مفيش أكل معروض دلوقتي. تعالى بص كمان شوية.';
 
   @override
+  String get browseSignInEntry => 'تسجيل الدخول';
+
+  @override
   String get browseTitle => 'أكل النهاردة';
 
   @override

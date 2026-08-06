@@ -15,6 +15,10 @@
   "@browseNothingOnOffer": {
     "description": "FR-006. Shown when no Cook anywhere has a Meal on offer. Must be words rather than an empty screen, and must NOT be shown while the first load is still running or for a failure \u2014 those are different things."
   },
+  "browseSignInEntry": "Sign in",
+  "@browseSignInEntry": {
+    "description": "Bar action on the browse screen shown to someone with no account. Customer-facing and ungendered (ADR-0010): a noun, not a verb, so it carries no grammatical form at all."
+  },
   "browseTitle": "What's cooking",
   "@browseTitle": {
     "description": "Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010)."

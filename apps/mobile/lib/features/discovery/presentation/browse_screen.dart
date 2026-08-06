@@ -13,7 +13,7 @@ import '../application/browse_controller.dart';
 /// to it: it is the zero-state before a Customer searches and the answer when a
 /// search finds nothing.
 class BrowseScreen extends ConsumerWidget {
-  const BrowseScreen({this.onOpen, super.key});
+  const BrowseScreen({this.onOpen, this.trailing, super.key});
 
   /// Called when a Customer opens a Meal.
   ///
@@ -22,13 +22,20 @@ class BrowseScreen extends ConsumerWidget {
   /// again.
   final void Function(DiscoveredMeal item)? onOpen;
 
+  /// An action in the bar. Signed out this is the way in for a Cook; signed in
+  /// there is nothing to put here.
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(browseControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.browseTitle)),
+      appBar: AppBar(
+        title: Text(l10n.browseTitle),
+        actions: [if (trailing != null) trailing!],
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(browseControllerProvider.notifier).refresh(),
         child: _body(context, l10n, state),

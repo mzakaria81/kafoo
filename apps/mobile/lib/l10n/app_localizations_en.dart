@@ -21,6 +21,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'No food is on offer right now. Check back in a little while.';
 
   @override
+  String get browseSignInEntry => 'Sign in';
+
+  @override
   String get browseTitle => 'What\'s cooking';
 
   @override
