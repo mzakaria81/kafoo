@@ -35,6 +35,23 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
   static const String _meals = 'meals';
   static const String _kitchens = 'kitchen_profiles';
 
+  /// Named columns, never `select()`.
+  ///
+  /// A bare select is `select=*`, and since E3 added `embedding` that is 768 floats — about 8 KB of
+  /// JSON per Meal, so roughly 420 KB of vectors on a fifty-Meal browse, against a one-second
+  /// budget on an Egyptian mobile connection. Nothing renders them.
+  ///
+  /// It is also the safer default in general: `*` widens with the table, so the first genuinely
+  /// private column added to `meals` would start arriving here on the day it is created.
+  static const String _mealColumns =
+      'id, cook_id, title, description, price, cuisine, category, status, '
+      'ingredients, calories, allergens, nutrition_source, photo_path, '
+      'created_at, updated_at, published_at';
+
+  static const String _kitchenColumns =
+      'id, cook_id, display_name, story, area, delivery_terms, photo_path, '
+      'address_form, created_at, updated_at';
+
   SupabaseClient get _client => Supabase.instance.client;
 
   @override
@@ -42,7 +59,7 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
     try {
       final mealRows = await _client
           .from(_meals)
-          .select()
+          .select(_mealColumns)
           .eq('status', MealStatus.published.wireName)
           .order('published_at', ascending: false);
 
@@ -56,8 +73,10 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
       final cookIds =
           mealRows.map((row) => row['cook_id'] as String).toSet().toList();
 
-      final kitchenRows =
-          await _client.from(_kitchens).select().inFilter('cook_id', cookIds);
+      final kitchenRows = await _client
+          .from(_kitchens)
+          .select(_kitchenColumns)
+          .inFilter('cook_id', cookIds);
 
       final kitchensByCook = <String, KitchenProfile>{
         for (final row in kitchenRows)
