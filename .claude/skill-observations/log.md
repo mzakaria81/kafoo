@@ -2101,3 +2101,38 @@ discovering it in front of a reader who is deciding something.
 **Principle:** Prose generated under one branch of a condition is untested code until the other
 branch runs. The failure mode is not a crash but a confident sentence asserting the opposite of the
 data beside it, which is worse than a blank.
+
+### Observation 82: A backlog whose entries are never closed cannot be triaged by status
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Reviewing the observation log for the founder. 81 entries, every one marked
+OPEN, `last-review-date.txt` reading `never`, spanning ten days.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** "Acting on Observations" / the Status field and the archival rule
+
+**Issue:** At least two entries describe problems that were subsequently fixed in the repository —
+one whose corrected guidance is now written verbatim into the project instructions, one whose
+proposed ownership rule now exists as a named section in the coordination README — and both are
+still marked OPEN. The skill defines who sets a status at write time and who reads statuses during
+a review, but nothing tells the session that *lands the fix* to go back and close the entry that
+predicted it. So the log accumulates monotonically: the count is a count of everything ever
+noticed, not of what is outstanding. That is worse than an unmaintained list, because the Status
+field looks authoritative — a reviewer filtering for OPEN gets the whole file and no signal about
+which items are already dead, and the first honest triage has to re-derive each entry's fate from
+the codebase.
+
+Secondary effect: the archival rule keys off resolved entries, so a log where nothing is ever
+resolved never archives, and grows without bound. This one is at 152 KB.
+
+**Suggested improvement:** Add a closing obligation next to the write path, not only in the review
+procedure: when a change lands that satisfies a logged observation, set that entry to ACTIONED with
+the date and a one-line pointer to where the fix lives, in the same commit as the fix. And in the
+review procedure, add a first pass that re-checks OPEN entries against the current codebase before
+triaging them, since a backlog with no closing discipline will contain already-resolved items
+regardless.
+
+**Principle:** A status field is only informative if something is obliged to change it. If only the
+writer sets it and only a periodic reviewer reads it, with no rule binding the actor in between,
+the field decays into a creation marker and the backlog silently overstates itself.
