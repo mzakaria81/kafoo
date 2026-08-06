@@ -1,7 +1,9 @@
 # ADR-0009 — Where the voice conversation talks to the model
 
-**Status:** Proposed — **not decided.** Nothing here binds an implementer yet. The ephemeral-token
-spike below is what turns this into Accepted or Rejected.
+**Status:** Proposed — **not decided**, and the spike has now run without settling it. Nothing here
+binds an implementer. See "The spike ran, 2026-08-06" at the foot of this file: the ephemeral-token
+flow did not work from this account, so Option C is unavailable today and Option A stands — but the
+surface is in preview and visibly moving, so this stays Proposed rather than Rejected.
 **Date:** 2026-08-02
 **Decider:** Founder
 
@@ -147,3 +149,42 @@ file proposes for tomorrow.
 
 If asked to build the voice conversation on Gemini Live, say that this ADR is unresolved and that
 the ephemeral-token spike is the blocking question.
+
+
+## The spike ran, 2026-08-06 — Option C is unavailable today
+
+T084 / WP-005. Full record in `docs/ops/spike-gemini-live.md`; the throwaway probe code was written
+outside the repository and is gone.
+
+**Question 1 — does the ephemeral-token flow work — is NO as tested**, so questions 2 and 3 were not
+run. That was the instruction and it was also the right use of a free-tier budget.
+
+| | |
+|---|---|
+| The Live surface answers this key | **yes** — a `BidiGenerateContent` socket opened and replied |
+| `POST /v1alpha/auth_tokens` exists | **yes** — 200, a 76-character `auth_…` token |
+| That token opens a Live session | **no** — rejected as an access token (1008) and as a key (1007) |
+
+The mint endpoint returned an identical stub for four different payloads, validating none of them —
+not the shape of something wired up for this account.
+
+**So Option C collapses into Option B, which this ADR already records as disqualifying, and Option
+A — every model call through the Edge Function — stands unchanged. Nothing needs building.**
+
+**Why this is Proposed and not Rejected.** The spike proves the token could not be used, not that it
+cannot be. Two presentations were tried and a third may exist. Rejecting an option on "I could not
+make it work in an afternoon" would put a wrong finding beyond re-examination, and this is a preview
+API: the model listing does not even admit the Live models it serves. Re-run the spike before E3
+commits, starting at the token rather than the socket.
+
+**The strongest argument for the proposal survives untouched.** This ADR records it: on-device
+Egyptian Arabic transcription is the unmeasured risk, Live removes it, and that is a better reason
+than the latency one the proposal itself gave. That argument is not weakened by a token that did not
+mint correctly — it is waiting on T083 and on a working credential path, in that order.
+
+**One thing the spike changed about how to read this file.** The latency line above says Live is not
+worth adopting for speed because Kafoo is already inside budget at 645 ms. **That premise is now
+false for the path that matters**: WP-010 measured description-finished to first estimate at 2177 ms
+against a 2000 ms budget on production, 8 of 12 runs over, with 1997 ms of it inside the model call.
+The 645 ms figure was one call timed from a container straight to the provider. It is not the number
+a Cook experiences, and it should not be used again to dismiss a latency argument.
