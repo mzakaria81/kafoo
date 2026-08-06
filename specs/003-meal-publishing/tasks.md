@@ -644,6 +644,11 @@ marked, reach its kitchen, and find nothing for a Meal not on offer.
 
   **Cost re-measured on the same run and effectively unchanged**: $0.81 per 1,000 Meals without a
   photo, $1.97 with one, against $0.82 and $1.99 on 2026-08-05.
+
+  **The founder accepted the measurement on 2026-08-06.** That closes T075 — the number is measured,
+  reported and trusted. It does not move the budget and it is not a decision about the miss: what
+  2177 ms against 2000 ms means for E3 is still open, and belongs to whoever plans E3 rather than to
+  this task. Anyone reading the budget as met has misread this line.
 - [x] T076 Measure the cost of one published Meal against the chosen provider and put the figure to the founder, alongside E1's still-open per-verification cost (T073 in E1) **DONE 2026-08-05, WP-002.** $0.82 per 1,000 Meals published without a photo, $1.99 with one. Beside it, E1's still-open per-verification cost at roughly $0.45 a sign-in on list prices — one sign-in costs what 550 published Meals cost.
 - [x] T097 **Let a Cook resume a draft rather than starting again.** FR-033's third clause, and it had no task anywhere in this epic until 2026-08-05. The other two clauses — see every draft, delete any of them — are T053 and T060, and because both cite FR-033 the requirement read as covered by every traceability check. Resuming means restoring a half-finished conversation from a persisted draft, which is why it is its own task and not a line inside T053 — **DONE 2026-08-05.** `MealConversationController.resume()` seeds the conversation's `MealDraft` from the stored row and the existing step logic asks the next unanswered question; no second conversation, no resume mode. A draft with no photo path is asked about the photo again, because declining is not persisted and so is indistinguishable from not having been asked.
 
