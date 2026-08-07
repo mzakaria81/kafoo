@@ -35,9 +35,26 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
     results: DiscoveryResults(results: []),
   );
 
+  /// What [judge] returns, or null for "nothing to say".
+  Judgement? judgement;
+
+  /// When true, [judge] NEVER COMPLETES.
+  ///
+  /// This is how FR-011 is provable rather than asserted. Results must be on
+  /// screen before the AI Assistant has finished considering them, and the only
+  /// evidence of that is a judgement that has not finished — a fast fake proves
+  /// nothing, because a screen that waits for it looks identical.
+  bool holdJudgement = false;
+
   /// The phrases this fake was asked for, so a test can assert what left the
   /// device — and, with the switch off, that NOTHING did.
   final List<String> phrases = <String>[];
+
+  /// The areas each search was narrowed to, positionally matching [phrases].
+  ///
+  /// FR-024a turns on the CUSTOMER choosing an area, so a test has to be able
+  /// to see that the second request carried one and the first did not.
+  final List<String?> areas = <String?>[];
 
   int calls = 0;
 
@@ -61,6 +78,7 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
     // Recorded rather than counted: the assertions that matter about search are
     // about what left the device, and a count cannot answer those.
     phrases.add(phrase);
+    areas.add(area);
     if (hold) {
       await Completer<void>().future;
     }
@@ -68,5 +86,29 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
       return const Failure(AppError(messageKey: 'searchUnavailable'));
     }
     return Success(searchOutcome);
+  }
+
+  /// Whether [isStillOnOffer] answers yes. The freshness case a Customer meets
+  /// is a Cook taking food off the menu while somebody reads about it, so a
+  /// test needs to be able to produce exactly that.
+  bool stillOnOffer = true;
+
+  @override
+  Future<bool> isStillOnOffer(String mealId) async => stillOnOffer;
+
+  /// The phrases handed to [judge], so a test can assert that a Customer who
+  /// refused sends nothing to the AI Assistant either.
+  final List<String> judged = <String>[];
+
+  @override
+  Future<Judgement?> judge({
+    required String phrase,
+    required DiscoveryResults results,
+  }) async {
+    judged.add(phrase);
+    if (holdJudgement) {
+      await Completer<void>().future;
+    }
+    return judgement;
   }
 }

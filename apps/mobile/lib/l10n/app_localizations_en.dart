@@ -37,7 +37,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchUnavailable =>
-      'Search isn\'t working right now, but you can still look at what\'s on offer.';
+      'Search isn\'t working right now, but browsing what\'s on offer works as usual.';
 
   @override
   String mealCardSemanticLabel(String kitchen, String price, String title) {
@@ -1432,4 +1432,113 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSearchTitle => 'Search with the AI Assistant';
+
+  @override
+  String get settingsSearchExplanation =>
+      'To find the food being asked for, the words typed into search go to a service outside Kafoo that works out what they mean. With this off, search will not work, and browsing what\'s on offer carries on unchanged.';
+
+  @override
+  String get settingsSearchStorageNote =>
+      'This answer is kept on this phone only. Kafoo does not record the words typed into search, and does not keep the answer either.';
+
+  @override
+  String get searchLabel => 'What food today?';
+
+  @override
+  String get searchHint => 'Something hot, no meat, in Mohandessin';
+
+  @override
+  String get searchAction => 'Search';
+
+  @override
+  String get searchRunning => 'Looking for food...';
+
+  @override
+  String get searchVoiceHint => 'Speak';
+
+  @override
+  String get searchVoiceUnavailable =>
+      'Voice isn\'t working on this phone right now. Typing works normally.';
+
+  @override
+  String get searchIsOff =>
+      'Search is off. It can be turned back on in Settings at any time, and browsing what\'s on offer works as usual.';
+
+  @override
+  String get searchFoundNothing =>
+      'We didn\'t find anything like that. Here\'s everything on offer right now.';
+
+  @override
+  String get searchExclusionNotUnderstood =>
+      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it. Try naming the food on its own.';
+
+  @override
+  String searchFilteredOn(String food) {
+    return 'We removed Meals listed as containing $food. That\'s based on what Cooks wrote and the AI Assistant\'s estimate — it does not mean the rest have no $food in them.';
+  }
+
+  @override
+  String searchNarrowedToArea(String area) {
+    return 'Results from $area only.';
+  }
+
+  @override
+  String searchAreaEmpty(String area) {
+    return 'There\'s no food on offer in $area right now.';
+  }
+
+  @override
+  String get searchAreaChoose =>
+      'There is food in these areas, though. Kafoo doesn\'t know how far apart areas are, and delivery is a matter between the Customer and the Cook.';
+
+  @override
+  String get searchConsentQuestion =>
+      'For Kafoo to understand the words and find the right food, what was typed into search has to go to a service outside Kafoo. Kafoo itself does not record these words or keep them. And when the words are spoken, it is the phone itself that turns them into text. Shall we send it?';
+
+  @override
+  String get searchConsentAgree => 'Yes, send it';
+
+  @override
+  String get searchConsentRefuse => 'No, don\'t send it';
+
+  @override
+  String get searchConsentNote =>
+      'If the answer is no, search won\'t work and browsing what\'s on offer carries on. The answer will be kept on this phone only, and can be changed in Settings at any time.';
+
+  @override
+  String exclusionName(String food) {
+    String _temp0 = intl.Intl.selectLogic(
+      food,
+      {
+        'meat': 'meat',
+        'chicken': 'chicken',
+        'fish': 'fish',
+        'shellfish': 'shellfish',
+        'egg': 'egg',
+        'dairy': 'dairy',
+        'peanut': 'peanuts',
+        'nuts': 'nuts',
+        'sesame': 'sesame',
+        'gluten': 'gluten',
+        'onion': 'onion',
+        'garlic': 'garlic',
+        'other': 'that',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mealNoLongerOnOffer =>
+      'This Meal is no longer on offer. The Cook has taken it off the menu.';
+
+  @override
+  String get searchAreasUnknown =>
+      'We can\'t work out which areas have food right now. Try again in a moment.';
 }

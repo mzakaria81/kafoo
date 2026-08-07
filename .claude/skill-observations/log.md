@@ -1300,10 +1300,87 @@ different right answer per environment, so its verdict must be predicted per env
 compared — otherwise the mutation test faithfully demonstrates the defect and is read as proof of
 its absence.
 
-### Observation 95: No structure for evaluating an external repo or paper against Kafoo's constraints
+### Observation 95: A privacy requirement stated as a screen behaviour must be implemented as a single choke point, not a screen branch
 
 **Status:** OPEN
-**Renumbered:** was Observation 93 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved on merge with `main`
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — building a search screen whose acceptance criterion was "with the consent switch off, ZERO words leave the device, verified by watching what leaves rather than by reading the code that decides."
+**Skill:** New skill candidate: verifying-egress-constraints
+**Type:** open-source
+**Phase/Area:** Implementation and test design for privacy/consent gates
+
+**Issue:** The requirement was phrased as something the interface does ("the search box is unavailable"), which invites an implementation where the screen checks consent before calling the network. That is a branch among several — a suggestion chip, a deep link, a retry button, a voice button, and a "choose another area" action are all separate entry points, and each one added later walks past a screen-level check. The founder's framing ("the consent gate and the search screen are the same piece of work, not two") named the trap precisely: the failure is not a wrong branch, it is a second door.
+
+**Suggested improvement:** For any constraint of the form "X must never leave under condition C", implement one choke point that every path funnels through, and prove it by recording what crossed the boundary rather than by asserting the branch. Two concrete techniques worth documenting: (a) give the test double a list that records every value handed to the outside — not a call count, which cannot answer "what left"; (b) mutation-test the gate by deliberately routing the forbidden case to the network and confirming the test goes red. A test asserting "the refused branch was taken" passes just as happily against an implementation that takes the branch AND sends the data.
+
+**Principle:** An egress constraint is a property of a boundary, not of a screen. Implement it at the single point every path must cross, and verify it by recording what crossed rather than by asserting which branch ran — a branch assertion and an egress assertion look identical in the passing case and differ only in the case that matters.
+
+### Observation 96: An error message is an egress path, and it is the one nobody audits
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — the `discover` Edge Function returned `detail: String(error)` on a 503, while the same feature's requirements forbid the Customer's phrase reaching "the event, a log line, or an error carrying the request".
+**Skill:** New skill candidate: verifying-egress-constraints
+**Type:** open-source
+**Phase/Area:** Reviewing data-handling code
+
+**Issue:** The forbidden value never appeared in the function's own code near the error. It arrived through two hops: the vendor adapter interpolated the provider's HTTP response body into an exception message, and providers routinely quote the offending request back in that body. So a function that carefully never logs the input still hands it to the caller inside an error, and the code reads as though it does not.
+
+**Suggested improvement:** When auditing where a sensitive value can go, treat every `String(error)`, `err.message`, stack trace and structured error payload as an egress path and trace it to the layer that CONSTRUCTS the message, not the layer that emits it. The test that catches it asserts on the whole serialised response containing the sensitive string, across each failure mode — not on the fields the author remembered to check.
+
+**Principle:** Sensitive data leaves through errors more often than through logs, because an error message is assembled somewhere else and read as opaque at the point it is returned. Audit error construction at its source, and assert on the entire outgoing payload rather than on named fields.
+
+### Observation 97: A generated-file gate makes a comment about the rule a violation of it
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — a project vocabulary check failed on a new ARB entry whose *description* said the string "names the AI Assistant by its canonical name — never bot, chatbot or model". The banned words appeared only as an explanation of the ban, and only in a generated Dart file compiled from the ARB.
+**Skill:** task-observer (or a repo-conventions skill)
+**Type:** open-source
+**Phase/Area:** Working with generated artefacts and lint-style content gates
+
+**Issue:** Documentation prose about a forbidden term is indistinguishable, to a substring scanner, from a use of the forbidden term — and the failure surfaced in a file the author never edited, which makes the error message point at the wrong place. Time was spent looking for a real vocabulary mistake before recognising it was the comment about the rule.
+
+**Suggested improvement:** When a content gate scans generated output, expect prose *about* the rule to trip it, and phrase rule-explaining comments by reference rather than enumeration ("rather than any of the words the vocabulary check forbids"). More generally: when a check fails inside a generated file, resolve the finding to its SOURCE file before diagnosing it.
+
+**Principle:** A scanner cannot distinguish mention from use. Comments that explain a prohibition should refer to it rather than quote it, and a finding in a generated file is a finding about its source.
+
+### Observation 98: A widget test suite with no viewport and no text scale can pass over text rendered in the framework's own "this is broken" style
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — twenty-five passing widget tests covered six user-facing sentences that were rendering at 48-point monospace under a double yellow underline (Flutter's root `_errorTextStyle`), overflowing a phone-sized screen at ordinary text scale. Found by a review agent that rendered the screen at a real device size.
+**Skill:** New skill candidate: widget-test-fidelity
+**Type:** open-source
+**Phase/Area:** Widget/UI test design
+
+**Issue:** Two independent blind spots lined up. The finder API matches on text content and never inspects style, so every assertion passed. And the default test surface is a desktop-sized viewport at 1.0 text scale, which no phone has — so the overflow that would have made the defect obvious never occurred. A project rule requiring testing at 200% text scale had been in place for months and nothing enforced it, because enforcement would have meant a test that sets a viewport and nothing did.
+
+The proximate cause is worth recording separately: an ambient-style lookup (`DefaultTextStyle.of(context)`) resolved from a `State`'s own context, which sits ABOVE the widget that installs the theme. The identical line elsewhere in the same codebase was correct because its context came from a builder at the insertion point. Right in one file, wrong in another, and only where the context comes from distinguishes them.
+
+**Suggested improvement:** For any UI test suite, keep at least one test that (a) sets a realistic device viewport, (b) sets a large text scale, and (c) asserts on rendered properties — size, style, absence of overflow exceptions — rather than on content. Content assertions verify that the right words are present; they cannot verify that anyone can read them. When a framework provides a deliberately-alarming fallback style, assert against it directly: it is the cheapest possible canary.
+
+**Principle:** A test that matches on content is blind to presentation, and a default test viewport is a device nobody owns. A UI suite needs at least one assertion about how something rendered, at a size and scale somebody will actually use, or "all tests pass" means only that the strings exist.
+
+### Observation 99: A guard placed on an entrance is a guard the next entrance walks past — and its test can pass vacuously
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — a consent check was placed on the primary method, with a documented comment predicting exactly the failure that then occurred: a second method reached the network without passing it. The test that appeared to cover the second method returned early on an unset precondition and asserted nothing.
+**Skill:** New skill candidate: verifying-egress-constraints
+**Type:** open-source
+**Phase/Area:** Guard placement and negative-test design
+
+**Issue:** Two failures compounding. First, the guard was on an entrance rather than on the funnel every entrance already crossed — and the class documentation *stated the correct principle* while the code did not follow it, which is the most persuasive form of wrong, because reading the file leaves you convinced. Second, the negative test called the unguarded method on state where it returns immediately, so it exercised the early return rather than the guard. It read as coverage and was coverage of nothing.
+
+**Suggested improvement:** When placing a guard, find the narrowest point that every path crosses and put it there — usually the private method the public ones delegate to, not the public ones. When writing a negative test for a guard, first establish the preconditions under which the guarded code would actually run, and confirm the test fails when the guard is removed. A negative test that has not been watched turning red is indistinguishable from one that is testing an early return.
+
+**Principle:** Guard the funnel, not the entrances; entrances keep being added. And a negative test must be shown to fail for the reason it claims — an early return produces the same green as a working guard.
+
+### Observation 100: No structure for evaluating an external repo or paper against Kafoo's constraints
+
+**Status:** OPEN
+**Renumbered:** was Observation 95 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 100 on merge with `main`, which had independently issued 95 to a different observation
 **Date:** 2026-08-07
 **Session context:** Founder asked for an evaluation of an arXiv paper and the huggingface/speech-to-speech repo for use in Kafoo. The useful answer turned out to be structured entirely around project constraints the external source knows nothing about — language coverage (Egyptian Arabic), deployment shape (no always-on server), and product direction (the AI never speaks). Reaching that structure took a full architecture sweep of the repo that had to be done before the external source could be judged at all.
 **Skill:** New skill candidate: evaluating-external-dependencies
@@ -1316,10 +1393,10 @@ its absence.
 
 **Principle:** Evaluate an external artifact against the adopting project's constraints, never on its own terms. A dependency's quality is a property of the fit, not of the dependency — and the generic quality signals (popularity, license, benchmarks, architecture) are exactly the ones that survive a bad fit intact. Establish the constraints before reading the artifact, or the artifact will supply the evaluation criteria.
 
-### Observation 96: A retired measurement stays alive in the files that quoted it
+### Observation 101: A retired measurement stays alive in the files that quoted it
 
 **Status:** OPEN
-**Renumbered:** was Observation 94 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved on merge with `main`
+**Renumbered:** was Observation 96 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 101 on merge with `main`, which had independently issued 96 to a different observation
 **Date:** 2026-08-07
 **Session context:** Architecture sweep of Kafoo's voice stack while evaluating an external speech pipeline. ADR-0009's spike addendum explicitly retires a 645 ms latency figure ("it should not be used again to dismiss a latency argument") after production measurement showed 2177 ms median against a 2000 ms budget. The retired figure is still stated as live fact in `.claude/rules/ai.md` and in ADR-0005 Amendment 1. Separately, `docs/ops/measuring-transcription.md` still points at a file path that moved during E2's T031.
 **Skill:** ship-check (and any skill covering ADR authoring / documentation-drift enforcement)
@@ -1332,9 +1409,10 @@ its absence.
 
 **Principle:** Correcting a fact where it was decided does not correct it where it was quoted. Superseded figures propagate by copy, so retiring one is a repository-wide find-and-replace, not a single-file edit — and the copies are more dangerous than the original, because they carry the authority of the claim without the context of its retraction.
 
-### Observation 97: Evaluating a repo against a stale checkout, because the pull rule is scoped to "proposing"
+### Observation 102: Evaluating a repo against a stale checkout, because the pull rule is scoped to "proposing"
 
 **Status:** OPEN
+**Renumbered:** was Observation 97 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 102 on merge with `main`, which had independently issued 97 to a different observation
 **Date:** 2026-08-07
 **Session context:** Founder asked for an evaluation of alibaba/open-code-review as a review tool for
 Kafoo. The session read `.claude/agents/` and `scripts/verify.sh` to establish what the project
@@ -1372,9 +1450,10 @@ depend on the current state of the repository?" — so scope the rule to the dep
 activity. Any analysis that quotes repository state is stale-able, and staleness is invisible from
 inside the stale copy: it produces a coherent answer, not an error.
 
-### Observation 98: Second instance of the external-dependency evaluation shape, one day apart
+### Observation 103: Second instance of the external-dependency evaluation shape, one day apart
 
 **Status:** OPEN
+**Renumbered:** was Observation 98 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 103 on merge with `main`, which had independently issued 98 to a different observation
 **Date:** 2026-08-07
 **Session context:** Evaluating `alibaba/open-code-review` for adoption — the second such request in
 two days, after the huggingface/speech-to-speech evaluation that produced Observation 95 (logged as
@@ -1410,9 +1489,10 @@ feature list does, because features are advertised and defaults are assumed. Ask
 ignores by default and what objective it was tuned against — a capable tool aimed at a different
 objective is a worse fit than a weaker tool aimed at ours.
 
-### Observation 99: A misattributed source name is an ambiguity that looks like a precise instruction
+### Observation 104: A misattributed source name is an ambiguity that looks like a precise instruction
 
 **Status:** OPEN
+**Renumbered:** was Observation 99 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 104 on merge with `main`, which had independently issued 99 to a different observation
 **Date:** 2026-08-07
 **Session context:** Founder asked to "borrow the benchmark from alibaba and tune it for our repo", following a session that evaluated an arXiv paper. There is no benchmark by Alibaba in that paper: Alibaba is Qwen, whose *models* the paper measures; the benchmark the paper *cites* is BenchForce, which is Salesforce's. A third candidate (VoiceBench) exists and is associated with Alibaba only because Qwen publishes scores against it. Three non-interchangeable artefacts, one confident-sounding request. The founder deferred the work when the three were laid out.
 **Skill:** New skill candidate: evaluating-external-dependencies (same candidate as Observation 93) — or any skill covering how to act on a request that names a source
@@ -1425,10 +1505,10 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 **Principle:** Specificity is not accuracy. A request that names a source, a version, or an author sounds verified and is not — misattribution is the most common way a confident instruction points at the wrong thing, and it survives every check except looking. Confirm the referent exists as named before building on it, and when one name maps to several real artefacts, that is an ambiguity to surface rather than a preference to infer.
 
-### Observation 100: PDF text extraction has no fallback path when the container's crypto stack is broken
+### Observation 105: PDF text extraction has no fallback path when the container's crypto stack is broken
 
 **Status:** OPEN
-**Renumbered:** was Observation 92, then 94, on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 100 on merge with `main`, which had independently issued 94 to a different observation
+**Renumbered:** was Observation 100 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 105 on merge with `main`, which had independently issued 100 to a different observation
 **Date:** 2026-08-07
 **Session context:** Reading an arXiv paper (2603.05413) to evaluate a third-party repo for Kafoo. The Read tool's PDF path failed (`pdftoppm` missing), and both `pypdf` and `pdfminer.six` then failed at import because the container's system `cryptography` package panics (`No module named _cffi_backend` → pyo3 PanicException). Three attempts burned before a workaround landed: stubbing a fake `cryptography.hazmat.primitives.ciphers` package on PYTHONPATH so pypdf's optional encryption import resolves.
 **Skill:** New skill candidate: reading-pdfs-in-constrained-containers (or a reference section in an existing research/reading skill)

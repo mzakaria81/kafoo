@@ -69,6 +69,10 @@ jobs:
   web:
     name: web (Customer surface)
     runs-on: ubuntu-latest
+    # The only job here that publishes to the internet rather than archiving an artifact a human
+    # still has to submit, and until 2026-08-07 it was the only one that ran no gate at all. It
+    # could have put a Customer-facing page live from a tree the gate would have refused.
+    needs: preflight
     steps:
       - uses: actions/checkout@v4
 
@@ -136,8 +140,24 @@ jobs:
   # macOS runners cost roughly ten times an Ubuntu minute, so the iOS job must
   # not start at all without signing material. `secrets` is not available in a
   # job-level `if:`, so this cheap job exports the answer for `needs:` to read.
+  #
+  # IT ALSO RUNS THE GATE, ONCE, FOR EVERY RELEASE JOB. It used to run in both the Android and the
+  # iOS job, which meant the same script over the same commit twice — and it broke on 2026-08-07
+  # for a reason that duplication caused. E3 added an `authorization suites` step that needs a real
+  # Postgres; ci.yml grew an install step to feed it and these jobs did not, so the check found no
+  # database, `skip_or_fail` made that fatal under CI, and every deploy went red. Fixing it in place
+  # meant installing Postgres, pgTAP and pgvector twice — including on a macOS runner, where the apt
+  # route does not exist at all and the whole thing would have been rebuilt through Homebrew for a
+  # job that never needed a database.
+  #
+  # One gate run on Ubuntu, gating both, removes that. The release jobs build; this one decides
+  # whether they are allowed to.
+  #
+  # It is deliberately NOT dropped in favour of ci.yml, which runs the identical script on the same
+  # commit. Both workflows fire on the same push and neither waits for the other, so nothing would
+  # stop a release candidate being built and archived from a tree CI is about to call red.
   preflight:
-    name: preflight
+    name: preflight (gate)
     runs-on: ubuntu-latest
     outputs:
       has_ios_signing: ${{ steps.check.outputs.has_ios_signing }}
@@ -149,9 +169,60 @@ jobs:
           echo "has_ios_signing=${HAS_IOS}" >> "$GITHUB_OUTPUT"
           echo "iOS signing secrets present: ${HAS_IOS}"
 
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Activate melos
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      # Deno, for the same reason ci.yml installs it: the Edge Functions are Deno and three of the
+      # gate's checks cannot run without it — `deno check`, the Edge Function unit tests, and the
+      # prompt bundle drift check that catches a prompt edit never recompiled into the deployed
+      # bundle.
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # The authorization suites run against a real Postgres of the major version
+      # supabase/config.toml pins. Kept identical to ci.yml's step: one definition of the
+      # environment the gate needs, in the two places that need it.
+      - name: Install Postgres, pgTAP and pgvector
+        run: |
+          set -euo pipefail
+          PG_MAJOR="$(grep -E '^major_version[[:space:]]*=' supabase/config.toml \
+                      | head -1 | tr -dc '0-9')"
+          . /etc/os-release
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
+                                      "postgresql-${PG_MAJOR}-pgvector"
+
+      # A release is not the place to discover a missing RLS policy.
+      #
+      # Unguarded, unlike the per-job version it replaces: that one was gated on the platform
+      # project existing, so a checkout without `apps/mobile/android` skipped the gate entirely
+      # rather than running it. Whether a release candidate can be built and whether the tree is
+      # sound are different questions.
+      - name: Run the gate
+        run: ./scripts/verify.sh
+
   android:
     name: android release candidate
     runs-on: ubuntu-latest
+    needs: preflight
     # NOTE: no job-level `if: hashFiles(...)`. hashFiles runs before any
     # checkout, against an empty workspace, so it always yields '' and would
     # skip this job on every run. The guards below are step-level, after the
@@ -195,25 +266,24 @@ jobs:
         if: steps.detect.outputs.buildable == 'true'
         run: melos bootstrap
 
-      # Deno, for the same reason ci.yml installs it: the Edge Functions are Deno and three of the
-      # gate's checks cannot run without it — `deno check`, the Edge Function unit tests, and the
-      # prompt bundle drift check that catches a prompt edit never recompiled into the deployed
-      # bundle. This job has run the gate since it was written and has never had Deno, so all three
-      # skipped and reported ok on every release.
+      # `*.g.dart` is gitignored, so a clean checkout has none of it and the app does not compile
+      # without it — a `@riverpod` controller's `state` comes from the generated part file.
       #
-      # It went from silent to loud on 2026-08-05, when verify.sh started failing rather than
-      # skipping under CI, and every deploy since has failed here. That is the check working as
-      # intended: the release was already missing them and nobody could see it.
-      - name: Set up Deno
+      # This job never ran build_runner. It got the generated code as a SIDE EFFECT of the gate,
+      # whose `codegen` check runs build_runner before checking anything, and which used to run in
+      # this job. Moving the gate to `preflight` on 2026-08-07 took the side effect with it and the
+      # release build failed on `Undefined name 'state'` — a dependency that had been satisfied by
+      # accident for as long as the two steps happened to share a runner.
+      #
+      # Declared here now, because a build that needs generated code should say so rather than
+      # inherit it from whatever ran first.
+      - name: Generate code
         if: steps.detect.outputs.buildable == 'true'
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+        run: melos exec --depends-on=build_runner -- dart run build_runner build
 
-      # A release is not the place to discover a missing RLS policy.
-      - name: Run the gate
-        if: steps.detect.outputs.buildable == 'true'
-        run: ./scripts/verify.sh
+      # The gate runs in `preflight`, which this job needs, so it has already passed by the time
+      # anything here executes. Deno went with it — it was installed for the gate's three Deno
+      # checks and nothing in this job uses it.
 
       # The signing identity is infrastructure. It arrives from secrets and is
       # written outside the working tree so it can never be committed.
@@ -341,25 +411,16 @@ jobs:
         if: steps.detect.outputs.buildable == 'true'
         run: melos bootstrap
 
-      # Deno, for the same reason ci.yml installs it: the Edge Functions are Deno and three of the
-      # gate's checks cannot run without it — `deno check`, the Edge Function unit tests, and the
-      # prompt bundle drift check that catches a prompt edit never recompiled into the deployed
-      # bundle. This job has run the gate since it was written and has never had Deno, so all three
-      # skipped and reported ok on every release.
-      #
-      # It went from silent to loud on 2026-08-05, when verify.sh started failing rather than
-      # skipping under CI, and every deploy since has failed here. That is the check working as
-      # intended: the release was already missing them and nobody could see it.
-      - name: Set up Deno
+      # Same reason as the Android job: `*.g.dart` is gitignored, the app does not compile without
+      # it, and this job used to receive it as a side effect of the gate step it no longer runs.
+      - name: Generate code
         if: steps.detect.outputs.buildable == 'true'
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+        run: melos exec --depends-on=build_runner -- dart run build_runner build
 
-      # A release is not the place to discover a missing RLS policy.
-      - name: Run the gate
-        if: steps.detect.outputs.buildable == 'true'
-        run: ./scripts/verify.sh
+      # The gate runs in `preflight`, which this job already needs. Keeping a copy here would have
+      # meant a Postgres, pgTAP and pgvector install on a macOS runner — through Homebrew, since
+      # the apt route does not exist there — to satisfy a database check for a job that builds an
+      # iOS archive. Deno went with it, for the same reason it did in the Android job.
 
       # iOS needs a certificate AND a provisioning profile, unlike Android's
       # single keystore. Both land in a temporary keychain that is deleted with

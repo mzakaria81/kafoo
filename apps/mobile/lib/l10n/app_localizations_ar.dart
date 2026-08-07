@@ -37,7 +37,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchUnavailable =>
-      'البحث مش شغال دلوقتي، بس تقدر تتفرج على الأكل الموجود.';
+      'البحث مش شغال دلوقتي، بس الفرجة على الأكل الموجود شغالة عادي.';
 
   @override
   String mealCardSemanticLabel(String kitchen, String price, String title) {
@@ -1382,4 +1382,113 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsTitle => 'الإعدادات';
+
+  @override
+  String get settingsSearchTitle => 'البحث بالمساعد الذكي';
+
+  @override
+  String get settingsSearchExplanation =>
+      'علشان نلاقي الأكل المطلوب، الكلام اللي بيتكتب في البحث بيروح لخدمة بره كفو بتفهم معناه. لو ده مقفول، البحث مش هيشتغل، والفرجة على الأكل هتفضل شغالة زي ما هي.';
+
+  @override
+  String get settingsSearchStorageNote =>
+      'الرد ده محفوظ على الموبايل ده بس. كفو مش بيسجل الكلام اللي بيتكتب في البحث، ولا بيحتفظ بالرد عنده.';
+
+  @override
+  String get searchLabel => 'أكل إيه النهاردة؟';
+
+  @override
+  String get searchHint => 'حاجة سخنة من غير لحمة في المهندسين';
+
+  @override
+  String get searchAction => 'بحث';
+
+  @override
+  String get searchRunning => 'بندوّر على الأكل...';
+
+  @override
+  String get searchVoiceHint => 'بالصوت';
+
+  @override
+  String get searchVoiceUnavailable =>
+      'الصوت مش شغال على الموبايل ده دلوقتي. الكتابة شغالة عادي.';
+
+  @override
+  String get searchIsOff =>
+      'البحث مقفول. ينفع يتفتح من الإعدادات في أي وقت، والتفرج على الأكل شغال زي ما هو.';
+
+  @override
+  String get searchFoundNothing =>
+      'ملقيناش حاجة زي كده. ده كل اللي معروض دلوقتي.';
+
+  @override
+  String get searchExclusionNotUnderstood =>
+      'فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.';
+
+  @override
+  String searchFilteredOn(String food) {
+    return 'شيلنا الأكلات المكتوب فيها $food. ده على حسب اللي الطباخين كتبوه وتقدير المساعد الذكي — مش معناه إن باقي الأكلات مفيهاش $food.';
+  }
+
+  @override
+  String searchNarrowedToArea(String area) {
+    return 'النتايج من $area بس.';
+  }
+
+  @override
+  String searchAreaEmpty(String area) {
+    return 'مفيش أكل معروض في $area دلوقتي.';
+  }
+
+  @override
+  String get searchAreaChoose =>
+      'بس في أكل في المناطق دي. كفو مش عارف المسافة بين المناطق، والتوصيل اتفاق بين الزبون والطباخ.';
+
+  @override
+  String get searchConsentQuestion =>
+      'علشان كفو يفهم الكلام ويلاقي الأكل المناسب، لازم يبعت اللي اتكتب في البحث لخدمة بره كفو. كفو نفسه مش بيسجل الكلام ده ولا بيحتفظ بيه. ولو الكلام اتقال بالصوت، الموبايل نفسه هو اللي بيحوّله لكتابة. نبعته؟';
+
+  @override
+  String get searchConsentAgree => 'أيوه، ابعتوه';
+
+  @override
+  String get searchConsentRefuse => 'لأ، متبعتوهوش';
+
+  @override
+  String get searchConsentNote =>
+      'لو الرد لأ، البحث مش هيشتغل والفرجة على الأكل هتفضل شغالة. الرد هيتحفظ على الموبايل ده بس، وينفع يتغير من الإعدادات في أي وقت.';
+
+  @override
+  String exclusionName(String food) {
+    String _temp0 = intl.Intl.selectLogic(
+      food,
+      {
+        'meat': 'لحمة',
+        'chicken': 'فراخ',
+        'fish': 'سمك',
+        'shellfish': 'جمبري ومحار',
+        'egg': 'بيض',
+        'dairy': 'ألبان',
+        'peanut': 'فول سوداني',
+        'nuts': 'مكسرات',
+        'sesame': 'سمسم',
+        'gluten': 'جلوتين',
+        'onion': 'بصل',
+        'garlic': 'توم',
+        'other': 'الحاجة دي',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mealNoLongerOnOffer =>
+      'الأكلة دي مبقتش معروضة. الطباخ شالها من المنيو دلوقتي.';
+
+  @override
+  String get searchAreasUnknown =>
+      'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.';
 }

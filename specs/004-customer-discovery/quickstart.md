@@ -108,11 +108,39 @@ listed at all. Take a fourth to draft. Then sign out and act as a Customer.
 | 11 | Name an area no Cook wrote | Kafoo says so and names the areas that do have food. It does not silently show them. |
 | 12 | Have the Cook take every Meal off the menu | Their kitchen disappears from discovery entirely |
 
+| 13 | Arrive for the first time and browse without searching | **Nothing asks about anything.** The question about a Customer's words appears at the first attempt to search, never on arrival — FR-029a. |
+| 14 | Now type anything and press search | Kafoo says the words will leave and offers both answers. Nothing has been sent yet. |
+| 15 | Refuse | Search is **gone**, not broken: there is no input to type into, a sentence says searching is off, and browsing is untouched. |
+| 16 | Close Kafoo, reopen it, try to search again | **The question does not come back.** SC-015. The answer is on the device. |
+| 17 | Open Settings from the bar and turn the switch on | Search works from the next attempt. The question still does not come back. |
+| 18 | Type `عايز حاجة من غير لحمة في المهندسين` | One sentence carries all three things: a line names what was filtered on, a line names the area, and the results honour both. |
+| 19 | Read the line about the exclusion | It says **what was removed and where that came from**. It never says a Meal is safe. |
+| 20 | Name an area with nothing in it | Kafoo names the areas that do have food and shows **nothing from them** until one is chosen. No distance, no "nearest", no promise anyone delivers. |
+
+**Steps 13 to 17 are one requirement, not five.** Run them in order and on a fresh install; the
+failure they catch — being asked twice, or asked on arrival — is invisible on the second run.
+
 **Step 6 is the one to repeat.** It is the only case where getting it wrong harms someone rather than
 disappointing them.
 
 **Step 9 is the one that is easiest to break later** and produces no error when it is — the feature
 just becomes slow, the way E2 was measured to be.
+
+## 4a. Meals published before search existed
+
+A Meal with no vector is invisible to search and fully visible to browsing, so the corpus needs
+filling in once. It is a script rather than a migration — the reasoning is at the top of the file.
+
+```bash
+DENO_CERT=/root/.ccr/ca-bundle.crt deno run --allow-net --allow-env \
+  scripts/backfill-meal-embeddings.ts --dry-run     # spends nothing, writes nothing
+```
+
+Then without `--dry-run`, optionally with `--limit=5` for a first run against production.
+
+**Interrupt it halfway on purpose.** The Meals it reached are searchable, the rest are exactly as
+they were, and running it again picks up where it stopped. If an interrupted run ever loses a
+Cook's words, that is the defect this design exists to prevent.
 
 ## 5. Without installing anything
 

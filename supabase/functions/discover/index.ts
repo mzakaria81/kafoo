@@ -58,14 +58,28 @@ export interface DiscoverDeps {
 /// failure the whole exclusion design exists to prevent: the Customer said "without prawns", Kafoo
 /// did not recognise the word, and the results arrive looking exactly like results for a request
 /// with no exclusion in it.
+///
+/// **`notUnderstood` IS A BOOLEAN, AND IT USED TO BE THE WORDS.** `Understanding.phrase` is not a
+/// word — it is the whole remainder of the sentence after the negation marker — so this returned
+/// `عمو سيد جنب بيتي في المهندسين` and put it in the 200 body AND in both 503 bodies. Found by
+/// trust-reviewer on 2026-08-07, one commit after `detail: String(error)` was removed for the same
+/// reason, and past the test written to catch that: it asserts the WHOLE phrase is absent, and most
+/// of a phrase is not the whole of it.
+///
+/// The interface never needed the words. Both call sites read `!= null` and the sentence they
+/// render — `searchExclusionNotUnderstood` — carries no placeholder. So this was a Customer's own
+/// words crossing the network, and landing inside an error, for a screen that only ever asked
+/// whether the field was set.
+///
+/// `excluded` and `area` stay as values because the interface interpolates both.
 function understandingForResponse(exclusion: Understanding) {
   switch (exclusion.kind) {
     case 'nothing':
-      return { excluded: null, notUnderstood: null };
+      return { excluded: null, notUnderstood: false };
     case 'found':
-      return { excluded: exclusion.id, notUnderstood: null };
+      return { excluded: exclusion.id, notUnderstood: false };
     case 'not-understood':
-      return { excluded: null, notUnderstood: exclusion.phrase };
+      return { excluded: null, notUnderstood: true };
   }
 }
 
@@ -97,14 +111,27 @@ export async function handleDiscover(req: Request, deps: DiscoverDeps): Promise<
   const parsed = parsePhrase(phrase);
   const understood = understandingForResponse(parsed.exclusion);
 
+  // AN EXPLICIT AREA WINS OVER THE ONE IN THE SENTENCE, and that is FR-024a rather than a
+  // preference. When the area a Customer named turns out to be empty, Kafoo names the areas that
+  // are not and the Customer CHOOSES one — that choice arrives here as `area`, on top of the same
+  // sentence they said the first time. Letting the sentence win would make the choice unreachable.
+  const narrowedArea = ((area as string | null) ?? parsed.area) || null;
+
   let vector: readonly number[];
   try {
     vector = await deps.embedQuery(parsed.text);
-  } catch (error) {
+  } catch {
     // 503, and the interface must keep browsing working. Search failing may not take browsing with
     // it — a Customer who cannot search can still be shown what is on offer.
+    //
+    // NO `detail`, AND ITS ABSENCE IS THE RULE RATHER THAN TIDINESS. This response carried
+    // `String(error)` until 2026-08-07. A provider rejecting a request answers with a body that
+    // routinely quotes the request back — `translateFailure` in _shared/ai/gemini.ts puts that body
+    // straight into the message — so the phrase a Customer said could ride out of here inside an
+    // error and into whatever the client logs. FR-029 and SC-011 name a log line and "an error
+    // carrying the request" specifically. The Customer is told the same thing either way.
     return json(
-      { error: 'search is unavailable', detail: String(error), ...understood },
+      { error: 'search is unavailable', ...understood, area: narrowedArea },
       503,
     );
   }
@@ -113,14 +140,23 @@ export async function handleDiscover(req: Request, deps: DiscoverDeps): Promise<
 
   let meals: unknown[];
   try {
-    meals = await deps.search(vector, excludeTerms, (area as string | null) ?? null);
-  } catch (error) {
-    return json({ error: 'search is unavailable', detail: String(error), ...understood }, 503);
+    meals = await deps.search(vector, excludeTerms, narrowedArea);
+  } catch {
+    // No `detail` here either, for the reason above: a Postgres error quotes the statement.
+    return json({
+      error: 'search is unavailable',
+      ...understood,
+      area: narrowedArea,
+    }, 503);
   }
 
   // Returned exactly as they came back. Empty is an ordinary outcome, not an error — `judge-results`
   // decides what to SAY about nothing, and that is a different function on purpose.
-  return json({ meals, ...understood }, 200);
+  //
+  // `area` is echoed so the interface can say what was narrowed on, and so an empty result in a
+  // named area is distinguishable from an empty marketplace. FR-024 turns on exactly that
+  // difference, and without this the two arrive looking identical.
+  return json({ meals, ...understood, area: narrowedArea }, 200);
 }
 
 export function createDefaultDeps(authHeader: string | null): DiscoverDeps {

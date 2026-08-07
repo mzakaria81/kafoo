@@ -30,6 +30,7 @@ class PublicMealView extends StatelessWidget {
     required this.cookAddressForm,
     this.photoUrl,
     this.onOpenKitchen,
+    this.notice,
     super.key,
   });
 
@@ -58,6 +59,15 @@ class PublicMealView extends StatelessWidget {
   /// caller supplies a route; the link is not rendered when it is null.
   final VoidCallback? onOpenKitchen;
 
+  /// A sentence above everything else, when there is one to say.
+  ///
+  /// The case it exists for is FR-005: a Cook takes a Meal off the menu while a
+  /// Customer is looking at the results it appeared in. Discovery reflects the
+  /// moment it is ASKED, and opening a Meal is a later moment — so the Meal is
+  /// still rendered, with the truth on top of it, rather than replaced by an
+  /// error that loses what they were reading.
+  final Widget? notice;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -72,6 +82,12 @@ class PublicMealView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 0. Anything that has changed since these results were ranked.
+              if (notice != null) ...[
+                notice!,
+                const SizedBox(height: KafooSpacing.lg),
+              ],
+
               // 1. Photo.
               if (photoUrl != null) MealPhoto(url: photoUrl!),
               const SizedBox(height: KafooSpacing.lg),
