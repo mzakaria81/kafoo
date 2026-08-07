@@ -2420,3 +2420,18 @@ author records intent they did not test.
 because nothing complains. Absence of a complaint is evidence about how a system fails, not about
 whether it works — so a review of anything that narrows a result set should hunt for
 over-narrowing first.
+
+### Observation 92: A proposal citing repo state from memory is indistinguishable from a correct one
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Evaluating a proposal to replace manual coordinator/worker hand-offs with Claude Code Routines. The proposal asserted two work packages were "sitting at READY_FOR_REVIEW right now" as evidence for its recommendation. Reading the actual JSON showed both had been COMPLETED and merged; three entirely different packages were the ones stuck, and stuck in a state the proposed automation could not have detected.
+**Skill:** coordination workflow (coordination/README.md) — and generally, any skill that evaluates a proposal against a live repository
+**Type:** open-source
+**Phase/Area:** Evaluating an incoming proposal before acting on it
+
+**Issue:** The proposal's mechanism claims about the platform were all correct — verified against vendor documentation. Its claims about the *repository's own state* were stale, and the staleness inverted the recommendation: the automation it proposed keyed off a field (`pr`) that was null on every genuinely stuck package. Because the platform reasoning was sound, the state error read as equally sound. This is the same failure mode coordination/README.md already documents for stale plans, appearing one level up: in the evidence a proposal cites rather than in the plan it produces.
+
+**Suggested improvement:** When evaluating any proposal that cites current repository or system state as justification, re-read that state from the source before assessing the proposal — separately and explicitly from verifying the proposal's mechanism claims. The two verifications are independent and a proposal can pass one while failing the other. Cheapest form: enumerate the actual state first, then read the proposal against it.
+
+**Principle:** A proposal's mechanism claims and its state claims fail independently, and correct mechanism lends unearned credibility to stale state. Verify both, and verify state from the source rather than from the proposal's summary of it — a recommendation derived from stale evidence is indistinguishable from a correct one until you look.
