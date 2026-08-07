@@ -21,7 +21,11 @@ import { EmbedMealDeps, handleEmbedMeal, MealRow } from './index.ts';
 import { embeddableText } from './text.ts';
 
 const COOK = 'cook-1';
-const MEAL: MealRow = { id: 'meal-1', title: 'كشري', description: 'عدس ورز' };
+const MEAL: MealRow = {
+  id: 'dddddddd-0000-4000-8000-000000000001',
+  title: 'كشري',
+  description: 'عدس ورز',
+};
 
 interface Recorder {
   embedded: string[];
@@ -86,14 +90,17 @@ Deno.test('text in the request body NEVER reaches the model', async () => {
 
 Deno.test('a Meal belonging to someone else is not embedded, and is not distinguished from a missing one', async () => {
   const [d, recorder] = deps();
-  const response = await handleEmbedMeal(post({ mealId: 'someone-elses-meal' }), d);
+  const response = await handleEmbedMeal(post({ mealId: 'dddddddd-0000-4000-8000-0000000000ff' }), d);
 
   assertEquals(response.status, 404);
   assertEquals(recorder.embedded, []);
   assertEquals(recorder.written, []);
 
   // A different status for "exists but not yours" would let a stranger enumerate the marketplace.
-  const missing = await handleEmbedMeal(post({ mealId: 'no-such-meal' }), d);
+  const missing = await handleEmbedMeal(
+    post({ mealId: 'dddddddd-0000-4000-8000-0000000000fe' }),
+    d,
+  );
   assertEquals(missing.status, 404);
 });
 
@@ -136,7 +143,11 @@ Deno.test('a token the platform rejects means no model call', async () => {
 
 Deno.test('a body without a mealId is refused before anything is spent', async () => {
   const [d, recorder] = deps();
-  for (const body of [{}, { mealId: '' }, { mealId: 42 }, { mealId: null }]) {
+  // A non-UUID is the caller's mistake and must be answered as one. Without the check it reaches
+  // PostgREST and comes back as a 500, which reads as Kafoo being broken.
+  for (
+    const body of [{}, { mealId: '' }, { mealId: 42 }, { mealId: null }, { mealId: 'not-a-uuid' }]
+  ) {
     const response = await handleEmbedMeal(post(body), d);
     assertEquals(response.status, 400, `${JSON.stringify(body)} was accepted`);
   }

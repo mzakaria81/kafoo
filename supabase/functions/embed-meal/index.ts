@@ -62,6 +62,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -125,8 +127,12 @@ export async function handleEmbedMeal(req: Request, deps: EmbedMealDeps): Promis
     return json({ error: 'malformed body' }, 400);
   }
 
-  if (typeof mealId !== 'string' || mealId.length === 0) {
-    return json({ error: 'mealId is required' }, 400);
+  // Validated as a UUID, not merely as a non-empty string. `.claude/rules/supabase.md` requires
+  // input validation at the Edge Function boundary, and "the input is validated" is part of why it
+  // is safe to say this is the one function permitted a write credential. Without it a non-UUID
+  // reaches PostgREST, Postgres raises 22P02, and the caller gets a 500 for what is their mistake.
+  if (typeof mealId !== 'string' || !UUID.test(mealId)) {
+    return json({ error: 'mealId must be a UUID' }, 400);
   }
 
   // 3. Read the Meal, scoped to its owner.
