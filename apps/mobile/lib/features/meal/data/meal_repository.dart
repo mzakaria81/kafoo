@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:kafoo_domain/domain.dart';
@@ -91,7 +92,13 @@ abstract interface class MealRepository {
 /// RLS is the real guard on every call here — these queries are scoped by
 /// `auth.uid()` in the database, not by the filters written below.
 class SupabaseMealRepository implements MealRepository {
-  const SupabaseMealRepository();
+  /// [requestEmbedding] is injected only so a test can make it fail. In production it is null and
+  /// [_askForEmbedding] calls the Edge Function.
+  const SupabaseMealRepository({
+    Future<void> Function(String mealId)? requestEmbedding,
+  }) : _requestEmbedding = requestEmbedding;
+
+  final Future<void> Function(String mealId)? _requestEmbedding;
 
   static const String _table = 'meals';
 
@@ -118,6 +125,37 @@ class SupabaseMealRepository implements MealRepository {
   SupabaseClient get _client => Supabase.instance.client;
 
   String? get _uid => _client.auth.currentUser?.id;
+
+  /// Asks Kafoo to give this Meal a vector, and never lets that matter to the Cook.
+  ///
+  /// **Not awaited, and every failure is swallowed. Both are the feature.** A Meal with no vector is
+  /// invisible to search and fully visible to browsing, so an unreachable provider, an exhausted
+  /// quota or a bad key makes a Meal HARDER TO FIND — never lost, and never a Cook who cannot
+  /// publish because a model provider is down. Awaiting this would put a model provider's availability on
+  /// the path of the most important action a Cook takes.
+  ///
+  /// It is fired on publish and on a title or description change, and NOT on a price, photo or
+  /// status change: those do not alter what the food IS, so re-embedding them would spend a model
+  /// call and move a Meal's ranking for no reason a Customer could perceive.
+  ///
+  /// WHICH EDITS COUNT, as a named rule rather than a condition buried in a method. It is the part
+  /// with a decision in it, and `meal_embedding_trigger_test.dart` is what stops somebody
+  /// "simplifying" it to re-embed on every save.
+  static bool changesWhatTheFoodIs({String? title, String? description}) =>
+      title != null || description != null;
+
+  void _askForEmbedding(String mealId) {
+    final request = _requestEmbedding ??
+        (id) async {
+          await _client.functions.invoke('embed-meal', body: {'mealId': id});
+        };
+    unawaited(
+      request(mealId).catchError((Object _) {
+        // Deliberately silent. See above — the Cook's save has already succeeded, and there is
+        // nothing here they could act on.
+      }),
+    );
+  }
 
   @override
   Future<Result<String, AppError>> createDraft({required String title}) async {
@@ -188,6 +226,12 @@ class SupabaseMealRepository implements MealRepository {
           .eq('id', mealId)
           .select(_columns)
           .single();
+      // Only when the WORDS changed. A price edit is the same food, and a Meal that re-embeds on
+      // every save spends a model call per keystroke-batch and drifts in the rankings while a Cook
+      // is still deciding what to charge.
+      if (changesWhatTheFoodIs(title: title, description: description)) {
+        _askForEmbedding(mealId);
+      }
       return Success(_fromRow(row));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
@@ -207,6 +251,8 @@ class SupabaseMealRepository implements MealRepository {
           .eq('id', mealId)
           .select(_columns)
           .single();
+      // A Meal reaching Customers for the first time is exactly when it needs to be findable.
+      _askForEmbedding(mealId);
       return Success(_fromRow(row));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
