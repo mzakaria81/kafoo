@@ -103,6 +103,18 @@ observation has no Status line at all.** Concretely:
 If the counts differ, the delta is statusless entries — surface and
 triage them (as OPEN) rather than proceeding as if the log were clean.
 
+**Re-check the OPEN set against reality before triaging it.** A backlog
+with no closing discipline contains already-resolved items regardless of
+what the Status lines say — a fix can land in a session that never touches
+the log, and it will still read as OPEN months later. So the first pass
+over the work queue is not triage: for each OPEN entry whose Suggested
+improvement names a concrete artefact (a file, a check, a rule, a
+document), look at that artefact and ask whether the change is already
+there. Close what is done, and note in the summary how many entries were
+already resolved — a high number is itself a finding about the closing
+obligation, not merely bookkeeping. Watch for entries with a project half
+and a skill half: landing one does not close the other.
+
 Also read all active cross-cutting principles. If there are no OPEN
 observations and no outstanding principles: report "no open observations
 or outstanding principles", update the timestamp, and stop.
