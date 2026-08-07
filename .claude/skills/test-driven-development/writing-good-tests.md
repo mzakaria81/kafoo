@@ -168,6 +168,26 @@ should fail for each realistic mutation:
 A mutation nothing catches marks the behavior as unprotected — or the
 test as tautological.
 
+## Traps That Make A Test Silently Measure Nothing
+
+Language- and framework-level details that turn a well-written test into a no-op. Each was caught
+by a mutation check, not by reading.
+
+- **Matchers bind to a test zone.** Fixture discovery that runs at file load — before any test is
+  registered — must fail with an ordinary exception (`throw StateError(...)`), never an assertion.
+  A matcher called at load time throws an out-of-zone error and the whole file fails to load, so the
+  suite it was discovering never runs at all.
+- **An auto-disposing provider with no listener is disposed before async completions land.** When
+  testing work kicked off unawaited from such a notifier, hold a subscription for the duration (or
+  document a keep-alive) — otherwise the completion path is never exercised and the test passes on
+  a code path that did not execute. A helper that builds the test container should attach the
+  listener by default.
+- **A partial-update helper using `field ?? this.field` cannot express "set to null".** Passing null
+  compiles, reads naturally, and does nothing. Check the parameter's declaration before trusting any
+  call that clears a field. When adding a regression test for a clear-this-field bug, pick the input
+  where no later write masks the field — the masked path is usually the common one, which is why the
+  defect got through.
+
 ## Quick Reference
 
 | When you... | Do |

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:kafoo_domain/domain.dart';
@@ -91,14 +92,70 @@ abstract interface class MealRepository {
 /// RLS is the real guard on every call here — these queries are scoped by
 /// `auth.uid()` in the database, not by the filters written below.
 class SupabaseMealRepository implements MealRepository {
-  const SupabaseMealRepository();
+  /// [requestEmbedding] is injected only so a test can make it fail. In production it is null and
+  /// [_askForEmbedding] calls the Edge Function.
+  const SupabaseMealRepository({
+    Future<void> Function(String mealId)? requestEmbedding,
+  }) : _requestEmbedding = requestEmbedding;
+
+  final Future<void> Function(String mealId)? _requestEmbedding;
 
   static const String _table = 'meals';
+
+  /// Named columns, never `select()`.
+  ///
+  /// A bare select is `select=*`, and since E3 added `embedding` that is 768 floats — roughly 8 KB
+  /// of JSON per Meal that nothing renders. On a Cook's Meal list it is pure weight on an Egyptian
+  /// mobile connection.
+  ///
+  /// **It is also a ranking concern, which is the part that is not obvious.** A Cook cannot write
+  /// their own vector — `protect_meal_embedding` refuses it — but they write the description that
+  /// produces it. Handing them the resulting vectors is what makes tuning a description against the
+  /// ranker practical, so the read side reopens what the write side closed. Found by
+  /// ai-boundary-reviewer, 2026-08-07.
+  ///
+  /// `discovery_repository.dart` has named its columns since it was written; this file was not
+  /// updated when the column landed.
+  static const String _columns =
+      'id, cook_id, title, description, price, cuisine, category, status, '
+      'ingredients, calories, allergens, nutrition_source, photo_path, '
+      'created_at, updated_at, published_at';
   static const String _bucket = 'meal-photos';
 
   SupabaseClient get _client => Supabase.instance.client;
 
   String? get _uid => _client.auth.currentUser?.id;
+
+  /// Asks Kafoo to give this Meal a vector, and never lets that matter to the Cook.
+  ///
+  /// **Not awaited, and every failure is swallowed. Both are the feature.** A Meal with no vector is
+  /// invisible to search and fully visible to browsing, so an unreachable provider, an exhausted
+  /// quota or a bad key makes a Meal HARDER TO FIND — never lost, and never a Cook who cannot
+  /// publish because a model provider is down. Awaiting this would put a model provider's availability on
+  /// the path of the most important action a Cook takes.
+  ///
+  /// It is fired on publish and on a title or description change, and NOT on a price, photo or
+  /// status change: those do not alter what the food IS, so re-embedding them would spend a model
+  /// call and move a Meal's ranking for no reason a Customer could perceive.
+  ///
+  /// WHICH EDITS COUNT, as a named rule rather than a condition buried in a method. It is the part
+  /// with a decision in it, and `meal_embedding_trigger_test.dart` is what stops somebody
+  /// "simplifying" it to re-embed on every save.
+  static bool changesWhatTheFoodIs({String? title, String? description}) =>
+      title != null || description != null;
+
+  void _askForEmbedding(String mealId) {
+    final request = _requestEmbedding ??
+        (id) async {
+          await _client.functions.invoke('embed-meal', body: {'mealId': id});
+        };
+    unawaited(
+      request(mealId).catchError((Object _) {
+        // Deliberately silent. See above — the Cook's save has already succeeded, and there is
+        // nothing here they could act on.
+      }),
+    );
+  }
 
   @override
   Future<Result<String, AppError>> createDraft({required String title}) async {
@@ -156,16 +213,25 @@ class SupabaseMealRepository implements MealRepository {
       };
       if (fields.isEmpty) {
         // Nothing to update — read the current state and return it.
-        final row =
-            await _client.from(_table).select().eq('id', mealId).single();
+        final row = await _client
+            .from(_table)
+            .select(_columns)
+            .eq('id', mealId)
+            .single();
         return Success(_fromRow(row));
       }
       final row = await _client
           .from(_table)
           .update(fields)
           .eq('id', mealId)
-          .select()
+          .select(_columns)
           .single();
+      // Only when the WORDS changed. A price edit is the same food, and a Meal that re-embeds on
+      // every save spends a model call per keystroke-batch and drifts in the rankings while a Cook
+      // is still deciding what to charge.
+      if (changesWhatTheFoodIs(title: title, description: description)) {
+        _askForEmbedding(mealId);
+      }
       return Success(_fromRow(row));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
@@ -183,8 +249,10 @@ class SupabaseMealRepository implements MealRepository {
           .from(_table)
           .update({'status': MealStatus.published.wireName})
           .eq('id', mealId)
-          .select()
+          .select(_columns)
           .single();
+      // A Meal reaching Customers for the first time is exactly when it needs to be findable.
+      _askForEmbedding(mealId);
       return Success(_fromRow(row));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
@@ -222,7 +290,7 @@ class SupabaseMealRepository implements MealRepository {
       }
       final rows = (await _client
           .from(_table)
-          .select()
+          .select(_columns)
           .order('created_at', ascending: false)) as List;
       return Success(
         rows.cast<Map<String, dynamic>>().map(_cookMealFromRow).toList(),
@@ -246,7 +314,7 @@ class SupabaseMealRepository implements MealRepository {
           .from(_table)
           .update({'status': next.wireName})
           .eq('id', mealId)
-          .select()
+          .select(_columns)
           .single();
       return Success(_cookMealFromRow(row));
     } on Object catch (e) {

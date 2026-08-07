@@ -5,6 +5,20 @@ a mistake. The discipline is simple to state and easy to skip under time pressur
 reality, never against the self-report — and read the diff as generated code, which fails in ways a
 green gate can't see.**
 
+## Read the report for absences before you read the diff
+
+Do this first, because what the report omits predicts what the diff contains.
+
+**A report that does not explicitly state a gate's outcome is a report of failure, not of success.**
+The most common shape of an unverified run is narration ending on a plausible action — "Now let me
+run build_runner again" — with no outcome for any gate. It reads as successful precisely because it
+stops mid-stride. Behind one such report: code that did not compile, tests that could not load, and
+two assertions searching for strings absent from the locale the app renders.
+
+Absence of a stated result is evidence of an unverified result, not a neutral omission. And where
+the brief specified a report contract, a reply that does not match it is itself a finding worth
+recording.
+
 ## Check the tests before trusting the gates
 
 If the diff touches existing tests, review those edits *first* — before the gate re-run means anything.
@@ -43,6 +57,27 @@ for:
   first plausible version?
 - **Quiet judgment calls** — sometimes OpenCode makes a defensible decision the brief didn't anticipate.
   Don't just accept it because it looks reasonable; understand it and decide.
+- **Break each behaviour the brief specifically asked to be tested, and confirm the suite fails.**
+  Do not read the delivered test and judge it — the dangerous failure survives reading, because the
+  test is well-formed, well-named and passing while asserting something adjacent. A test group named
+  after a property is read as coverage of it by every future search, which is what makes a vacuous
+  one worse than an absent one. If the suite stays green when the feature is removed, the test
+  measures something else, and the usual root cause is a missing seam rather than a lazy implementer.
+- **Re-derive any regression fixture the implementer supplied.** An implementer that transcribed the
+  expected values from its own new code has written a tautology, and it looks identical to a passing
+  pin. Extract the baseline from the source of truth yourself and replay it.
+
+### Widen the window past one delegation
+
+When a delegated change extends a file an earlier delegation created, **diff against the state
+before the first delegation in the series**, not just against the preceding commit. An implementer
+with no memory of previous rounds re-derives what it sees rather than generalising it: three briefs
+against one screen produced three near-identical widgets differing only in their strings. No single
+diff contained the duplication — it existed only between diffs, so reviewing each increment against
+its own brief could never surface it.
+
+Better still, pre-empt it: name in the later brief which existing widget or helper the new work is
+expected to reuse, rather than leaving the implementer to infer from a neighbour it will copy.
 
 ## The implementer sweep
 

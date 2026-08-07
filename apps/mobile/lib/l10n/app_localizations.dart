@@ -146,6 +146,12 @@ abstract class AppLocalizations {
   /// **'مش قادرين نعرض الأكل دلوقتي.'**
   String get discoveryLoadError;
 
+  /// Shown to a Customer when search cannot run — the model provider is unreachable, or the request failed. Says search specifically rather than 'something went wrong', because the screen falls back to browsing and the Customer should be able to tell which of the two they are looking at. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'البحث مش شغال دلوقتي، بس تقدر تتفرج على الأكل الموجود.'**
+  String get searchUnavailable;
+
   /// How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale — a hardcoded Arabic comma is announced or mispaused by many English voices.
   ///
   /// In ar, this message translates to:

@@ -1258,21 +1258,47 @@ after a merge it is no longer an identity and cannot be used for deduplication. 
 deletes exactly the records that collided — and a count-based invariant cannot see the loss, because
 a drop and a keep balance. Match on content, and let the identifier be the thing you repair.
 
-### Observation 94: PDF text extraction has no fallback path when the container's crypto stack is broken
+### Observation 94: Watching a check fail proves it can fail, not that failing was right
 
 **Status:** OPEN
-**Renumbered:** was Observation 92 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved on merge with `main`
 **Date:** 2026-08-07
-**Session context:** Reading an arXiv paper (2603.05413) to evaluate a third-party repo for Kafoo. The Read tool's PDF path failed (`pdftoppm` missing), and both `pypdf` and `pdfminer.six` then failed at import because the container's system `cryptography` package panics (`No module named _cffi_backend` → pyo3 PanicException). Three attempts burned before a workaround landed: stubbing a fake `cryptography.hazmat.primitives.ciphers` package on PYTHONPATH so pypdf's optional encryption import resolves.
-**Skill:** New skill candidate: reading-pdfs-in-constrained-containers (or a reference section in an existing research/reading skill)
+**Session context:** Adding a gate step asserting the environment's project ref matches the one the
+repository records, immediately after writing the skill section that demands new checks be seen to fail.
+**Skill:** verification-before-completion
 **Type:** open-source
-**Phase/Area:** Source ingestion / research reading
+**Phase/Area:** "Did the check actually run, and could it have failed?" — the see-it-red rule
 
-**Issue:** Reading a PDF from the web is a routine research step, but in an ephemeral cloud container the documented paths can all fail for unrelated environment reasons. There was no documented fallback ladder, so the agent rediscovered one by trial and error mid-task, spending several tool calls on environment repair rather than on the analysis the user asked for.
+**Issue:** The new check was mutation-tested properly: six cases, each run, each output read. One row
+was "no credentials set, CI=true → exit 1". That row was the bug. A build runner holds no project
+ref, points at no deployed project, and therefore has no wrong project to be aimed at — the failure
+the check exists to prevent cannot occur there. Demanding a target from a machine that has none
+asserts a fact about the world rather than about the change, and it turned the gate red on every
+run until another session fixed it.
 
-**Suggested improvement:** Document a short fallback ladder for PDF text extraction: (1) the harness Read tool; (2) `pdftotext` if poppler is present; (3) `pypdf` with a stubbed `cryptography.hazmat.primitives.ciphers` module on PYTHONPATH — pypdf imports it only for encrypted-PDF support and a three-class stub satisfies the import; (4) raw zlib stream decode as a last resort. Note that WebFetch on an arXiv PDF returns a *summary produced by a small model*, not the text — for a paper whose numbers matter, always extract the real text rather than trusting the fetched summary.
+The row was printed, read, and recorded as correct. The see-it-red discipline had been satisfied to
+the letter and produced false confidence, because it answers "can this check fail?" and the question
+that mattered was "should it fail HERE?". Reading a red as success is the specific trap: a check
+being seen to fail is such a strong positive signal that the plausibility of the failure itself goes
+unexamined.
 
-**Principle:** When a tool returns a *model-generated summary* of a source rather than the source itself, treat it as a lead, not as evidence. Any claim that will drive a recommendation must be traced back to the primary text. And for routine ingestion steps that can fail on environment grounds, carry a documented fallback ladder rather than improvising one under time pressure — the improvisation cost lands in the middle of analytical work, exactly where attention is most expensive.
+Compounding it: the local environment had the variables set, so every local run passed. The
+environment that would fail was the one never exercised outside the synthetic test — and the
+synthetic test reproduced the failure faithfully and was misread.
+
+**Suggested improvement:** Extend the see-it-red rule with a second question, asked of every red
+observed: is this failure the one the check exists to produce, and is it correct in the environment
+that produced it? Specifically, for any check gated on environment state, enumerate the environments
+it will run in — developer machine, build runner, scheduled job, container with no credentials — and
+state the intended verdict for each BEFORE running it, so the test compares against an expectation
+rather than reporting behaviour to be rationalised. And treat "fails when a variable is absent" as
+requiring a reason absence is an error, not as self-evidently correct.
+
+**Principle:** Seeing a check go red establishes that it discriminates, not that it discriminates
+correctly. The two are easy to conflate because red is the outcome the discipline teaches you to
+want, and a wanted outcome is the least examined one. A check gated on environment state has a
+different right answer per environment, so its verdict must be predicted per environment and then
+compared — otherwise the mutation test faithfully demonstrates the defect and is read as proof of
+its absence.
 
 ### Observation 95: No structure for evaluating an external repo or paper against Kafoo's constraints
 
@@ -1398,3 +1424,19 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Add a rule: before acting on a request that names an external artefact (paper, benchmark, library, dataset) *and* an attribution, verify that the artefact and the attribution actually go together. Where a source was discussed earlier in the session, re-read what it said rather than relying on the conversational summary of it. If the name resolves to more than one plausible artefact, enumerate them with their differences and ask — do not rank-and-pick silently. Do all work that does not depend on the answer first, so the question costs the user a decision and not a stalled session.
 
 **Principle:** Specificity is not accuracy. A request that names a source, a version, or an author sounds verified and is not — misattribution is the most common way a confident instruction points at the wrong thing, and it survives every check except looking. Confirm the referent exists as named before building on it, and when one name maps to several real artefacts, that is an ambiguity to surface rather than a preference to infer.
+
+### Observation 100: PDF text extraction has no fallback path when the container's crypto stack is broken
+
+**Status:** OPEN
+**Renumbered:** was Observation 92, then 94, on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 100 on merge with `main`, which had independently issued 94 to a different observation
+**Date:** 2026-08-07
+**Session context:** Reading an arXiv paper (2603.05413) to evaluate a third-party repo for Kafoo. The Read tool's PDF path failed (`pdftoppm` missing), and both `pypdf` and `pdfminer.six` then failed at import because the container's system `cryptography` package panics (`No module named _cffi_backend` → pyo3 PanicException). Three attempts burned before a workaround landed: stubbing a fake `cryptography.hazmat.primitives.ciphers` package on PYTHONPATH so pypdf's optional encryption import resolves.
+**Skill:** New skill candidate: reading-pdfs-in-constrained-containers (or a reference section in an existing research/reading skill)
+**Type:** open-source
+**Phase/Area:** Source ingestion / research reading
+
+**Issue:** Reading a PDF from the web is a routine research step, but in an ephemeral cloud container the documented paths can all fail for unrelated environment reasons. There was no documented fallback ladder, so the agent rediscovered one by trial and error mid-task, spending several tool calls on environment repair rather than on the analysis the user asked for.
+
+**Suggested improvement:** Document a short fallback ladder for PDF text extraction: (1) the harness Read tool; (2) `pdftotext` if poppler is present; (3) `pypdf` with a stubbed `cryptography.hazmat.primitives.ciphers` module on PYTHONPATH — pypdf imports it only for encrypted-PDF support and a three-class stub satisfies the import; (4) raw zlib stream decode as a last resort. Note that WebFetch on an arXiv PDF returns a *summary produced by a small model*, not the text — for a paper whose numbers matter, always extract the real text rather than trusting the fetched summary.
+
+**Principle:** When a tool returns a *model-generated summary* of a source rather than the source itself, treat it as a lead, not as evidence. Any claim that will drive a recommendation must be traced back to the primary text. And for routine ingestion steps that can fail on environment grounds, carry a documented fallback ladder rather than improvising one under time pressure — the improvisation cost lands in the middle of analytical work, exactly where attention is most expensive.

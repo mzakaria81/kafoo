@@ -36,6 +36,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoveryLoadError => 'We couldn\'t load the food right now.';
 
   @override
+  String get searchUnavailable =>
+      'Search isn\'t working right now, but you can still look at what\'s on offer.';
+
+  @override
   String mealCardSemanticLabel(String kitchen, String price, String title) {
     return '$title, $kitchen, $price';
   }

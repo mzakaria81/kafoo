@@ -65,6 +65,19 @@ that decides it:
 is worth $10/month at current volumes and the answer is Flash.** If it fails on both, the problem is
 the prompt rather than the model, and buying a bigger model hides that.
 
+## Decided 2026-08-07 by the founder
+
+1. **Cost accepted.** Roughly $4/month to start, on `gemini-2.5-flash-lite`, growing with searches.
+2. **The paid tier is NOT on yet — "later".** Development and testing run on the free tier, whose
+   1,000 requests/day is ample for building and for the golden cases. **It is not ample for
+   launch**: publishing Meals alone spends against it, so discovery cannot be turned on for real
+   Customers until the tier is switched. This is a launch blocker, not a build blocker, and it
+   belongs on the pre-launch checklist rather than in a work package.
+3. **Search stays open to people without an account.** It is what makes discovery work without
+   signing up — the whole point of E3 — and it is accepted with its consequence: the endpoint is
+   reachable by a script and nothing in E3 rate-limits it. At Flash-Lite prices a million searches
+   is $130. Worth revisiting when there is something to abuse, not before.
+
 ## The other half of the decision
 
 `gemini-embedding-2` at 768 dimensions is already chosen and measured — research.md §1, and the

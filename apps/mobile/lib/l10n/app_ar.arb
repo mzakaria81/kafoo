@@ -35,6 +35,10 @@
   "@discoveryLoadError": {
     "description": "Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing and ungendered per ADR-0010. States the fact only — the retry is browseRetry on a real button, because the previous copy promised a retry that nothing performed and the screen had no control to press."
   },
+  "searchUnavailable": "البحث مش شغال دلوقتي، بس تقدر تتفرج على الأكل الموجود.",
+  "@searchUnavailable": {
+    "description": "Shown to a Customer when search cannot run — the model provider is unreachable, or the request failed. Says search specifically rather than 'something went wrong', because the screen falls back to browsing and the Customer should be able to tell which of the two they are looking at. Customer-facing and ungendered per ADR-0010."
+  },
   "mealCardSemanticLabel": "{title}، {kitchen}، {price}",
   "@mealCardSemanticLabel": {
     "description": "How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale \u2014 a hardcoded Arabic comma is announced or mispaused by many English voices.",
