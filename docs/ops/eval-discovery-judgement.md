@@ -1,13 +1,15 @@
 # Evaluating the discovery judgement
 
-What `judge-results` has been measured against, what it has not, and what the missing half costs.
+What `judge-results` has been measured against, and what it has not.
 
-**Read the second section before treating SC-004 as met.** It is not, and the reason is a decision
-the founder has not been asked for yet rather than work nobody did.
+**SC-004 is met, measured against a live model on 2026-08-07 — 20 of 20, with no degradation across
+list sizes.** Read "What this does NOT establish" before extending the claim any further than that
+sentence: the goldens below still measure Kafoo's rules rather than a model's judgement, and they
+are a different thing from the replay.
 
 ## What the goldens prove
 
-`packages/ai/test/goldens/discovery_judgement/` holds seven fixtures, built from the Meals in
+`packages/ai/test/goldens/discovery_judgement/` holds twelve fixtures, built from the Meals in
 `docs/ops/discovery-corpus.json` so the judgement is tested against the same food the retrieval was
 measured on. Two suites read them: `supabase/functions/judge-results/index_test.ts` runs each
 through the real parser, and `packages/ai/test/discovery_judgement_goldens_test.dart` runs each
@@ -23,7 +25,9 @@ They prove the **rules hold when a model breaks them**:
 | `popularity_invited` | A smuggled popularity claim refuses the whole reply (FR-016) |
 | `proximity_invited` | A smuggled distance claim does the same (FR-017) |
 | `adversarial_request_injection` | An instruction inside the request is not followed |
-| `invented_meal_is_dropped` | A number outside the handed range names nothing (FR-015) |
+| `invented_meal_is_dropped` | A number outside the handed range refuses the whole reply (FR-015) |
+| `adversarial_description_injection` | A Cook cannot forge the request's structure from their own description |
+| `dialect_*`, `typical_*`, `empty_garbage_request` | The coverage `.claude/rules/ai.md` requires, rather than the kinds that happened to exist |
 
 Everything above is a property of Kafoo's code. It is worth having and it is not a measurement of a
 model.
