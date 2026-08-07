@@ -1305,3 +1305,81 @@ a drop and a keep balance. Match on content, and let the identifier be the thing
 **Suggested improvement:** When a change retires a specific measured value, a named constant, or a file path, add a step that greps the repository for that literal value or path and updates every occurrence in the same commit. Fold this into `/ship-check`: if the diff removes or supersedes a number or path that appears elsewhere in tracked files, fail the check until the other occurrences are reconciled or explicitly marked historical. Mechanically checkable — the value is a literal string.
 
 **Principle:** Correcting a fact where it was decided does not correct it where it was quoted. Superseded figures propagate by copy, so retiring one is a repository-wide find-and-replace, not a single-file edit — and the copies are more dangerous than the original, because they carry the authority of the claim without the context of its retraction.
+
+### Observation 97: Evaluating a repo against a stale checkout, because the pull rule is scoped to "proposing"
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Founder asked for an evaluation of alibaba/open-code-review as a review tool for
+Kafoo. The session read `.claude/agents/` and `scripts/verify.sh` to establish what the project
+already does, and drew conclusions from a checkout one commit behind `main` — where `main` had just
+merged the first observation review, which changed `verify.sh` (a new "supabase target" check, 23
+steps) and rewrote the observation log. The founder had to interrupt with "you are seeing an old
+review log."
+**Skill:** task-observer (session start protocol), and CLAUDE.md's coordination section
+**Type:** open-source
+**Phase/Area:** Session start — establishing the baseline before analysis
+
+**Issue:** CLAUDE.md states "The coordinator pulls `main` before proposing anything", and the whole
+`coordination/` directory exists because a session once proposed work that was already merged. The
+rule was not followed here, and the reason is instructive: the task did not look like *proposing*.
+It looked like *evaluating an external tool* — the repository seemed to be background context, not
+the subject. So the trigger word "proposing" did not fire, even though the entire answer was a
+comparison against the current state of the repository and was therefore worthless if that state
+was stale.
+
+The failure is silent by construction. A stale checkout produces a confident, internally consistent
+analysis; nothing in the tree announces that it is behind. Every number quoted — the count of gate
+checks, the list of review agents, the size of the observation backlog — was wrong in a way only a
+fetch could reveal.
+
+**Suggested improvement:** Make the baseline check unconditional and mechanical at session start,
+not conditional on the task's category: `git fetch origin main && git rev-list --count HEAD..origin/main`,
+and state the result before any analysis that cites repository state. Widen the CLAUDE.md rule from
+"before proposing anything" to "before citing the state of the repository for any purpose —
+proposing, evaluating, reporting or answering", since the failure mode is identical in all four and
+only the first is currently named.
+
+**Principle:** A rule scoped by the *category* of work fails on tasks that do not self-identify as
+that category. The predicate that actually matters here is not "am I proposing?" but "does my answer
+depend on the current state of the repository?" — so scope the rule to the dependency, not to the
+activity. Any analysis that quotes repository state is stale-able, and staleness is invisible from
+inside the stale copy: it produces a coherent answer, not an error.
+
+### Observation 98: Second instance of the external-dependency evaluation shape, one day apart
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Evaluating `alibaba/open-code-review` for adoption — the second such request in
+two days, after the huggingface/speech-to-speech evaluation that produced Observation 95 (logged as
+92 on its branch). The useful answer had the same shape both times: establish the project's own
+constraints first, then judge the artifact against them, and separate "worth reading" from "worth
+adopting".
+**Skill:** New skill candidate: evaluating-external-dependencies (strengthens Observation 95)
+**Type:** open-source
+**Phase/Area:** Technology evaluation — evidence for the candidate, not a new candidate
+
+**Issue:** Observation 95 proposed the skill from a single instance, which is the weakest kind of
+evidence and exactly what the "SIMPLIFYING" checklist warns about ("a rule from a single unvalidated
+observation"). A second independent instance one day later, on a completely different artifact class
+(a CLI review tool rather than a speech model), confirms the recurrence and the stability of the
+structure. Both evaluations turned on constraints the artifact could not know: for the speech repo,
+Egyptian Arabic and deployment shape; for the review tool, Dart-plus-SQL language coverage, a
+test-first safety model the tool excludes by default, and an already-committed LLM spend ledger.
+
+Two disqualifier axes appeared in this instance that Observation 95's proposed checklist does not
+name: (a) what the tool *defaults to ignoring*, which for a review tool was test files — the exact
+artifact Kafoo's safety model rests on; and (b) whether the tool's own optimisation target matches
+ours, here a deliberate precision-over-recall trade-off that is correct for a large org drowning in
+review noise and backwards for a solo founder who cannot read the diff.
+
+**Suggested improvement:** Do not create a second candidate. Attach this to Observation 95 as
+corroborating evidence, and add the two axes above to its disqualifier checklist: "what does it
+exclude or ignore by default, and is that the thing we most need looked at?" and "what is it
+optimised FOR, and does that objective match ours?" Both are questions about defaults and intent
+rather than capability, and neither shows up in a feature list.
+
+**Principle:** A tool's defaults and its optimisation target disqualify more adoptions than its
+feature list does, because features are advertised and defaults are assumed. Ask what an artifact
+ignores by default and what objective it was tuned against — a capable tool aimed at a different
+objective is a worse fit than a weaker tool aimed at ours.
