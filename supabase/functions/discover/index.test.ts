@@ -63,7 +63,9 @@ Deno.test('a recognised exclusion becomes a predicate, not a phrase for the mode
 
   assertEquals(body.excluded, 'meat');
   assertEquals(body.notUnderstood, false);
-  assertEquals((recorder.searched[0].exclude ?? []).includes('لحمة'), true);
+  // `لحم` rather than `لحمة`: the vocabulary carries one spelling per word now, and the database
+  // folds both sides before matching, so `لحم` reaches a Cook who typed `لحمة مفرومة`.
+  assertEquals((recorder.searched[0].exclude ?? []).includes('لحم'), true);
   // The words stay in the embedded text. Stripping them would silently change the request.
   assertEquals(recorder.embedded[0], 'أكل من غير لحمة خالص');
 });
@@ -153,6 +155,26 @@ Deno.test('the parser agrees with the Dart vocabulary it was generated from', ()
   assertEquals(parsePhrase('من غير أي لحمة').exclusion.kind, 'found');
   assertEquals(parsePhrase('من غير فول سوداني').exclusion.kind, 'found');
   assertEquals(parsePhrase('عايز أكل من غير').exclusion.kind, 'not-understood');
+});
+
+Deno.test('a spelling nobody enumerated is still understood, on this side too', () => {
+  // The same five cases the Dart suite carries. Folding lives in three places — Dart, here, and
+  // `public.fold_arabic` — and the failure when they disagree is silent: a Customer's word is
+  // recognised in the app and matches no Meal in the database, or the reverse.
+  const cases: ReadonlyArray<readonly [string, string]> = [
+    ['من غير مكرونه', 'gluten'],
+    ['من غير بسطرمه', 'meat'],
+    ['من غير قشده', 'dairy'],
+    ['عندي حساسية من جندوفلى', 'shellfish'],
+    ['من غير لحـمة', 'meat'],
+    // Crab, not the mullet whose name is inside it.
+    ['من غير كابوريا', 'shellfish'],
+  ];
+  for (const [phrase, id] of cases) {
+    const outcome = parsePhrase(phrase).exclusion;
+    assertEquals(outcome.kind, 'found', phrase);
+    assertEquals(outcome.kind === 'found' ? outcome.id : '', id, phrase);
+  }
 });
 
 Deno.test('ONE SENTENCE CARRIES THE PHRASE, THE EXCLUSION AND THE AREA', async () => {

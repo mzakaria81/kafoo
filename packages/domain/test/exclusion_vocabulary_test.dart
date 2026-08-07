@@ -36,6 +36,42 @@ void main() {
       }
     });
 
+    test('no form is a second spelling of another form of the same food', () {
+      // Both sides fold now, so `جبنة` and `جبنه` are one form written twice.
+      // A list that carries both teaches the next author to keep adding pairs —
+      // and the pairs were never the coverage, since the pair nobody thought of
+      // is the one that let a Meal through.
+      for (final exclusion in ExclusionVocabulary.all) {
+        final folded =
+            exclusion.surfaceForms.map(ExclusionVocabulary.foldArabic).toList();
+        expect(folded.toSet().length, folded.length,
+            reason: '${exclusion.id} lists one word twice: $folded');
+      }
+    });
+
+    test('a longer form of one food never hides inside another food', () {
+      // Cross-entry containment makes list order decide the answer. There is
+      // exactly one, it is pinned here, and a second one fails this test rather
+      // than quietly changing what a Customer gets.
+      final overlaps = <String>[];
+      for (final exclusion in ExclusionVocabulary.all) {
+        for (final form in exclusion.surfaceForms) {
+          final folded = ExclusionVocabulary.foldArabic(form);
+          for (final other in ExclusionVocabulary.all) {
+            if (identical(other, exclusion)) continue;
+            for (final otherForm in other.surfaceForms) {
+              if (folded.contains(ExclusionVocabulary.foldArabic(otherForm))) {
+                overlaps.add('${exclusion.id}:$form ⊃ ${other.id}:$otherForm');
+              }
+            }
+          }
+        }
+      }
+      expect(overlaps, ['shellfish:كابوريا ⊃ fish:بوري'],
+          reason: 'a new overlap between two foods — decide which word wins '
+              'rather than letting the length of the string decide');
+    });
+
     test('every surface form finds its own exclusion', () {
       // The forms are what reach the database as exclude_terms, so a form that
       // does not round-trip through the lookup is a word a Customer can say and
@@ -61,6 +97,32 @@ void main() {
       final outcome = ExclusionVocabulary.parse('عايز أكل من غير لحمة');
       expect(outcome, isA<ExclusionFound>());
       expect((outcome as ExclusionFound).exclusion.id, 'meat');
+    });
+
+    test('a spelling nobody enumerated is still understood', () {
+      // The gap this folding closed, said in the Customer's voice. Each of
+      // these was ExclusionNotUnderstood before 2026-08-07: the word is
+      // ordinary, the spelling is ordinary, and nobody had listed that exact
+      // one. `لحـمة` is the tatweel case — one stretched letter, and the whole
+      // vocabulary missed it.
+      for (final (phrase, id) in const [
+        ('من غير مكرونه', 'gluten'),
+        ('من غير بسطرمه', 'meat'),
+        ('من غير قشده', 'dairy'),
+        ('عندي حساسية من جندوفلى', 'shellfish'),
+        ('من غير لحـمة', 'meat'),
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(),
+            reason: '"$phrase" was not read');
+        expect((outcome as ExclusionFound).exclusion.id, id, reason: phrase);
+      }
+    });
+
+    test('crab is crab, not the fish whose name is inside it', () {
+      final outcome = ExclusionVocabulary.parse('من غير كابوريا');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'shellfish');
     });
 
     test('the longest marker wins', () {

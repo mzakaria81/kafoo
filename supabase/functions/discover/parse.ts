@@ -60,14 +60,53 @@ function withoutArticles(term: string): string {
     .join(' ');
 }
 
+/// One shape for a word Arabic writes several ways.
+///
+/// **THE THIRD COPY OF ONE RULE, and the copies must agree.** `foldArabic` in
+/// packages/domain/lib/exclusion.dart recognises the Customer's word in the app; this one does it
+/// in `discover`; `public.fold_arabic` matches the Cook's ingredient in `search_meals`. Measured
+/// 2026-08-07 before any of them existed: 13 of 156 plausible Cook spellings — `مكرونه`, `بسطرمه`,
+/// `قشده` — reached nothing at all, and one tatweel defeated all 93 forms.
+///
+/// Spelling only, never meaning. The definite article is deliberately NOT stripped here: substring
+/// matching already reaches `اللحمة` from `لحم`, and `withoutArticles` handles the Customer's side.
+export function foldArabic(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/[ً-ْـ]/g, '');
+}
+
+/// Every form, folded, longest first — so `كابوريا` is crab rather than the `بوري` inside it.
+///
+/// Sorted rather than left in list order, because the order of a list is not a decision anybody
+/// made. Same rule as `ExclusionVocabulary._formsLongestFirst` in Dart.
+const FORMS_LONGEST_FIRST: ReadonlyArray<{ id: string; terms: readonly string[]; folded: string }> =
+  EXCLUSIONS
+    .flatMap((exclusion) =>
+      exclusion.surfaceForms.map((form) => ({
+        id: exclusion.id,
+        terms: exclusion.surfaceForms,
+        folded: foldArabic(form),
+      }))
+    )
+    .sort((a, b) => b.folded.length - a.folded.length);
+
 function lookUp(term: string): Understanding {
   const needle = term.trim();
   if (needle.length === 0) return { kind: 'nothing' };
 
-  for (const candidate of new Set([needle, withoutArticles(needle)])) {
-    for (const exclusion of EXCLUSIONS) {
-      if (exclusion.surfaceForms.includes(candidate)) {
-        return { kind: 'found', id: exclusion.id, terms: exclusion.surfaceForms };
+  for (const candidate of new Set([foldArabic(needle), foldArabic(withoutArticles(needle))])) {
+    // CONTAINS, NOT EQUALS. `search_meals` matches a form as a substring of what the Cook typed, so
+    // `لحم` reaches `لحمة مفرومة`; this side compared for equality, so the same list did not reach
+    // a Customer who said `لحمة`. Over-matching is the safe direction after a negation marker.
+    for (const entry of FORMS_LONGEST_FIRST) {
+      if (candidate.includes(entry.folded)) {
+        return { kind: 'found', id: entry.id, terms: entry.terms };
       }
     }
   }

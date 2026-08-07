@@ -148,11 +148,21 @@ abstract final class ExclusionVocabulary {
   ///
   /// **The forms are how the word is WRITTEN, not what it means.** They are
   /// matched as substrings against what a Cook typed into a Meal's ingredients
-  /// and allergens, so `لحمة` reaches `لحمة مفرومة` without either party having
+  /// and allergens, so `لحم` reaches `لحمة مفرومة` without either party having
   /// agreed on a vocabulary. That direction of looseness is deliberate: a
   /// substring match over-excludes rather than under-excludes, and
   /// over-excluding shows a Customer less food while under-excluding hands them
   /// the thing they asked to avoid.
+  ///
+  /// **ONE SPELLING PER WORD, because both sides now fold.** This list carried
+  /// `لحمة` and `لحمه`, `جبنة` and `جبنه`, `بلطي` and `بلطى` — the same word
+  /// written out twice so that a Cook using either was reached. That worked for
+  /// the pairs somebody thought of. Measured 2026-08-07 by
+  /// `exclusion_spelling_coverage_test`: 13 of 156 plausible Cook spellings
+  /// reached nothing — `مكرونه`, `بسطرمه`, `قشده`, `شعريه` among them — and a
+  /// single tatweel defeated all 93 forms, `لحـمة` matching no entry anywhere.
+  /// [foldArabic] and `public.fold_arabic` in SQL now fold both sides, so a
+  /// second spelling of a word here buys nothing and reads as though it did.
   ///
   /// **A form is never shared between two entries.** `exclusion_vocabulary_test`
   /// asserts it, because a form claimed twice would let list order decide which
@@ -164,10 +174,10 @@ abstract final class ExclusionVocabulary {
     Exclusion(
       id: 'meat',
       surfaceForms: {
-        'لحمة', 'لحمه', 'لحم', 'لحوم',
+        'لحم', 'لحوم',
         // The cuts and products a Cook actually lists. Naming the word for meat
         // and stopping there misses everything an Egyptian menu is made of.
-        'كبدة', 'كبده', 'سجق', 'بسطرمة', 'لانشون',
+        'كبدة', 'سجق', 'بسطرمة', 'لانشون',
       },
     ),
     // بانيه matters more than it looks: it stands alone in an ingredients list
@@ -175,15 +185,14 @@ abstract final class ExclusionVocabulary {
     // do not "correct" it to Arabic.
     Exclusion(
       id: 'chicken',
-      surfaceForms: {'فراخ', 'فرخة', 'فرخه', 'فرخ', 'دجاج', 'بانيه', 'بانية'},
+      surfaceForms: {'فراخ', 'فرخ', 'دجاج', 'بانيه'},
     ),
     Exclusion(
       id: 'fish',
       surfaceForms: {
-        'سمك', 'سمكة', 'سمكه', 'أسماك', 'اسماك',
+        'سمك', 'أسماك',
         // Named fish. Excluding سمك and being served رنجة is the failure.
-        'سلمون', 'رنجة', 'رنجه', 'فسيخ', 'بلطي', 'بلطى', 'بوري', 'بورى',
-        'سردين',
+        'سلمون', 'رنجة', 'فسيخ', 'بلطي', 'بوري', 'سردين',
       },
     ),
     // Crustaceans and molluscs are distinct allergies and are grouped here.
@@ -193,10 +202,7 @@ abstract final class ExclusionVocabulary {
       id: 'shellfish',
       surfaceForms: {
         'جمبري',
-        'جمبرى',
         'استاكوزا',
-        'إستاكوزا',
-        'أستاكوزا',
         'كابوريا',
         'محار',
         'سبيط',
@@ -204,7 +210,9 @@ abstract final class ExclusionVocabulary {
         'جندوفلي',
       },
     ),
-    Exclusion(id: 'egg', surfaceForms: {'بيض', 'بيضة', 'بيضه'}),
+    // `بيض` alone: `بيضة` and `بيضه` both contain it, so naming them added
+    // nothing even before folding.
+    Exclusion(id: 'egg', surfaceForms: {'بيض'}),
     // Butter and ghee before cream: anyone avoiding dairy means سمنة and زبدة
     // long before they mean قشطة, and Egyptian cooking uses both constantly.
     // لبنة and لبن رايب need no entry — لبن reaches them as a substring.
@@ -214,29 +222,22 @@ abstract final class ExclusionVocabulary {
         'لبن',
         'حليب',
         'جبن',
-        'جبنة',
-        'جبنه',
         'زبادي',
-        'زبادى',
         'قشطة',
-        'قشطه',
+        // قشدة is not a spelling of قشطة — different letter, both are written.
         'قشدة',
         'زبدة',
-        'زبده',
         'سمنة',
-        'سمنه',
         'كريمة',
-        'كريمه',
         'قريش',
       },
     ),
     // Peanut is its own entry rather than part of `nuts`, because it is not a
     // nut and because someone allergic to one is frequently not allergic to the
     // other. Merging them would exclude food nobody needed excluded.
-    Exclusion(
-      id: 'peanut',
-      surfaceForms: {'فول سوداني', 'فول سودانى', 'سوداني', 'سودانى'},
-    ),
+    // `سوداني` alone reaches `فول سوداني` and `زبدة الفول السوداني` alike, and
+    // there is no other food it collides with.
+    Exclusion(id: 'peanut', surfaceForms: {'سوداني'}),
     Exclusion(
       id: 'nuts',
       surfaceForms: {
@@ -249,7 +250,7 @@ abstract final class ExclusionVocabulary {
     // means FLOUR, so an AI-written ingredient list could map a sesame exclusion
     // onto bread — an exclusion that points at the wrong food is worse than one
     // that misses.
-    Exclusion(id: 'sesame', surfaceForms: {'سمسم', 'طحينة', 'طحينه'}),
+    Exclusion(id: 'sesame', surfaceForms: {'سمسم', 'طحينة'}),
     // NAMING FLOUR AND STOPPING THERE WAS NOT USABLE BY A COELIAC. Every entry
     // added below is ordinary Egyptian ingredient text that قمح/دقيق/جلوتين do
     // not reach. شوفان is included though oats are not wheat: cross-contamination
@@ -290,15 +291,74 @@ abstract final class ExclusionVocabulary {
     final needle = term.trim();
     if (needle.isEmpty) return const NoExclusion();
 
-    for (final candidate in {needle, _withoutArticles(needle)}) {
-      for (final exclusion in all) {
-        if (exclusion.surfaceForms.contains(candidate)) {
-          return ExclusionFound(exclusion);
-        }
+    for (final candidate in {
+      foldArabic(needle),
+      foldArabic(_withoutArticles(needle)),
+    }) {
+      for (final (exclusion, form) in _formsLongestFirst) {
+        // CONTAINS, NOT EQUALS, AND THE TWO SIDES NOW ASK THE SAME QUESTION.
+        // `search_meals` matches a form as a substring of what the Cook typed,
+        // so `لحم` reaches `لحمة مفرومة`. This side compared for equality, so
+        // the same list that reached a Cook's `لحمة مفرومة` did NOT reach a
+        // Customer who simply said `لحمة` — the word had to be listed twice,
+        // once as a spelling and once as the word itself, and every entry
+        // somebody forgot to list twice failed on the Customer's side only.
+        //
+        // Over-matching is the direction this is wrong in: `سمكري` would be
+        // read as fish. It follows a negation marker, so the Customer asked for
+        // something to be left out, and leaving out too much shows them less
+        // food rather than the thing they asked to avoid.
+        if (candidate.contains(form)) return ExclusionFound(exclusion);
       }
     }
     return ExclusionNotUnderstood(needle);
   }
+
+  /// Every form, folded, longest first — so the most specific word wins.
+  ///
+  /// **`كابوريا` contains `بوري`.** Crab carries the name of a mullet inside
+  /// it, so a Customer excluding crab was answered with the fish exclusion
+  /// purely because fish is listed earlier in [all]. That is the order of a
+  /// list deciding what a Customer gets, which this file forbids elsewhere and
+  /// was doing here. Longest first is a rule instead: a longer form is a more
+  /// specific word, and it does not change when somebody reorders the list.
+  ///
+  /// The overlap itself stays, and stays safe: on the Cook's side `search_meals`
+  /// still matches `بوري` inside `كابوريا`, so excluding fish also removes
+  /// crab. That is over-exclusion — less food shown, never the food they asked
+  /// to avoid. Word-boundary matching would end it and is a two-sided change
+  /// with its own measurement (WP-017 note 1, `بيض` inside `أبيض`).
+  static final List<(Exclusion, String)> _formsLongestFirst = [
+    for (final exclusion in all)
+      for (final form in exclusion.surfaceForms) (exclusion, foldArabic(form)),
+  ]..sort((a, b) => b.$2.length.compareTo(a.$2.length));
+
+  /// One shape for a word Arabic writes several ways.
+  ///
+  /// **This must fold identically to `public.fold_arabic` in SQL and to
+  /// `foldArabic` in `supabase/functions/discover/parse.ts`.** The Customer's
+  /// word is recognised here; the Cook's ingredient is matched there. If the
+  /// three disagree, a Customer's exclusion is understood and then matches
+  /// nothing — which is silent under-exclusion arriving by a different route
+  /// than the one it was written to close.
+  ///
+  /// Spelling only, never meaning. `ة` and `ه` are one letter to a typist and
+  /// two different words to nobody; `سمك` and `لحم` stay different foods.
+  ///
+  /// It deliberately does NOT strip the definite article, which is the one rule
+  /// `normalise_area` has and this does not: substring matching already reaches
+  /// `اللحمة` from `لحم`, and a Customer's side handles `ال` separately in
+  /// [_withoutArticles].
+  static String foldArabic(String value) => value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll(RegExp('[أإآٱ]'), 'ا')
+      .replaceAll('ى', 'ي')
+      .replaceAll('ة', 'ه')
+      // Diacritics (064B–0652) and tatweel (0640): typed rarely, omitted
+      // usually, and fatal to a substring match when present.
+      .replaceAll(RegExp('[ً-ْـ]'), '');
 
   /// Drops a leading `ال` from each word.
   ///

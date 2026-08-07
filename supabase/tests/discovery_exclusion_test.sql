@@ -38,7 +38,7 @@
 -- ────────────────────────────────────────────────────────────────────────────────────────────────
 
 BEGIN;
-SELECT plan(9);
+SELECT plan(13);
 
 SELECT tests.create_supabase_user('cook@exclusion.kafoo');
 
@@ -162,6 +162,87 @@ SELECT is(
   (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['%'], NULL)),
   3,
   'a percent sign in an exclusion is a character a Customer typed, not a pattern that matches every Meal'
+);
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- 10–13. A Cook's spelling is not a second vocabulary.
+--
+-- Added 2026-08-07 with 20260807154039_fold_exclusion_spellings.sql. Before it, both sides listed
+-- the ways each food is WRITTEN and agreed only where somebody had enumerated the same variant
+-- twice. Measured by packages/domain/test/exclusion_spelling_coverage_test.dart: 13 of 156
+-- plausible Cook spellings reached nothing, and ONE TATWEEL DEFEATED ALL 93 FORMS.
+--
+-- SEEN TO FAIL: with `fold_arabic` removed from both sides of the ILIKE, assertions 10, 11 and 12
+-- go red and 13 stays green. That is the right shape — 13 is the "still shown" half, and a
+-- predicate that excluded everything would pass the first three on its own.
+--
+-- The Meal below is the failure said plainly: a Cook wrote `لحمه`, the Customer excluded `لحم`, and
+-- the Meal was served.
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+
+SELECT tests.clear_authentication();
+
+INSERT INTO public.meals (id, cook_id, title, description, price, cuisine, category, status,
+                          ingredients, allergens, embedding, published_at)
+VALUES
+  -- ة written as ه, which is how half of Egypt types it. `بسطرمه` and not `لحمه`, and the
+  -- difference is the whole assertion: the vocabulary lists `لحم`, which is a substring of
+  -- `لحمه مفرومة` whether or not anything folds. Written that way first, this assertion passed with
+  -- the folding removed — it was testing the substring match, not the fold. `بسطرمة` is listed with
+  -- a ة, so the Cook's ه is reached only by folding, and it is one of the thirteen spellings the
+  -- measurement found escaping.
+  ('eeeeeeee-0000-4000-8000-000000000005', tests.user_id('cook@exclusion.kafoo'),
+   'سندوتش بسطرمة', 'وصف', 55, 'مصري', 'رئيسي', 'published',
+   ARRAY['بسطرمه', 'بصل'], ARRAY[]::text[],
+   (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
+
+  -- A stretched letter. Nothing in the vocabulary reached this at all.
+  ('eeeeeeee-0000-4000-8000-000000000006', tests.user_id('cook@exclusion.kafoo'),
+   'رقاق', 'وصف', 70, 'مصري', 'رئيسي', 'published',
+   ARRAY['لحـمة مفرومة'], ARRAY[]::text[],
+   (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
+
+  -- The Customer's side of the same coin: the Cook spelled it the listed way, and the term arriving
+  -- from a Customer who typed it differently must still match.
+  ('eeeeeeee-0000-4000-8000-000000000007', tests.user_id('cook@exclusion.kafoo'),
+   'مكرونة بشاميل', 'وصف', 65, 'مصري', 'رئيسي', 'published',
+   ARRAY['مكرونة', 'لبن'], ARRAY[]::text[],
+   (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now());
+
+SELECT tests.authenticate_as_anon();
+
+-- 10. The Cook's ة written as ه.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['بسطرمة'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000005'),
+  0,
+  'a Cook writing بسطرمه is reached by an exclusion that names بسطرمة — a spelling is not a second food'
+);
+
+-- 11. A tatweel inside the Cook's word.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['لحم'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000006'),
+  0,
+  'a stretched letter in the Cook''s ingredient does not defeat the exclusion'
+);
+
+-- 12. The Customer's spelling, against the Cook's. `مكرونه` is what a Customer types; `مكرونة` is
+--     what this Cook wrote, and it is the form the vocabulary lists.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['مكرونه'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000007'),
+  0,
+  'a term spelled the Customer''s way still matches the Cook''s spelling of the same word'
+);
+
+-- 13. And the other half, again: folding must not start excluding food nobody excluded. Two
+--     different foods stay two different foods — `لحم` does not reach a Meal made of pasta.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['لحم'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000007'),
+  1,
+  'folding governs spelling and never meaning — the pasta Meal survives a meat exclusion'
 );
 
 SELECT * FROM finish();
