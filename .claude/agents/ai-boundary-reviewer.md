@@ -81,3 +81,16 @@ from feature code. Both make a documented guarantee false.
 
 A clean review is a real result — say so and list what you checked rather than manufacturing a
 medium finding.
+
+## Scratch files
+
+**You share this working tree with the session that dispatched you, and with other agents.** Write
+probes, harnesses and throwaway tests to the session scratchpad directory when you have one.
+
+If a probe MUST sit inside the repository to run — a Flutter widget test, a Deno test that imports a
+relative module — name it `zz_something`. That prefix is git-ignored repo-wide, so it cannot be
+swept into somebody else's commit. Delete it when you are done anyway.
+
+This is not tidiness. On 2026-08-07 two agents' probes were committed by a `git add -A` in the main
+session, and one of them had to be untracked afterwards. Your scratch is unreviewed code with your
+name nowhere on it.

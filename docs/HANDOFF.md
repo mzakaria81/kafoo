@@ -12,6 +12,12 @@ rewritten, and the prose above and below the table brought level with them.
 (`.github/workflows/review.yml`); it needs an `ANTHROPIC_API_KEY` secret that does not exist yet, so
 today it skips loudly on every pull request. Borrowing an external voice benchmark was raised and
 deferred — see "Smaller, real".
+**Updated**: 2026-08-07, later — E3's WP-016 and WP-017 merged in #54. Five entries added to "Traps
+this session hit", which is where a lesson goes when it has no code to live next to. The bar for
+that list is deliberately high: something that cost real time, is not preventable by a check, and
+carries a workaround. A lesson a check CAN prevent belongs in `scripts/verify.sh` instead, and one
+about a single piece of code belongs in a comment beside it — those are read, and a list is only
+read by somebody who already suspects they need it.
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
@@ -379,6 +385,32 @@ Stated plainly, because the expensive failures this session were all of this kin
     `StateError`; a missing plugin throws `TypeError`. Analytics and voice initialisation both
     caught only `Exception` and stranded a loading spinner forever. Where the rule is "this must
     never break the flow", catch `Object` and say why.
+11. **A selector that finds nothing is indistinguishable from finding nothing wrong.** The gate
+    globbed `*_test.ts`, and three suites were named `*.test.ts` — one character. They had never
+    run in CI, including all of WP-015's Edge Function suite and its assertion that no word of a
+    Customer's phrase comes back in a response. The check printed `ok` throughout. When you add
+    something to a suite, list what the harness actually selected and diff it against what exists
+    on disk; a passing check only proves the checked set passed.
+12. **A measurement can report its own transport.** The first SC-004 replay printed 60%. The model
+    had not failed anything — the provider rate-limited on the thirteenth call and twelve un-judged
+    cases were recorded as failures. Any harness that calls something external must tell a refusal
+    it produced apart from one the network did, and must not average them together. It now paces,
+    backs off, and resumes.
+13. **`git add -A` in a shared working tree commits somebody else's scratch.** Review agents run
+    the code they review and write probes into the tree while you work. Two were left behind on
+    2026-08-07 and one reached a commit. `zz_*` is now git-ignored repo-wide and every brief in
+    `.claude/agents/` tells its agent to use that prefix or the scratchpad — but stage named paths
+    anyway. The same hazard makes a `verify.sh` run started mid-edit a grade of a mixture.
+14. **One NUL byte makes git call a source file binary.** A stray `'\0'` in
+    `judge-results/index_test.ts` meant `git diff` printed `Bin 0 -> 14130 bytes` and nothing else,
+    so the file carrying every FR-018 write-boundary assertion was the one no reviewer could read —
+    including the CI job that reviews the pull-request diff. If a diff shows `Bin` for a file you
+    know is text, search it for control characters rather than assuming git is confused.
+15. **A negative test can pass in both directions.** Four assertions were written for the Arabic
+    folding fix, then the fix was reverted to watch them fail. Three went red; the fourth stayed
+    green, because its fixture was already satisfied by the substring match it was meant to test.
+    "Seen to fail" is a property of each assertion, not of the suite — record WHICH ones went red
+    and compare that list against what the change was supposed to protect.
 
 ## Starting a session
 
