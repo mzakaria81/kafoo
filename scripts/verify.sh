@@ -262,6 +262,50 @@ run "rls coverage" bash -c '
   done
   exit $bad'
 
+# The authorization suites themselves, not merely evidence that policies exist.
+#
+# "rls coverage" above reads migrations as text. It proves a table declares RLS; it cannot tell
+# whether the policy admits a stranger, because nothing here connects to a database. Until
+# 2026-08-07 that was the whole of the gate's authorization story, and the consequence arrived on
+# schedule: E3's fourteen commits went green locally while CI could not apply the migration at all,
+# because this machine happened to carry a pgvector package the toolchain installer never installed.
+# Every assertion about who may read a Meal was absent from both runs, and the gate said PASS.
+#
+# So the gate runs them. A cluster that cannot be started is the one case worth skipping over — but
+# a skip is only honest while the CI job still exists to cover it, and that is asserted rather than
+# assumed. Delete the job and this stops being skippable anywhere.
+run "authorization suites" bash -c '
+  grep -q "local-db.sh test" .github/workflows/authorization.yml 2>/dev/null || {
+    echo "   .github/workflows/authorization.yml no longer runs the suites, so skipping here" >&2
+    echo "   would leave them running nowhere at all" >&2
+    exit 1; }
+
+  PG_MAJOR="$(grep -E "^major_version[[:space:]]*=" supabase/config.toml | head -1 | tr -dc "0-9")"
+  ext="/usr/share/postgresql/${PG_MAJOR}/extension"
+
+  # Each prerequisite is named on its own. A missing extension is not a missing Postgres, and
+  # reporting it as one sends the reader to reinstall a database they already have.
+  if [ ! -x "/usr/lib/postgresql/${PG_MAJOR}/bin/initdb" ]; then
+    skip_or_fail "postgres ${PG_MAJOR} not installed" && exit 0 || exit 1
+  fi
+  for e in pgtap vector; do
+    if [ ! -f "${ext}/${e}.control" ]; then
+      skip_or_fail "${e} not installed for postgres ${PG_MAJOR}" && exit 0 || exit 1
+    fi
+  done
+
+  # Postgres refuses to run as root and local-db.sh needs to initialise a cluster, so the step
+  # wants privilege that the rest of the gate deliberately does not have. Acquired here, for this
+  # one check, rather than by running the whole gate as root — which would move Flutter'"'"'s pub
+  # cache and every generated file into root'"'"'s home.
+  if [ "$(id -u)" -eq 0 ]; then
+    ./scripts/local-db.sh test
+  elif sudo -n true 2>/dev/null; then
+    sudo -E ./scripts/local-db.sh test
+  else
+    skip_or_fail "the suites need root or passwordless sudo to start a cluster" && exit 0 || exit 1
+  fi'
+
 # The constitution forbids synthetic Reviews, Cooks, and Meals — including for
 # seeding. Migrations reach production unattended, so catch DML against those
 # tables here rather than trusting review.
@@ -270,6 +314,10 @@ run "rls coverage" bash -c '
 run "no synthetic content" bash -c '
   hits=$(grep -rinE "INSERT[[:space:]]+INTO[[:space:]]+(public\.)?(cooks|meals|reviews|kitchen_profiles)" \
     supabase/migrations/ supabase/functions/ 2>/dev/null || true)
+  web=$(grep -rlniE "(fake|demo|sample|placeholder|lorem)[-_ ]?(cook|meal|kitchen|review)" \
+    --include="*.ts" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next \
+    apps/web 2>/dev/null || true)
+  hits="$hits$web"
   if [ -n "$hits" ]; then
     echo "$hits"
     echo "   Synthetic Cooks, Meals, or Reviews are product-fatal (Constitution I)."
@@ -277,9 +325,15 @@ run "no synthetic content" bash -c '
   fi'
 
 # Non-canonical vocabulary leaking into code or SQL.
+#
+# apps/web/ is swept too, and .tsx was added with it — the Customer web surface is a place
+# user-facing words live, so a check that could not read it was a surface with no rules. node_modules
+# is excluded because 355 npm packages are not Kafoo's vocabulary to police, and without the
+# exclusion this check reports other people's code and drowns its own signal.
 run "vocabulary" bash -c '
   hits=$(grep -rinE "\b(vendors?|sellers?|buyers?|listings?|menu_items?|chatbots?)\b" \
-    --include="*.dart" --include="*.sql" --include="*.ts" \
+    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.tsx" \
+    --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.open-next \
     apps packages supabase 2>/dev/null || true)
   if [ -n "$hits" ]; then echo "$hits"; exit 1; fi'
 
@@ -298,8 +352,9 @@ run "vocabulary" bash -c '
 # file, not a directory, so a second file cannot quietly inherit it.
 run "arabic vocabulary" bash -c '
   hits=$(grep -rn "الكوك" \
-    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.json" --include="*.arb" \
-    --include="*.md" \
+    --include="*.dart" --include="*.sql" --include="*.ts" --include="*.tsx" --include="*.json" \
+    --include="*.arb" --include="*.md" \
+    --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.open-next \
     apps packages prompts supabase 2>/dev/null \
     | grep -v "^packages/ai/test/goldens/register_markers.json:" || true)
   if [ -n "$hits" ]; then
@@ -363,6 +418,45 @@ run "localization parity" bash -c '
   en=apps/mobile/lib/l10n/app_en.arb
   [ -f "$ar" ] && [ -f "$en" ] || { echo "   arb files not present yet — skipping"; exit 0; }
   python3 scripts/check-l10n-parity.py'
+
+# The web surface's own checks — its type-check and its preview-cap assertions. Skipped with a
+# LOUD notice when node_modules is absent rather than silently, because a check that reports
+# success on having inspected nothing is the failure this gate keeps meeting.
+run "web surface" bash -c '
+  [ -f apps/web/package.json ] || { echo "   apps/web not present yet — skipping"; exit 0; }
+  if [ ! -d apps/web/node_modules ]; then
+    echo "   apps/web/node_modules absent — NOT CHECKED. Run: (cd apps/web && npm ci)"
+    exit 0
+  fi
+  cd apps/web && npx tsc --noEmit && node --test lib/*.test.mjs > /dev/null'
+
+# The Customer web surface carries its own ar/en messages rather than the app's ARB files, so the
+# parity check above does not see them. Two locales that drift are how a Customer meets an English
+# string on an Arabic-first surface — and ar is the SOURCE here, not the fallback.
+run "web localization parity" bash -c '
+  ar=apps/web/messages/ar.json
+  en=apps/web/messages/en.json
+  [ -f "$ar" ] && [ -f "$en" ] || { echo "   web messages not present yet — skipping"; exit 0; }
+  python3 - <<"PY"
+import json, sys
+ar = json.load(open("apps/web/messages/ar.json", encoding="utf-8"))
+en = json.load(open("apps/web/messages/en.json", encoding="utf-8"))
+missing_en = sorted(set(ar) - set(en))
+missing_ar = sorted(set(en) - set(ar))
+bad = []
+if missing_en: bad.append(f"missing from en.json: {missing_en}")
+if missing_ar: bad.append(f"missing from ar.json: {missing_ar}")
+import re
+for key in sorted(set(ar) & set(en)):
+    pa = set(re.findall(r"\{(\w+)\}", ar[key]))
+    pe = set(re.findall(r"\{(\w+)\}", en[key]))
+    if pa != pe:
+        bad.append(f"{key}: placeholders {sorted(pa)} vs {sorted(pe)}")
+if bad:
+    for line in bad: print(f"   {line}")
+    sys.exit(1)
+print(f"   {len(ar)} web keys, placeholders match across ar/en")
+PY'
 
 # A hook that points at a file which is not there fails SILENTLY. Claude Code runs the command,
 # the command is not found, and the session continues as though the hook had chosen to do nothing.

@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kafoo-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  }
+  // Secrets are NOT declared here. The publishable key is public by design and
+  // arrives as a build-time variable; the service-role key must never reach
+  // this surface at all — see scripts/check-no-service-role.mjs, which fails
+  // the build if it does.
+}

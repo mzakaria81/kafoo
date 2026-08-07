@@ -14,6 +14,14 @@ build/
 *.freezed.dart
 pubspec.lock
 
+# Web surface (apps/web) — Next.js on Cloudflare, ADR-0008 Amendment 1
+node_modules/
+apps/web/.next/
+apps/web/.open-next/
+apps/web/next-env.d.ts
+apps/web/.wrangler/
+apps/web/tsconfig.tsbuildinfo
+
 # Supabase
 supabase/.branches/
 supabase/.temp/

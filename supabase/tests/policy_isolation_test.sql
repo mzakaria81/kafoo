@@ -37,7 +37,7 @@
 -- Run with: scripts/local-db.sh test
 
 BEGIN;
-SELECT plan(9);
+SELECT plan(10);
 
 SELECT tests.create_supabase_user('iso_owner@test.kafoo');
 SELECT tests.create_supabase_user('iso_other@test.kafoo');

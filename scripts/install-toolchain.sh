@@ -160,13 +160,18 @@ PG_MAJOR="$(grep -E '^major_version[[:space:]]*=' \
             "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/supabase/config.toml" \
             | head -1 | tr -dc '0-9')"
 
+# pgvector is checked for by name, not assumed along with pgtap. E3's first migration is the
+# reason: it runs `CREATE EXTENSION vector`, so a cluster without the package cannot apply the
+# migrations at all and every authorization suite fails before asserting anything. A container
+# that already had pgtap would otherwise be reported "already present" and skipped.
 if [ -x "/usr/lib/postgresql/${PG_MAJOR}/bin/initdb" ] \
-   && [ -f "/usr/share/postgresql/${PG_MAJOR}/extension/pgtap.control" ]; then
-  log "postgres ${PG_MAJOR} + pgtap: already present"
+   && [ -f "/usr/share/postgresql/${PG_MAJOR}/extension/pgtap.control" ] \
+   && [ -f "/usr/share/postgresql/${PG_MAJOR}/extension/vector.control" ]; then
+  log "postgres ${PG_MAJOR} + pgtap + pgvector: already present"
 elif [ "$(id -u)" -ne 0 ]; then
   log "postgres ${PG_MAJOR}: skipping — needs root to install packages"
 else
-  log "postgres ${PG_MAJOR} + pgtap: installing"
+  log "postgres ${PG_MAJOR} + pgtap + pgvector: installing"
   . /etc/os-release
   if [ ! -f /etc/apt/sources.list.d/pgdg.list ]; then
     curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
@@ -175,7 +180,8 @@ else
       > /etc/apt/sources.list.d/pgdg.list
   fi
   apt-get update >/dev/null 2>&1
-  apt-get install -y "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" >/dev/null 2>&1 \
+  apt-get install -y "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
+                     "postgresql-${PG_MAJOR}-pgvector" >/dev/null 2>&1 \
     || log "postgres ${PG_MAJOR}: install reported errors — run scripts/local-db.sh to see them"
 fi
 

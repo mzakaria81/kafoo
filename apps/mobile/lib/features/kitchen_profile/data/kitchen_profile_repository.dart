@@ -162,25 +162,6 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
     }
   }
 
-  KitchenProfile _fromRow(Map<String, dynamic> row) {
-    return KitchenProfile(
-      id: row['id'] as String,
-      cookId: row['cook_id'] as String,
-      displayName: row['display_name'] as String,
-      story: row['story'] as String,
-      area: row['area'] as String,
-      deliveryTerms: row['delivery_terms'] as String,
-      photoPath: row['photo_path'] as String?,
-      // An unrecognised value reads as null rather than throwing. A CHECK
-      // constraint already limits what can be stored, so this only fires if a
-      // later migration adds a form this build predates — and a Cook seeing
-      // the unset wording is a smaller failure than a crash on their own
-      // kitchen.
-      addressForm: switch (row['address_form'] as String?) {
-        'masculine' => AddressForm.masculine,
-        'feminine' => AddressForm.feminine,
-        _ => null,
-      },
-    );
-  }
+  KitchenProfile _fromRow(Map<String, dynamic> row) =>
+      KitchenProfile.fromRow(row);
 }

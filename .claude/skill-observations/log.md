@@ -2101,3 +2101,322 @@ discovering it in front of a reader who is deciding something.
 **Principle:** Prose generated under one branch of a condition is untested code until the other
 branch runs. The failure mode is not a crash but a confident sentence asserting the opposite of the
 data beside it, which is worse than a blank.
+
+### Observation 82: A recommendation inherited its scope from the repo instead of asking the user
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Starting a new epic. The agent read the project's decision records and handoff
+document, inferred the scope of an upcoming surface from them, and recommended the cheapest
+technology that satisfied that inferred scope. The user then produced an outside opinion which
+disagreed — correctly — on the grounds that the user's actual intent was substantially larger than
+what the documents implied.
+**Skill:** brainstorming
+**Type:** open-source
+**Phase/Area:** "Proposing approaches" / "Ask clarifying questions"
+
+**Issue:** The agent's clarifying questions established *which* surface was in scope but never
+established *how much application* the user intended to build on it. The decision record described
+a narrow justification (a shareable link with a preview), so the agent optimised for that
+justification and recommended a minimal server-rendered option. The user's real plan was a full
+second client application. The recommendation was not wrong for the scope the agent assumed; it was
+wrong because the assumption was never surfaced, so the user had no way to see it and correct it.
+An outside reviewer caught it in one reading, precisely because they were working from the user's
+stated intent rather than from the project's documents.
+
+**Suggested improvement:** In the "Proposing approaches" step, require that every recommendation
+state the scope assumption it is optimised for, in one clause, adjacent to the recommendation
+itself — "cheapest thing that satisfies X" rather than just "cheapest thing". Where the assumption
+came from a document rather than from the user, say so. A recommendation whose scope premise is
+invisible cannot be disagreed with on its premise; the user can only disagree with the conclusion,
+which is the harder and rarer thing to do.
+
+**Principle:** Project documents record the scope that *was* decided, not the scope the user now
+intends. When a recommendation is scoped by documents rather than by something the user said in
+this conversation, the scope assumption is the load-bearing part of the recommendation and must be
+stated out loud alongside it. Otherwise the user reviews the answer without ever seeing the question
+it answered.
+
+### Observation 83: An error naming a resource state actually described a rate
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Measuring a third-party model's quality before committing a design to it. Part
+way through a sweep of candidate configurations, the service began returning an error whose text
+read "You exceeded your current quota, please check your plan and billing details."
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Interpreting an error before acting on it
+
+**Issue:** The message describes an exhausted allowance and points at billing. The actual condition
+was a per-minute rate limit, and the sweep was issuing requests faster than the window allowed.
+Taken literally, the message would have ended the measurement and retired a usable candidate on the
+grounds that the account had run out — a conclusion in the direction that closes doors, drawn from a
+message that was not lying so much as describing the wrong axis. What settled it was making a
+single call by hand: it succeeded immediately, which is impossible if an allowance is exhausted and
+expected if the limit is a rate. The retry logic had also been written with a backoff that topped
+out well short of the window it needed to cross, so it converted a recoverable condition into a
+reported failure.
+
+**Suggested improvement:** Add a rule to the debugging skill: when a third-party error describes a
+resource as exhausted, unavailable, missing or forbidden, issue ONE minimal call of the same kind
+before accepting it. Success proves the resource exists and the constraint is about pace, ordering
+or shape rather than supply. Where the code retries, check that the backoff can outlast the window
+the service actually meters on — a backoff shorter than the limit's period reports quota failures
+that waiting would have cleared.
+
+**Principle:** An error message names a symptom in the vendor's vocabulary, not the condition in
+yours. Before believing a negative that would end a line of work, call something you expect to
+succeed. A message about supply may be a message about speed, and the two lead to opposite actions.
+
+### Observation 84: A verdict was only auditable because the evidence was printed beside it
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** A measurement script classified each configuration with a computed verdict —
+whether two populations could be separated by a score. Two configurations printed the passing
+verdict. Both were wrong.
+
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** How a check reports its result
+
+**Issue:** The verdict was computed correctly from its inputs and was still meaningless: the
+separation it certified was smaller than the noise in the measurement, derived from a single
+example. Nothing about the word "separable" carries that. It was caught only because the same line
+also printed the raw gap the verdict was computed from — a number small enough that the verdict
+became obviously unsupportable the moment a human read it. Had the check printed only its verdict,
+the design resting on it would have been built and the failure would have surfaced in front of
+users, where a confident wrong answer is the specific failure the work existed to prevent.
+
+**Suggested improvement:** Add a rule: any check that emits a categorical verdict — pass/fail,
+separable/not, healthy/degraded — must emit the quantity it thresholded on, in the same line. Not in
+a debug mode, not behind a flag. A verdict is a claim; the number beside it is what lets a reader
+disagree. This costs one format string and is the difference between a check that can be audited and
+one that can only be trusted.
+
+**Principle:** A categorical verdict destroys the information needed to challenge it. Print the
+evidence alongside the conclusion, always — otherwise the only way to discover that a check is
+wrong is for the thing it was guarding to fail.
+
+### Observation 85: Measuring before specifying invalidated a mechanism, not a parameter
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** A design was approved and written up, with one assumption flagged as unmeasured
+and a recommendation to measure it before building. The measurement was then run, ahead of writing
+the specification.
+
+**Skill:** brainstorming
+**Type:** open-source
+**Phase/Area:** "Present design" / the boundary between design and specification
+
+**Issue:** The expectation was that measurement would tune the design — confirm a choice, settle a
+size. What it actually did was remove a mechanism the design depended on: a trigger the design used
+to decide when a component should act turned out to be undetectable in principle, not merely
+imprecise. Both alternatives tested came out backwards. Had the specification been written first,
+that mechanism would have been distributed through requirements and acceptance scenarios, and the
+correction would have been a rewrite rather than an edit to two paragraphs. The measurement also
+produced the opposite result on a related question — a capability the design had treated as risky
+turned out to work better than the requirement asked for — which shifted where the remaining risk
+sits.
+
+**Suggested improvement:** In the design step, separate assumptions by what their failure would
+cost: a parameter whose measurement changes a number, versus a mechanism whose measurement could
+remove a step. Mechanism-level assumptions should be measured before the specification is written,
+not merely flagged in it. The signal that an assumption is mechanism-level: the design contains a
+sentence of the form "X happens only when Y", and nothing yet establishes that Y is observable.
+
+**Principle:** Unmeasured assumptions are not equally risky. One sets a value; another holds up a
+step. Measure the load-bearing ones before writing the document that spreads them across twenty
+requirements, because the cost of being wrong scales with how far the assumption has already
+propagated.
+
+### Observation 86: The remediation pass introduced three of the four findings the next pass caught
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** A cross-artifact consistency analysis produced ten findings. All ten were
+fixed. Re-running the same analysis found four new issues, and three of them had been created by
+the remediation itself.
+**Skill:** speckit-analyze
+**Type:** open-source
+**Phase/Area:** Remediation, and the decision about whether to re-analyse
+
+**Issue:** The fixes were written directly into the artifacts and were individually correct. What
+they were not was *consistent with the rest of the document*: a new task specified a transformation
+in one language while an existing task consumed it in another; new tasks inherited a parallel marker
+from the tasks beside them without checking that the marker was true there either; and a fix
+correctly moved one item earlier in the ordering while leaving an identical item, one phase over,
+where it was. None of the three would have been found by re-reading the fix. All three were found by
+re-running the whole analysis, which is only what happened because the user asked for it explicitly
+rather than because anything in the workflow required it.
+
+**Suggested improvement:** Make re-analysis the defined end of the remediation step rather than a
+separate thing a user may or may not request — the analysis is cheap relative to the implementation
+it gates, and a remediation pass is exactly the moment new inconsistency is introduced, because it
+adds material to a document whose invariants were established without it. Where a fix moves or
+reorders something, the check should specifically look for siblings of the moved item that were not
+moved.
+
+**Principle:** A fix is written against the finding, not against the document. The finding is local
+and the invariants are global, so remediation is one of the most likely moments to create the class
+of defect that was just removed. Re-run the whole check after fixing, not the part that failed.
+
+### Observation 87: A number identical to one already recorded as false was about to be trusted
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Sizing budgets for delegated work. A reporting tool printed a remaining-headroom
+figure and a verdict of "OK to proceed".
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Trusting a tool's own report of its state
+
+**Issue:** The figure printed was character-for-character the same as one recorded in the project's
+handoff document as a known false reading — the tool had previously reported that exact headroom
+while the underlying service refused work for being over the limit the tool said was clear. The
+tool's own output also flagged that every calibration day for the relevant model was outside the
+project's stated tolerance, which is the tool saying its correction has stopped holding. Both signals
+were present in a single screen of output and neither is what the eye goes to; the eye goes to the
+verdict line. It was caught only because the same string had been read earlier in the session in a
+document describing checks that could not fail.
+
+**Suggested improvement:** Where a project records known-false readings from its own tooling, the
+check that reads that tooling should compare against them rather than leaving it to whoever
+remembers. More generally: when a tool prints both a verdict and a caveat about its own accuracy,
+the caveat outranks the verdict, and a report that says its correction has stopped holding is not
+reporting a number — it is reporting that it cannot currently produce one.
+
+**Principle:** A tool's verdict and a tool's confidence in itself are two different outputs, and the
+second is the one that decides whether the first means anything. An unchanged number where movement
+was expected is evidence of a stuck reading, not of a stable quantity.
+
+### Observation 88: A verification command reported success while running nothing
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Committing a chunk of implementation. The project's rule is that its full check
+script must be run before any work is declared done, and the commit command chained that run to the
+commit with `&&`.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Running the verification step itself
+
+**Issue:** An earlier command in the session had changed directory into a subpackage to run a
+mutation check, and the shell's working directory persisted. The verification script was invoked by
+a relative path, so it resolved to nothing. Because the invocation piped its output to a truncating
+command, **the exit status belonged to the pipe's last stage rather than to the missing script** —
+so the chain treated "file not found" as success and went on to commit and push. The command read
+exactly like every other verified commit before it, and the failure left no trace in the commit
+itself. Two genuine failures shipped: an unformatted file and a lint error. They were found only
+because the next verification run happened to be issued from the repository root.
+
+**Suggested improvement:** Two concrete rules for the skill. First, **invoke a verification script by
+an absolute or repository-anchored path**, never a relative one, because working directory is
+session state that earlier commands mutate. Second, **never pipe the verification command into
+anything when its exit status is being relied on** — or capture the status explicitly rather than
+inheriting the pipeline's. More generally, the assertion "I ran the check" should be supported by
+the check's own exit status, observed, rather than by the fact that a command containing it was
+issued.
+
+**Principle:** A guard that reports success without running is worse than no guard, because it also
+consumes the attention that would have noticed. When verification is chained to the action it
+guards, make the exit status of the verification itself the thing that gates — not the exit status
+of whatever the output was piped through.
+
+### Observation 89: Two layers each enforcing a rule made the test for it unable to fail
+
+**Status:** OPEN
+**Date:** 2026-08-06
+**Session context:** Implementing a screen with three states — loading, content, and a failure — and
+a rule that a failure must not be presented as an empty result. A test asserted exactly that rule
+and passed.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Verifying that a passing test can fail
+
+**Issue:** The rule was enforced in two places without either being written as a fallback for the
+other: the view checked for the error case *before* asking the state object whether it was empty,
+and the state object also excluded the error case from its own emptiness answer. Deleting the guard
+inside the state object left every test green, because the view's ordering meant the mutated code
+path was never reached. Reordering the view would have been masked the same way by the guard. So
+the test named after the rule was passing on the strength of a different mechanism than the one it
+described, and the only reason this surfaced was a deliberate mutation run out of habit rather than
+because anything suggested a problem.
+
+**Suggested improvement:** When a rule is enforced at more than one layer, each layer needs its own
+assertion at its own level — an end-to-end test cannot distinguish "both defences work" from "one
+defence works and hides the other". Add to the skill: after writing a test for a rule, delete the
+implementation of that rule and confirm the test fails. If it does not, the test is describing a
+mechanism it is not exercising, and the fix is a narrower test at the layer that was mutated, not a
+better assertion at the outer one.
+
+**Principle:** Defence in depth makes each individual defence unfalsifiable from the outside. Two
+layers guarding one rule will each keep the other's tests green, so the number of places a rule is
+enforced is also the number of separate assertions it needs. Mutate one layer at a time and require
+something to go red at that layer.
+
+### Observation 90: A guard tested an identity the caller's own context can rewrite
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Implementing a database-level guard meant to stop client code writing a
+particular column. The guard tested the effective user name and refused when it was one of the
+client-facing roles.
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Choosing what a guard tests
+
+**Issue:** The identity being tested is one the platform deliberately rewrites in certain call
+frames — a privilege-elevating function replaces it with the function's owner. So the guard refused
+a direct write and permitted the identical write when routed through any such function that
+client-facing code could call. The codebase already contained functions of that kind against the
+same table, so the route was live rather than theoretical. The guard was also a **blocklist**: it
+named the identities to refuse rather than the ones to permit, so it failed open for anything not on
+the list, which is the direction that matters. It was caught by a reviewer who executed the bypass
+rather than reasoning about it.
+
+**Suggested improvement:** Two rules. First, prefer an **allowlist** in any guard: name who may, and
+refuse everyone else, so an identity nobody anticipated is refused rather than admitted. Second,
+when a guard rests on an identity or a context value, ask explicitly **which layers can rewrite it**
+before relying on it — and prefer a value the platform propagates without resetting, keeping the
+weaker check as a fallback for callers that carry no such value at all. A test for a guard must
+include the *indirect* route, not only the direct one; the direct route is the one the implementer
+was already thinking about.
+
+**Principle:** A guard is only as trustworthy as the stability of the thing it inspects. Before
+resting a refusal on an identity, enumerate what can change that identity between the caller and the
+guard — and write the assertion for the path that changes it, because the path that does not is the
+one that will pass anyway.
+
+### Observation 91: Every defect in the batch failed in the safe direction, which is why none had been noticed
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** A review of one feature returned several independent defects in filtering and
+text-normalisation logic. Reviewing them together revealed something the individual reports did not.
+**Skill:** requesting-code-review
+**Type:** open-source
+**Phase/Area:** Deciding what to look for, and what a passing system proves
+
+**Issue:** Four separate defects — an identity entry in a character mapping, a described-but-absent
+trimming step, an empty collection treated differently from an absent one, and an unescaped
+metacharacter in a pattern match — all produced the same *shape* of wrong answer: too few results.
+None produced an error, a crash, or a visibly wrong item. In a system whose correct answer is "some
+subset", under-returning is invisible: the user assumes the thing they wanted does not exist, and
+the operator sees a working feature. Three of the four were in logic whose own comments named the
+exact cases it failed on, and none of the four had an assertion. The system was fully green
+throughout.
+
+**Suggested improvement:** When requesting or planning a review of filtering, matching or
+normalisation logic, ask specifically for **defects that fail closed** and say so — they are
+systematically under-reported because they generate no signal. Concretely: for every filter, assert
+a case that MUST be returned, not only cases that must be excluded; and where code carries a comment
+naming the inputs it handles, turn each named input into an assertion, because a comment is where an
+author records intent they did not test.
+
+**Principle:** Defects that fail in the safe direction are the ones that survive longest, precisely
+because nothing complains. Absence of a complaint is evidence about how a system fails, not about
+whether it works — so a review of anything that narrows a result set should hunt for
+over-narrowing first.

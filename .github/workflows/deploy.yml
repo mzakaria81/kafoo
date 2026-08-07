@@ -11,22 +11,25 @@ name: Deploy
 #     + IOS_PROVISIONING_PROFILE_BASE64
 #     + IOS_KEYCHAIN_PASSWORD                      -> a signed iOS archive
 #
-# THERE IS NO WEB DEPLOY HERE, AND THERE WAS NOT ONE BEFORE EITHER. Until 2026-08-03 this workflow
-# carried a job that built `apps/admin` and pushed it to Cloudflare Pages, gated on
-# `hashFiles('apps/admin/pubspec.yaml')`. That directory has never existed — E0's T045 defers an
-# administrative surface until one is needed — so the condition could never be true and the step
-# had never run once. The job reported success on every merge, which is the failure worth naming:
-# not a broken deploy, but a green tick standing in for a deploy that was never possible.
+# THE WEB DEPLOY IS BACK, AND THIS TIME IT POINTS AT SOMETHING THAT EXISTS.
 #
-# It was deleted rather than repaired. Repairing it would have meant creating an empty web app and
-# publishing it, which is a scope decision nobody has made. ADR-0008 commits Kafoo to a *Customer*
-# web surface, deliberately leaves the rendering technology open until E2 lands and there is a Meal
-# to show, and says in terms that the existing `apps/mobile/web/` target is not that surface. When
-# that decision lands, the deploy job comes back with it — written against a surface that exists.
+# Until 2026-08-03 this workflow carried a job that built `apps/admin` and pushed it to Cloudflare
+# Pages, gated on `hashFiles('apps/admin/pubspec.yaml')`. That directory has never existed — E0's
+# T045 defers an administrative surface until one is needed — so the condition could never be true
+# and the step had never run once. The job reported success on every merge, which is the failure
+# worth naming: not a broken deploy, but a green tick standing in for a deploy that was never
+# possible.
 #
-# The CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are now read by nothing. Leaving them
-# configured is harmless; they are listed here so their disappearance from this file is not read as
-# an accident.
+# It was deleted rather than repaired, and the note left here said the job comes back when the
+# technology decision lands. ADR-0008 Amendment 1 landed it on 2026-08-06 — Next.js and TypeScript
+# on Cloudflare Workers, Customer flows only — and `apps/web/` is now a real directory with a real
+# build. So the job below is written against a surface that exists.
+#
+# TWO THINGS IT DOES DIFFERENTLY FROM THE ONE THAT WAS DELETED. It does not guess whether the
+# surface is there: `apps/web/package.json` is checked at STEP level, not job level, because
+# `hashFiles()` in a job-level `if:` runs before checkout and always yields '' — the trap already
+# recorded in docs/HANDOFF.md. And it refuses to publish a bundle carrying a service-role key,
+# because `verify.sh` only catches a key TRACKED BY GIT and a build output is not a tracked file.
 #
 # Kafoo ships on Android and iOS (ADR-0006). The iOS job runs on a macOS
 # runner, which costs about ten times an Ubuntu minute, so it stays gated
@@ -60,6 +63,76 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The Customer web surface. ADR-0008 Amendment 1.
+  #
+  # Customer flows only — no Cook portal and no administrative surface without a new decision.
+  web:
+    name: web (Customer surface)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Step level, not job level. hashFiles() in a job-level `if:` runs before checkout and
+      # always returns '', which silently skips the job while reporting success — exactly how the
+      # deleted apps/admin job managed never to run.
+      - id: check
+        run: |
+          if [ -f apps/web/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::apps/web is absent — the Customer web surface was not built."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.present == 'true'
+        with:
+          node-version: '22'
+
+      - name: install
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+
+      - name: type-check and test
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/web
+        run: |
+          npm run lint
+          npm test
+
+      - name: build
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/web
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: npx opennextjs-cloudflare build
+
+      # A published bundle carrying a service-role key is a rotate-everything incident, and it is
+      # the one thing verify.sh structurally cannot catch: it inspects tracked files, and this is
+      # generated output. The check fails if it finds a key AND fails if it finds nothing to scan.
+      - name: refuse a service-role key in the bundle
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/web
+        run: npm run check:no-secret
+
+      # Deploy only when Cloudflare credentials exist, and say so out loud when they do not.
+      # A skipped deploy that looks like a successful one is what this whole comment block is about.
+      - name: deploy
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx opennextjs-cloudflare deploy
+
+      - name: say when the deploy was skipped
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN == ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: echo "::warning::CLOUDFLARE_API_TOKEN is unset — the surface was built and verified but NOT published."
+
   # macOS runners cost roughly ten times an Ubuntu minute, so the iOS job must
   # not start at all without signing material. `secrets` is not available in a
   # job-level `if:`, so this cheap job exports the answer for `needs:` to read.
