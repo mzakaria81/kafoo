@@ -88,6 +88,14 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
     return Success(searchOutcome);
   }
 
+  /// Whether [isStillOnOffer] answers yes. The freshness case a Customer meets
+  /// is a Cook taking food off the menu while somebody reads about it, so a
+  /// test needs to be able to produce exactly that.
+  bool stillOnOffer = true;
+
+  @override
+  Future<bool> isStillOnOffer(String mealId) async => stillOnOffer;
+
   /// The phrases handed to [judge], so a test can assert that a Customer who
   /// refused sends nothing to the AI Assistant either.
   final List<String> judged = <String>[];

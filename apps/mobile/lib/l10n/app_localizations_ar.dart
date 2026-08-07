@@ -1483,4 +1483,8 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get mealNoLongerOnOffer =>
+      'الأكلة دي مبقتش معروضة. الطباخ شالها من المنيو دلوقتي.';
 }

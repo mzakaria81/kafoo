@@ -1533,4 +1533,8 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get mealNoLongerOnOffer =>
+      'This Meal is no longer on offer. The Cook has taken it off the menu.';
 }

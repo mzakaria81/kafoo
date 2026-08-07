@@ -16,6 +16,7 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/discovery/application/search_controller.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
+import 'package:kafoo_mobile/features/discovery/presentation/opened_meal.dart';
 import 'package:kafoo_mobile/features/discovery/presentation/search_screen.dart';
 import 'package:kafoo_mobile/features/settings/data/search_consent_store.dart';
 import 'package:kafoo_mobile/features/settings/presentation/settings_screen.dart';
@@ -530,6 +531,47 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(events, isEmpty);
+    });
+  });
+
+  group('freshness', () {
+    Widget openedMeal(FakeDiscoveryRepository repo) => ProviderScope(
+          overrides: [discoveryRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(
+            locale: Locale('ar'),
+            supportedLocales: [Locale('ar'), Locale('en')],
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: OpenedMeal(item: _koshariPair),
+          ),
+        );
+
+    testWidgets(
+        'FR-005: a Meal taken off the menu while it is being read says so',
+        (tester) async {
+      // Discovery reflects what is on offer when it is ASKED, and opening a
+      // Meal is a later moment. The Meal stays on screen with the truth on top
+      // of it — replacing it with an error would lose what they were reading.
+      final repo = FakeDiscoveryRepository()..stillOnOffer = false;
+      await tester.pumpWidget(openedMeal(repo));
+      await tester.pumpAndSettle();
+
+      expect(find.text(ar.mealNoLongerOnOffer), findsOneWidget);
+      // Still readable. The sentence is on top of the Meal, not instead of it.
+      expect(find.text('عدس ومكرونة وأرز'), findsOneWidget);
+    });
+
+    testWidgets('a Meal that is still on offer says nothing', (tester) async {
+      final repo = FakeDiscoveryRepository();
+      await tester.pumpWidget(openedMeal(repo));
+      await tester.pumpAndSettle();
+
+      expect(find.text(ar.mealNoLongerOnOffer), findsNothing);
+      expect(find.text('عدس ومكرونة وأرز'), findsOneWidget);
     });
   });
 

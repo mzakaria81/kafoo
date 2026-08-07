@@ -1381,6 +1381,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{food, select, meat{لحمة} chicken{فراخ} fish{سمك} shellfish{مأكولات بحرية} egg{بيض} dairy{ألبان} peanut{فول سوداني} nuts{مكسرات} sesame{سمسم} gluten{جلوتين} onion{بصل} garlic{توم} other{الحاجة دي}}'**
   String exclusionName(String food);
+
+  /// FR-005. Shown on top of a Meal that went off offer between being ranked and being opened — the one freshness case a Customer actually meets. Says what happened rather than showing an error, and the Meal stays on screen underneath because losing what somebody was reading is the worse answer. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة دي مبقتش معروضة. الطباخ شالها من المنيو دلوقتي.'**
+  String get mealNoLongerOnOffer;
 }
 
 class _AppLocalizationsDelegate

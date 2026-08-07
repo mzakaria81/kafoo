@@ -1339,5 +1339,9 @@
         "type": "String"
       }
     }
+  },
+  "mealNoLongerOnOffer": "الأكلة دي مبقتش معروضة. الطباخ شالها من المنيو دلوقتي.",
+  "@mealNoLongerOnOffer": {
+    "description": "FR-005. Shown on top of a Meal that went off offer between being ranked and being opened — the one freshness case a Customer actually meets. Says what happened rather than showing an error, and the Meal stays on screen underneath because losing what somebody was reading is the worse answer. Customer-facing and ungendered per ADR-0010."
   }
 }

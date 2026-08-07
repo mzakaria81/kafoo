@@ -7,6 +7,7 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'features/discovery/presentation/opened_meal.dart';
 import 'features/discovery/presentation/search_screen.dart';
 import 'features/identity/presentation/change_phone_screen.dart';
 import 'features/identity/presentation/remove_account_screen.dart';
@@ -14,7 +15,6 @@ import 'features/identity/presentation/sign_in_screen.dart';
 import 'features/kitchen_profile/data/kitchen_profile_repository.dart';
 import 'features/kitchen_profile/presentation/conversation.dart';
 import 'features/kitchen_profile/presentation/public_kitchen_view.dart';
-import 'features/meal/presentation/public_meal_view.dart';
 import 'l10n/address_form.dart';
 import 'l10n/app_localizations.dart';
 
@@ -210,14 +210,15 @@ class _SignedOutHome extends StatelessWidget {
         ),
         child: Text(l10n.browseSignInEntry),
       ),
+      // OpenedMeal rather than PublicMealView directly, so a Meal that went off
+      // offer between being ranked and being opened says so — FR-005. It passes
+      // the Cook's OWN stored form on, which PublicMealView makes required
+      // precisely so E3 could not default it and describe a Cook in a
+      // stranger's grammar (ADR-0010).
       onOpen: (item) => Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => PublicMealView(
-            meal: item.meal,
-            // The Cook's OWN stored form, not the reader's. PublicMealView
-            // makes this required precisely so E3 could not default it and
-            // describe a Cook in a stranger's grammar — ADR-0010.
-            cookAddressForm: item.kitchen.addressForm,
+          builder: (_) => OpenedMeal(
+            item: item,
             onOpenKitchen: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => PublicKitchenView(profile: item.kitchen),

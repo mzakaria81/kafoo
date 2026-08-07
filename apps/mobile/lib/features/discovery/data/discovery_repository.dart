@@ -56,6 +56,19 @@ abstract interface class DiscoveryRepository {
     required String phrase,
     required DiscoveryResults results,
   });
+
+  /// Whether a Meal is STILL on offer, asked at the moment it is opened.
+  ///
+  /// FR-005: discovery reflects what is on offer when it is asked, and opening
+  /// a Meal is a later moment than ranking it. A Cook taking food off the menu
+  /// while a Customer reads about it is the one freshness case a Customer
+  /// actually meets.
+  ///
+  /// **True on a failure, deliberately.** A network blip must not tell a
+  /// Customer that food they can have is gone. Being wrong towards "still
+  /// available" costs a wasted message to a Cook; being wrong the other way
+  /// sends them somewhere else for no reason.
+  Future<bool> isStillOnOffer(String mealId);
 }
 
 /// What came back from a search: the Meals, and what Kafoo understood.
@@ -233,6 +246,20 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
       // are and the Customer loses a sentence. `on Object` for the usual reason
       // — an uninitialised client throws StateError, a missing plugin TypeError.
       return null;
+    }
+  }
+
+  @override
+  Future<bool> isStillOnOffer(String mealId) async {
+    try {
+      final rows = await _client
+          .from(_meals)
+          .select('id')
+          .eq('id', mealId)
+          .eq('status', MealStatus.published.wireName);
+      return rows.isNotEmpty;
+    } on Object catch (_) {
+      return true;
     }
   }
 
