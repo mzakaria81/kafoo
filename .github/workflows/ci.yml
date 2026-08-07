@@ -51,6 +51,32 @@ jobs:
       - name: Bootstrap workspace
         run: melos bootstrap
 
+      # The gate now runs the pgTAP authorization suites itself, so this job needs a database.
+      #
+      # It duplicates the `authorization suites` job's install, and that is deliberate rather than
+      # overlooked: the two jobs run in parallel so the wall-clock cost is one install, and the
+      # alternative — letting the gate skip the suites here because another job covers them — is
+      # the exemption that let three Deno checks report ok for weeks without running.
+      #
+      # Keep this list in step with `scripts/install-toolchain.sh` and `authorization.yml`.
+      - name: Install Postgres, pgTAP and pgvector
+        run: |
+          set -euo pipefail
+          PG_MAJOR="$(grep -E '^major_version[[:space:]]*=' supabase/config.toml \
+                      | head -1 | tr -dc '0-9')"
+          . /etc/os-release
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
+                                      "postgresql-${PG_MAJOR}-pgvector"
+
       # jq is preinstalled on ubuntu-latest runners; verify.sh needs it.
+      #
+      # Not run under sudo. The gate only needs root for the database step, and it acquires that
+      # itself — running the whole thing as root would put Flutter's pub cache and every generated
+      # file in root's home, which is a large change to make for one check.
       - name: Run gate
         run: ./scripts/verify.sh

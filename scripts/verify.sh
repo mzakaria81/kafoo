@@ -262,6 +262,50 @@ run "rls coverage" bash -c '
   done
   exit $bad'
 
+# The authorization suites themselves, not merely evidence that policies exist.
+#
+# "rls coverage" above reads migrations as text. It proves a table declares RLS; it cannot tell
+# whether the policy admits a stranger, because nothing here connects to a database. Until
+# 2026-08-07 that was the whole of the gate's authorization story, and the consequence arrived on
+# schedule: E3's fourteen commits went green locally while CI could not apply the migration at all,
+# because this machine happened to carry a pgvector package the toolchain installer never installed.
+# Every assertion about who may read a Meal was absent from both runs, and the gate said PASS.
+#
+# So the gate runs them. A cluster that cannot be started is the one case worth skipping over — but
+# a skip is only honest while the CI job still exists to cover it, and that is asserted rather than
+# assumed. Delete the job and this stops being skippable anywhere.
+run "authorization suites" bash -c '
+  grep -q "local-db.sh test" .github/workflows/authorization.yml 2>/dev/null || {
+    echo "   .github/workflows/authorization.yml no longer runs the suites, so skipping here" >&2
+    echo "   would leave them running nowhere at all" >&2
+    exit 1; }
+
+  PG_MAJOR="$(grep -E "^major_version[[:space:]]*=" supabase/config.toml | head -1 | tr -dc "0-9")"
+  ext="/usr/share/postgresql/${PG_MAJOR}/extension"
+
+  # Each prerequisite is named on its own. A missing extension is not a missing Postgres, and
+  # reporting it as one sends the reader to reinstall a database they already have.
+  if [ ! -x "/usr/lib/postgresql/${PG_MAJOR}/bin/initdb" ]; then
+    skip_or_fail "postgres ${PG_MAJOR} not installed" && exit 0 || exit 1
+  fi
+  for e in pgtap vector; do
+    if [ ! -f "${ext}/${e}.control" ]; then
+      skip_or_fail "${e} not installed for postgres ${PG_MAJOR}" && exit 0 || exit 1
+    fi
+  done
+
+  # Postgres refuses to run as root and local-db.sh needs to initialise a cluster, so the step
+  # wants privilege that the rest of the gate deliberately does not have. Acquired here, for this
+  # one check, rather than by running the whole gate as root — which would move Flutter'"'"'s pub
+  # cache and every generated file into root'"'"'s home.
+  if [ "$(id -u)" -eq 0 ]; then
+    ./scripts/local-db.sh test
+  elif sudo -n true 2>/dev/null; then
+    sudo -E ./scripts/local-db.sh test
+  else
+    skip_or_fail "the suites need root or passwordless sudo to start a cluster" && exit 0 || exit 1
+  fi'
+
 # The constitution forbids synthetic Reviews, Cooks, and Meals — including for
 # seeding. Migrations reach production unattended, so catch DML against those
 # tables here rather than trusting review.
