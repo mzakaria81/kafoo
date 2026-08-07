@@ -1,0 +1,191 @@
+{
+  "purpose": "Measure whether embedding retrieval finds the right Meal from an Egyptian Arabic phrasing. Meals are written in a Cook's voice; queries are written in a Customer's voice and deliberately avoid reusing the Meals' words except where the overlap flag says otherwise.",
+  "written": "2026-08-06",
+  "note": "Synthetic by necessity and by design — these are measurement fixtures, never seed data, never shown to anyone, and must not reach a migration or an Edge Function. Kafoo's trust rules forbid synthetic Meals in production, not in a test corpus.",
+
+  "meals": [
+    { "id": "koshari",        "name": "كشري",                  "description": "عدس ومكرونة وأرز وحمص وصلصة وشطة وتقلية بصل" },
+    { "id": "molokhia",       "name": "ملوخية بالأرانب",        "description": "ملوخية خضرا مفرومة بالتوم والكزبرة مع أرانب وأرز أبيض" },
+    { "id": "warak_enab",     "name": "ورق عنب",               "description": "ورق عنب ملفوف بإيدي ومحشي أرز وبقدونس وشبت" },
+    { "id": "mahshi_khodar",  "name": "محشي خضار",             "description": "كوسة وباذنجان وفلفل محشي أرز بالطماطم والشبت" },
+    { "id": "bechamel",       "name": "مكرونة بالبشاميل",       "description": "مكرونة بالبشاميل واللحمة المفرومة والجبنة الرومي من فوق" },
+    { "id": "fatta",          "name": "فتة لحمة",              "description": "عيش محمص وأرز وخل وتوم ولحمة ضاني مسلوقة" },
+    { "id": "hamam",          "name": "حمام محشي",             "description": "حمام محشي فريك ومطبوخ في الفرن" },
+    { "id": "bamya",          "name": "بامية بالضاني",          "description": "بامية بالطماطم واللحمة الضاني على نار هادية" },
+    { "id": "tagen_batates",  "name": "طاجن بطاطس",            "description": "بطاطس شرايح ولحمة مفرومة وصلصة طماطم في الفرن" },
+    { "id": "roqaq",          "name": "رقاق باللحمة",          "description": "رقاق بالسمن واللحمة المفرومة، أكلة العيد" },
+    { "id": "kebda",          "name": "كبدة إسكندراني",         "description": "كبدة مقطعة بالتوم والفلفل والكمون والشطة" },
+    { "id": "samak",          "name": "سمك بلطي في الفرن",      "description": "بلطي متبل بالكمون والليمون ومخبوز بالطحينة" },
+    { "id": "gambari",        "name": "جمبري بالطماطم",        "description": "جمبري مقشر متطبخ بالطماطم والتوم" },
+    { "id": "firakh_mashwia", "name": "فراخ مشوية",            "description": "نص فرخة متتبلة بالزبادي والليمون ومشوية على الفحم" },
+    { "id": "shawerma",       "name": "شاورما فراخ",           "description": "شرايح فراخ متبلة مع طحينة وخبز" },
+    { "id": "arz_moammar",    "name": "أرز معمر",              "description": "أرز باللبن والقشطة في الفرن لحد ما يحمر" },
+    { "id": "mombar",         "name": "ممبار",                 "description": "ممبار محشي أرز وبهارات ومقلي" },
+
+    { "id": "fool",           "name": "فول مدمس",              "description": "فول مدمس بالزيت والليمون والكمون" },
+    { "id": "taameya",        "name": "طعمية",                 "description": "طعمية بالكزبرة الخضرا مقلية على الطلب" },
+    { "id": "shakshouka",     "name": "شكشوكة بيض",            "description": "بيض بالطماطم والفلفل في الطاسة" },
+    { "id": "beid_gebna",     "name": "بيض بالجبنة القريش",     "description": "بيض متقلي بالجبنة القريش والطماطم" },
+
+    { "id": "salata_khadra",  "name": "سلطة خضرا",             "description": "خس وخيار وطماطم وجرجير بزيت الزيتون والليمون" },
+    { "id": "salata_zabadi",  "name": "سلطة زبادي بالخيار",     "description": "زبادي بالخيار والنعناع والتوم" },
+    { "id": "shorbet_ads",    "name": "شوربة عدس",             "description": "عدس أصفر بالكمون والليمون على نار هادية" },
+    { "id": "shorbet_firakh", "name": "شوربة فراخ بالشعرية",    "description": "مرقة فراخ بالشعرية والخضار" },
+    { "id": "sadr_firakh",    "name": "صدور فراخ مشوية بالخضار", "description": "صدور فراخ منزوعة الجلد مشوية مع خضار سوتيه" },
+
+    { "id": "om_ali",         "name": "أم علي",                "description": "أم علي بالمكسرات واللبن والقشطة، بتتقدم سخنة" },
+    { "id": "basbousa",       "name": "بسبوسة",                "description": "بسبوسة بالسميد والقشطة والشربات" },
+    { "id": "konafa",         "name": "كنافة بالفستق",         "description": "كنافة ناعمة بالفستق والسمن" },
+    { "id": "atayef",         "name": "قطايف عاشوري",          "description": "قطايف محشية مكسرات ومقلية" },
+    { "id": "roz_belaban",    "name": "أرز باللبن",            "description": "أرز باللبن بالفانيليا والقرفة، بيتقدم بارد" },
+    { "id": "mahalabeya",     "name": "مهلبية",                "description": "مهلبية باللبن وماء الورد والفستق" },
+
+    { "id": "burger",         "name": "برجر لحم",              "description": "لحمة مفرومة مشوية بالجبنة والخس والطماطم في عيش" },
+    { "id": "pizza",          "name": "بيتزا مارجريتا",        "description": "عجينة بالطماطم والموتزاريلا والريحان" },
+    { "id": "pasta_white",    "name": "مكرونة بصوص أبيض",      "description": "بيني بصوص الكريمة والفراخ والمشروم" },
+    { "id": "crepe",          "name": "كريب فراخ",             "description": "كريب محشي فراخ وجبنة وصوص أبيض" }
+  ],
+
+  "queries": [
+    {
+      "id": "q_light",
+      "text": "نفسي في حاجة خفيفة",
+      "gloss": "I fancy something light",
+      "overlap": "none",
+      "relevant": ["salata_khadra", "salata_zabadi", "shorbet_ads", "sadr_firakh", "shorbet_firakh"]
+    },
+    {
+      "id": "q_mums_cooking",
+      "text": "عايز آكل زي ما أمي بتطبخ",
+      "gloss": "I want to eat the way my mother cooks",
+      "overlap": "none",
+      "relevant": ["molokhia", "warak_enab", "mahshi_khodar", "bamya", "koshari", "bechamel"]
+    },
+    {
+      "id": "q_burger_ar",
+      "text": "برجر",
+      "gloss": "burger, in Arabic script — the easy case, the word is in the name",
+      "overlap": "direct",
+      "relevant": ["burger"]
+    },
+    {
+      "id": "q_burger_latin",
+      "text": "burger",
+      "gloss": "burger in Latin script — THE cross-language case the rules name. No character is shared with any Meal.",
+      "overlap": "none",
+      "relevant": ["burger"]
+    },
+    {
+      "id": "q_pizza_latin",
+      "text": "pizza",
+      "gloss": "pizza in Latin script — second cross-script case",
+      "overlap": "none",
+      "relevant": ["pizza"]
+    },
+    {
+      "id": "q_grilled_chicken_en",
+      "text": "grilled chicken",
+      "gloss": "an English phrase against Arabic Meals — cross-language, not merely cross-script",
+      "overlap": "none",
+      "relevant": ["firakh_mashwia", "sadr_firakh"]
+    },
+    {
+      "id": "q_sweet",
+      "text": "حاجة حلوة بعد الأكل",
+      "gloss": "something sweet after the meal",
+      "overlap": "none",
+      "relevant": ["om_ali", "basbousa", "konafa", "atayef", "roz_belaban", "mahalabeya"]
+    },
+    {
+      "id": "q_traditional",
+      "text": "أكل مصري أصيل",
+      "gloss": "authentic Egyptian food",
+      "overlap": "none",
+      "relevant": ["koshari", "molokhia", "warak_enab", "mahshi_khodar", "fatta", "hamam", "bamya", "mombar", "roqaq"]
+    },
+    {
+      "id": "q_cheap_filling",
+      "text": "حاجة رخيصة وتشبع",
+      "gloss": "something cheap and filling",
+      "overlap": "none",
+      "relevant": ["fool", "taameya", "koshari"]
+    },
+    {
+      "id": "q_no_meat",
+      "text": "أكل من غير لحمة خالص",
+      "gloss": "food with no meat at all — a NEGATION, which embeddings are known to handle badly. Deliberately included as the hardest case.",
+      "overlap": "negated",
+      "relevant": ["fool", "taameya", "salata_khadra", "salata_zabadi", "shorbet_ads", "mahshi_khodar", "shakshouka", "beid_gebna"]
+    },
+    {
+      "id": "q_warming",
+      "text": "حاجة تدفي في البرد",
+      "gloss": "something warming in the cold",
+      "overlap": "none",
+      "relevant": ["shorbet_ads", "shorbet_firakh"]
+    },
+    {
+      "id": "q_breakfast",
+      "text": "فطار الصبح",
+      "gloss": "morning breakfast",
+      "overlap": "none",
+      "relevant": ["fool", "taameya", "shakshouka", "beid_gebna"]
+    },
+    {
+      "id": "q_seafood",
+      "text": "عايز حاجة من البحر",
+      "gloss": "something from the sea — semantic, avoids the word سمك which is in the Meal name",
+      "overlap": "none",
+      "relevant": ["samak", "gambari"]
+    },
+    {
+      "id": "q_hosting",
+      "text": "بعزم ناس في البيت وعايز حاجة تليق",
+      "gloss": "hosting people at home, want something impressive — pure semantics, no shared words",
+      "overlap": "none",
+      "relevant": ["hamam", "fatta", "warak_enab", "roqaq", "molokhia"]
+    },
+    {
+      "id": "q_healthy",
+      "text": "أكل صحي مش متقلي",
+      "gloss": "healthy food, not fried",
+      "overlap": "none",
+      "relevant": ["sadr_firakh", "salata_khadra", "salata_zabadi", "samak", "shorbet_ads"]
+    },
+    {
+      "id": "q_ramadan_sweets",
+      "text": "حلويات رمضان",
+      "gloss": "Ramadan sweets — cultural knowledge, the Meals never mention Ramadan",
+      "overlap": "none",
+      "relevant": ["atayef", "konafa", "basbousa"]
+    },
+    {
+      "id": "q_spicy_en",
+      "text": "something spicy",
+      "gloss": "English, and requires knowing شطة means chilli",
+      "overlap": "none",
+      "relevant": ["kebda", "koshari"]
+    },
+    {
+      "id": "q_chicken",
+      "text": "حاجة فيها فراخ",
+      "gloss": "something with chicken — the word فراخ is in several Meals, so this is a near-lexical case",
+      "overlap": "direct",
+      "relevant": ["firakh_mashwia", "shawerma", "shorbet_firakh", "sadr_firakh", "pasta_white", "crepe"]
+    },
+    {
+      "id": "q_nothing_matches",
+      "text": "سوشي ياباني",
+      "gloss": "Japanese sushi — nothing in the corpus matches. Tests whether scores fall far enough to say SearchFailed honestly.",
+      "overlap": "none",
+      "relevant": []
+    },
+    {
+      "id": "q_kids",
+      "text": "حاجة العيال بتحبها",
+      "gloss": "something the kids like — pure inference, no shared words",
+      "overlap": "none",
+      "relevant": ["bechamel", "pizza", "burger", "pasta_white", "crepe", "basbousa"]
+    }
+  ]
+}

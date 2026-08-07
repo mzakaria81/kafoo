@@ -1,0 +1,76 @@
+{
+  "id": "WP-015",
+  "title": "Let a Customer ask for food in their own words",
+  "objective": "The read path: one sentence in, ranked Meals out, rendered before anything is judged. Plus area narrowing and the disclosure that a Customer's words leave Kafoo.",
+  "tasks": [
+    "T141",
+    "T142",
+    "T143",
+    "T144",
+    "T145",
+    "T146",
+    "T147",
+    "T148",
+    "T149",
+    "T150",
+    "T151",
+    "T152",
+    "T153",
+    "T154",
+    "T155",
+    "T207",
+    "T208",
+    "T209",
+    "T210",
+    "T212",
+    "T213",
+    "T215",
+    "T216",
+    "T221",
+    "T222",
+    "T223",
+    "T224",
+    "T225"
+  ],
+  "acceptance_criteria": [
+    "discover holds NO service-role key and passes the caller's credentials through to search_meals",
+    "phrase parsing is deterministic with no model call — a generative call here would put the model on the critical path FR-011 keeps it off",
+    "results render with no await on any judgement (FR-011), proven by a test that stubs the judgement to hang",
+    "burger typed in Latin script returns the Arabic Meal at rank 1; SC-002 and SC-003 verified by name",
+    "an empty named area says so AND names the areas that do have food, and the Customer must choose (FR-024, FR-024a). No distance is stated and no deliverability implied (FR-024b, FR-024c)",
+    "SearchPerformed carries result_count and NO phrase reaches the event, a log line, or an error carrying the request",
+    "./scripts/verify.sh passes",
+    "a Customer is asked ONCE, at the first attempt to search and never on arrival, and is never asked again either way (SC-015)",
+    "the answer is stored on the DEVICE, not by Kafoo — Kafoo holds no record of a Customer and discovery works signed-out (FR-029d)",
+    "with the switch off, ZERO words leave the device, verified by watching what leaves rather than by reading the code that decides (SC-014)",
+    "with the switch off, search is unavailable rather than degraded, and there is no reduced search matching on spelling (FR-029e)"
+  ],
+  "dependencies": [
+    "WP-013",
+    "WP-014"
+  ],
+  "scope": {
+    "files": [
+      "supabase/functions/discover/",
+      "apps/mobile/lib/features/discovery/",
+      "apps/mobile/lib/features/settings/"
+    ],
+    "shared_files": [
+      "apps/mobile/lib/l10n/app_ar.arb",
+      "apps/mobile/lib/l10n/app_en.arb",
+      "apps/mobile/lib/features/discovery/data/discovery_repository.dart"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 3,
+  "spend_envelope_usd": 3.0,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "The largest package in E3. T191 is a founder decision that blocks T215 — whether a Customer may refuse the disclosure and fall back to browsing — and it must be asked at the START of this package, not discovered at the end of it. The disclosure moved here from Polish after analyze found search would otherwise reach Customers a whole phase before they were told their words leave Kafoo.\n\nT191 is answered, founder 2026-08-06: a Customer may ALWAYS refuse. Asked once at the first search, remembered on the device, changeable from a Settings switch, and refusing falls back to browsing. T223 adds Kafoo's FIRST Settings screen and a settings toggle — two stop-and-ask triggers, both asked for explicitly by the founder. Keep it to the one switch rather than letting it become a home for future toggles.\n\nThe non-obvious part, and the thing a worker will get wrong: OFF means search is UNAVAILABLE, not 'search without AI'. A phrase leaves Kafoo to become searchable at all — that is the embedding, not the judgement — so there is no halfway state. And no ILIKE fallback: the rules forbid it by name and a worse search is not a kindness.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T19:30:00Z"
+}

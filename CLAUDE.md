@@ -291,6 +291,22 @@ to end is not authority to decide those.
 
 ## Delegating implementation work
 
+> **SUSPENDED 2026-08-06 — do not delegate until the founder lifts this.** The OpenCode weekly limit
+> is reached. Write the code directly, and keep every other rule in this section: the gate still
+> runs, RLS still lands in the same migration, a negative test is still seen to fail first. What is
+> suspended is the dispatch, not the discipline.
+>
+> **You lose the separation the rest of this section exists to create**, so replace it deliberately:
+> the review agents in `.claude/agents/` are not delegation and are not suspended. `rls-reviewer`,
+> `ai-boundary-reviewer`, `trust-reviewer` and the rest read a diff with fresh eyes, which is the
+> whole point. Use them on anything touching authorization, money, personal data, or an AI write
+> path.
+>
+> **Do not treat the spend ledger as authority to resume.** On 2026-08-06 `report` printed
+> `OK to dispatch` and `$18.85 left` while the account was over its weekly limit — the identical
+> figure `docs/HANDOFF.md` already records as a check that could not fail. The founder lifts this,
+> not the tool.
+
 **YOU MUST delegate implementation.** Writing production code directly is the exception, not the
 default. Use `opencode-delegate` (or `claude-delegate`) to hand a bounded task to a separate agent,
 then review its diff, re-run the gates yourself, and commit. Founder's decision, 2026-08-02.

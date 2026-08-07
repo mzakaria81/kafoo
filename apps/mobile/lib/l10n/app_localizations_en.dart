@@ -12,6 +12,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Kafoo';
 
   @override
+  String browseKitchenLabel(String kitchen) {
+    return 'from $kitchen';
+  }
+
+  @override
+  String get browseLoading => 'Loading food...';
+
+  @override
+  String get browseNothingOnOffer =>
+      'No Meals are on offer right now. There may be something in a little while.';
+
+  @override
+  String get browseRetry => 'Try again';
+
+  @override
+  String get browseSignInEntry => 'Sign in';
+
+  @override
+  String get browseTitle => 'What\'s cooking';
+
+  @override
+  String get discoveryLoadError => 'We couldn\'t load the food right now.';
+
+  @override
+  String mealCardSemanticLabel(String kitchen, String price, String title) {
+    return '$title, $kitchen, $price';
+  }
+
+  @override
   String publishMeal(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

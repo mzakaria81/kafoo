@@ -72,7 +72,19 @@ start() {
   if [ ! -x "${PGBIN}/initdb" ]; then
     echo "PostgreSQL ${PG_MAJOR} is not installed, and supabase/config.toml pins that version." >&2
     echo "Run ./scripts/install-toolchain.sh, which adds the PostgreSQL apt repository and" >&2
-    echo "installs postgresql-${PG_MAJOR} and postgresql-${PG_MAJOR}-pgtap." >&2
+    echo "installs postgresql-${PG_MAJOR}, postgresql-${PG_MAJOR}-pgtap and" >&2
+    echo "postgresql-${PG_MAJOR}-pgvector." >&2
+    return 1
+  fi
+
+  # Named separately from the initdb check because the failure it prevents looks nothing like a
+  # missing Postgres. Without pgvector the cluster starts, the migrations begin, and E3's
+  # `CREATE EXTENSION vector` fails — reported as a broken migration rather than a missing
+  # package, which is how it reached CI on 2026-08-07.
+  if [ ! -f "/usr/share/postgresql/${PG_MAJOR}/extension/vector.control" ]; then
+    echo "pgvector is not installed for PostgreSQL ${PG_MAJOR}, and the discovery migration" >&2
+    echo "runs CREATE EXTENSION vector. Install postgresql-${PG_MAJOR}-pgvector, or re-run" >&2
+    echo "./scripts/install-toolchain.sh." >&2
     return 1
   fi
 
@@ -153,9 +165,15 @@ run_tests() {
 
     # A suite that errors out before its plan produces NO "not ok" at all, so counting failures is
     # not enough — an empty result has to be a failure too, or a broken suite reports as a clean one.
-    if printf '%s\n' "${out}" | grep -qE '^not ok|^ERROR|^psql:'; then
+    #
+    # '# Looks like' catches a PLAN MISMATCH, and it was missing until 2026-08-07. pgTAP reports a
+    # wrong plan as a comment rather than a failure, so a suite that silently stopped running
+    # assertions — or had one deleted — went green through here and through the Authorization
+    # workflow. That is not hypothetical: supabase/tests/policy_isolation_test.sql planned 9 while
+    # running 10 from WP-008 until this branch, and nothing anywhere noticed.
+    if printf '%s\n' "${out}" | grep -qE '^not ok|^ERROR|^psql:|^# Looks like'; then
       failed=1
-      printf '%s\n' "${out}" | grep -E '^(not ok|ERROR|psql:)' | head -20
+      printf '%s\n' "${out}" | grep -E '^(not ok|ERROR|psql:|# Looks like)' | head -20
     elif ! printf '%s\n' "${out}" | grep -qE '^ok '; then
       failed=1
       echo "   no assertions ran — the suite failed before its plan" >&2

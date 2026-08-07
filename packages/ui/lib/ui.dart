@@ -5,3 +5,4 @@
 library;
 
 export 'theme/tokens.dart';
+export 'widgets/meal_card.dart';

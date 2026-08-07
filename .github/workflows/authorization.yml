@@ -57,7 +57,13 @@ jobs:
       # The runner ships a Postgres, but not necessarily the major version Supabase runs, and not
       # pgTAP. Read the pinned version from config.toml rather than hardcoding it here — that pin is
       # the single place the version is decided, and a second copy is a second thing to get wrong.
-      - name: Install Postgres and pgTAP
+      #
+      # pgvector is installed here too, and it is not optional: E3's migration runs
+      # `CREATE EXTENSION vector`, so without the package the migrations cannot be applied and
+      # every assertion below fails on the schema rather than on a policy. Keep this list in step
+      # with `scripts/install-toolchain.sh` — a developer's machine and this runner must be able
+      # to fail for the same reasons.
+      - name: Install Postgres, pgTAP and pgvector
         run: |
           set -euo pipefail
           PG_MAJOR="$(grep -E '^major_version[[:space:]]*=' supabase/config.toml \
@@ -69,7 +75,8 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
-          sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap"
+          sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
+                                      "postgresql-${PG_MAJOR}-pgvector"
           /usr/lib/postgresql/"${PG_MAJOR}"/bin/postgres --version
 
       # No `if:` guard and no secrets. The previous version of this job skipped itself when the

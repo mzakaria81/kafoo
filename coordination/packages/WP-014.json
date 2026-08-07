@@ -1,0 +1,49 @@
+{
+  "id": "WP-014",
+  "title": "Give a Meal its vector, without giving anything a write path it should not have",
+  "objective": "The embedding capability in the provider registry, and the one Edge Function in Kafoo that holds a service-role key on an AI path.",
+  "tasks": [
+    "T132",
+    "T133",
+    "T134",
+    "T135",
+    "T136",
+    "T137",
+    "T138",
+    "T139",
+    "T140",
+    "T214"
+  ],
+  "acceptance_criteria": [
+    "the registry gains an embedding capability; Anthropic and OpenAI adapters either implement it or declare they cannot, and registry_test.ts covers a half-added provider and a wrong-provider fallback",
+    "embed-meal takes a Meal id and NOTHING else, and reads title and description FROM THE DATABASE — a client-supplied text field is ignored, proven by test",
+    "embed-meal writes meals.embedding and no other column",
+    "publishing a Meal succeeds when the provider is unreachable, leaving the Meal without a vector",
+    "ai-boundary-reviewer AND rls-reviewer have reviewed the diff and signed off before merge (T214)",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-013"
+  ],
+  "scope": {
+    "files": [
+      "supabase/functions/embed-meal/",
+      "supabase/functions/_shared/ai/"
+    ],
+    "shared_files": [
+      "supabase/functions/_shared/ai/registry.ts"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 3,
+  "spend_envelope_usd": 2.5,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "The only thing in Kafoo on an AI path holding a service-role key. The argument for it is in plan.md's Complexity Tracking: an embedding is not a claim, so Principle II is not what stops it. That argument must be checked by something other than the document making it, which is why T214 is an acceptance criterion rather than a nicety. The manipulation hole it closes is real and invisible: a client that supplies the vector can supply the one nearest every query, and that Cook's Meal ranks first for everything, permanently.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
+  "created_at": "2026-08-06T18:00:00Z",
+  "updated_at": "2026-08-06T19:30:00Z"
+}

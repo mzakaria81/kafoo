@@ -1,0 +1,31 @@
+{
+  "name": "kafoo-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kafoo's Customer web surface. ADR-0008 Amendment 1. Customer flows only — no Cook or administrative surface without a new decision.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "test": "node --test lib/*.test.mjs",
+    "check:no-secret": "node scripts/check-no-service-role.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.58.0",
+    "next": "^15.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.119.0"
+  }
+}

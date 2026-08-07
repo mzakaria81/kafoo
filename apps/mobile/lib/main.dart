@@ -6,11 +6,14 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'features/discovery/presentation/browse_screen.dart';
 import 'features/identity/presentation/change_phone_screen.dart';
 import 'features/identity/presentation/remove_account_screen.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
 import 'features/kitchen_profile/data/kitchen_profile_repository.dart';
 import 'features/kitchen_profile/presentation/conversation.dart';
+import 'features/kitchen_profile/presentation/public_kitchen_view.dart';
+import 'features/meal/presentation/public_meal_view.dart';
 import 'l10n/address_form.dart';
 import 'l10n/app_localizations.dart';
 
@@ -95,7 +98,22 @@ class _AuthGate extends StatelessWidget {
         if (session != null) {
           return const _SignedInHome();
         }
-        return const SignInScreen();
+        // Signed out, a person sees FOOD, not a sign-in form.
+        //
+        // This changed in E3 and it is the most visible decision in the epic.
+        // Discovery works without an account by design — the read policies
+        // cover `anon`, and the whole reason Kafoo has a surface reachable
+        // without installing anything is that a person arriving from a shared
+        // link is the least willing to sign up first. SC-001 makes it a
+        // requirement rather than a preference: a Meal's full details must be
+        // reachable within three actions of arriving, WITHOUT signing in.
+        // Putting a sign-in form in front of that would fail it by one action
+        // and, worse, would ask for a commitment before showing anything worth
+        // committing to.
+        //
+        // Signing in stays one tap away, in the bar, for the Cook who came
+        // here to cook.
+        return const _SignedOutHome();
       },
     );
   }
@@ -164,6 +182,46 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
         form: icuAddressForm(_form),
         child: widget.child,
       );
+}
+
+/// What a person sees before they have an account.
+///
+/// Browsing, and a way in. See the note in [_AuthGate] for why this is food
+/// rather than a form.
+class _SignedOutHome extends StatelessWidget {
+  const _SignedOutHome();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return BrowseScreen(
+      entry: TextButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const SignInScreen()),
+        ),
+        style: TextButton.styleFrom(
+          minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+        ),
+        child: Text(l10n.browseSignInEntry),
+      ),
+      onOpen: (item) => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PublicMealView(
+            meal: item.meal,
+            // The Cook's OWN stored form, not the reader's. PublicMealView
+            // makes this required precisely so E3 could not default it and
+            // describe a Cook in a stranger's grammar — ADR-0010.
+            cookAddressForm: item.kitchen.addressForm,
+            onOpenKitchen: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PublicKitchenView(profile: item.kitchen),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The signed-in surface.

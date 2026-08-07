@@ -1,0 +1,260 @@
+{
+  "assertion_count": 135,
+  "mutations": 29,
+  "uncovered_clauses": 0,
+  "report": [
+    {
+      "policy": "public.analytics_events :: anonymous records pre-sign-in funnel only (INSERT)",
+      "clause": "(person_id IS NULL)",
+      "noticed": [
+        "analytics_events_rls_test::anonymous cannot insert a funnel event attributed to a person"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.analytics_events :: anonymous records pre-sign-in funnel only (INSERT)",
+      "clause": "(name = ANY (ARRAY['SignInStarted'::text, 'SignInFailed'::text]))",
+      "noticed": [
+        "analytics_events_rls_test::anonymous cannot insert non-funnel events"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.analytics_events :: person records own events (INSERT)",
+      "clause": "person_id = auth.uid()",
+      "noticed": [
+        "analytics_events_rls_test::events survive person deletion (ON DELETE SET NULL)",
+        "analytics_events_rls_test::person cannot attribute an event to someone else"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.kitchen_profiles :: anyone reads a kitchen with food on offer (SELECT)",
+      "clause": "EXISTS ( SELECT 1\n   FROM meals\n  WHERE ((meals.cook_id = kitchen_profiles.cook_id) AND (meals.status = 'published'::text)))",
+      "noticed": [
+        "discovery_rls_test::anon reaches zero kitchens whose Meals are all drafts",
+        "kitchen_discoverability_test::a kitchen with everything taken off the menu is closed, and nobody finds it",
+        "kitchen_discoverability_test::a kitchen with only drafts has never opened, and nobody finds it",
+        "kitchen_discoverability_test::a signed-in Customer does not find a kitchen with no Meals",
+        "kitchen_discoverability_test::address form is not readable on a kitchen that is not discoverable",
+        "kitchen_discoverability_test::exactly one kitchen is discoverable, and it is the one with food on offer",
+        "kitchen_profiles_rls_test::a closed kitchen is invisible, so a stranger's UPDATE finds no row (SELECT policy, not UPDATE)",
+        "kitchen_profiles_rls_test::anonymous cannot read any kitchen profile",
+        "kitchen_profiles_rls_test::other cannot read owner kitchen profile"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.kitchen_profiles :: cook creates own kitchen profile (INSERT)",
+      "clause": "cook_id = auth.uid()",
+      "noticed": [
+        "kitchen_profiles_rls_test::owner cannot create kitchen profile for another person (WITH CHECK)"
+      ],
+      "vanished": [
+        "kitchen_profiles_rls_test::unset address_form is legal and reads NULL"
+      ]
+    },
+    {
+      "policy": "public.kitchen_profiles :: cook reads own kitchen profile (SELECT)",
+      "clause": "cook_id = auth.uid()",
+      "noticed": [
+        "kitchen_discoverability_test::a signed-in Customer does not find a kitchen with no Meals",
+        "kitchen_discoverability_test::exactly one kitchen is discoverable, and it is the one with food on offer",
+        "kitchen_profiles_rls_test::a closed kitchen is invisible, so a stranger's UPDATE finds no row (SELECT policy, not UPDATE)",
+        "kitchen_profiles_rls_test::other cannot read owner kitchen profile"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.kitchen_profiles :: cook updates own kitchen profile (UPDATE)",
+      "clause": "cook_id = auth.uid()",
+      "noticed": [
+        "kitchen_discoverability_test::a Customer who can see an open kitchen still cannot write its address form",
+        "policy_isolation_test::the UPDATE policy WITH CHECK refuses a reassign on its own, with the row still visible"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.meals :: anyone reads a published meal (SELECT)",
+      "clause": "status = 'published'::text",
+      "noticed": [
+        "meals_rls_test::a signed-out person reads nothing that is not on offer",
+        "meals_rls_test::another signed-in person reads zero drafts",
+        "meals_rls_test::another signed-in person reads zero unavailable Meals"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.meals :: cook creates own meals (INSERT)",
+      "clause": "cook_id = auth.uid()",
+      "noticed": [
+        "meals_rls_test::nobody can create a Meal in another Cook's name"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.meals :: cook deletes own drafts (DELETE)",
+      "clause": "(cook_id = auth.uid())",
+      "noticed": [
+        "policy_isolation_test::a stranger who can SEE a draft still cannot delete it"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.meals :: cook deletes own drafts (DELETE)",
+      "clause": "(status = 'draft'::text)",
+      "noticed": [
+        "meals_rls_test::nobody deletes a Meal that has been on offer — archiving is what that is for",
+        "meals_rls_test::nobody deletes a retired Meal"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.meals :: cook reads own meals (SELECT)",
+      "clause": "cook_id = auth.uid()",
+      "noticed": [
+        "meals_rls_test::another signed-in person reads zero drafts",
+        "meals_rls_test::another signed-in person reads zero unavailable Meals"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "public.meals :: cook updates own meals (UPDATE)",
+      "clause": "cook_id = auth.uid()",
+      "noticed": [
+        "discovery_rls_test::another person's UPDATE of a vector touches no row",
+        "meals_rls_test::another signed-in person cannot change a Meal they can read",
+        "meals_rls_test::the UPDATE policy refuses the reassign on its own, without the trigger"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner deletes kitchen photo (DELETE)",
+      "clause": "(bucket_id = 'kitchen-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner deletes kitchen photo (DELETE)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "policy_isolation_test::the kitchen-photos DELETE policy is scoped to the caller's own folder"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner deletes meal photo (DELETE)",
+      "clause": "(bucket_id = 'meal-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner deletes meal photo (DELETE)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "meal_photos_storage_test::the meal-photos DELETE policy is scoped to the caller's own folder"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner reads own kitchen photo (SELECT)",
+      "clause": "(bucket_id = 'kitchen-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner reads own kitchen photo (SELECT)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "policy_isolation_test::a Cook reads nothing in another Cook's kitchen-photos folder"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner reads own meal photo (SELECT)",
+      "clause": "(bucket_id = 'meal-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner reads own meal photo (SELECT)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "policy_isolation_test::a Cook reads nothing in another Cook's meal-photos folder"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner updates kitchen photo (UPDATE)",
+      "clause": "(bucket_id = 'kitchen-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner updates kitchen photo (UPDATE)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "policy_isolation_test::a Cook who can SEE another Cook's kitchen photo still cannot change it"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner updates meal photo (UPDATE)",
+      "clause": "(bucket_id = 'meal-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner updates meal photo (UPDATE)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "policy_isolation_test::a Cook who can SEE another Cook's meal photo still cannot change it"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner uploads kitchen photo (INSERT)",
+      "clause": "(bucket_id = 'kitchen-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner uploads kitchen photo (INSERT)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "policy_isolation_test::a Cook cannot write into another Cook's kitchen-photos folder"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner uploads meal photo (INSERT)",
+      "clause": "(bucket_id = 'meal-photos'::text)",
+      "noticed": [
+        "policy_isolation_test::every storage.objects policy names the bucket it governs"
+      ],
+      "vanished": []
+    },
+    {
+      "policy": "storage.objects :: owner uploads meal photo (INSERT)",
+      "clause": "((storage.foldername(name))[1] = (auth.uid())::text)",
+      "noticed": [
+        "meal_photos_storage_test::a Cook cannot write into another Cook's photo folder"
+      ],
+      "vanished": []
+    }
+  ]
+}

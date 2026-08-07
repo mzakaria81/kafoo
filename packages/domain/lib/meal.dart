@@ -351,6 +351,51 @@ final class CookMeal {
   final String? photoPath;
   final DateTime? publishedAt;
 
+  /// Builds a [CookMeal] from a database row.
+  ///
+  /// Lives here rather than in a repository because **which column maps to
+  /// which field, and which of them may be null, is a rule** — and it was
+  /// written twice before this factory existed, once for the Cook's own list
+  /// and once for what a Customer discovers. Two copies of a mapper drift in
+  /// the way that is hardest to notice: both keep working, and they disagree
+  /// about one column.
+  ///
+  /// Takes a plain map, so this file still imports neither Flutter nor
+  /// Supabase.
+  ///
+  /// **Never throws on a nullable column.** Every conversation answer is
+  /// nullable in the schema, and casting one to non-null here would take down
+  /// a whole list rather than one row of it.
+  factory CookMeal.fromRow(Map<String, dynamic> row) {
+    final cuisineRaw = row['cuisine'] as String?;
+    final categoryRaw = row['category'] as String?;
+    final publishedAtRaw = row['published_at'] as String?;
+    return CookMeal(
+      id: row['id'] as String,
+      cookId: row['cook_id'] as String,
+      title: row['title'] as String?,
+      description: row['description'] as String?,
+      // toString, not a cast: the column is numeric and the client may hand
+      // back either a num or a String depending on the driver. A null price
+      // stays null rather than becoming the string "null".
+      price: row['price']?.toString(),
+      cuisine: cuisineRaw == null ? null : Cuisine.tryFromWireName(cuisineRaw),
+      category: categoryRaw == null
+          ? null
+          : MealCategory.tryFromWireName(categoryRaw),
+      status: MealStatus.fromWireName(row['status'] as String),
+      ingredients: (row['ingredients'] as List?)?.cast<String>() ?? const [],
+      calories: row['calories'] as int?,
+      allergens: (row['allergens'] as List?)?.cast<String>() ?? const [],
+      nutritionSource: NutritionSource.fromWireName(
+        row['nutrition_source'] as String,
+      ),
+      photoPath: row['photo_path'] as String?,
+      publishedAt:
+          publishedAtRaw == null ? null : DateTime.parse(publishedAtRaw),
+    );
+  }
+
   /// Whether every answer the database requires before leaving draft is present.
   ///
   /// Mirrors `enforce_meal_lifecycle`: [title] plus description, price, cuisine

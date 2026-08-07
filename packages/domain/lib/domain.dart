@@ -6,6 +6,9 @@
 library;
 
 export 'conversation_step.dart';
+export 'discovery_request.dart';
+export 'discovery_result.dart';
+export 'exclusion.dart';
 export 'kitchen_profile.dart';
 export 'meal.dart';
 export 'meal_analysis.dart';

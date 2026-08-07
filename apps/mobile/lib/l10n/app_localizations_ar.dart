@@ -12,6 +12,35 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appTitle => 'كفو';
 
   @override
+  String browseKitchenLabel(String kitchen) {
+    return 'من $kitchen';
+  }
+
+  @override
+  String get browseLoading => 'بنجيب الأكل...';
+
+  @override
+  String get browseNothingOnOffer =>
+      'مفيش أكلات معروضة دلوقتي. ممكن نلاقي حاجة كمان شوية.';
+
+  @override
+  String get browseRetry => 'جرب تاني';
+
+  @override
+  String get browseSignInEntry => 'دخول';
+
+  @override
+  String get browseTitle => 'أكل النهاردة';
+
+  @override
+  String get discoveryLoadError => 'مش قادرين نعرض الأكل دلوقتي.';
+
+  @override
+  String mealCardSemanticLabel(String kitchen, String price, String title) {
+    return '$title، $kitchen، $price';
+  }
+
+  @override
   String publishMeal(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

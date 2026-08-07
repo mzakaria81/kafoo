@@ -104,6 +104,54 @@ abstract class AppLocalizations {
   /// **'كفو'**
   String get appTitle;
 
+  /// Names the kitchen behind a Meal on a browse card. 'Who cooked this' is the first question a Customer asks.
+  ///
+  /// In ar, this message translates to:
+  /// **'من {kitchen}'**
+  String browseKitchenLabel(String kitchen);
+
+  /// Announced to a screen reader while the first load runs. Silence is indistinguishable from a broken app.
+  ///
+  /// In ar, this message translates to:
+  /// **'بنجيب الأكل...'**
+  String get browseLoading;
+
+  /// FR-006. Shown when no Cook anywhere has a Meal on offer. Must be words rather than an empty screen, and must NOT be shown while the first load is running or for a failure. Customer-facing and UNGENDERED per ADR-0010: the first version said 'تعالى بص' — two masculine imperatives — which addressed every woman browsing as a man. First-person plural has no gender in Arabic, which is why the action lives on a button instead of in the sentence. FLAG: wants a native Cairene ear.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش أكلات معروضة دلوقتي. ممكن نلاقي حاجة كمان شوية.'**
+  String get browseNothingOnOffer;
+
+  /// Retry button on the browse error state. Pull-to-refresh exposes no semantics action, so it cannot be the only way back. Customer-facing and ungendered per ADR-0010 — a bare imperative that is identical in both forms.
+  ///
+  /// In ar, this message translates to:
+  /// **'جرب تاني'**
+  String get browseRetry;
+
+  /// Entry to signing in, shown to someone with no account. A bare verbal noun: ungendered per ADR-0010, and in the app's own register — 'تسجيل الدخول' was the MSA calque of the English and rendered a 352dp button on a 320dp screen at 200% text scale, clipping the title to nothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'دخول'**
+  String get browseSignInEntry;
+
+  /// Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010).
+  ///
+  /// In ar, this message translates to:
+  /// **'أكل النهاردة'**
+  String get browseTitle;
+
+  /// Shown to a Customer when the list of Meals on offer cannot be loaded. Customer-facing and ungendered per ADR-0010. States the fact only — the retry is browseRetry on a real button, because the previous copy promised a retry that nothing performed and the screen had no control to press.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش قادرين نعرض الأكل دلوقتي.'**
+  String get discoveryLoadError;
+
+  /// How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale — a hardcoded Arabic comma is announced or mispaused by many English voices.
+  ///
+  /// In ar, this message translates to:
+  /// **'{title}، {kitchen}، {price}'**
+  String mealCardSemanticLabel(String kitchen, String price, String title);
+
   /// Action a Cook takes to move a Meal from draft to published.
   ///
   /// In ar, this message translates to:

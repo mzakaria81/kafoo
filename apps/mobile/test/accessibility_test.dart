@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
+import 'package:kafoo_mobile/features/discovery/presentation/browse_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/change_phone_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/email_sign_in_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/remove_account_screen.dart';
@@ -16,6 +18,7 @@ import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
 import 'support/fake_account_repository.dart';
+import 'support/fake_discovery_repository.dart';
 import 'support/fake_kitchen_profile_repository.dart';
 import 'support/fake_meal_repository.dart';
 
@@ -78,7 +81,45 @@ Widget _testApp(Widget child, {double textScale = 1.0}) {
 }
 
 /// Every screen E1 adds, built the way a test can reach it.
+const _browseFixture = <DiscoveredMeal>[
+  DiscoveredMeal(
+    meal: Meal(
+      id: 'm1',
+      cookId: 'c1',
+      title: 'كشري',
+      description: 'عدس ومكرونة وأرز',
+      price: '35',
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      status: MealStatus.published,
+      nutritionSource: NutritionSource.ai,
+    ),
+    kitchen: KitchenProfile(
+      id: 'k1',
+      cookId: 'c1',
+      displayName: 'مطبخ فاطمة',
+      story: 'بطبخ من زمان',
+      area: 'المهندسين',
+      deliveryTerms: 'توصيل لحد باب البيت',
+    ),
+  ),
+];
+
 Map<String, Widget> _screens() => {
+      // The signed-out front door: the most-seen screen in the app, and it was
+      // the only one this sweep did not measure. Includes the sign-in entry,
+      // because without it the sweep passes by having nothing to measure —
+      // which is the failure mode this file already warns about.
+      'browse': ProviderScope(
+        overrides: [
+          discoveryRepositoryProvider.overrideWithValue(
+            FakeDiscoveryRepository(onOffer: _browseFixture),
+          ),
+        ],
+        child: BrowseScreen(
+          entry: TextButton(onPressed: () {}, child: const Text('دخول')),
+        ),
+      ),
       'sign in': const SignInScreen(),
       'email sign in': EmailSignInScreen(repository: FakeAccountRepository()),
       'change phone': ChangePhoneScreen(repository: FakeAccountRepository()),
