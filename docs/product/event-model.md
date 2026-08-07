@@ -146,7 +146,7 @@ unmeasurable, since a Review requires a completed Order.
 | `PhoneNumberDetached` | planned (E2) | `days_dormant` | A dormant Person lost its phone credential, so the number resolves to nobody (ADR-0007) |
 | `MealDrafted` | active (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
 | `MealUpdated` | active (E2) | `changed` | A published Meal was edited. `changed` distinguishes a price change from a typo. Emitted values: `availability`, `title`, `description`, `price` |
-| `SearchPerformed` | planned (E3) | `result_count` | A search ran |
+| `SearchPerformed` | active (E3) | `result_count` | A search ran |
 | `SearchFailed` | planned (E3) | — | A search returned nothing |
 | `RecommendationAccepted` | planned (E3) | — | A Customer acted on what the AI Assistant suggested |
 | `ReviewEdited` | planned (E5) | — | A Review changed inside its editable window |
@@ -186,6 +186,14 @@ recogniser — `ar-EG` when the handset has it, or another Arabic locale such as
 does not. A `fallback` value (any Arabic other than `ar-EG`) is the signal that on-device
 recognition is not serving Egyptian Arabic, and the Cook's dialect is being transcribed by a model
 trained on something else. When voice is unavailable the literal string `none` is recorded.
+
+**`SearchPerformed` carries `result_count` AND NOTHING ELSE, asserted by test on the attribute
+SET rather than on the count.** A test that checks only the number stays green when a phrase is
+added beside it, which is the exact way this requirement would be lost.
+
+**A search that never ran emits nothing.** A Customer who has refused, or who has not yet been
+asked, produces no event at all — not an event with a count of zero. Kafoo records searches, and
+what did not happen is not one.
 
 **`SearchPerformed` records that a search happened and how many results came back — not the
 phrase.** What people search for is genuinely valuable to a food marketplace, but a search phrase

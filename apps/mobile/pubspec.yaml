@@ -22,6 +22,11 @@ dependencies:
   kafoo_ui:
     path: ../../packages/ui
   riverpod_annotation: ^4.0.3
+  # A Customer's answer about their own words lives HERE and not in Kafoo — FR-029d. Declared
+  # directly rather than leant on through supabase_flutter, which already pulls it in: a transitive
+  # dependency is a dependency somebody else may drop, and the day it went would take the answer
+  # with it and start asking again.
+  shared_preferences: ^2.3.0
   speech_to_text: ^7.0.0
   supabase_flutter: ^2.9.0
 

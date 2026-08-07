@@ -146,10 +146,10 @@ abstract class AppLocalizations {
   /// **'مش قادرين نعرض الأكل دلوقتي.'**
   String get discoveryLoadError;
 
-  /// Shown to a Customer when search cannot run — the model provider is unreachable, or the request failed. Says search specifically rather than 'something went wrong', because the screen falls back to browsing and the Customer should be able to tell which of the two they are looking at. Customer-facing and ungendered per ADR-0010.
+  /// Shown to a Customer when search cannot run — the model provider is unreachable, or the request failed. Says search specifically rather than 'something went wrong', because the screen falls back to browsing and the Customer should be able to tell which of the two they are looking at. Customer-facing and ungendered per ADR-0010 — it read 'تقدر تتفرج' until 2026-08-07, which is masculine, in a string that predates the search screen and had been marked ungendered.
   ///
   /// In ar, this message translates to:
-  /// **'البحث مش شغال دلوقتي، بس تقدر تتفرج على الأكل الموجود.'**
+  /// **'البحث مش شغال دلوقتي، بس الفرجة على الأكل الموجود شغالة عادي.'**
   String get searchUnavailable;
 
   /// How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale — a hardcoded Arabic comma is announced or mispaused by many English voices.
@@ -1249,6 +1249,150 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{addressForm, select, feminine{كمّلي الأكلة دي} other{كمّل الأكلة دي}}'**
   String mealResumeDraft(String addressForm);
+
+  /// Title of Kafoo's only Settings screen, and the tooltip on the way in. Customer-facing and ungendered per ADR-0010 — a bare noun.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإعدادات'**
+  String get settingsTitle;
+
+  /// Label on the one switch Settings holds. Uses the SAME Arabic name for the AI Assistant as the five strings that already existed — a second name for one concept is what the glossary forbids, and introducing one in two new strings would have made it seven strings with two names. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'البحث بالمساعد الذكي'**
+  String get settingsSearchTitle;
+
+  /// FR-029c and FR-029e. Says what the switch does in terms of consequence: the words leave, and turning it off makes search UNAVAILABLE rather than worse. Customer-facing and ungendered per ADR-0010 — written in the first-person plural and the passive, because every second-person verb here carries gender. The habitual takes ب- in Egyptian: 'تفهم' without it is the MSA subjunctive and reads as a press release. FLAG: wants a native Cairene ear.
+  ///
+  /// In ar, this message translates to:
+  /// **'علشان نلاقي الأكل المطلوب، الكلام اللي بيتكتب في البحث بيروح لخدمة بره كفو بتفهم معناه. لو ده مقفول، البحث مش هيشتغل، والفرجة على الأكل هتفضل شغالة زي ما هي.'**
+  String get settingsSearchExplanation;
+
+  /// FR-029d and SC-011. The part a Customer has no way to verify and every reason to want told. 'الكلام اللي بيتبحث بيه' was a passive built to dodge a gendered verb and read as machine translation; it borrows the phrasing settingsSearchExplanation already uses. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرد ده محفوظ على الموبايل ده بس. كفو مش بيسجل الكلام اللي بيتكتب في البحث، ولا بيحتفظ بالرد عنده.'**
+  String get settingsSearchStorageNote;
+
+  /// Label on the ONE search input, which carries the phrase, the exclusion and the area together. ADDRESSES NOBODY AT ALL, and that is the point: 'نفسك في إيه؟' is written identically for a woman and a man and PRONOUNCED nafsak or nafsik — and a TextField label is read aloud by TalkBack and VoiceOver, where Arabic text-to-speech will diacritise it masculine. ADR-0010's 'spelled identically' test was made for reading; this string is spoken. FLAG: it is colder than what it replaced, and the founder should hear both read aloud.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكل إيه النهاردة؟'**
+  String get searchLabel;
+
+  /// Example inside the search field, showing that one sentence carries all three things. Deliberately verbless — every Egyptian verb for wanting is gendered, and an example that addresses a man teaches the input is for men. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'حاجة سخنة من غير لحمة في المهندسين'**
+  String get searchHint;
+
+  /// Tooltip on the search button. A bare verbal noun: ungendered per ADR-0010, where the imperative دوّر/دوّري is not.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحث'**
+  String get searchAction;
+
+  /// Announced to a screen reader while a search runs. Silence is indistinguishable from a broken app. First-person plural, which has no gender in Arabic.
+  ///
+  /// In ar, this message translates to:
+  /// **'بندوّر على الأكل...'**
+  String get searchRunning;
+
+  /// Label on the microphone in search. A bare prepositional phrase rather than an imperative — اتكلم/اتكلمي is the gendered pair ADR-0010 rules out. Customer-facing.
+  ///
+  /// In ar, this message translates to:
+  /// **'بالصوت'**
+  String get searchVoiceHint;
+
+  /// FR-008: typing is never the degraded path, and a missing Arabic speech locale is the likeliest real outcome on an Egyptian handset (research.md §3). Said plainly rather than left as a dead microphone. Names the phone rather than an abstraction, and avoids 'مش بيدعم', which is tech register. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصوت مش شغال على الموبايل ده دلوقتي. الكتابة شغالة عادي.'**
+  String get searchVoiceUnavailable;
+
+  /// FR-029e. Shown when a Customer has refused. Says search is OFF, not that it is failing — and says browsing still works in the same breath, because the two are different things and only one of them has stopped. Ungendered per ADR-0010: تقدر/تقدري was replaced with ينفع, which has no addressee at all.
+  ///
+  /// In ar, this message translates to:
+  /// **'البحث مقفول. ينفع يتفتح من الإعدادات في أي وقت، والتفرج على الأكل شغال زي ما هو.'**
+  String get searchIsOff;
+
+  /// FR-012: the fallback when nothing matched is browse. Says what happened and hands over to what is on offer underneath. 'بالوصف ده' was a calque of 'matching that description'. First-person plural, ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملقيناش حاجة زي كده. ده كل اللي معروض دلوقتي.'**
+  String get searchFoundNothing;
+
+  /// THE SENTENCE THE WHOLE EXCLUSION DESIGN EXISTS FOR. A negation Kafoo recognised without recognising the food must reach the Customer as words: without this the results look exactly like results for a request with no exclusion in it, and the Customer is served the thing they asked to avoid. Never says a Meal is safe. IT DOES NOT QUOTE THE WORD BACK, and that is a trade taken deliberately on 2026-08-07: the value `discover` carried was not a word but the whole remainder of the sentence after the negation marker, which crossed the network and landed in error bodies for a screen that only read whether it was set. Trust outranks actionability in the priority order, so the sentence earns its actionability from the closing clause instead. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.'**
+  String get searchExclusionNotUnderstood;
+
+  /// STATES WHAT WAS FILTERED ON AND NEVER THAT A MEAL IS SAFE. meals.allergens is frequently an AI estimate carrying nutrition_source, so the strongest true statement is what was removed and where that came from. A Customer with an allergy is exactly the person who would act on a safety claim, which is why Kafoo does not make one about food it did not cook. THE PLACEHOLDER APPEARS TWICE ON PURPOSE: the closing clause said 'خالية منها', a feminine pronoun, and seven of the twelve exclusions are masculine — so the sentence that has to sound trustworthy carried an agreement error. Repeating the noun cannot disagree with itself. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيلنا الأكلات المكتوب فيها {food}. ده على حسب اللي الطباخين كتبوه وتقدير المساعد الذكي — مش معناه إن باقي الأكلات مفيهاش {food}.'**
+  String searchFilteredOn(String food);
+
+  /// Says what the search was narrowed to, in the Cook's own words. FR-024b: no distance, and no ordering by proximity — Kafoo holds no location for anyone. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'النتايج من {area} بس.'**
+  String searchNarrowedToArea(String area);
+
+  /// FR-024. Kafoo says the named area is empty rather than silently showing kitchens elsewhere. First-person negation, ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش أكل معروض في {area} دلوقتي.'**
+  String searchAreaEmpty(String area);
+
+  /// FR-024a, FR-024b and FR-024c in one sentence. Names the areas that do have food and leaves the choosing to the Customer; states plainly that Kafoo holds no notion of distance and is not promising that anyone there delivers. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'بس في أكل في المناطق دي. كفو مش عارف المسافة بين المناطق، والتوصيل اتفاق بين الزبون والطباخ.'**
+  String get searchAreaChoose;
+
+  /// FR-029a. Asked ONCE, at the first attempt to search, and never on arrival — browsing must not require an answer. Says the words leave before they leave. TWO CORRECTIONS ON 2026-08-07. The reassurance read 'مش بيتسجل عندنا' one clause after naming the outside service, so a Customer would read it as covering that service, which Kafoo cannot promise anything about — Kafoo is now the named subject. And the whole thing said 'typed' while the same switch unlocks the microphone, so the speaking case is named. Ends in the first-person plural, which has no gender. FLAG: wants a native Cairene ear.
+  ///
+  /// In ar, this message translates to:
+  /// **'علشان كفو يفهم الكلام ويلاقي الأكل المناسب، لازم يبعت اللي اتكتب في البحث لخدمة بره كفو. كفو نفسه مش بيسجل الكلام ده ولا بيحتفظ بيه. ولو الكلام اتقال بالصوت، الموبايل نفسه هو اللي بيحوّله لكتابة. نبعته؟'**
+  String get searchConsentQuestion;
+
+  /// Agreeing to the disclosure. Addressed to Kafoo in the plural, so it is ungendered per ADR-0010 while a Customer speaking about themselves would not be.
+  ///
+  /// In ar, this message translates to:
+  /// **'أيوه، ابعتوه'**
+  String get searchConsentAgree;
+
+  /// Refusing. Same size and same prominence as agreeing — a refusal that is harder to reach than agreement is the dark pattern the trust rules forbid by name. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'لأ، متبعتوهوش'**
+  String get searchConsentRefuse;
+
+  /// FR-029c, FR-029d and FR-029e, under the question, so refusing is an informed answer rather than a leap. Future tense: at the moment this is read no answer exists yet, and this paragraph is the one making the promise about storage. Ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'لو الرد لأ، البحث مش هيشتغل والفرجة على الأكل هتفضل شغالة. الرد هيتحفظ على الموبايل ده بس، وينفع يتغير من الإعدادات في أي وقت.'**
+  String get searchConsentNote;
+
+  /// Turns an exclusion id into a word a Customer reads. The ids in packages/domain/lib/exclusion.dart are stable names that are never shown to anyone, so the interface cannot state what it filtered on without this. One ICU select rather than twelve keys, so a new exclusion is one line in two files rather than four. The `other` branch is what a Customer sees if the vocabulary gains an entry before this does — vague, and never wrong. Ungendered per ADR-0010. The shellfish branch enumerates rather than saying مأكولات بحرية, which means seafood and therefore includes fish — a SEPARATE exclusion that was not applied, so the one sentence whose job is to state exactly what was filtered would have overstated it.
+  ///
+  /// In ar, this message translates to:
+  /// **'{food, select, meat{لحمة} chicken{فراخ} fish{سمك} shellfish{جمبري ومحار} egg{بيض} dairy{ألبان} peanut{فول سوداني} nuts{مكسرات} sesame{سمسم} gluten{جلوتين} onion{بصل} garlic{توم} other{الحاجة دي}}'**
+  String exclusionName(String food);
+
+  /// FR-005. Shown on top of a Meal that went off offer between being ranked and being opened — the one freshness case a Customer actually meets. Says what happened rather than showing an error, and the Meal stays on screen underneath because losing what somebody was reading is the worse answer. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكلة دي مبقتش معروضة. الطباخ شالها من المنيو دلوقتي.'**
+  String get mealNoLongerOnOffer;
+
+  /// FR-024a. Shown when a Customer's named area is empty AND Kafoo could not find out which areas do have food — the browse load failed, or no Cook wrote an area at all. It is NOT browseNothingOnOffer: telling a Customer the whole marketplace is empty when Kafoo simply has not been told is a lie by a different route, and it lands right after telling them their own area is empty. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.'**
+  String get searchAreasUnknown;
 }
 
 class _AppLocalizationsDelegate

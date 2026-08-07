@@ -31,4 +31,11 @@ abstract final class EventNames {
   // MealPublished and MealArchived are above, with the core events.
   static const String mealDrafted = 'MealDrafted';
   static const String mealUpdated = 'MealUpdated';
+
+  // Level 2 — product analytics events added in E3.
+  //
+  // SearchPerformed carries `result_count` AND NOTHING ELSE. FR-029 and SC-011: Kafoo records that
+  // a search happened and how many results came back, never what was searched for. The obvious
+  // attribute to add here is the phrase, and it is the one thing this event must never carry.
+  static const String searchPerformed = 'SearchPerformed';
 }

@@ -62,7 +62,7 @@ Deno.test('a recognised exclusion becomes a predicate, not a phrase for the mode
   const body = await response.json();
 
   assertEquals(body.excluded, 'meat');
-  assertEquals(body.notUnderstood, null);
+  assertEquals(body.notUnderstood, false);
   assertEquals((recorder.searched[0].exclude ?? []).includes('لحمة'), true);
   // The words stay in the embedded text. Stripping them would silently change the request.
   assertEquals(recorder.embedded[0], 'أكل من غير لحمة خالص');
@@ -77,7 +77,7 @@ Deno.test('AN EXCLUSION KAFOO DID NOT UNDERSTAND IS REPORTED, NEVER DROPPED', as
   const body = await response.json();
 
   assertEquals(response.status, 200);
-  assertEquals(body.notUnderstood, 'كافيار');
+  assertEquals(body.notUnderstood, true);
   assertEquals(body.excluded, null);
   // And nothing was filtered on, because Kafoo does not know what to filter on — which is exactly
   // why the interface must say so.
@@ -122,7 +122,7 @@ Deno.test('a failure still reports what was understood', async () => {
   // identical to one from a request with no exclusion in it.
   const [d] = deps({ search: () => Promise.reject(new Error('down')) });
   const body = await (await handleDiscover(post({ phrase: 'من غير كافيار' }), d)).json();
-  assertEquals(body.notUnderstood, 'كافيار');
+  assertEquals(body.notUnderstood, true);
 });
 
 Deno.test('an empty or missing phrase is refused before anything is spent', async () => {
@@ -153,4 +153,101 @@ Deno.test('the parser agrees with the Dart vocabulary it was generated from', ()
   assertEquals(parsePhrase('من غير أي لحمة').exclusion.kind, 'found');
   assertEquals(parsePhrase('من غير فول سوداني').exclusion.kind, 'found');
   assertEquals(parsePhrase('عايز أكل من غير').exclusion.kind, 'not-understood');
+});
+
+Deno.test('ONE SENTENCE CARRIES THE PHRASE, THE EXCLUSION AND THE AREA', async () => {
+  // T207 and Principle IV. `عايز حاجة من غير لحمة في المهندسين` is what a Customer says; three
+  // controls to collect it would be the form the rules forbid at exactly this point.
+  const [d, recorder] = deps();
+  const body = await (await handleDiscover(
+    post({ phrase: 'عايز حاجة من غير لحمة في المهندسين' }),
+    d,
+  )).json();
+
+  assertEquals(body.excluded, 'meat');
+  assertEquals(recorder.searched[0].area, 'المهندسين');
+  assertEquals(body.area, 'المهندسين');
+  // The sentence is embedded whole. The area is a database predicate as well as words in the text,
+  // for the same reason the exclusion is: removing it would change what the Customer asked for.
+  assertEquals(recorder.embedded[0], 'عايز حاجة من غير لحمة في المهندسين');
+});
+
+Deno.test('an area the Customer CHOSE overrides the one in their sentence', async () => {
+  // FR-024a. The area they named was empty, Kafoo offered the areas that are not, and they picked
+  // one. That choice arrives on top of the same sentence — if the sentence won, it would be
+  // unreachable and the offer would be decoration.
+  const [d, recorder] = deps();
+  const body = await (await handleDiscover(
+    post({ phrase: 'كشري في أسوان', area: 'المهندسين' }),
+    d,
+  )).json();
+
+  assertEquals(recorder.searched[0].area, 'المهندسين');
+  assertEquals(body.area, 'المهندسين');
+});
+
+Deno.test('a locative marker is a whole word and never the first one', () => {
+  // `في` opening a sentence is Egyptian for "is there any", not a place. And `فيه` and `الفيوم`
+  // contain the marker without being it — a substring scan would narrow every one of them to
+  // nothing and then tell the Customer their area is empty.
+  assertEquals(parsePhrase('في حاجة سخنة').area, null);
+  assertEquals(parsePhrase('عايز أكل فيه فراخ').area, null);
+  assertEquals(parsePhrase('عايز أكل في المهندسين').area, 'المهندسين');
+  assertEquals(parsePhrase('عايزة حاجة في الفرن في مصر الجديدة').area, 'مصر الجديدة');
+  // Nothing after the marker is not an area.
+  assertEquals(parsePhrase('عايز أكل في').area, null);
+});
+
+Deno.test('the area is never normalised here', () => {
+  // `normalise_area` lives in SQL and nowhere else — the migration that created it says so, and the
+  // Cook's side already compares through it. Folding here too would be one rule in two languages.
+  assertEquals(parsePhrase('كشري في العجوزة').area, 'العجوزة');
+  assertEquals(parsePhrase('كشري في العجوزه').area, 'العجوزه');
+});
+
+Deno.test('NO WORD OF THE PHRASE COMES BACK EXCEPT THE AREA', async () => {
+  // TIGHTENED 2026-08-07 after trust-reviewer walked past the test below. That one asserts the
+  // WHOLE phrase is absent, and `notUnderstood` was returning the entire tail of the sentence after
+  // the negation marker — most of a phrase, which is not the whole of it, so it passed while
+  // `المايونيز بتاع محل عمو سيد جنب بيتي` sat in a 503 body.
+  //
+  // A test that asserts on the exact input string can only catch a verbatim echo. This asserts word
+  // by word, which is what "the phrase does not come back" actually means.
+  //
+  // The area IS returned, and deliberately: the interface says "results from المهندسين only", so it
+  // needs the word. It is one token a Cook also wrote about their own kitchen, not the sentence.
+  const phrase = 'عايز حاجة من غير المايونيز بتاع محل عمو سيد جنب بيتي في المهندسين';
+  const [d] = deps();
+  const responses = [
+    await handleDiscover(post({ phrase }), d),
+    await handleDiscover(
+      post({ phrase }),
+      deps({ embedQuery: () => Promise.reject(new Error('down')) })[0],
+    ),
+  ];
+
+  for (const response of responses) {
+    const text = await response.text();
+    for (const word of phrase.split(/\s+/)) {
+      if (word === 'المهندسين') continue;
+      assertEquals(text.includes(word), false, `"${word}" came back in ${text}`);
+    }
+  }
+});
+
+Deno.test('AN ERROR NEVER CARRIES THE PHRASE OUT', async () => {
+  // FR-029 and SC-011 name "an error carrying the request" by name. This response carried
+  // `String(error)` until 2026-08-07, and a provider rejecting a request answers with a body that
+  // quotes the request back — _shared/ai/gemini.ts puts that body straight into the message.
+  const phrase = 'عايز فراخ مشوية في المهندسين';
+  for (const broken of [
+    { embedQuery: () => Promise.reject(new Error(`400 invalid input: ${phrase}`)) },
+    { search: () => Promise.reject(new Error(`syntax error near "${phrase}"`)) },
+  ]) {
+    const [d] = deps(broken);
+    const response = await handleDiscover(post({ phrase }), d);
+    const text = await response.text();
+    assertEquals(response.status, 503);
+    assertEquals(text.includes(phrase), false, text);
+  }
 });
