@@ -4,6 +4,16 @@
 
 set -uo pipefail
 
+# ANCHOR TO THE REPOSITORY ROOT. Every check below uses a relative path, so running this from any
+# other directory reports failures that are about the working directory rather than about the code
+# — three of them on 2026-08-07, from a `cd apps/mobile` that persisted in a shell.
+#
+# That is the harmless direction. The dangerous one happened the same week: a leaked `cd` made
+# `./scripts/verify.sh` resolve to nothing, the invocation was piped to `tail`, and the exit status
+# belonged to `tail` — so the gate "passed" without running and two real failures were committed.
+# A gate that depends on where it is called from is a gate that can report the wrong answer.
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
+
 FAILED=0
 run() {
   local label="$1"; shift

@@ -36,6 +36,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get discoveryLoadError => 'مش قادرين نعرض الأكل دلوقتي.';
 
   @override
+  String get searchUnavailable =>
+      'البحث مش شغال دلوقتي، بس تقدر تتفرج على الأكل الموجود.';
+
+  @override
   String mealCardSemanticLabel(String kitchen, String price, String title) {
     return '$title، $kitchen، $price';
   }

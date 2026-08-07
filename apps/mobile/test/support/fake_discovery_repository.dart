@@ -30,6 +30,15 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
   /// is exactly where E1 lost a screen to an error it was not catching.
   bool hold;
 
+  /// What [search] returns when it succeeds.
+  SearchOutcome searchOutcome = const SearchOutcome(
+    results: DiscoveryResults(results: []),
+  );
+
+  /// The phrases this fake was asked for, so a test can assert what left the
+  /// device — and, with the switch off, that NOTHING did.
+  final List<String> phrases = <String>[];
+
   int calls = 0;
 
   @override
@@ -42,5 +51,22 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
       return const Failure(AppError(messageKey: 'discoveryLoadError'));
     }
     return Success(onOffer);
+  }
+
+  @override
+  Future<Result<SearchOutcome, AppError>> search({
+    required String phrase,
+    String? area,
+  }) async {
+    // Recorded rather than counted: the assertions that matter about search are
+    // about what left the device, and a count cannot answer those.
+    phrases.add(phrase);
+    if (hold) {
+      await Completer<void>().future;
+    }
+    if (fail) {
+      return const Failure(AppError(messageKey: 'searchUnavailable'));
+    }
+    return Success(searchOutcome);
   }
 }
