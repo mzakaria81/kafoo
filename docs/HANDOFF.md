@@ -8,6 +8,10 @@ below.
 rewritten, and the prose above and below the table brought level with them.
 **Updated**: 2026-08-06 — E2 measured itself, and one budget is missed. Six work packages merged
 (WP-005, WP-007 to WP-010). **Read "Before E3" below before planning E3.**
+**Updated**: 2026-08-07 — the review briefs now run in CI on the pull request diff
+(`.github/workflows/review.yml`); it needs an `ANTHROPIC_API_KEY` secret that does not exist yet, so
+today it skips loudly on every pull request. Borrowing an external voice benchmark was raised and
+deferred — see "Smaller, real".
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
@@ -261,6 +265,28 @@ What E2 has not done is measure itself — see "Where to pick up".
   could not verify this** — the API path is blocked through this session's proxy. It may be
   aspirational.
 - **T045** — `apps/admin`, deferred until an administrative surface is needed.
+- **Borrowing an external voice benchmark — raised 2026-08-07, deferred by the founder.** Not
+  started, nothing written. Three candidates were identified and they are not interchangeable, so
+  whoever picks this up should pick deliberately rather than take the first one:
+  - **Per-component latency**, the shape of Tables 2–5 in arXiv 2603.05413 (Salesforce's tutorial,
+    measuring Alibaba's Qwen models). Splits one end-to-end figure into per-stage P50/mean/min/max
+    so a missed budget names the stage that caused it. Would extend `scripts/measure-e2-performance.ts`
+    rather than add anything, and needs no new corpus. This was the recommendation.
+  - **VoiceBench**, the voice-assistant quality benchmark Qwen publishes against. Tuning it for
+    Kafoo means authoring an Egyptian Arabic spoken-instruction set — substantial, and it partly
+    duplicates `docs/ops/transcription-corpus.json`.
+  - **BenchForce**, Salesforce's function-calling voice eval. Measures whether an agent calls the
+    right tool; Kafoo's AI calls no tools and takes no actions, so most of it has no equivalent here
+    yet.
+
+  **Watch the attribution.** "The benchmark from Alibaba" has no referent — Alibaba is Qwen, whose
+  models the paper *measures*; the benchmark the paper *cites* is Salesforce's. Getting this wrong
+  picks the wrong artefact.
+
+  Worth weighing against all three: `docs/ops/transcription-corpus.json` is already a 26-utterance
+  Egyptian Arabic accuracy benchmark with an `msa_substituted` scoring rule, written 2026-08-03 and
+  never run (WP-004, `NOT_STARTED`). Building the harness for the corpus that exists may beat
+  importing one that does not.
 - **iOS release credentials** — the pipeline now has an iOS job, but it is gated behind a
   preflight check and will not start until Apple Developer credentials exist. Needs Apple
   Developer Program membership, then `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,

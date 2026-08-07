@@ -1376,3 +1376,147 @@ The proximate cause is worth recording separately: an ambient-style lookup (`Def
 **Suggested improvement:** When placing a guard, find the narrowest point that every path crosses and put it there — usually the private method the public ones delegate to, not the public ones. When writing a negative test for a guard, first establish the preconditions under which the guarded code would actually run, and confirm the test fails when the guard is removed. A negative test that has not been watched turning red is indistinguishable from one that is testing an early return.
 
 **Principle:** Guard the funnel, not the entrances; entrances keep being added. And a negative test must be shown to fail for the reason it claims — an early return produces the same green as a working guard.
+
+### Observation 100: No structure for evaluating an external repo or paper against Kafoo's constraints
+
+**Status:** OPEN
+**Renumbered:** was Observation 95 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 100 on merge with `main`, which had independently issued 95 to a different observation
+**Date:** 2026-08-07
+**Session context:** Founder asked for an evaluation of an arXiv paper and the huggingface/speech-to-speech repo for use in Kafoo. The useful answer turned out to be structured entirely around project constraints the external source knows nothing about — language coverage (Egyptian Arabic), deployment shape (no always-on server), and product direction (the AI never speaks). Reaching that structure took a full architecture sweep of the repo that had to be done before the external source could be judged at all.
+**Skill:** New skill candidate: evaluating-external-dependencies
+**Type:** open-source
+**Phase/Area:** Technology evaluation / build-vs-adopt decisions
+
+**Issue:** "Is this library/paper useful for us?" is a recurring question with a repeatable shape, but there was no skill for it. The failure mode it invites is evaluating the artifact on its own terms — stars, benchmarks, feature list, license — and producing a verdict that reads as informed while never testing the artifact against the constraints that actually decide adoption. Here, the repo scored well on every generic axis (11.5k stars, Apache 2.0, production deployment, clean architecture) and was still disqualified three times over on project-specific grounds.
+
+**Suggested improvement:** Create a skill that fixes the evaluation order: map the project's own constraints FIRST (a subagent sweep of ADRs, deployment topology, roadmap position and the relevant existing code), then judge the external artifact against those, then report. Include a disqualifier checklist that generalises: (1) does it cover our languages/locales/regions, checking DEFAULTS not just the "supported backends" list; (2) does it fit our deployment shape and what new infrastructure tier does it require, priced; (3) is it aimed at the product we are actually building, or an adjacent one; (4) maintenance signal — open-PR-to-commit ratio, not stars. Require the report to name the parts worth *reading* separately from the parts worth *adopting* — a source can be valuable as evidence for a decision already pending while being wrong as a dependency.
+
+**Principle:** Evaluate an external artifact against the adopting project's constraints, never on its own terms. A dependency's quality is a property of the fit, not of the dependency — and the generic quality signals (popularity, license, benchmarks, architecture) are exactly the ones that survive a bad fit intact. Establish the constraints before reading the artifact, or the artifact will supply the evaluation criteria.
+
+### Observation 101: A retired measurement stays alive in the files that quoted it
+
+**Status:** OPEN
+**Renumbered:** was Observation 96 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 101 on merge with `main`, which had independently issued 96 to a different observation
+**Date:** 2026-08-07
+**Session context:** Architecture sweep of Kafoo's voice stack while evaluating an external speech pipeline. ADR-0009's spike addendum explicitly retires a 645 ms latency figure ("it should not be used again to dismiss a latency argument") after production measurement showed 2177 ms median against a 2000 ms budget. The retired figure is still stated as live fact in `.claude/rules/ai.md` and in ADR-0005 Amendment 1. Separately, `docs/ops/measuring-transcription.md` still points at a file path that moved during E2's T031.
+**Skill:** ship-check (and any skill covering ADR authoring / documentation-drift enforcement)
+**Type:** open-source
+**Phase/Area:** Definition of done — "update whatever the change made stale"
+
+**Issue:** The project rule is that documentation drift is part of the change, not follow-up work. It held for the file that *made* the correction — the ADR records the retirement carefully and even says the number must not be reused. It failed for the files that *quoted* the number, which are the ones a future reader is most likely to hit first. A superseded figure sitting in an always-loaded rules file is worse than an absent one: it is load-bearing for decisions and carries no signal that it has been retired.
+
+**Suggested improvement:** When a change retires a specific measured value, a named constant, or a file path, add a step that greps the repository for that literal value or path and updates every occurrence in the same commit. Fold this into `/ship-check`: if the diff removes or supersedes a number or path that appears elsewhere in tracked files, fail the check until the other occurrences are reconciled or explicitly marked historical. Mechanically checkable — the value is a literal string.
+
+**Principle:** Correcting a fact where it was decided does not correct it where it was quoted. Superseded figures propagate by copy, so retiring one is a repository-wide find-and-replace, not a single-file edit — and the copies are more dangerous than the original, because they carry the authority of the claim without the context of its retraction.
+
+### Observation 102: Evaluating a repo against a stale checkout, because the pull rule is scoped to "proposing"
+
+**Status:** OPEN
+**Renumbered:** was Observation 97 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 102 on merge with `main`, which had independently issued 97 to a different observation
+**Date:** 2026-08-07
+**Session context:** Founder asked for an evaluation of alibaba/open-code-review as a review tool for
+Kafoo. The session read `.claude/agents/` and `scripts/verify.sh` to establish what the project
+already does, and drew conclusions from a checkout one commit behind `main` — where `main` had just
+merged the first observation review, which changed `verify.sh` (a new "supabase target" check, 23
+steps) and rewrote the observation log. The founder had to interrupt with "you are seeing an old
+review log."
+**Skill:** task-observer (session start protocol), and CLAUDE.md's coordination section
+**Type:** open-source
+**Phase/Area:** Session start — establishing the baseline before analysis
+
+**Issue:** CLAUDE.md states "The coordinator pulls `main` before proposing anything", and the whole
+`coordination/` directory exists because a session once proposed work that was already merged. The
+rule was not followed here, and the reason is instructive: the task did not look like *proposing*.
+It looked like *evaluating an external tool* — the repository seemed to be background context, not
+the subject. So the trigger word "proposing" did not fire, even though the entire answer was a
+comparison against the current state of the repository and was therefore worthless if that state
+was stale.
+
+The failure is silent by construction. A stale checkout produces a confident, internally consistent
+analysis; nothing in the tree announces that it is behind. Every number quoted — the count of gate
+checks, the list of review agents, the size of the observation backlog — was wrong in a way only a
+fetch could reveal.
+
+**Suggested improvement:** Make the baseline check unconditional and mechanical at session start,
+not conditional on the task's category: `git fetch origin main && git rev-list --count HEAD..origin/main`,
+and state the result before any analysis that cites repository state. Widen the CLAUDE.md rule from
+"before proposing anything" to "before citing the state of the repository for any purpose —
+proposing, evaluating, reporting or answering", since the failure mode is identical in all four and
+only the first is currently named.
+
+**Principle:** A rule scoped by the *category* of work fails on tasks that do not self-identify as
+that category. The predicate that actually matters here is not "am I proposing?" but "does my answer
+depend on the current state of the repository?" — so scope the rule to the dependency, not to the
+activity. Any analysis that quotes repository state is stale-able, and staleness is invisible from
+inside the stale copy: it produces a coherent answer, not an error.
+
+### Observation 103: Second instance of the external-dependency evaluation shape, one day apart
+
+**Status:** OPEN
+**Renumbered:** was Observation 98 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 103 on merge with `main`, which had independently issued 98 to a different observation
+**Date:** 2026-08-07
+**Session context:** Evaluating `alibaba/open-code-review` for adoption — the second such request in
+two days, after the huggingface/speech-to-speech evaluation that produced Observation 95 (logged as
+92 on its branch). The useful answer had the same shape both times: establish the project's own
+constraints first, then judge the artifact against them, and separate "worth reading" from "worth
+adopting".
+**Skill:** New skill candidate: evaluating-external-dependencies (strengthens Observation 95)
+**Type:** open-source
+**Phase/Area:** Technology evaluation — evidence for the candidate, not a new candidate
+
+**Issue:** Observation 95 proposed the skill from a single instance, which is the weakest kind of
+evidence and exactly what the "SIMPLIFYING" checklist warns about ("a rule from a single unvalidated
+observation"). A second independent instance one day later, on a completely different artifact class
+(a CLI review tool rather than a speech model), confirms the recurrence and the stability of the
+structure. Both evaluations turned on constraints the artifact could not know: for the speech repo,
+Egyptian Arabic and deployment shape; for the review tool, Dart-plus-SQL language coverage, a
+test-first safety model the tool excludes by default, and an already-committed LLM spend ledger.
+
+Two disqualifier axes appeared in this instance that Observation 95's proposed checklist does not
+name: (a) what the tool *defaults to ignoring*, which for a review tool was test files — the exact
+artifact Kafoo's safety model rests on; and (b) whether the tool's own optimisation target matches
+ours, here a deliberate precision-over-recall trade-off that is correct for a large org drowning in
+review noise and backwards for a solo founder who cannot read the diff.
+
+**Suggested improvement:** Do not create a second candidate. Attach this to Observation 95 as
+corroborating evidence, and add the two axes above to its disqualifier checklist: "what does it
+exclude or ignore by default, and is that the thing we most need looked at?" and "what is it
+optimised FOR, and does that objective match ours?" Both are questions about defaults and intent
+rather than capability, and neither shows up in a feature list.
+
+**Principle:** A tool's defaults and its optimisation target disqualify more adoptions than its
+feature list does, because features are advertised and defaults are assumed. Ask what an artifact
+ignores by default and what objective it was tuned against — a capable tool aimed at a different
+objective is a worse fit than a weaker tool aimed at ours.
+
+### Observation 104: A misattributed source name is an ambiguity that looks like a precise instruction
+
+**Status:** OPEN
+**Renumbered:** was Observation 99 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 104 on merge with `main`, which had independently issued 99 to a different observation
+**Date:** 2026-08-07
+**Session context:** Founder asked to "borrow the benchmark from alibaba and tune it for our repo", following a session that evaluated an arXiv paper. There is no benchmark by Alibaba in that paper: Alibaba is Qwen, whose *models* the paper measures; the benchmark the paper *cites* is BenchForce, which is Salesforce's. A third candidate (VoiceBench) exists and is associated with Alibaba only because Qwen publishes scores against it. Three non-interchangeable artefacts, one confident-sounding request. The founder deferred the work when the three were laid out.
+**Skill:** New skill candidate: evaluating-external-dependencies (same candidate as Observation 93) — or any skill covering how to act on a request that names a source
+**Type:** open-source
+**Phase/Area:** Interpreting a request that names an external artefact
+
+**Issue:** A request naming a specific source reads as *more* precise than a vague one, so it invites going straight to work. Here the name was wrong in a way that was invisible without checking — "the benchmark from X" where X is the party whose product was *measured*, not the party who wrote the benchmark. Picking any one of the three and building it would have produced confident, well-executed, wrong work, and the error would only have surfaced after delivery. The cost of checking was two searches.
+
+**Suggested improvement:** Add a rule: before acting on a request that names an external artefact (paper, benchmark, library, dataset) *and* an attribution, verify that the artefact and the attribution actually go together. Where a source was discussed earlier in the session, re-read what it said rather than relying on the conversational summary of it. If the name resolves to more than one plausible artefact, enumerate them with their differences and ask — do not rank-and-pick silently. Do all work that does not depend on the answer first, so the question costs the user a decision and not a stalled session.
+
+**Principle:** Specificity is not accuracy. A request that names a source, a version, or an author sounds verified and is not — misattribution is the most common way a confident instruction points at the wrong thing, and it survives every check except looking. Confirm the referent exists as named before building on it, and when one name maps to several real artefacts, that is an ambiguity to surface rather than a preference to infer.
+
+### Observation 105: PDF text extraction has no fallback path when the container's crypto stack is broken
+
+**Status:** OPEN
+**Renumbered:** was Observation 100 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved to 105 on merge with `main`, which had independently issued 100 to a different observation
+**Date:** 2026-08-07
+**Session context:** Reading an arXiv paper (2603.05413) to evaluate a third-party repo for Kafoo. The Read tool's PDF path failed (`pdftoppm` missing), and both `pypdf` and `pdfminer.six` then failed at import because the container's system `cryptography` package panics (`No module named _cffi_backend` → pyo3 PanicException). Three attempts burned before a workaround landed: stubbing a fake `cryptography.hazmat.primitives.ciphers` package on PYTHONPATH so pypdf's optional encryption import resolves.
+**Skill:** New skill candidate: reading-pdfs-in-constrained-containers (or a reference section in an existing research/reading skill)
+**Type:** open-source
+**Phase/Area:** Source ingestion / research reading
+
+**Issue:** Reading a PDF from the web is a routine research step, but in an ephemeral cloud container the documented paths can all fail for unrelated environment reasons. There was no documented fallback ladder, so the agent rediscovered one by trial and error mid-task, spending several tool calls on environment repair rather than on the analysis the user asked for.
+
+**Suggested improvement:** Document a short fallback ladder for PDF text extraction: (1) the harness Read tool; (2) `pdftotext` if poppler is present; (3) `pypdf` with a stubbed `cryptography.hazmat.primitives.ciphers` module on PYTHONPATH — pypdf imports it only for encrypted-PDF support and a three-class stub satisfies the import; (4) raw zlib stream decode as a last resort. Note that WebFetch on an arXiv PDF returns a *summary produced by a small model*, not the text — for a paper whose numbers matter, always extract the real text rather than trusting the fetched summary.
+
+**Principle:** When a tool returns a *model-generated summary* of a source rather than the source itself, treat it as a lead, not as evidence. Any claim that will drive a recommendation must be traced back to the primary text. And for routine ingestion steps that can fail on environment grounds, carry a documented fallback ladder rather than improvising one under time pressure — the improvisation cost lands in the middle of analytical work, exactly where attention is most expensive.

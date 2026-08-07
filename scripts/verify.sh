@@ -579,6 +579,18 @@ run "work packages" bash -c '
   [ -d coordination/packages ] || { echo "   no coordination/packages — skipping"; exit 0; }
   python3 scripts/validate-coordination.py'
 
+# Which review agent reads which diff is decided by a path map in
+# scripts/select-reviewers.sh, and the failure mode is the quiet one: rename a brief
+# or move a directory, and the map stops matching. CI then dispatches nothing for
+# that path and reports a clean run — a migration merging with no authorization
+# review, looking exactly like a migration that passed one.
+#
+# The self-test covers both halves: the path rows still match the paths they were
+# written for, and every reviewer the script can name still has a brief on disk.
+run "review agent selection" bash -c '
+  [ -f scripts/select-reviewers.sh ] || { echo "   no select-reviewers.sh — skipping"; exit 0; }
+  ./scripts/select-reviewers.sh --self-test'
+
 echo ""
 if [ "$FAILED" -eq 0 ]; then
   echo "PASS"
