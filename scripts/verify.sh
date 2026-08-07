@@ -205,6 +205,14 @@ run "prompt bundle drift" bash -c '
     echo "   no prompts yet — skipping"; exit 0; }
   deno run --allow-read scripts/generate-prompts.ts --check >/dev/null'
 
+# The exclusion vocabulary is compiled from Dart into TypeScript so there is one of it.
+#
+# `discover` parses a Customer's phrase server-side and the Customer web surface will need the same
+# words. A hand-maintained second copy drifts, and the direction it drifts is an allergy recognised
+# on one surface and not the other — which is the failure the whole exclusion design exists to
+# prevent, arriving through a build step.
+run "exclusion vocabulary" python3 scripts/generate-exclusions.py --check
+
 # Principle II, made mechanical rather than reviewed.
 #
 # A function that talks to a model must not also hold credentials that can write. delete-account
