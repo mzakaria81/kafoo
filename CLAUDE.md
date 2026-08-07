@@ -285,6 +285,16 @@ user-facing change touches both ARB files, and two workers adding pgTAP cases bo
 `plan(N)` line. `scope.shared_files` is where that is admitted so the coordinator can serialise it.
 A package claiming to touch nothing shared is usually a package nobody checked.
 
+**Never `git add -A` while a review agent is running.** They run the code they review, which means
+writing probe files into the same working tree you are about to stage. Stage named paths, or
+`git add -u` plus the files you actually created. Both agents dispatched on 2026-08-07 left a probe
+behind and one reached a commit; `zz_*` is now git-ignored so the class cannot recur silently, but a
+blanket add in a shared tree is still a commit nobody reviewed.
+
+The same applies to the gate. `./scripts/verify.sh` grades the WORKING TREE, so a run started while
+an agent is mid-edit is grading a mixture — rls-reviewer said so explicitly rather than reporting a
+result it could not attribute. If the tree is not yours alone, say what you measured.
+
 **A worker still stops and asks.** The stop-and-ask triggers below — a new screen, money, a new
 category of personal data, AI acting without approval — route to the founder. Owning a package end
 to end is not authority to decide those.
