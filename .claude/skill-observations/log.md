@@ -1257,3 +1257,51 @@ the shared one. Record the renumbering inside the moved entry so its old identif
 after a merge it is no longer an identity and cannot be used for deduplication. Reconciling on it
 deletes exactly the records that collided — and a count-based invariant cannot see the loss, because
 a drop and a keep balance. Match on content, and let the identifier be the thing you repair.
+
+### Observation 94: PDF text extraction has no fallback path when the container's crypto stack is broken
+
+**Status:** OPEN
+**Renumbered:** was Observation 92 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved on merge with `main`
+**Date:** 2026-08-07
+**Session context:** Reading an arXiv paper (2603.05413) to evaluate a third-party repo for Kafoo. The Read tool's PDF path failed (`pdftoppm` missing), and both `pypdf` and `pdfminer.six` then failed at import because the container's system `cryptography` package panics (`No module named _cffi_backend` → pyo3 PanicException). Three attempts burned before a workaround landed: stubbing a fake `cryptography.hazmat.primitives.ciphers` package on PYTHONPATH so pypdf's optional encryption import resolves.
+**Skill:** New skill candidate: reading-pdfs-in-constrained-containers (or a reference section in an existing research/reading skill)
+**Type:** open-source
+**Phase/Area:** Source ingestion / research reading
+
+**Issue:** Reading a PDF from the web is a routine research step, but in an ephemeral cloud container the documented paths can all fail for unrelated environment reasons. There was no documented fallback ladder, so the agent rediscovered one by trial and error mid-task, spending several tool calls on environment repair rather than on the analysis the user asked for.
+
+**Suggested improvement:** Document a short fallback ladder for PDF text extraction: (1) the harness Read tool; (2) `pdftotext` if poppler is present; (3) `pypdf` with a stubbed `cryptography.hazmat.primitives.ciphers` module on PYTHONPATH — pypdf imports it only for encrypted-PDF support and a three-class stub satisfies the import; (4) raw zlib stream decode as a last resort. Note that WebFetch on an arXiv PDF returns a *summary produced by a small model*, not the text — for a paper whose numbers matter, always extract the real text rather than trusting the fetched summary.
+
+**Principle:** When a tool returns a *model-generated summary* of a source rather than the source itself, treat it as a lead, not as evidence. Any claim that will drive a recommendation must be traced back to the primary text. And for routine ingestion steps that can fail on environment grounds, carry a documented fallback ladder rather than improvising one under time pressure — the improvisation cost lands in the middle of analytical work, exactly where attention is most expensive.
+
+### Observation 95: No structure for evaluating an external repo or paper against Kafoo's constraints
+
+**Status:** OPEN
+**Renumbered:** was Observation 93 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved on merge with `main`
+**Date:** 2026-08-07
+**Session context:** Founder asked for an evaluation of an arXiv paper and the huggingface/speech-to-speech repo for use in Kafoo. The useful answer turned out to be structured entirely around project constraints the external source knows nothing about — language coverage (Egyptian Arabic), deployment shape (no always-on server), and product direction (the AI never speaks). Reaching that structure took a full architecture sweep of the repo that had to be done before the external source could be judged at all.
+**Skill:** New skill candidate: evaluating-external-dependencies
+**Type:** open-source
+**Phase/Area:** Technology evaluation / build-vs-adopt decisions
+
+**Issue:** "Is this library/paper useful for us?" is a recurring question with a repeatable shape, but there was no skill for it. The failure mode it invites is evaluating the artifact on its own terms — stars, benchmarks, feature list, license — and producing a verdict that reads as informed while never testing the artifact against the constraints that actually decide adoption. Here, the repo scored well on every generic axis (11.5k stars, Apache 2.0, production deployment, clean architecture) and was still disqualified three times over on project-specific grounds.
+
+**Suggested improvement:** Create a skill that fixes the evaluation order: map the project's own constraints FIRST (a subagent sweep of ADRs, deployment topology, roadmap position and the relevant existing code), then judge the external artifact against those, then report. Include a disqualifier checklist that generalises: (1) does it cover our languages/locales/regions, checking DEFAULTS not just the "supported backends" list; (2) does it fit our deployment shape and what new infrastructure tier does it require, priced; (3) is it aimed at the product we are actually building, or an adjacent one; (4) maintenance signal — open-PR-to-commit ratio, not stars. Require the report to name the parts worth *reading* separately from the parts worth *adopting* — a source can be valuable as evidence for a decision already pending while being wrong as a dependency.
+
+**Principle:** Evaluate an external artifact against the adopting project's constraints, never on its own terms. A dependency's quality is a property of the fit, not of the dependency — and the generic quality signals (popularity, license, benchmarks, architecture) are exactly the ones that survive a bad fit intact. Establish the constraints before reading the artifact, or the artifact will supply the evaluation criteria.
+
+### Observation 96: A retired measurement stays alive in the files that quoted it
+
+**Status:** OPEN
+**Renumbered:** was Observation 94 on branch `claude/kafoo-speech-to-speech-eval-np67r5`; moved on merge with `main`
+**Date:** 2026-08-07
+**Session context:** Architecture sweep of Kafoo's voice stack while evaluating an external speech pipeline. ADR-0009's spike addendum explicitly retires a 645 ms latency figure ("it should not be used again to dismiss a latency argument") after production measurement showed 2177 ms median against a 2000 ms budget. The retired figure is still stated as live fact in `.claude/rules/ai.md` and in ADR-0005 Amendment 1. Separately, `docs/ops/measuring-transcription.md` still points at a file path that moved during E2's T031.
+**Skill:** ship-check (and any skill covering ADR authoring / documentation-drift enforcement)
+**Type:** open-source
+**Phase/Area:** Definition of done — "update whatever the change made stale"
+
+**Issue:** The project rule is that documentation drift is part of the change, not follow-up work. It held for the file that *made* the correction — the ADR records the retirement carefully and even says the number must not be reused. It failed for the files that *quoted* the number, which are the ones a future reader is most likely to hit first. A superseded figure sitting in an always-loaded rules file is worse than an absent one: it is load-bearing for decisions and carries no signal that it has been retired.
+
+**Suggested improvement:** When a change retires a specific measured value, a named constant, or a file path, add a step that greps the repository for that literal value or path and updates every occurrence in the same commit. Fold this into `/ship-check`: if the diff removes or supersedes a number or path that appears elsewhere in tracked files, fail the check until the other occurrences are reconciled or explicitly marked historical. Mechanically checkable — the value is a literal string.
+
+**Principle:** Correcting a fact where it was decided does not correct it where it was quoted. Superseded figures propagate by copy, so retiring one is a repository-wide find-and-replace, not a single-file edit — and the copies are more dangerous than the original, because they carry the authority of the claim without the context of its retraction.
