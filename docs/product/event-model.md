@@ -147,8 +147,8 @@ unmeasurable, since a Review requires a completed Order.
 | `MealDrafted` | active (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
 | `MealUpdated` | active (E2) | `changed` | A published Meal was edited. `changed` distinguishes a price change from a typo. Emitted values: `availability`, `title`, `description`, `price` |
 | `SearchPerformed` | active (E3) | `result_count` | A search ran |
-| `SearchFailed` | planned (E3) | — | A search returned nothing |
-| `RecommendationAccepted` | planned (E3) | — | A Customer acted on what the AI Assistant suggested |
+| `SearchFailed` | active (E3) | — | The AI Assistant judged that nothing on offer answers the request. NOT "the database returned no rows": retrieval returning rows is not the same as those rows answering, and conflating the two is what a score threshold tried and failed to do. Carries nothing at all — the phrase is forbidden by FR-029, and a count of results that did not answer is a number nobody can act on |
+| `RecommendationAccepted` | active (E3) | `rank` | A Customer opened a Meal the AI Assistant named after saying nothing answered. `rank` is where that Meal already sat in the results. Never the phrase, and never the Meal's id — an id and a timestamp together are a search somebody could reconstruct |
 | `ReviewEdited` | planned (E5) | — | A Review changed inside its editable window |
 
 **Abandonment is derived, not emitted.** There is no `ConversationAbandoned`, because the moment
