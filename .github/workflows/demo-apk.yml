@@ -11,15 +11,23 @@ name: Demo APK
 # What was missing is a build aimed at a person holding a phone. That is this.
 #
 # ────────────────────────────────────────────────────────────────────────────────────────────────
-# IT POINTS AT A PREVIEW BRANCH, NEVER AT PRODUCTION.
+# IT POINTS AT THE DEMO DATABASE, NEVER AT PRODUCTION.
 #
-# The demo data in supabase/demo-data.json creates Cooks and Meals. `.claude/rules/business-rules.md`
-# calls synthetic Cooks and Meals on the real marketplace product-fatal, so the URL and key are
-# INPUTS rather than secrets: a secret gets set once and then quietly points wherever it was last
-# set, and the one mistake this workflow must never make is the one nobody would notice.
+# The demo data in supabase/demo-data.json creates Cooks and Meals, and
+# `.claude/rules/business-rules.md` calls synthetic Cooks and Meals on the real marketplace
+# product-fatal. So the check below refuses the production ref outright — that refusal is the
+# control, and it is why the address can safely be stored rather than typed.
 #
-# Typing the URL each time is the friction that keeps production out of it. The check below refuses
-# the production ref outright, because friction is not a control.
+# THE ADDRESS IS A REPOSITORY VARIABLE, NOT A SECRET, AND NOT AN INPUT. The demo database became
+# PERMANENT on 2026-08-07 (founder's decision, docs/ops/preview-branches.md), so its address stopped
+# changing and there is nothing left to retype. A variable rather than a secret because a variable
+# is READABLE: anyone can check at a glance which database a build pointed at, which is exactly the
+# question worth being able to answer about a build somebody installed on their phone. The
+# publishable key is a client key that ships inside every APK anyway — hiding it in a secret would
+# be theatre.
+#
+# The inputs are still here as an override, for pointing a build at a throwaway pull-request branch
+# without touching the stored address.
 # ────────────────────────────────────────────────────────────────────────────────────────────────
 #
 # The APK is DEBUG-SIGNED and that is deliberate: apps/mobile/android/app/build.gradle.kts falls
@@ -30,27 +38,39 @@ on:
   workflow_dispatch:
     inputs:
       supabase_url:
-        description: 'Preview-branch API URL, e.g. https://abcdefgh.supabase.co — NOT production'
-        required: true
+        description: 'Override the demo database URL. Leave empty to use DEMO_SUPABASE_URL.'
+        required: false
       publishable_key:
-        description: 'That branch''s publishable (anon) key'
-        required: true
+        description: 'Override the demo publishable key. Leave empty to use DEMO_SUPABASE_PUBLISHABLE_KEY.'
+        required: false
 
 jobs:
   apk:
     name: demo apk
     runs-on: ubuntu-latest
+    env:
+      # An input wins when given; otherwise the stored demo address. Resolved once, here, so every
+      # step below reads the same value and the refusal cannot be checking a different one from the
+      # build.
+      URL: ${{ inputs.supabase_url || vars.DEMO_SUPABASE_URL }}
+      KEY: ${{ inputs.publishable_key || vars.DEMO_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v5
 
       # The one thing this workflow must refuse. The production ref is public in the repository's
       # own CI configuration, so comparing against it needs no secret.
-      - name: Refuse production
-        env:
-          URL: ${{ inputs.supabase_url }}
+      - name: Refuse production, and refuse an empty address
         run: |
+          if [ -z "${URL}" ] || [ -z "${KEY}" ]; then
+            echo "::error::No demo database configured. Set the repository variables" \
+                 "DEMO_SUPABASE_URL and DEMO_SUPABASE_PUBLISHABLE_KEY (Settings → Secrets and" \
+                 "variables → Actions → Variables), or pass them as inputs."
+            echo "::error::Empty is refused rather than defaulted, because String.fromEnvironment" \
+                 "answers \"\" for a name nobody defined and the app would build and then throw."
+            exit 1
+          fi
           if [ "${URL}" = "https://cshrkpvljknxsdzwhhle.supabase.co" ]; then
-            echo "::error::That is the production project. This build seeds demo Cooks and Meals," \
+            echo "::error::That is the production project. This build carries demo Cooks and Meals," \
                  "which business-rules.md calls product-fatal on the real marketplace."
             exit 1
           fi
@@ -58,6 +78,7 @@ jobs:
             https://*.supabase.co) ;;
             *) echo "::error::Expected a https://<ref>.supabase.co URL."; exit 1 ;;
           esac
+          echo "Building against ${URL}"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -88,8 +109,8 @@ jobs:
         run: |
           flutter build apk --release \
             --build-number="${{ github.run_number }}" \
-            --dart-define=SUPABASE_URL='${{ inputs.supabase_url }}' \
-            --dart-define=SUPABASE_PUBLISHABLE_KEY='${{ inputs.publishable_key }}'
+            --dart-define=SUPABASE_URL="${URL}" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
 
       - name: Archive APK
         uses: actions/upload-artifact@v4
@@ -104,7 +125,7 @@ jobs:
           {
             echo "### Kafoo demo APK"
             echo ""
-            echo "Points at \`${{ inputs.supabase_url }}\`."
+            echo "Points at \`${URL}\`."
             echo ""
             echo "1. Download **kafoo-demo-${{ github.run_number }}** from the Artifacts section"
             echo "   at the bottom of this page. It arrives as a zip; the APK is inside."
@@ -116,7 +137,10 @@ jobs:
             echo "with the code recorded beside it. They work only because the branch config"
             echo "declares them as test numbers; no SMS is sent."
             echo ""
-            echo "**Search will find nothing until the branch has embeddings.** Seeded Meals have no"
+            echo "**Search finds nothing until the database has embeddings.** Seeded Meals have no"
             echo "vector, so they show in browse and not in search — harder to find, never lost."
-            echo "Run \`scripts/backfill-meal-embeddings.ts\` against the branch to fix that."
+            echo "Run \`scripts/backfill-meal-embeddings.ts\` against it once; on a permanent"
+            echo "database that is a one-off rather than a chore per build."
+            echo ""
+            echo "Full runbook: \`docs/ops/demo-environment.md\`."
           } >> "$GITHUB_STEP_SUMMARY"

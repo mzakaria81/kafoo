@@ -4,9 +4,8 @@
     "The whole story — getting this onto a phone, what will not work yet, and why none of it can reach production — is docs/ops/demo-environment.md.",
     "Add or change entries below, then run: python3 scripts/generate-demo-seed.py",
     "That rewrites a marked block at the foot of supabase/seed.sql. ./scripts/verify.sh fails if the two drift.",
-    "The data reaches a preview branch when the branch is CREATED. Changing this file and pushing does not re-run the seed — close and reopen the pull request.",
-    "A Meal seeded here has no vector, so it appears in browse and NOT in search until scripts/backfill-meal-embeddings.ts is run against that branch.",
-    "A pull request only gets a preview branch when it CHANGES something under supabase/. A pull request that touches only docs is ignored by Supabase Branching, with a comment saying so — which is how the demo pull request failed to get a database on its first attempt."
+    "The demo database is PERMANENT, and Supabase runs seed.sql once, at creation. So changing this file does not reach it by pushing — the database has to be RESET, which reapplies migrations and the seed and throws away anything created by hand since. Decide before you click.",
+    "A Meal seeded here has no vector, so it appears in browse and NOT in search until scripts/backfill-meal-embeddings.ts is run against the database."
   ],
   "why_this_is_allowed": [
     "business-rules.md forbids synthetic Cooks and Meals IN PRODUCTION, and this never reaches production: seed.sql runs locally and on preview branches only, because `supabase db push` applies migrations and nothing else.",

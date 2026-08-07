@@ -8,8 +8,11 @@
 -- detected in supabase directory", which reads as though the directory had not been touched. It
 -- had. Closing and reopening the pull request did not help, because the verdict is about the diff.
 --
--- So the demo environment's pull request must change one of the watched files to have a database at
--- all. docs/ops/demo-environment.md is the runbook for it.
+-- THIS ALSO RUNS ONCE PER BRANCH, AT CREATION, AND THAT MATTERS MORE NOW THAT THE DEMO DATABASE IS
+-- PERMANENT. Editing the demo data and pushing does not reach it. Reaching it means RESETTING the
+-- branch, which reapplies the migrations and this file and discards everything created by hand
+-- since — a formality on a throwaway branch and a real loss on one that has been in use.
+-- docs/ops/demo-environment.md is the runbook.
 --
 -- E1's authorization tests call pgTAP (`plan`, `is`, `throws_ok`, `finish`) and four helpers in a
 -- `tests` schema. Neither existed anywhere in this repository, so `supabase test db` failed at the
