@@ -39,6 +39,13 @@ other orchestrators as designed-for, not yet proven.)
    binary is visible after the fact.
 3. A model provider is authenticated — `opencode auth list` shows at least one credential.
 4. You are in (or will point `--cd` at) the target git repository.
+5. If the project keeps a spend ledger, run it — but read its verdict correctly. **A quota
+   reconstructed from local records can only ever prove a lower bound on consumption.** Spend from
+   another machine, another repository, or a session that died before committing its row is invisible
+   to it, so its "OK to dispatch" is an absence of evidence, not evidence of headroom. Its only
+   trustworthy answer is "stop". The authoritative signal is the provider accepting the first call —
+   which makes a dispatch failing on a quota error a distinct, expected outcome to report, not an
+   anomaly to debug.
 
 ## Choose the implementer model
 
@@ -56,6 +63,18 @@ single-model backend like codex-delegate never had, and it has two owners:
   money/security path.
 - **If no usable set is stated, ask — don't guess.** Guessing from the catalog risks a metered model and
   a surprise bill. Name the constraint to the human and let them choose.
+- **The provider prefix is the billing boundary, and the model name is not evidence of anything.** One
+  credential can authenticate several provider namespaces carrying *identical* model names — a flat-rate
+  subscription and a metered per-token product, side by side. `opencode models` confirms a model exists;
+  it says nothing about which account pays. Run `opencode auth list` and note whether the credential
+  appears more than once: a key listed under two provider names means two billing paths reachable with
+  the same model string. Validate a stated allowlist with a dispatch that actually succeeds, not with a
+  catalog lookup — and note that a first dispatch against a zero balance fails loudly and free, which
+  makes an unverified prefix cheap to test deliberately before real work rides on it.
+- **A plausible explanation for a missing model is a hypothesis, not a finding.** "Lineup drift" or
+  "deprecated in beta" written down as the cause is what stops anyone looking for the real one — which
+  is usually a namespace nobody listed. Run `opencode models --refresh` before concluding a model is
+  absent; the local catalog caches and a stale cache is indistinguishable from unavailability.
 
 More depth: [references/writing-the-brief.md](references/writing-the-brief.md).
 

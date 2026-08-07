@@ -89,6 +89,36 @@ The helper blocks until OpenCode finishes. Back it with whatever your orchestrat
 Trust the working tree and the process state over any progress display. A run is finished when the
 process has exited and `result.json` is written — not when a status line says so.
 
+### Telling "still working" from "stalled"
+
+**The completion signal and the failure signal are the same observation: nothing happening.** A
+child that hit a terminal provider error five seconds in can stay alive and silent indefinitely —
+`result.json` never appears, the event file stays at zero bytes, and the working tree stays
+untouched, which is exactly what a long healthy run looks like from outside. Waiting cannot
+distinguish them, so the skill has to give you a decision procedure rather than leaving you to
+invent a threshold mid-task.
+
+Signals available *during* the run, in order of reliability:
+
+1. **Files touched in the working tree** — the most reliable. A buffered output format hides
+   streamed progress entirely, so silence on stdout is not evidence either way.
+2. **`events.jsonl` byte count** — growing means the implementer is emitting.
+3. **Accumulated process CPU** — distinguishes a wedged process from a working one, but a child
+   polling a failed API burns CPU too, so treat it as weakest.
+
+**First-signal expectation: a run that has touched no file and emitted no event after roughly ten
+minutes is not mid-task.** Diagnose it rather than waiting it out:
+
+- **Read the child's own log** — the failure is usually discoverable there the whole time, and it is
+  the one place neither `result.json` nor the working tree will show it. Quota exhaustion and auth
+  lapses are the common causes and both can leave the child running rather than exiting.
+- Then kill it, record the dispatch as aborted in whatever ledger the project keeps, and choose
+  between re-dispatching with a smaller brief and doing the work in-session.
+
+**Always pass an explicit `--timeout`.** A watchdog is the only thing that bounds a child which
+neither progresses nor exits; without one the ceiling is however long you are willing to wait, which
+under time pressure is an arbitrary number invented at the worst moment.
+
 ## When a run misbehaves
 
 - **`status: opencode_unavailable` (exit 127):** `opencode` isn't on PATH or isn't found. Install

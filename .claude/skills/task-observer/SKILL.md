@@ -422,6 +422,23 @@ skill", "act on observation #N"); (3) in-session correction when a skill is
 producing wrong output the user should know about. Otherwise: log, don't
 act.
 
+**Closing obligation — this binds the session that lands the fix, not only
+the reviewer.** When a change lands that satisfies a logged observation,
+set that entry to `ACTIONED (YYYY-MM-DD) — [what was done, and where it
+lives]` in the same commit as the fix. This applies whether the fix was a
+skill edit, a project-documentation change, or a code change — and whether
+or not you were the session that logged it. Nothing else in this skill
+obliges anyone to change a Status: the writer sets it and a periodic
+reviewer reads it, so without this rule the field decays into a creation
+marker, the log grows monotonically, and the archival rule (which keys off
+resolved entries) never fires. A backlog nobody closes stops being read.
+
+A partially-satisfied observation is not closed. Many entries have a
+project half (fix the gate, the doc, the code) and a skill half (record the
+lesson so the next project doesn't repeat it); landing one does not resolve
+the other. Say which half remains in the Status line rather than marking it
+ACTIONED wholesale.
+
 When acting: small, clearly-additive, low-risk changes (a new rule, a
 clarification, a factual fix) may be applied directly. Substantial changes
 (restructuring, new capabilities, changed methodology) and all new-skill

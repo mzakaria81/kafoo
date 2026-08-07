@@ -195,6 +195,81 @@ Keep tests green. Don't add behavior.
 
 Next failing test for next feature.
 
+## When Red-Green Isn't Available, Or Isn't Enough
+
+Red-green works when you write the test and can run it. Three situations break that, and each has
+its own discipline. All three end in the same place: **a test earns trust by discriminating, not by
+passing.**
+
+### The suite is green but was never seen red
+
+Inherited suites, repaired suites, tests written before an environment existed. You know they run;
+you do not know they guard anything.
+
+**Mutation-test them.** For each assertion, remove the specific protection it names and confirm
+that assertion turns red. Assertions that stay green are not necessarily wrong, but they do not
+test what their name claims, and the discrepancy belongs in a comment next to them.
+
+Three ways this goes wrong:
+
+- **A sibling guard does the work.** "Seen to fail" only counts when the failure has the same cause
+  as the property claimed. A negative authorization test written before its column existed fails
+  with "column does not exist" — necessary, not sufficient. Where several guards overlap, break the
+  specific one the test names and watch that test alone go red. If it stays green, the usual cause
+  is a fixture in a state where the named guard is never the operative one; move or duplicate the
+  test onto a fixture where it is.
+- **The mutation itself silently failed.** Diff the mutated artefact against the original and fail
+  loudly if the change is not exactly what was intended. A broken mutation script that empties a
+  file instead of removing a line makes the check report green — and "the check is asleep" is the
+  most expensive wrong conclusion available, because it accuses a working check of being broken.
+- **A tight threshold quietly loosened.** An assertion pinned to "exactly what exists today"
+  inherits a dependency on whatever measures it. Improving the instrument moves the derived count in
+  the direction that keeps the assertion green, so the whole class of drift is invisible by
+  construction. Whenever the instrument changes, re-derive the number: raise the threshold by one
+  and confirm the test fails naming the actual count.
+
+### The test cannot run at all
+
+- **"Not yet run" describes a schedule; "cannot run" describes a defect.** They are recorded with
+  the same words. When tests are written ahead of the code they test, the deliverable is the test
+  file *plus* a demonstration that the harness starts. If the environment can't run them, record
+  what was never verified precisely: not "these have not run" but "these have never been observed
+  to start, and their dependencies are uninstalled".
+- **Never unblock a test by weakening its subject.** Enumerate the candidate unblocking changes and
+  reject any that alter the behaviour under test — granting the permission the test exists to deny,
+  relaxing the constraint, stubbing the boundary being verified. That converts an unrunnable test
+  into a misleading one, which is strictly worse. Prefer changing how the test obtains its fixtures.
+  Where the right fix is bigger than the task, verify the behaviour by another route and leave the
+  blocker visible.
+
+### The check's correctness is a matter of degree
+
+Natural language, heuristics, similarity, classification. Here "it passed" carries no information:
+a correct check and a blind one produce identical output.
+
+**Ship it as a non-failing report first.** Run it over a corpus of real recorded outputs,
+hand-classify its hits into true and false, and let that measured rate decide whether it can gate.
+Record the number in the suite so a later loosening of the heuristic shows up as a diff. Do the
+measuring while the check still cannot fail anything — the moment it can fail a build, the
+incentive shifts from measuring it to satisfying it.
+
+### The environment is cached
+
+A cached environment turns "the tests passed" into "the tests passed against whatever this
+environment happens to contain". A harness that skips expensive setup when something is already
+running will happily test a stale schema and exit 0. Either detect staleness (compare what's applied
+against what's on disk and refuse to run), or recreate after every merge — and cross-check the
+observed assertion count against the suites' own declared plan counts rather than trusting the exit
+code. An independently derived expectation of what should have run is the only thing that catches it.
+
+### Local passes, deployed fails
+
+An emulator verifies your code against *its* implementation of a service, not against the service —
+and it is usually the more permissive of the two. Configuration and schema that the hosted product
+validates on ingest are the highest-risk category, invisible to every local test you will ever
+write. The remedy is not more local tests; it is one cheap disposable instance of the real thing in
+the pipeline, and the first run of it is a review step in its own right.
+
 ## Good Tests
 
 | Quality | Good | Bad |
@@ -292,6 +367,9 @@ Before marking work complete:
 - [ ] Output pristine (no errors, warnings)
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
+- [ ] Each test failed for the reason it names, not merely because the feature was absent
+- [ ] Any suite you did not watch go red has been mutation-tested
+- [ ] The environment the suite ran against is current, not cached
 
 Can't check all boxes? You skipped TDD. Start over.
 

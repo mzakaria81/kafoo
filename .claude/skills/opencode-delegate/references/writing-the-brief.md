@@ -6,6 +6,44 @@ whatever it can read from the working tree (including the repo's own `AGENTS.md`
 automatically). If a constraint isn't in the brief or discoverable in the repo, it doesn't exist for
 OpenCode. The single most common failure is a brief that assumes context OpenCode doesn't have.
 
+## Before the brief: establish the premises
+
+**Delegation transmits premises faithfully, including the wrong ones.** Review checks the diff
+against the brief; nothing in the loop checks the brief against reality, and the implementer has no
+standing to question a premise because the brief is its entire world. A brief resting on a false
+premise produces work that passes every gate, reviews cleanly, and is worse than doing nothing.
+
+So the orchestrator's distinctive pre-dispatch job is not describing the task — it is converting the
+task's assumed premises into measured ones.
+
+- **Identify the load-bearing factual claims the brief rests on, and establish the ones that are
+  cheap to establish.** A specification asserting a measured cause ("the model wraps the reply in a
+  code fence") and prescribing a fix on that basis is a hypothesis. Twenty-odd live calls can show
+  the premise never reproduces and the prescribed fix is actively harmful — before anyone builds it.
+- **Ship the measurements, not just the conclusions.** Carry the numbers into the brief in a
+  `<facts>` block with the conditions they were measured under, and state which parts of the design
+  depend on them. An implementer handed a counter-intuitive instruction with no evidence will
+  reasonably "correct" it.
+- **Label what you could not establish, rather than dropping it.** An unmeasured claim marked
+  unmeasured carries its uncertainty into the code; the same claim stated plainly launders it into
+  apparent fact.
+- **Mark facts taken from a derived or narrative document** — a task list, a changelog, a status
+  summary — as second-hand, and prefer reading the authoritative source yourself. Those documents go
+  stale in exactly the way that survives review: the number moved, the decision reversed, the
+  headline predates the change.
+- **"Trust the repo over this brief" is not a verification mechanism.** It yields a confirmation, not
+  a check — an implementer told to report contradictions will report "none found" and list the easy
+  countable facts it did verify. If you want a fact checked, name the file it must be checked against
+  and require the *observed value quoted back* in the report. Require the observation, never the
+  verdict.
+- **When delegating a refactor of something non-deterministic or expensive to run**, you cannot
+  validate it by re-measuring — the outputs legitimately differ every run. Name the committed
+  artefact recording a previous output and require the change to reproduce those recorded verdicts
+  from the recorded inputs. That turns an unprovable claim into a deterministic test costing nothing.
+- **Check the codebase can express the assertion you are asking for.** An implementer given an
+  untestable requirement will not stop; it will deliver the closest reachable approximation under the
+  requested name. Where the seam is missing, the missing seam is the actual task.
+
 ## Match the model to the brief
 
 OpenCode has no default model, so every fresh dispatch names one with `--model provider/model`. Which
