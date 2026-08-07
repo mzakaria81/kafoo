@@ -49,15 +49,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "READY_FOR_REVIEW",
+  "status": "COMPLETED",
   "owner": "overnight-session",
   "priority": 1,
   "spend_envelope_usd": 2.0,
   "suggested_model": "opencode-go/qwen3.6-plus",
   "branch": "claude/e3-start-7sfmcm",
-  "pr": null,
+  "pr": 46,
   "blocked_reason": null,
   "notes": "The MVP, and deliberately the thinnest package in E3. Browsing is answered entirely by the policies E2 already shipped, so this ships before anything expensive is started. It also carries Setup and Foundational (T101-T110), because the domain entities it creates are what every later package builds on. T104 says to read the spike report before US2 starts; it is here so the next worker inherits it. Shares both ARB files with WP-013, WP-015, WP-016 and WP-017 — every user-facing package in this repository does.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.\n\nPROGRESS 2026-08-06 overnight: T101-T110 and T113-T118 done. The row mapper moved into packages/domain (CookMeal.fromRow, KitchenProfile.fromRow) rather than being written a third time; the two existing private mappers delegate to it. A widget test asserting that a failure is not shown as 'nothing on offer' was found UNABLE TO FAIL — the screen checks error first, so it masks the state guard and vice versa. browse_state_test.dart now asserts that guard directly and was seen red under the mutation. Remaining: T111 naming (fetchMealsOnOffer vs mealsOnOffer), T112 covered, T116 route wiring into the app shell, T119 by-hand check, T120 accessibility sweep, T121 SC-001.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T22:40:00Z"
+  "updated_at": "2026-08-07T05:20:00Z"
 }
