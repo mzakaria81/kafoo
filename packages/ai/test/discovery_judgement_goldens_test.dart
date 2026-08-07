@@ -36,10 +36,24 @@ void main() {
       // checks — so injection through a COOK's description, which is the source
       // the rules name and the one with a commercial motive, was invisible.
       'description-injection',
+      // From `.claude/rules/ai.md`, not from what the directory happens to hold.
+      'dialect',
+      'garbage',
     ]) {
       expect(kinds, contains(required),
           reason: 'no fixture of kind "$required" — the contract names it');
     }
+  });
+
+  test('the corpus is not mostly hard cases', () {
+    // Three typical, two dialect, one garbage — `.claude/rules/ai.md`. A corpus weighted towards
+    // refusals teaches the judgement that refusing is safe, and the cheap direction to be wrong in
+    // is still a direction: a false "nothing here" costs a Customer an answer they were about to
+    // get, and fires a SearchFailed that makes the funnel wrong in the same direction.
+    int of(String kind) => fixtures.where((f) => f['kind'] == kind).length;
+    expect(of('typical'), greaterThanOrEqualTo(3));
+    expect(of('dialect'), greaterThanOrEqualTo(2));
+    expect(of('garbage'), greaterThanOrEqualTo(1));
   });
 
   test('the hard case is present and is genuinely hard', () {

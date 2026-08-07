@@ -313,9 +313,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // wearing a layout. It says something ABOUT a set the Customer can
           // still see all of.
           //
-          // The Meals named are looked up from the results by id, so the words
-          // on screen are titles Cooks wrote about food that is on offer. The
-          // AI Assistant never supplies a word of this sentence.
+          // THE GUARANTEE THAT A NAMED MEAL IS ON OFFER LIVES IN THE
+          // REPOSITORY, NOT HERE. This comment used to say the screen looks up
+          // each Meal by id; it does not — it renders the titles it is handed.
+          // `SupabaseDiscoveryRepository.judge` is what matches the ids the
+          // function returned against the Meals that were actually on screen
+          // and drops anything else, so a Meal the AI Assistant invented never
+          // becomes a `NothingAnswers` in the first place. Trust-reviewer proved
+          // the difference by handing this screen a judgement naming a Meal that
+          // was not in the results: the title rendered, with no card beneath it.
+          //
+          // Naming the wrong layer for a product-fatal invariant is how the next
+          // change deletes it, which is why this says where the guard is instead
+          // of implying there are two.
+          //
+          // The AI Assistant still supplies no word of this sentence: the titles
+          // are the Cook's and the rest is Kafoo's own copy.
           if (outcome.results.judgement
               case final NothingAnswers judgement) ...[
             _note(

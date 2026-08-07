@@ -1,0 +1,25 @@
+{
+  "name": "a request with no food in it at all",
+  "kind": "garbage",
+  "phrase": "asdkj ;;; ٣٤٥٦",
+  "note": "The rules require an empty or garbage input. A request naming no food is a request nothing answers — the honest reply is that nothing matched, with whatever is genuinely worth naming. What must NOT happen is a confident `true`, which would tell somebody who typed nonsense that their results answer it.",
+  "meals": [
+    {
+      "id": "koshari",
+      "title": "كشري",
+      "description": "عدس ومكرونة وأرز وحمص وصلصة وشطة وتقلية بصل"
+    },
+    {
+      "id": "molokhia",
+      "title": "ملوخية بالأرانب",
+      "description": "ملوخية خضرا مفرومة بالتوم والكزبرة مع أرانب وأرز أبيض"
+    }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [1]}",
+  "expect": {
+    "answers": false,
+    "alternatives": [
+      "koshari"
+    ]
+  }
+}

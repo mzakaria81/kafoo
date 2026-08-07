@@ -1,0 +1,23 @@
+{
+  "name": "something sweet after the meal, and there are sweets",
+  "kind": "typical",
+  "phrase": "حاجة حلوة بعد الأكل",
+  "note": "Third typical case. Not identical to what was asked for — nobody named a dish — and still plainly answered, which is the judgement the prompt warns against manufacturing a refusal out of.",
+  "meals": [
+    {
+      "id": "om_ali",
+      "title": "أم علي",
+      "description": "أم علي بالمكسرات واللبن والقشطة، بتتقدم سخنة"
+    },
+    {
+      "id": "basbousa",
+      "title": "بسبوسة",
+      "description": "بسبوسة بالسميد والقشطة والشربات"
+    }
+  ],
+  "modelReply": "{\"answers\": true, \"alternatives\": []}",
+  "expect": {
+    "answers": true,
+    "alternatives": []
+  }
+}

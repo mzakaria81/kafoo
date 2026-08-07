@@ -159,6 +159,42 @@ def main() -> int:
             p for p in files if WRITE_CREDENTIAL.search(p.read_text(encoding="utf-8"))
         ]
         if not holds_credential:
+            # NO CREDENTIAL IS NOT THE SAME AS NO WRITE, AND THIS SKIPPED EVERY CHECK ON THAT
+            # ASSUMPTION. Demonstrated by ai-boundary-reviewer on 2026-08-07 with a function that
+            # builds a Supabase client from the PUBLISHABLE key plus the caller's forwarded
+            # Authorization header, then inserts a Review. That is the AI writing a Review — one of
+            # the six things business-rules.md forbids under any framing — and it was green here,
+            # because the credential regex is service-role and connection-string only. RLS permits
+            # the row: the Customer genuinely owns it.
+            #
+            # `judge-results` is the first AI-reaching function that deliberately constructs a
+            # caller-scoped client, so the shape is now live rather than hypothetical.
+            #
+            # The rule the constitution actually claims is "the AI Assistant cannot write", not "the
+            # AI Assistant holds no service-role key". So a function with no credential is checked
+            # for writes anyway, and only the allowlisted exception may perform one.
+            if name in ALLOWED:
+                continue
+            writes = []
+            for path in source_files(directory):
+                code = strip_comments(path.read_text(encoding="utf-8"))
+                # `.rpc(` is NOT in this list, and the omission is a stated ceiling rather than
+                # an oversight. `discover` calls `search_meals` as the caller, which is a read,
+                # and an RPC's own body is governed by the migration that created it. A SECURITY
+                # DEFINER function that writes, called from here, is a hole this check cannot see —
+                # the guard for that is the migration review, not a grep.
+                for pattern in (".insert(", ".upsert(", ".delete(", ".update(",
+                                ".auth.admin", ".storage."):
+                    if pattern in code:
+                        writes.append(f"{path}: {pattern}")
+            if writes:
+                problems.append(
+                    f"{name} reaches the model layer and performs a write:\n   "
+                    + "\n   ".join(writes)
+                    + "\n   Holding no service-role key is not the same as being unable to write:"
+                    "\n   a client built from the caller's own token writes as the caller, and RLS"
+                    "\n   permits it. The AI Assistant writes nothing, by any credential."
+                )
             continue
 
         if name not in ALLOWED:

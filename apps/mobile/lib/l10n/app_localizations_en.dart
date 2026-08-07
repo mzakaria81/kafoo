@@ -1553,11 +1553,11 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Nothing here is exactly what you asked for. Among what\'s on offer right now: $first, $second and $third',
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first», «$second» and «$third»',
       two:
-          'Nothing here is exactly what you asked for. Among what\'s on offer right now: $first and $second',
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first» and «$second»',
       one:
-          'Nothing here is exactly what you asked for. Among what\'s on offer right now: $first',
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first»',
     );
     return '$_temp0';
   }

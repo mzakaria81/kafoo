@@ -1,0 +1,28 @@
+{
+  "name": "breakfast, and breakfast came back",
+  "kind": "typical",
+  "phrase": "فطار الصبح",
+  "note": "An ordinary morning request answered by ordinary morning food. The corpus needed three typical cases and carried one; a corpus that is mostly hard cases teaches the judgement that refusing is the safe answer, and a false 'nothing here' costs a Customer a good answer they were about to get.",
+  "meals": [
+    {
+      "id": "fool",
+      "title": "فول مدمس",
+      "description": "فول مدمس بالزيت والليمون والكمون"
+    },
+    {
+      "id": "taameya",
+      "title": "طعمية",
+      "description": "طعمية بالكزبرة الخضرا مقلية على الطلب"
+    },
+    {
+      "id": "shakshouka",
+      "title": "شكشوكة بيض",
+      "description": "بيض بالطماطم والفلفل في الطاسة"
+    }
+  ],
+  "modelReply": "{\"answers\": true, \"alternatives\": []}",
+  "expect": {
+    "answers": true,
+    "alternatives": []
+  }
+}

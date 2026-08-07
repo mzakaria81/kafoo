@@ -1502,9 +1502,10 @@ class AppLocalizationsAr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: $first و$second و$third',
-      two: 'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: $first و$second',
-      one: 'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: $first',
+          'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «$first» و«$second» و«$third»',
+      two:
+          'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «$first» و«$second»',
+      one: 'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «$first»',
     );
     return '$_temp0';
   }

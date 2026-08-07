@@ -1,0 +1,31 @@
+{
+  "name": "transliterated English in Arabic script, and the food is not there",
+  "kind": "dialect",
+  "phrase": "عايز بانيه وبرجر",
+  "note": "`بانيه` and `برجر` are English words Egyptians write in Arabic script and are ordinary Cook vocabulary. Second dialect case, and it doubles as a near-miss: the Meals are chicken and minced meat, close enough that a score cannot separate them, and neither is a pane or a burger.",
+  "meals": [
+    {
+      "id": "firakh_mashwia",
+      "title": "فراخ مشوية",
+      "description": "نص فرخة متتبلة بالزبادي والليمون ومشوية على الفحم"
+    },
+    {
+      "id": "shawerma",
+      "title": "شاورما فراخ",
+      "description": "شرايح فراخ متبلة مع طحينة وخبز"
+    },
+    {
+      "id": "kebda",
+      "title": "كبدة إسكندراني",
+      "description": "كبدة مقطعة بالتوم والفلفل والكمون والشطة"
+    }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [2, 1]}",
+  "expect": {
+    "answers": false,
+    "alternatives": [
+      "shawerma",
+      "firakh_mashwia"
+    ]
+  }
+}

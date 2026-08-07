@@ -699,6 +699,33 @@ void main() {
       expect(find.textContaining('مفيش أكلة هنا'), findsNothing);
     });
 
+    testWidgets('revoking consent stops the judgement being asked',
+        (tester) async {
+      // The judgement is a second outbound call carrying the same phrase, made
+      // after the search returns. Consent is re-read before it goes.
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = NothingAnswers(alternatives: [_onOffer.first.meal]);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SearchScreen)),
+        listen: false,
+      );
+      await container
+          .read(searchControllerProvider.notifier)
+          .answerConsent(SearchConsent.refused);
+      await tester.pumpAndSettle();
+
+      await container.read(searchControllerProvider.notifier).search('كشري');
+      await tester.pumpAndSettle();
+
+      expect(repo.judged, isEmpty,
+          reason: 'the phrase was sent again after consent was withdrawn');
+    });
+
     testWidgets('the English locale never renders an Arabic comma',
         (tester) async {
       // The separator was hardcoded in Dart as `، `, so English readers were

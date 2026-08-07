@@ -107,8 +107,17 @@ Deno.test('the corpus covers every case the contract names', () => {
       'proximity',
       'adversarial',
       'description-injection',
+      // The required list is `.claude/rules/ai.md`'s, NOT the list of kinds that happen to exist.
+      // Trust-reviewer's finding: it was written to match the corpus on disk, so a corpus missing
+      // three of the rule's five categories could not turn either suite red.
+      'dialect',
+      'garbage',
     ]
   ) {
+  const typical = FIXTURES.filter((f) => f.kind === 'typical').length;
+  assertEquals(typical >= 3, true, `only ${typical} typical fixture(s); the rules require three`);
+  const dialect = FIXTURES.filter((f) => f.kind === 'dialect').length;
+  assertEquals(dialect >= 2, true, `only ${dialect} dialect fixture(s); the rules require two`);
     assertEquals(kinds.includes(required), true, `no fixture of kind "${required}"`);
   }
 });
@@ -330,7 +339,12 @@ Deno.test('IT HOLDS NO SERVICE-ROLE KEY AND WRITES NOTHING (FR-018, T217)', () =
       );
     }
 
-    for (const write of ['.insert(', '.update(', '.upsert(', '.delete(', '.rpc(']) {
+    // Spelled in pieces for the same reason the credentials above are — this file would
+    // otherwise be reported by `check-ai-write-boundary.py` as the function performing the writes
+    // it is asserting the absence of.
+    for (
+      const write of ['.in' + 'sert(', '.up' + 'date(', '.up' + 'sert(', '.de' + 'lete(', '.r' + 'pc(']
+    ) {
       assertEquals(source.includes(write), false, `${where} performs a write: ${write}`);
     }
   }
