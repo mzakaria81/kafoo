@@ -51,7 +51,19 @@ start() {
   if [ ! -x "${PGBIN}/initdb" ]; then
     echo "PostgreSQL ${PG_MAJOR} is not installed, and supabase/config.toml pins that version." >&2
     echo "Run ./scripts/install-toolchain.sh, which adds the PostgreSQL apt repository and" >&2
-    echo "installs postgresql-${PG_MAJOR} and postgresql-${PG_MAJOR}-pgtap." >&2
+    echo "installs postgresql-${PG_MAJOR}, postgresql-${PG_MAJOR}-pgtap and" >&2
+    echo "postgresql-${PG_MAJOR}-pgvector." >&2
+    return 1
+  fi
+
+  # Named separately from the initdb check because the failure it prevents looks nothing like a
+  # missing Postgres. Without pgvector the cluster starts, the migrations begin, and E3's
+  # `CREATE EXTENSION vector` fails — reported as a broken migration rather than a missing
+  # package, which is how it reached CI on 2026-08-07.
+  if [ ! -f "/usr/share/postgresql/${PG_MAJOR}/extension/vector.control" ]; then
+    echo "pgvector is not installed for PostgreSQL ${PG_MAJOR}, and the discovery migration" >&2
+    echo "runs CREATE EXTENSION vector. Install postgresql-${PG_MAJOR}-pgvector, or re-run" >&2
+    echo "./scripts/install-toolchain.sh." >&2
     return 1
   fi
 
