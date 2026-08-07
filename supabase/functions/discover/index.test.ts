@@ -154,3 +154,70 @@ Deno.test('the parser agrees with the Dart vocabulary it was generated from', ()
   assertEquals(parsePhrase('من غير فول سوداني').exclusion.kind, 'found');
   assertEquals(parsePhrase('عايز أكل من غير').exclusion.kind, 'not-understood');
 });
+
+Deno.test('ONE SENTENCE CARRIES THE PHRASE, THE EXCLUSION AND THE AREA', async () => {
+  // T207 and Principle IV. `عايز حاجة من غير لحمة في المهندسين` is what a Customer says; three
+  // controls to collect it would be the form the rules forbid at exactly this point.
+  const [d, recorder] = deps();
+  const body = await (await handleDiscover(
+    post({ phrase: 'عايز حاجة من غير لحمة في المهندسين' }),
+    d,
+  )).json();
+
+  assertEquals(body.excluded, 'meat');
+  assertEquals(recorder.searched[0].area, 'المهندسين');
+  assertEquals(body.area, 'المهندسين');
+  // The sentence is embedded whole. The area is a database predicate as well as words in the text,
+  // for the same reason the exclusion is: removing it would change what the Customer asked for.
+  assertEquals(recorder.embedded[0], 'عايز حاجة من غير لحمة في المهندسين');
+});
+
+Deno.test('an area the Customer CHOSE overrides the one in their sentence', async () => {
+  // FR-024a. The area they named was empty, Kafoo offered the areas that are not, and they picked
+  // one. That choice arrives on top of the same sentence — if the sentence won, it would be
+  // unreachable and the offer would be decoration.
+  const [d, recorder] = deps();
+  const body = await (await handleDiscover(
+    post({ phrase: 'كشري في أسوان', area: 'المهندسين' }),
+    d,
+  )).json();
+
+  assertEquals(recorder.searched[0].area, 'المهندسين');
+  assertEquals(body.area, 'المهندسين');
+});
+
+Deno.test('a locative marker is a whole word and never the first one', () => {
+  // `في` opening a sentence is Egyptian for "is there any", not a place. And `فيه` and `الفيوم`
+  // contain the marker without being it — a substring scan would narrow every one of them to
+  // nothing and then tell the Customer their area is empty.
+  assertEquals(parsePhrase('في حاجة سخنة').area, null);
+  assertEquals(parsePhrase('عايز أكل فيه فراخ').area, null);
+  assertEquals(parsePhrase('عايز أكل في المهندسين').area, 'المهندسين');
+  assertEquals(parsePhrase('عايزة حاجة في الفرن في مصر الجديدة').area, 'مصر الجديدة');
+  // Nothing after the marker is not an area.
+  assertEquals(parsePhrase('عايز أكل في').area, null);
+});
+
+Deno.test('the area is never normalised here', () => {
+  // `normalise_area` lives in SQL and nowhere else — the migration that created it says so, and the
+  // Cook's side already compares through it. Folding here too would be one rule in two languages.
+  assertEquals(parsePhrase('كشري في العجوزة').area, 'العجوزة');
+  assertEquals(parsePhrase('كشري في العجوزه').area, 'العجوزه');
+});
+
+Deno.test('AN ERROR NEVER CARRIES THE PHRASE OUT', async () => {
+  // FR-029 and SC-011 name "an error carrying the request" by name. This response carried
+  // `String(error)` until 2026-08-07, and a provider rejecting a request answers with a body that
+  // quotes the request back — _shared/ai/gemini.ts puts that body straight into the message.
+  const phrase = 'عايز فراخ مشوية في المهندسين';
+  for (const broken of [
+    { embedQuery: () => Promise.reject(new Error(`400 invalid input: ${phrase}`)) },
+    { search: () => Promise.reject(new Error(`syntax error near "${phrase}"`)) },
+  ]) {
+    const [d] = deps(broken);
+    const response = await handleDiscover(post({ phrase }), d);
+    const text = await response.text();
+    assertEquals(response.status, 503);
+    assertEquals(text.includes(phrase), false, text);
+  }
+});
