@@ -30,13 +30,27 @@ protects against.**
 `supabase/functions/embed-meal/` may hold a service-role credential and reach the model layer. In
 exchange it is constrained by `scripts/check-ai-write-boundary.py`, which asserts:
 
-- it writes **exactly** `meals.embedding` and no other column
+- it writes **exactly** `meals.embedding` and no other column — plus `updated_at`, which an
+  existing lifecycle trigger sets on every update to `meals` regardless of who is writing. Nothing
+  reads it for ordering. Named here because the sentence was originally written without it and a
+  claim that is almost true is the kind that gets quoted.
 - it touches **only** the `meals` table
 - it never `.insert(`, `.delete(`, `.upsert(` or `.rpc(`
 - the exception cannot be claimed by a function that does not exist
 
 Every other function keeps the original blanket ban. A new function reaching the model layer with a
 write credential still fails, unchanged.
+
+**That sentence was false for a day.** The check scanned only `*.ts`, so the same function written
+in `.js` — which Deno runs — was invisible, and the replacement was therefore *wider* than the grep
+it replaced on an axis nobody had considered. It also missed a connection string used as a
+credential. Both fixed 2026-08-07, and both were found by running them rather than by reading.
+
+**The privileges are the real guarantee; the script is the second line.** Migration
+`20260807064927` grants `service_role` exactly `UPDATE (embedding)` and `SELECT (id, cook_id)` on
+`meals`, over a role holding no table-level privilege there. `data_api_grants_test.sql` asserts six
+consequences, including that `service_role` cannot publish a Meal, change a price, or write an
+allergen list. Every evasion demonstrated against the script dies at the database.
 
 ## Why an embedding is the value the approval rule cannot cover
 
@@ -49,7 +63,23 @@ An embedding is none of that:
 
 - **It is not a claim.** It is a machine representation of words the Cook already wrote and already
   approved. Nothing new is asserted about the food.
-- **It is shown to nobody.** No screen renders it; the app does not even fetch the column.
+- **It is shown to nobody.** No screen renders it, and nothing presents it as an assertion about
+  food.
+
+  **The stronger claim — that nothing even fetches it — was written here and was false.**
+  `meal_repository.dart` used a bare `select()`, so every Meal the Cook's app read carried the
+  vector, and `search_meals` returns whole rows to `anon`. Found by ai-boundary-reviewer on
+  2026-08-07 and fixed on the client. It matters less for bandwidth than for ranking: a Cook cannot
+  write their own vector, but they write the description that produces it, and a public corpus of
+  text-and-vector pairs is what makes tuning a description against the ranker practical. The read
+  side was reopening what the write side closed.
+
+- **Ranking is an AI act Kafoo already permits, and this is the honest version of the claim above.**
+  A vector orders what a Customer reads, and ordering asserts relevance. `business-rules.md` lists
+  "rank search results" among the things the AI Assistant may do, so this is permitted rather than
+  unnoticed — but "nothing here reaches a Customer" would have been the wrong defence. What does not
+  depend on the model is the one place Kafoo makes a factual statement off this query: FR-024's
+  "your area is empty" is decided by the filter-first CTE, not by a vector.
 - **There is no judgement to apply.** Asking a Cook to approve 768 floating-point numbers is
   theatre, and theatre that teaches people to click through approval screens is worse than no
   approval screen — it devalues the ones that matter.

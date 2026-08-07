@@ -26,16 +26,25 @@
 // and already approved. There is no human judgement to apply to 768 floating-point numbers, and
 // requiring an approval step for them would be theatre.
 //
-// So the write path is kept as narrow as it can be made, and the narrowness is the argument:
+// So the write path is kept as narrow as it can be made, AND POSTGRES IS WHAT KEEPS IT NARROW.
 //
-//   - ONE column. `meals.embedding` and nothing else, asserted by test.
-//   - ONE row, identified by an id the caller already owns.
-//   - NO text from the request reaches the database — only a vector, whose width is checked.
-//   - The model's output can only ever be numbers. It has no path to a title, a price, a status or
-//     a Review, because this function never writes those columns under any input.
+// `20260807064927` grants service_role `UPDATE (embedding)` and `SELECT (id, cook_id)` on meals and
+// nothing else, over a role that holds no table-level privilege there. Measured:
 //
-// If a later change makes this function write a second column, that reasoning collapses and the
-// change needs an ADR rather than a review comment.
+//     UPDATE meals SET embedding = ...  -> succeeds
+//     UPDATE meals SET status = ...     -> ERROR: permission denied for table meals
+//     SELECT title FROM meals           -> ERROR: permission denied for table meals
+//
+// That matters because the first version of this exception was enforced by a script that reads this
+// file, and ai-boundary-reviewer walked past it four ways — including by moving the update payload
+// into a variable, which is what any implementer does when an object grows, and which would have
+// let this function publish a Meal. A guard you can evade by refactoring is not a guard.
+//
+// The READ runs as the Cook rather than as service_role, so RLS decides what this function can see
+// and the ownership check below is a second statement of the same rule rather than the only one.
+//
+// If a later change makes this function write a second column, the reasoning collapses AND the
+// database refuses it. Widening it is an ADR and a migration, not a review comment.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -69,14 +78,17 @@ Deno.serve(async (req) => {
     return json({ error: 'unauthorized' }, 401);
   }
 
-  const admin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
+  // Publishable key first; the platform still injects SUPABASE_ANON_KEY under the older name.
+  // Both are the same low-privilege key.
+  const publishableKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ??
+    Deno.env.get('SUPABASE_ANON_KEY')!;
 
-  const { data: { user }, error: authError } = await admin.auth.getUser(
-    authHeader.slice('Bearer '.length),
-  );
+  // The Cook's own client. Every read below runs under RLS as them.
+  const asCook = createClient(Deno.env.get('SUPABASE_URL')!, publishableKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: { user }, error: authError } = await asCook.auth.getUser();
   if (authError || !user) {
     return json({ error: 'unauthorized' }, 401);
   }
@@ -95,12 +107,13 @@ Deno.serve(async (req) => {
 
   // 3. Read the Meal, scoped to its owner.
   //
-  //    THE OWNERSHIP CHECK IS NOT ABOUT SECRECY — a published Meal's title is public. It is about
-  //    who may SPEND. Without it, anyone holding any account could walk every Meal id in the
-  //    marketplace and force a model call for each, on Kafoo's key, and nothing in E3 rate-limits
-  //    that. It also keeps the blast radius of this service-role client to rows the caller already
-  //    controls.
-  const { data: meal, error: readError } = await admin
+  //    READ AS THE COOK, so `cook reads own meals` does the work and this cannot see a Meal the
+  //    caller could not already open. The `cook_id` predicate is kept as well, because RLS lets a
+  //    Cook read their own draft and a stranger read anything published — without it, any account
+  //    could walk every published Meal id and force a model call for each, on Kafoo's key, with
+  //    nothing in E3 rate-limiting it. Two statements of one rule, and the database owns the
+  //    stronger one.
+  const { data: meal, error: readError } = await asCook
     .from('meals')
     .select('id, title, description')
     .eq('id', mealId)
@@ -138,8 +151,16 @@ Deno.serve(async (req) => {
     return json({ error: 'the model provider is unavailable', detail: String(error) }, 503);
   }
 
-  // 5. Write exactly one column.
-  const { error: writeError } = await admin
+  // 5. Write exactly one column, with the only credential that may.
+  //
+  //    This client can do nothing else to `meals` — not because the code declines to, but because
+  //    the grant does not exist. See the migration named above.
+  const writer = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
+  const { error: writeError } = await writer
     .from('meals')
     .update({ embedding: JSON.stringify(vector) })
     .eq('id', meal.id)

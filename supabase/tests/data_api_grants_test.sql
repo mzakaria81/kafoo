@@ -17,7 +17,7 @@
 -- assertions below. Do NOT add the table to the guard query — it reads pg_class dynamically.
 
 BEGIN;
-SELECT plan(28);
+SELECT plan(34);
 
 -- ── Positive: every cell of the matrix is present ───────────────────────────────────────────────
 
@@ -109,6 +109,34 @@ SELECT ok(
 SELECT ok(
   NOT has_table_privilege('service_role', 'public.meals', 'SELECT'),
   'service_role cannot SELECT from meals');
+
+-- ── the ADR-0011 exception, asserted as privileges rather than trusted to a source-reading check ──
+--
+-- `embed-meal` reaches a model provider AND writes. The rule it breaks is what makes "the AI cannot
+-- write" structural, so the exception has to be structural too. Six assertions: one that the write
+-- it needs works, and five that everything a runaway model output could otherwise reach is refused
+-- by Postgres. Deleting any of these deletes the argument in ADR-0011.
+SELECT ok(
+  has_column_privilege('service_role', 'public.meals', 'embedding', 'UPDATE'),
+  'service_role can write a Meal''s embedding — the one AI write path ADR-0011 permits');
+SELECT ok(
+  NOT has_column_privilege('service_role', 'public.meals', 'status', 'UPDATE'),
+  'service_role cannot publish or archive a Meal');
+SELECT ok(
+  NOT has_column_privilege('service_role', 'public.meals', 'title', 'UPDATE'),
+  'service_role cannot rewrite what a Cook called their food');
+SELECT ok(
+  NOT has_column_privilege('service_role', 'public.meals', 'price', 'UPDATE'),
+  'service_role cannot change a price');
+SELECT ok(
+  NOT has_column_privilege('service_role', 'public.meals', 'allergens', 'UPDATE'),
+  'service_role cannot write an allergen list — that one needs a human, and this is where it is refused');
+-- id and cook_id are readable because Postgres requires SELECT on every column named in a WHERE
+-- clause, and the update is scoped to the owning Cook. The title is not, which is what keeps
+-- `has_table_privilege(..., 'SELECT')` above meaningful rather than technically true.
+SELECT ok(
+  NOT has_column_privilege('service_role', 'public.meals', 'title', 'SELECT'),
+  'service_role still cannot read a Meal''s words');
 
 -- service_role must not delete analytics_events — events are write-once, even for service_role.
 SELECT ok(

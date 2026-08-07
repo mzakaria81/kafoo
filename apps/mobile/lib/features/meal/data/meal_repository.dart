@@ -94,6 +94,25 @@ class SupabaseMealRepository implements MealRepository {
   const SupabaseMealRepository();
 
   static const String _table = 'meals';
+
+  /// Named columns, never `select()`.
+  ///
+  /// A bare select is `select=*`, and since E3 added `embedding` that is 768 floats — roughly 8 KB
+  /// of JSON per Meal that nothing renders. On a Cook's Meal list it is pure weight on an Egyptian
+  /// mobile connection.
+  ///
+  /// **It is also a ranking concern, which is the part that is not obvious.** A Cook cannot write
+  /// their own vector — `protect_meal_embedding` refuses it — but they write the description that
+  /// produces it. Handing them the resulting vectors is what makes tuning a description against the
+  /// ranker practical, so the read side reopens what the write side closed. Found by
+  /// ai-boundary-reviewer, 2026-08-07.
+  ///
+  /// `discovery_repository.dart` has named its columns since it was written; this file was not
+  /// updated when the column landed.
+  static const String _columns =
+      'id, cook_id, title, description, price, cuisine, category, status, '
+      'ingredients, calories, allergens, nutrition_source, photo_path, '
+      'created_at, updated_at, published_at';
   static const String _bucket = 'meal-photos';
 
   SupabaseClient get _client => Supabase.instance.client;
@@ -156,15 +175,18 @@ class SupabaseMealRepository implements MealRepository {
       };
       if (fields.isEmpty) {
         // Nothing to update — read the current state and return it.
-        final row =
-            await _client.from(_table).select().eq('id', mealId).single();
+        final row = await _client
+            .from(_table)
+            .select(_columns)
+            .eq('id', mealId)
+            .single();
         return Success(_fromRow(row));
       }
       final row = await _client
           .from(_table)
           .update(fields)
           .eq('id', mealId)
-          .select()
+          .select(_columns)
           .single();
       return Success(_fromRow(row));
     } on Object catch (e) {
@@ -183,7 +205,7 @@ class SupabaseMealRepository implements MealRepository {
           .from(_table)
           .update({'status': MealStatus.published.wireName})
           .eq('id', mealId)
-          .select()
+          .select(_columns)
           .single();
       return Success(_fromRow(row));
     } on Object catch (e) {
@@ -222,7 +244,7 @@ class SupabaseMealRepository implements MealRepository {
       }
       final rows = (await _client
           .from(_table)
-          .select()
+          .select(_columns)
           .order('created_at', ascending: false)) as List;
       return Success(
         rows.cast<Map<String, dynamic>>().map(_cookMealFromRow).toList(),
@@ -246,7 +268,7 @@ class SupabaseMealRepository implements MealRepository {
           .from(_table)
           .update({'status': next.wireName})
           .eq('id', mealId)
-          .select()
+          .select(_columns)
           .single();
       return Success(_cookMealFromRow(row));
     } on Object catch (e) {

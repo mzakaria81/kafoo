@@ -31,7 +31,17 @@ FUNCTIONS = pathlib.Path("supabase/functions")
 # Anything reaching this import can talk to a model provider.
 AI_IMPORT = re.compile(r"_shared/ai/")
 
-WRITE_CREDENTIAL = re.compile(r"SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|SERVICE_ROLE")
+# A connection string IS a write credential. Without these, a function reaching Postgres directly
+# was not detected as holding one at all, so it skipped every constraint below — which defeated the
+# blanket ban for every function, not just the exception.
+WRITE_CREDENTIAL = re.compile(
+    r"SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|SERVICE_ROLE"
+    r"|SUPABASE_DB_URL|DATABASE_URL|POSTGRES(QL)?_URL|PG(HOST|PASSWORD|DATABASE)"
+)
+
+# Deno runs JavaScript too. Scanning only *.ts made the blanket ban NARROWER than the grep it
+# replaced — the same function written in .js was invisible. Demonstrated by ai-boundary-reviewer.
+SOURCE_SUFFIXES = (".ts", ".tsx", ".js", ".mjs", ".jsx")
 
 # dir name -> (tables it may touch, columns it may write)
 #
@@ -46,13 +56,31 @@ UPDATE_CALL = re.compile(r"\.update\(\s*\{(.*?)\}\s*\)", re.DOTALL)
 # A key at the start of an object entry: `embedding:` or `'embedding':`.
 OBJECT_KEY = re.compile(r"(?:^|,)\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?\s*:")
 FROM_CALL = re.compile(r"\.from\(\s*['\"]([^'\"]+)['\"]\s*\)")
-FORBIDDEN_CALLS = ("`.insert(`", "`.upsert(`", "`.delete(`", "`.rpc(`")
-FORBIDDEN_PATTERNS = (".insert(", ".upsert(", ".delete(", ".rpc(")
+# `.auth.admin` and `.storage.` are write paths the PostgREST patterns do not model at all.
+# `deleteUser` and `updateUserById` are "delete content" and "impersonate a Customer or Cook" — two
+# of the six things business-rules.md says the AI may not do under any framing — and the admin
+# client is one property access away in any function that already built one.
+FORBIDDEN_PATTERNS = (
+    ".insert(", ".upsert(", ".delete(", ".rpc(", ".auth.admin", ".storage.",
+)
+FORBIDDEN_CALLS = tuple(f"`{p}`" for p in FORBIDDEN_PATTERNS)
+
+# `.update(` or `.from(` whose argument is NOT a literal. Fail closed: a payload extracted into a
+# variable is what any implementer does when an object grows, and it made `.update(patch)` with
+# `status: 'published'` invisible — literally "the AI publishes a Meal", green.
+NON_LITERAL_UPDATE = re.compile(r"\.update\(\s*(?!\{)")
+NON_LITERAL_FROM = re.compile(r"\.from\(\s*(?![\'\"`])")
+
+
+def all_files(directory: pathlib.Path) -> list[pathlib.Path]:
+    return [p for p in directory.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES]
 
 
 def source_files(directory: pathlib.Path) -> list[pathlib.Path]:
-    return [p for p in directory.rglob("*.ts") if not p.name.endswith("_test.ts")
-            and not p.name.endswith(".test.ts")]
+    # Test files are scanned too. A `helper.test.ts` in an allowlisted directory that writes a
+    # second column is still a write path — Deno will not run it in production, but nothing stops
+    # the next person moving the code out of it.
+    return all_files(directory)
 
 
 def check_allowed(name: str, directory: pathlib.Path, problems: list[str]) -> None:
@@ -71,6 +99,17 @@ def check_allowed(name: str, directory: pathlib.Path, problems: list[str]) -> No
                     f"{path}: touches table \"{table}\"; {name} may touch only "
                     f"{sorted(tables)}"
                 )
+
+        if NON_LITERAL_UPDATE.search(code):
+            problems.append(
+                f"{path}: an .update() whose payload is not a literal object. Write it inline so "
+                f"this check can see which columns it writes — a variable hides them."
+            )
+        if NON_LITERAL_FROM.search(code):
+            problems.append(
+                f"{path}: a .from() whose table is not a literal string. Name the table inline so "
+                f"this check can see which one it is."
+            )
 
         for pattern, label in zip(FORBIDDEN_PATTERNS, FORBIDDEN_CALLS):
             if pattern in code:
@@ -111,7 +150,7 @@ def main() -> int:
         if name.startswith("_"):
             continue
 
-        files = list(directory.rglob("*.ts"))
+        files = all_files(directory)
         reaches_ai = any(AI_IMPORT.search(p.read_text(encoding="utf-8")) for p in files)
         if not reaches_ai:
             continue
