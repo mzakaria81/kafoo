@@ -38,15 +38,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "READY_FOR_REVIEW",
+  "status": "COMPLETED",
   "owner": "overnight-session",
   "priority": 1,
   "spend_envelope_usd": 3.0,
   "suggested_model": "opencode-go/qwen3.6-plus",
   "branch": "claude/e3-start-7sfmcm",
-  "pr": null,
+  "pr": 46,
   "blocked_reason": null,
   "notes": "Runs from day one alongside WP-011 — analyze corrected an earlier claim that this waited on search. The scaffold, the kitchen page, the Meal page and the preview read what E2 already published under policies that already exist. Only browse-and-search on the web waits, and that is WP-018. Its own messages live in apps/web/messages/, so it does NOT collide with the app's ARB files. It does change verify.sh, which every other package depends on to know whether it passed — hence the shared declaration and the low priority number rather than EXCLUSIVE, since the change is additive.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.\n\nDELIVERED 2026-08-06 overnight. apps/web builds at 106 kB first load against the Flutter web target's 42 MB — the number ADR-0008 was arguing about, now measured. Every page is server-rendered and nothing client-side talks to Supabase, so the publishable key never reaches the browser at all; ADR-0008 permits it in a bundle and not shipping one is simply better and free here. The preview cap is a pure function with mutation-tested assertions rather than a comment: a fourth field on KitchenPreview and a rating rendered on the page each turn lib/preview.test.mjs red. Extending the gate to read apps/web immediately caught 'two vendors' in a comment I had written.\n\nNOT DONE: no deploy has run. The job is restored in deploy.yml and gated on CLOUDFLARE_API_TOKEN, warning out loud when it is unset rather than reporting a skip as a success — but nothing has been published and the adapter has never run against real Cloudflare.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-07T00:30:00Z"
+  "updated_at": "2026-08-07T05:20:00Z"
 }

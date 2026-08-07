@@ -17,7 +17,7 @@
 -- assertions below. Do NOT add the table to the guard query — it reads pg_class dynamically.
 
 BEGIN;
-SELECT plan(28);
+SELECT plan(32);
 
 -- ── Positive: every cell of the matrix is present ───────────────────────────────────────────────
 
@@ -109,6 +109,47 @@ SELECT ok(
 SELECT ok(
   NOT has_table_privilege('service_role', 'public.meals', 'SELECT'),
   'service_role cannot SELECT from meals');
+
+-- ── the ADR-0011 exception, asserted as privileges rather than trusted to a source-reading check ──
+--
+-- `embed-meal` reaches a model provider AND writes. The rule it breaks is what makes "the AI cannot
+-- write" structural, so the exception has to be structural too. Six assertions: one that the write
+-- it needs works, and five that everything a runaway model output could otherwise reach is refused
+-- by Postgres. Deleting any of these deletes the argument in ADR-0011.
+-- THE POSITIVE: the one AI write path ADR-0011 permits. Mutation-proven — revoking the grant
+-- turns this red.
+SELECT ok(
+  has_column_privilege('service_role', 'public.meals', 'embedding', 'UPDATE'),
+  'service_role can write a Meal''s embedding — the one AI write path ADR-0011 permits');
+
+-- THE NEGATIVE, AS AN ENUMERATION RATHER THAN A LIST OF GUESSES.
+--
+-- This block first named five columns by hand — status, title, price, allergens, and reading title.
+-- rls-reviewer applied every widening a future migration could plausibly write and found SIX that
+-- passed with nothing red: GRANT INSERT, GRANT DELETE, and column grants on description, cook_id,
+-- calories/ingredients/photo_path, and SELECT (embedding). `INSERT` is the AI creating a synthetic
+-- Meal, which is product-fatal under Constitution I; `UPDATE (description)` is the single most
+-- likely place a prompt-injected model output would land, and the column an implementer would add
+-- first.
+--
+-- A hand-written list of what is forbidden is only ever as good as the imagination of whoever wrote
+-- it. This asserts what IS held, so anything new is a difference.
+SELECT is(
+  (SELECT string_agg(p.priv || ' ' || a.attname, ', ' ORDER BY p.priv, a.attname)
+     FROM pg_attribute a
+     CROSS JOIN (SELECT unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS priv) p
+    WHERE a.attrelid = 'public.meals'::regclass
+      AND a.attnum > 0 AND NOT a.attisdropped
+      AND has_column_privilege('service_role', a.attrelid, a.attnum, p.priv)),
+  'SELECT cook_id, SELECT id, UPDATE embedding',
+  'service_role holds exactly three column privileges on meals and no others — ADR-0011');
+
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.meals', 'INSERT'),
+  'service_role cannot create a Meal — a synthetic Meal is product-fatal, not merely disallowed');
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.meals', 'DELETE'),
+  'service_role cannot delete a Meal');
 
 -- service_role must not delete analytics_events — events are write-once, even for service_role.
 SELECT ok(

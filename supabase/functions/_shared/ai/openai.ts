@@ -188,6 +188,18 @@ export const openaiAdapter: ProviderAdapter = {
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(sseToTextDeltas());
   },
+
+  /// **`null` because Kafoo has not measured OpenAI's embeddings, not because they do not exist.**
+  ///
+  /// They do, and wiring them up is a small change. What is missing is the evidence: the 768
+  /// dimensions this schema stores, the Egyptian Arabic retrieval quality, and the cross-language
+  /// behaviour were all measured against Gemini and none of them transfer by assumption. Declaring
+  /// support the registry cannot back would make `AI_PROVIDER=openai` silently produce vectors of
+  /// unknown quality in the same column as the measured ones, which is worse than refusing.
+  ///
+  /// To implement: add `embed`, add an `embeddingModel` to this provider's registry entry, and
+  /// re-run the spike in `scripts/spike-discovery-embeddings.py` against it before trusting it.
+  embed: null,
 };
 
 function sseToTextDeltas(): TransformStream<string, string> {

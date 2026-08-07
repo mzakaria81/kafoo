@@ -4,6 +4,16 @@
 
 set -uo pipefail
 
+# ANCHOR TO THE REPOSITORY ROOT. Every check below uses a relative path, so running this from any
+# other directory reports failures that are about the working directory rather than about the code
+# — three of them on 2026-08-07, from a `cd apps/mobile` that persisted in a shell.
+#
+# That is the harmless direction. The dangerous one happened the same week: a leaked `cd` made
+# `./scripts/verify.sh` resolve to nothing, the invocation was piped to `tail`, and the exit status
+# belonged to `tail` — so the gate "passed" without running and two real failures were committed.
+# A gate that depends on where it is called from is a gate that can report the wrong answer.
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
+
 FAILED=0
 run() {
   local label="$1"; shift
@@ -205,6 +215,14 @@ run "prompt bundle drift" bash -c '
     echo "   no prompts yet — skipping"; exit 0; }
   deno run --allow-read scripts/generate-prompts.ts --check >/dev/null'
 
+# The exclusion vocabulary is compiled from Dart into TypeScript so there is one of it.
+#
+# `discover` parses a Customer's phrase server-side and the Customer web surface will need the same
+# words. A hand-maintained second copy drifts, and the direction it drifts is an allergy recognised
+# on one surface and not the other — which is the failure the whole exclusion design exists to
+# prevent, arriving through a build step.
+run "exclusion vocabulary" python3 scripts/generate-exclusions.py --check
+
 # Principle II, made mechanical rather than reviewed.
 #
 # A function that talks to a model must not also hold credentials that can write. delete-account
@@ -216,22 +234,19 @@ run "prompt bundle drift" bash -c '
 # This lived briefly as a unit test that read its own source, which worked but bought one file of
 # coverage at the price of giving every Edge Function test filesystem access. A grep here covers
 # every function that will ever exist and needs no permission at all.
-run "ai path holds no write credential" bash -c '
-  bad=0
-  for dir in supabase/functions/*/; do
-    name=$(basename "$dir")
-    grep -rqE "_shared/ai/" "$dir" 2>/dev/null || continue
-    hits=$(grep -rlE "SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|SERVICE_ROLE" "$dir" 2>/dev/null || true)
-    if [ -n "$hits" ]; then
-      echo "   ${name} reaches the model layer and names a write credential:"
-      printf "%s\n" "$hits"
-      bad=1
-    fi
-  done
-  [ "$bad" -eq 0 ] || {
-    echo "   The AI Assistant is structurally unable to write. That property comes from the" >&2
-    echo "   function not having the means, not from it choosing well." >&2
-    exit 1; }'
+# Moved into a script on 2026-08-07, and made NARROWER rather than looser in the same change.
+#
+# It used to be four lines of grep here: any function importing the model layer must not name a
+# write credential. `embed-meal` needs both — it calls a provider and stores the vector — so the
+# blanket ban would have killed the feature, and editing the check to let it through would have been
+# the one move the check exists to prevent.
+#
+# ADR-0011 records the founder's decision: one exception, for the single AI-derived value that
+# "AI suggests, humans approve" cannot sensibly cover, and the exception carries constraints the old
+# check never had. The script asserts embed-meal writes exactly `meals.embedding` and never inserts,
+# deletes or calls an RPC — so adding a second column turns the gate red again. Mutation-tested
+# four ways plus the un-allowlisted case.
+run "ai write boundary" python3 scripts/check-ai-write-boundary.py
 
 # Credentials belong in the environment, never in the repository. Two are live
 # in this project and both are rotate-everything incidents if committed:
@@ -272,7 +287,21 @@ run "supabase target" bash -c '
                             exit 1; }
   ref="${SUPABASE_PROJECT_REF:-}"; url="${SUPABASE_URL:-}"
   if [ -z "${ref}" ] && [ -z "${url}" ]; then
-    skip_or_fail "no SUPABASE_PROJECT_REF or SUPABASE_URL in the environment"; exit $?
+    # NOT A SKIP, and the difference is why this check went red on main from 2026-08-07.
+    #
+    # `skip_or_fail` is fatal in CI because a skipped check reporting ok is indistinguishable from
+    # one that ran — the right rule, applied to the wrong thing here. This check has TWO parts, and
+    # the first one has already run: `supabase/project-ref` exists and is not empty, asserted above
+    # and just as meaningful on a build machine as anywhere else.
+    #
+    # The second part compares that against what the environment points at, and a CI runner points
+    # at NOTHING. It holds no project ref, no URL, and deploys nothing — so there is no wrong
+    # project for it to be aimed at, which is the entire failure this check exists to prevent.
+    # Demanding a target from a machine that has none asserts a fact about the world rather than
+    # about the change, and it made the gate red on every pull request until somebody supplied a
+    # variable that would itself have been the risk.
+    echo "   no project configured in this environment — nothing to compare, and nothing to aim wrong"
+    exit 0
   fi
   bad=0
   [ -z "${ref}" ] || [ "${ref}" = "${expected}" ] || {

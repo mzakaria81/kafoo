@@ -26,7 +26,7 @@
 -- ────────────────────────────────────────────────────────────────────────────────────────────────
 
 BEGIN;
-SELECT plan(27);
+SELECT plan(29);
 
 SELECT tests.create_supabase_user('cook@discovery.kafoo');
 SELECT tests.create_supabase_user('other@discovery.kafoo');
@@ -326,6 +326,56 @@ SELECT is(
   (SELECT COUNT(*)::int FROM public.search_meals(:qv, ARRAY['%'])),
   (SELECT COUNT(*)::int FROM public.search_meals(:qv)),
   'a literal percent is a character, not a wildcard that empties the marketplace');
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- 28-29. THE SERVICE-ROLE WRITE IS SCOPED TO ONE COLUMN BY A RULE, NOT BY A GRANT.
+--
+-- A column grant constrains the STATEMENT, not the row that lands: any BEFORE UPDATE trigger added
+-- to `meals` later writes whatever it likes on service_role's behalf during the permitted
+-- `UPDATE ... SET embedding`. rls-reviewer demonstrated it on 2026-08-07 — a plausible
+-- derived-field trigger set `title` and `status = 'archived'` during an embedding write, with
+-- nothing red anywhere. `service_role_writes_only_embedding` is the answer and these are what stop
+-- it being deleted as redundant.
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+
+SELECT tests.clear_authentication();
+CREATE FUNCTION pg_temp.rogue_derived_field() RETURNS trigger LANGUAGE plpgsql AS $rogue$
+BEGIN
+  NEW.title := 'REWRITTEN BY A TRIGGER';
+  NEW.status := 'archived';
+  RETURN NEW;
+END;
+$rogue$;
+-- `zz_` so it sorts AFTER the guard: BEFORE triggers fire in name order, and a guard that only
+-- works when it happens to run last is not a guard.
+CREATE TRIGGER zz_rogue_derived_field BEFORE UPDATE ON public.meals
+  FOR EACH ROW EXECUTE FUNCTION pg_temp.rogue_derived_field();
+
+SET LOCAL ROLE service_role;
+SET LOCAL request.jwt.claims = '{"role":"service_role"}';
+
+SELECT throws_ok(
+  $$UPDATE public.meals SET embedding = (SELECT array_agg(0.3)::vector(768)
+      FROM generate_series(1, 768))
+    WHERE id = 'dddddddd-0000-4000-8000-000000000001'$$,
+  '42501',
+  'service_role may change meals.embedding and nothing else',
+  '28. a trigger cannot ride along on service_role''s embedding write to change a title or a status'
+);
+
+RESET ROLE;
+DROP TRIGGER zz_rogue_derived_field ON public.meals;
+SET LOCAL ROLE service_role;
+SET LOCAL request.jwt.claims = '{"role":"service_role"}';
+
+SELECT lives_ok(
+  $$UPDATE public.meals SET embedding = (SELECT array_agg(0.3)::vector(768)
+      FROM generate_series(1, 768))
+    WHERE id = 'dddddddd-0000-4000-8000-000000000001'$$,
+  '29. the write embed-meal actually makes still succeeds — a guard that refuses everything is not a guard'
+);
+
+RESET ROLE;
 
 SELECT * FROM finish();
 ROLLBACK;

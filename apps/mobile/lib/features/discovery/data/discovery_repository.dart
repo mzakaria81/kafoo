@@ -26,6 +26,44 @@ abstract interface class DiscoveryRepository {
   /// Newest on offer first. A Cook who has just put something up is the most
   /// likely to have it ready.
   Future<Result<List<DiscoveredMeal>, AppError>> mealsOnOffer();
+
+  /// Ranked Meals for what a Customer said, and what Kafoo understood of it.
+  ///
+  /// **Calls `discover`, which holds no write credential and passes the caller's
+  /// own credentials through to the database.** The phrase never reaches this
+  /// app's storage, an analytics event, or a log line — FR-029.
+  ///
+  /// A failure here must never take browsing with it: the screen falls back to
+  /// what is on offer, which is also search's zero state (FR-012).
+  Future<Result<SearchOutcome, AppError>> search({
+    required String phrase,
+    String? area,
+  });
+}
+
+/// What came back from a search: the Meals, and what Kafoo understood.
+///
+/// **[notUnderstood] is not decoration.** A negation Kafoo recognised without
+/// recognising the food must reach the Customer as a sentence — returning
+/// results as though no exclusion had been asked for is the failure the whole
+/// exclusion design exists to prevent, and it is invisible unless the interface
+/// is told.
+final class SearchOutcome {
+  /// Creates an outcome.
+  const SearchOutcome({
+    required this.results,
+    this.excludedId,
+    this.notUnderstood,
+  });
+
+  /// The Meals, in the order the database returned them. Never re-sorted here.
+  final DiscoveryResults results;
+
+  /// Which exclusion Kafoo acted on, if any. An id, never the Customer's words.
+  final String? excludedId;
+
+  /// The words following a negation marker that Kafoo could not map to a food.
+  final String? notUnderstood;
 }
 
 /// The only layer that touches Supabase for discovery.
@@ -53,6 +91,83 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
       'address_form, created_at, updated_at';
 
   SupabaseClient get _client => Supabase.instance.client;
+
+  @override
+  Future<Result<SearchOutcome, AppError>> search({
+    required String phrase,
+    String? area,
+  }) async {
+    try {
+      final response = await _client.functions.invoke(
+        'discover',
+        body: {'phrase': phrase, if (area != null) 'area': area},
+      );
+
+      final data = response.data;
+      if (data is! Map) {
+        return const Failure(AppError(messageKey: 'searchUnavailable'));
+      }
+
+      final mealRows = (data['meals'] as List?) ?? const [];
+      if (mealRows.isEmpty) {
+        return Success(
+          SearchOutcome(
+            results: const DiscoveryResults(results: []),
+            excludedId: data['excluded'] as String?,
+            notUnderstood: data['notUnderstood'] as String?,
+          ),
+        );
+      }
+
+      // The kitchens, in one query, the same way browse does it. `discover`
+      // returns Meals alone because `search_meals` returns Meals alone, and a
+      // join in the database would mean a foreign key added to suit a screen.
+      final cookIds = mealRows
+          .map((row) => (row as Map)['cook_id'] as String)
+          .toSet()
+          .toList();
+
+      final kitchenRows = await _client
+          .from(_kitchens)
+          .select(_kitchenColumns)
+          .inFilter('cook_id', cookIds);
+
+      final kitchensByCook = <String, KitchenProfile>{
+        for (final row in kitchenRows)
+          row['cook_id'] as String: KitchenProfile.fromRow(row),
+      };
+
+      final ranked = <DiscoveryResult>[];
+      for (final (index, row) in mealRows.indexed) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final meal = CookMeal.fromRow(map).asMeal;
+        final kitchen = kitchensByCook[map['cook_id'] as String];
+        if (meal == null || kitchen == null) continue;
+        // Rank is the database's order, recorded rather than recomputed.
+        ranked.add(
+          DiscoveryResult(
+            item: DiscoveredMeal(meal: meal, kitchen: kitchen),
+            rank: index + 1,
+          ),
+        );
+      }
+
+      return Success(
+        SearchOutcome(
+          results: DiscoveryResults(results: ranked),
+          excludedId: data['excluded'] as String?,
+          notUnderstood: data['notUnderstood'] as String?,
+        ),
+      );
+    } on Object catch (e) {
+      // `on Object`, not `on Exception` — same reason as below.
+      //
+      // The error key says search is unavailable rather than that something went
+      // wrong, because the screen's answer is to fall back to browsing and the
+      // Customer should be told which of the two they are looking at.
+      return Failure(AppError(messageKey: 'searchUnavailable', cause: e));
+    }
+  }
 
   @override
   Future<Result<List<DiscoveredMeal>, AppError>> mealsOnOffer() async {

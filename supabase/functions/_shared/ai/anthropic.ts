@@ -222,6 +222,12 @@ export const anthropicAdapter: ProviderAdapter = {
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(sseToTextDeltas());
   },
+
+  /// **Anthropic publishes no embedding model, so this is a statement of fact rather than a gap.**
+  /// Their own guidance points at third-party embedding providers. Switching `AI_PROVIDER=anthropic`
+  /// therefore keeps every conversational call working and leaves discovery unable to embed — which
+  /// `resolveEmbedding` reports by name instead of failing at the first Meal published afterwards.
+  embed: null,
 };
 
 function sseToTextDeltas(): TransformStream<string, string> {

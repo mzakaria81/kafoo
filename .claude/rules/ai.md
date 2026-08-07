@@ -21,6 +21,14 @@ Function's provider registry.
 This has a second effect worth more than the first: the function that talks to the model holds no
 service-role key and has no write path, so the AI Assistant is *structurally* unable to write.
 
+**One exception exists and it is narrower than this sentence suggests — read ADR-0011.**
+`embed-meal` holds a write credential because storing a Meal's vector needs one, and an embedding is
+the single AI-derived value the approval rule cannot sensibly cover: it is not a claim, it is shown
+to nobody, and there is no human judgement to apply to 768 numbers.
+`scripts/check-ai-write-boundary.py` permits that one function and asserts it writes exactly
+`meals.embedding`, touches only `meals`, and never inserts, deletes or calls an RPC. Every other
+function keeps the blanket ban. **Adding a column to that list is an ADR, not an edit.**
+
 **Switching providers is one environment variable, with no code diff at all.** Prompts declare
 `model_tier`, never a model name; the registry maps tier → model per provider. A model id belongs in
 exactly two places — the registry's default table and an env var. `scripts/verify.sh` fails the gate
