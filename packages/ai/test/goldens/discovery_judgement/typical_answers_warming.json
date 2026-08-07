@@ -1,0 +1,16 @@
+{
+  "name": "something warming in the cold, and two soups came back",
+  "kind": "typical",
+  "phrase": "حاجة تدفي في البرد",
+  "note": "The direction the judgement must NOT be wrong in on the cheap side. A false 'nothing here' costs a Customer an answer they were about to get, and a judgement that says false whenever it is unsure looks careful and is useless.",
+  "meals": [
+    { "id": "shorbet_ads", "title": "شوربة عدس", "description": "عدس أصفر بالكمون والليمون على نار هادية" },
+    { "id": "shorbet_firakh", "title": "شوربة فراخ بالشعرية", "description": "مرقة فراخ بالشعرية والخضار" },
+    { "id": "salata_khadra", "title": "سلطة خضرا", "description": "خس وخيار وطماطم وجرجير بزيت الزيتون والليمون" }
+  ],
+  "modelReply": "{\"answers\": true, \"alternatives\": []}",
+  "expect": {
+    "answers": true,
+    "alternatives": []
+  }
+}

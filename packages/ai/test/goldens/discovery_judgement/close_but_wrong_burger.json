@@ -1,0 +1,17 @@
+{
+  "name": "THE CASE THIS FUNCTION EXISTS FOR: minced meat in bread is not a burger",
+  "kind": "close",
+  "phrase": "عايز برجر",
+  "note": "Every Meal here is minced or grilled meat, most of them served with bread. In a marketplace that is entirely food these rank high and score high — research.md §4 measured that a request the corpus cannot answer scored HIGHER than one it answered correctly, so no threshold separates this set from a real burger. If the judgement only says false when the Meals are obviously unrelated, it has bought nothing a score already failed to do.",
+  "meals": [
+    { "id": "shawerma", "title": "شاورما فراخ", "description": "شرايح فراخ متبلة مع طحينة وخبز" },
+    { "id": "tagen_batates", "title": "طاجن بطاطس", "description": "بطاطس شرايح ولحمة مفرومة وصلصة طماطم في الفرن" },
+    { "id": "roqaq", "title": "رقاق باللحمة", "description": "رقاق بالسمن واللحمة المفرومة، أكلة العيد" },
+    { "id": "mombar", "title": "ممبار", "description": "ممبار محشي أرز وبهارات ومقلي" }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [1, 2]}",
+  "expect": {
+    "answers": false,
+    "alternatives": ["shawerma", "tagen_batates"]
+  }
+}

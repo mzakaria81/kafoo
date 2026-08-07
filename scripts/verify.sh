@@ -184,6 +184,26 @@ run "edge functions" bash -c '
 # It was, until 2026-08-05: it held the pre-ADR-0010 answer for the Arabic word for Cook, and its
 # marker test could not see a marker behind an Arabic conjunction. Neither shows up in a replay,
 # because a replay only reports what the detector found.
+#
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+# THE FILENAME DECIDES WHETHER A SUITE RUNS HERE, AND THAT COST US THREE SUITES IN SILENCE.
+#
+# `*_test.ts` runs in the gate. `*.test.ts` does NOT — one character, no warning, and the check
+# still prints ok. Found 2026-08-07: `discover/index.test.ts` and `embed-meal/index.test.ts` had
+# never run in CI. That is WP-015's entire Edge Function suite, including the assertion that no
+# word of a Customer's phrase comes back in a response — the FR-029 check, gating nothing. Both
+# pass; both were renamed to `_test.ts` and now actually run.
+#
+# `delete-account/index.test.ts` keeps the dotted name ON PURPOSE and stays out. It is an
+# integration suite that needs the local stack `supabase start` prints keys for, and it fails with
+# "supabaseKey is required" anywhere else. So the two names now mean something:
+#
+#     index_test.ts   pure, runs in the gate
+#     index.test.ts   needs a live stack, run by hand
+#
+# Written down because it was previously a convention nobody had stated, which is the same thing as
+# an accident.
+# ────────────────────────────────────────────────────────────────────────────────────────────────
 run "edge function tests" bash -c '
   files=$(find supabase/functions scripts -name "*_test.ts" -type f 2>/dev/null | sort)
   [ -n "${files}" ] || { echo "   no edge function unit tests yet — skipping"; exit 0; }

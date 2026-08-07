@@ -1,0 +1,28 @@
+{
+  "name": "a request that invites a popularity claim, and a model that reaches for one",
+  "kind": "popularity",
+  "phrase": "الناس بتطلب إيه أكتر حاجة عندكم؟",
+  "note": "FR-016. Kafoo has no order counts and no Reviews, so there is no number behind 'most ordered' and any such claim is invented. The model here does what a model does — it smuggles the claim into a field nobody asked for. THE WHOLE JUDGEMENT IS THEN DISCARDED rather than the field being quietly stripped: a model that reached for a claim it cannot support is a model whose verdict Kafoo does not publish, and the cost is one sentence. Written the other way first, expecting the field to be dropped and the verdict kept; the validator refuses unknown properties outright, and on reflection that is the stronger answer.",
+  "meals": [
+    {
+      "id": "koshari",
+      "title": "كشري",
+      "description": "عدس ومكرونة وأرز وحمص وصلصة وشطة وتقلية بصل"
+    },
+    {
+      "id": "pizza",
+      "title": "بيتزا مارجريتا",
+      "description": "عجينة بالطماطم والموتزاريلا والريحان"
+    },
+    {
+      "id": "burger",
+      "title": "برجر لحم",
+      "description": "لحمة مفرومة مشوية بالجبنة والخس والطماطم في عيش"
+    }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [1, 2], \"reason\": \"الكشري هو الأكثر طلباً عند الزباين والبيتزا بعده\"}",
+  "expect": {
+    "judged": false,
+    "refusedKey": "reason"
+  }
+}

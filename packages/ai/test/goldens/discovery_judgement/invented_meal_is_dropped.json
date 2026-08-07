@@ -1,0 +1,15 @@
+{
+  "name": "the model names a Meal nobody handed it",
+  "kind": "invented",
+  "phrase": "حاجة حلوة بعد الأكل",
+  "note": "FR-015 and the E2 finding said plainly: replaying meal-description against a real model caught it stating things the Cook never said, while three golden cases had marked all of it PASS. The same failure here names food nobody is cooking. Number 7 does not exist — two Meals were handed over — and the model has no way to check availability, so it is never given the opportunity. The out-of-range number is dropped and the real one survives.",
+  "meals": [
+    { "id": "basbousa", "title": "بسبوسة", "description": "بسبوسة بالسميد والقشطة والشربات" },
+    { "id": "mahalabeya", "title": "مهلبية", "description": "مهلبية باللبن وماء الورد والفستق" }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [7, 2, 0, -1]}",
+  "expect": {
+    "answers": false,
+    "alternatives": ["mahalabeya"]
+  }
+}
