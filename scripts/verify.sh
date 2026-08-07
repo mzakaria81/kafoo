@@ -621,6 +621,45 @@ run "review agent selection" bash -c '
   [ -f scripts/select-reviewers.sh ] || { echo "   no select-reviewers.sh — skipping"; exit 0; }
   ./scripts/select-reviewers.sh --self-test'
 
+# THE THINGS THAT ARE ONLY WRONG ON A REAL PHONE.
+#
+# Every other check in this file reads Dart, SQL or ARB. None of them opens the Android manifest or
+# the asset bundle, so the app can pass the whole gate and still be unusable the moment it is
+# installed. Both cases below shipped in the first demo APK on 2026-08-07 and neither produced a
+# warning anywhere: the build was green, the tests passed, and the app was broken on the phone.
+#
+# Grep and not a build, deliberately. Compiling an APK here would add minutes to a gate that runs
+# on every change, to catch two lines whose absence is the entire bug.
+run "android release build sanity" bash -c '
+  manifest=apps/mobile/android/app/src/main/AndroidManifest.xml
+  [ -f "$manifest" ] || { echo "   no android app — skipping"; exit 0; }
+  status=0
+
+  # src/debug and src/profile declare INTERNET; src/main is the only one a release build reads.
+  # Checked HERE and not by grepping the tree, because a tree-wide grep finds the debug one and
+  # reports success for the build that has no network.
+  if ! grep -q "android.permission.INTERNET" "$manifest"; then
+    echo "   FAIL: INTERNET is not in the release manifest."
+    echo "   The release APK will have no network. Browsing and search both fail on the phone"
+    echo "   and the app blames the database. src/debug declaring it does not help."
+    status=1
+  fi
+
+  if ! grep -q "android.permission.RECORD_AUDIO" "$manifest"; then
+    echo "   FAIL: RECORD_AUDIO is not in the release manifest — voice cannot work."
+    status=1
+  fi
+
+  # Without this the icon font is not bundled, and Android falls back to a CJK font that maps the
+  # same Private Use Area codepoints to ideographs. Every icon becomes a Chinese character.
+  if ! grep -q "^  uses-material-design: true" apps/mobile/pubspec.yaml; then
+    echo "   FAIL: uses-material-design is not set in apps/mobile/pubspec.yaml."
+    echo "   Material icons ship as Private Use Area codepoints; without the font, Android"
+    echo "   renders them out of a CJK fallback. Every icon becomes a Chinese character."
+    status=1
+  fi
+  exit $status'
+
 echo ""
 if [ "$FAILED" -eq 0 ]; then
   echo "PASS"

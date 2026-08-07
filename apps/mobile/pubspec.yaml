@@ -32,6 +32,17 @@ dependencies:
 
 flutter:
   generate: true
+  # BUNDLES THE ICON FONT, AND WITHOUT IT EVERY `Icon` IS A CHINESE CHARACTER.
+  #
+  # Material icons are codepoints in the Unicode Private Use Area, and this line is the only thing
+  # that ships the font mapping them to pictures. Missing, Android falls back down the system font
+  # chain to a CJK font — which maps the same Private Use Area to ideographs — so the microphone
+  # rendered as 爆 and settings as 燃 in the first demo APK, 2026-08-07.
+  #
+  # It is invisible in every check Kafoo runs: widget tests render text without loading real fonts,
+  # `flutter analyze` does not read the asset bundle, and the app had never been built for a phone
+  # before. The gate cannot catch this one — a person looking at a screen is what caught it.
+  uses-material-design: true
 
 dev_dependencies:
   build_runner: ^2.15.1
