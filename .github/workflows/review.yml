@@ -43,9 +43,21 @@ jobs:
     if: github.event.pull_request.draft == false
     # Job level, not step level, and that is load-bearing rather than tidiness: a
     # step's own `env:` block is not in scope for that step's own `if:`, so the
-    # missing-key guard below would read an empty string always and fire on every
-    # run. Declared here, `env.ANTHROPIC_API_KEY` resolves in both conditions.
+    # missing-credential guard below would read an empty string always and fire on
+    # every run. Declared here, both resolve in the step conditions.
+    #
+    # TWO CREDENTIALS, AND THEY ARE BILLED TO DIFFERENT PLACES. An API key from
+    # console.anthropic.com draws on API credit — a separate balance from a Claude
+    # subscription, so configuring one means paying for this twice. An OAuth token
+    # from `claude setup-token` draws on the Claude subscription itself and is
+    # governed by its rate limits.
+    #
+    # OAuth is preferred when both are set, because the failure of picking wrong is
+    # asymmetric: a subscription that runs out of rate limit stops the job, and an
+    # API key that runs out of credit stops the job AND has been spending real money
+    # up to that point.
     env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       # Full history: the reviewer selector diffs against the merge base, and a
@@ -91,24 +103,33 @@ jobs:
       # skips loudly rather than failing the build, but it must never skip
       # silently: a review job that quietly does nothing on every pull request is
       # the same failure as the three Deno checks that reported ok for weeks.
-      - name: No API key configured
-        if: steps.select.outputs.reviewers != '' && env.ANTHROPIC_API_KEY == ''
+      - name: No credential configured
+        if: steps.select.outputs.reviewers != '' && env.CLAUDE_CODE_OAUTH_TOKEN == '' && env.ANTHROPIC_API_KEY == ''
         run: |
           {
-            echo "### Review skipped — no \`ANTHROPIC_API_KEY\`"
+            echo "### Review skipped — no credential"
             echo ""
             echo "These reviewers would have run: \`${{ steps.select.outputs.reviewers }}\`"
             echo ""
-            echo "Add the secret in **Settings → Secrets and variables → Actions**."
+            echo "Add **one** of these in Settings → Secrets and variables → Actions:"
+            echo ""
+            echo "| Secret | Billed to | How to get it |"
+            echo "|---|---|---|"
+            echo "| \`CLAUDE_CODE_OAUTH_TOKEN\` | the Claude subscription | run \`claude setup-token\` |"
+            echo "| \`ANTHROPIC_API_KEY\` | API credit, separately | console.anthropic.com |"
+            echo ""
             echo "Until then this job reports nothing on every pull request, which is"
             echo "why it says so here rather than passing quietly."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the reviewers
-        if: steps.select.outputs.reviewers != '' && env.ANTHROPIC_API_KEY != ''
+        if: steps.select.outputs.reviewers != '' && (env.CLAUDE_CODE_OAUTH_TOKEN != '' || env.ANTHROPIC_API_KEY != '')
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Both are passed; the action uses the OAuth token when it is present.
+          # Whichever is unset arrives as an empty string, which it treats as absent.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           track_progress: true
           use_sticky_comment: true
