@@ -60,6 +60,7 @@ enable_confirmations = true
 [auth.sms.test_otp]
 "201000000001" = "000001"
 "201000000002" = "000002"
+"201000000003" = "000003"
 
 [storage]
 enabled = true

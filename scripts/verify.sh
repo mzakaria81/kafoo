@@ -241,6 +241,16 @@ run "prompt bundle drift" bash -c '
 # words. A hand-maintained second copy drifts, and the direction it drifts is an allergy recognised
 # on one surface and not the other — which is the failure the whole exclusion design exists to
 # prevent, arriving through a build step.
+# The demo Cooks, kitchens and Meals a preview branch starts with. Source is supabase/demo-data.json,
+# which the founder maintains; the SQL at the foot of supabase/seed.sql is compiled from it.
+#
+# Checked for the same reason the prompt bundle and the exclusion vocabulary are: an edit to the
+# JSON that was never regenerated is a preview branch quietly seeded with the previous version, and
+# nothing at run time would say so.
+run "demo seed drift" bash -c '
+  [ -f supabase/demo-data.json ] || { echo "   no demo data yet — skipping"; exit 0; }
+  python3 scripts/generate-demo-seed.py --check'
+
 run "exclusion vocabulary" python3 scripts/generate-exclusions.py --check
 
 # Principle II, made mechanical rather than reviewed.

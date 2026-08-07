@@ -178,3 +178,274 @@ GRANT USAGE ON SCHEMA tests TO anon, authenticated;
 -- less than nothing.
 GRANT SELECT ON tests.registry TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION tests.user_id(text) TO anon, authenticated;
+
+-- >>> GENERATED DEMO DATA — scripts/generate-demo-seed.py — DO NOT EDIT BELOW
+--
+-- Compiled from supabase/demo-data.json. Edit that file and re-run the generator.
+--
+-- IT REFUSES TO RUN ON A DATABASE THAT ALREADY HOLDS A PERSON. seed.sql does not execute
+-- against production at all — `supabase db push` applies migrations only — and this guard
+-- is the second lock rather than the first. business-rules.md calls a synthetic Cook on the
+-- real marketplace product-fatal, and 'the tool would not do that' is a weaker sentence than
+-- a statement that cannot.
+--
+-- Every Meal here is seeded WITHOUT a vector, so it is visible in browse and invisible to
+-- search until scripts/backfill-meal-embeddings.ts is run against the branch. That is the
+-- documented behaviour of a missing embedding, not an oversight: harder to find, never lost.
+DO $demo$
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users) THEN
+    RAISE NOTICE 'demo data skipped: this database already has a person in it';
+    RETURN;
+  END IF;
+
+  -- مطبخ التجربة الأول — +201000000001, OTP 000001
+  INSERT INTO auth.users (
+    id, instance_id, aud, role, phone, phone_confirmed_at,
+    encrypted_password, created_at, updated_at,
+    raw_app_meta_data, raw_user_meta_data,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    phone_change, phone_change_token, email_change_token_current, reauthentication_token
+  ) VALUES (
+    'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid, '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', '+201000000001', now(),
+    'not-a-real-password-hash', now(), now(),
+    '{"provider":"phone","providers":["phone"]}'::jsonb, '{}'::jsonb,
+    '', '', '', '', '', '', '', ''
+  );
+
+  INSERT INTO public.kitchen_profiles
+    (cook_id, display_name, story, area, delivery_terms, address_form)
+  VALUES (
+    'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid, 'مطبخ التجربة الأول', 'مطبخ تجريبي مش بتاع حد حقيقي، موجود علشان نجرب كفو.',
+    'المهندسين', 'التوصيل اتفاق بين الزبون والطباخ.', 'feminine'
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '86c1c4b6-035d-523f-a85f-2c8108cf64f3'::uuid, 'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid,
+    'كشري', 'عدس وأرز ومكرونة وصلصة وتقلية.', 35.00,
+    'egyptian', 'main', 'published',
+    ARRAY['عدس', 'أرز', 'مكرونة', 'بصل', 'توم', 'صلصة']::text[], ARRAY['جلوتين']::text[],
+    620, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'ad31404e-1372-5a13-a2f6-d51b4e5633a0'::uuid, 'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid,
+    'ملوخية بالفراخ', 'ملوخية خضرا بتقلية توم، ومعاها فرخة مسلوقة.', 55.00,
+    'egyptian', 'main', 'published',
+    ARRAY['ملوخية', 'فراخ', 'توم', 'سمنة']::text[], ARRAY['ألبان']::text[],
+    480, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '44ba46b0-5dbd-5a81-81c8-b719d73333fe'::uuid, 'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid,
+    'محشي كرنب', 'ورق كرنب متلفوف على أرز وشوية خضرة، من غير لحمة خالص.', 45.00,
+    'egyptian', 'main', 'published',
+    ARRAY['كرنب', 'أرز', 'طماطم', 'بقدونس', 'شبت']::text[], '{}'::text[],
+    310, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '27cb39a3-a6fc-5c64-aad0-7ae3c829f10c'::uuid, 'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid,
+    'أرز باللبن', 'أرز باللبن بالفرن، وشها محمر.', 25.00,
+    'egyptian', 'dessert', 'published',
+    ARRAY['أرز', 'لبن', 'سكر']::text[], ARRAY['ألبان']::text[],
+    290, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '1b3fca5a-455f-5be9-937c-16ccc548a730'::uuid, 'e864b574-cbc3-526c-b4a4-ca896a1d7423'::uuid,
+    'بانيه بالبقسماط', 'شرايح بانيه مقرمشة، ومعاها بطاطس.', 70.00,
+    'egyptian', 'main', 'draft',
+    ARRAY['فراخ', 'بقسماط', 'بيض']::text[], ARRAY['جلوتين', 'بيض']::text[],
+    700, 'ai',
+    NULL
+  );
+
+  -- مطبخ التجربة التاني — +201000000002, OTP 000002
+  INSERT INTO auth.users (
+    id, instance_id, aud, role, phone, phone_confirmed_at,
+    encrypted_password, created_at, updated_at,
+    raw_app_meta_data, raw_user_meta_data,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    phone_change, phone_change_token, email_change_token_current, reauthentication_token
+  ) VALUES (
+    'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid, '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', '+201000000002', now(),
+    'not-a-real-password-hash', now(), now(),
+    '{"provider":"phone","providers":["phone"]}'::jsonb, '{}'::jsonb,
+    '', '', '', '', '', '', '', ''
+  );
+
+  INSERT INTO public.kitchen_profiles
+    (cook_id, display_name, story, area, delivery_terms, address_form)
+  VALUES (
+    'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid, 'مطبخ التجربة التاني', 'كمان مطبخ تجريبي. مفيش طباخ حقيقي وراه.',
+    'الدقي', 'الاستلام من البيت، والتوصيل حسب الاتفاق.', 'masculine'
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'fc75826c-c6f7-5731-b317-829cbb3bb804'::uuid, 'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid,
+    'فتة باللحمة', 'عيش محمص وأرز ولحمة ضاني، وصلصة بالتوم والخل.', 90.00,
+    'egyptian', 'main', 'published',
+    ARRAY['لحمة', 'أرز', 'عيش', 'توم', 'خل']::text[], ARRAY['جلوتين']::text[],
+    830, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'af7b3a5e-ac5c-5337-af41-39e2f264ed86'::uuid, 'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid,
+    'سمك بلطي مشوي', 'بلطي مشوي على الفحم، ومعاه أرز صيادية.', 110.00,
+    'egyptian', 'main', 'published',
+    ARRAY['سمك', 'أرز', 'ليمون', 'كمون']::text[], ARRAY['سمك']::text[],
+    540, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'e6cee2dc-69fb-58e9-ba25-f2808006e92b'::uuid, 'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid,
+    'طعمية', 'طعمية مقلية بالسمسم، ومعاها طحينة.', 20.00,
+    'egyptian', 'starter', 'published',
+    ARRAY['فول', 'كزبرة', 'سمسم', 'طحينة']::text[], ARRAY['سمسم']::text[],
+    350, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '5051ee73-79dd-5b86-8b4f-0db490b79d66'::uuid, 'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid,
+    'سلطة زبادي بالخيار', 'زبادي بالخيار والنعناع، تنفع جنب أي أكلة.', 15.00,
+    'egyptian', 'side', 'published',
+    ARRAY['زبادي', 'خيار', 'نعناع', 'توم']::text[], ARRAY['ألبان']::text[],
+    120, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '89558fe4-d8a6-5275-a9f2-96d826d296b1'::uuid, 'de2d8a34-7ff1-51e5-9f86-944140049b18'::uuid,
+    'كبيبة مقلية', 'كبيبة برغل محشية لحمة مفرومة وصنوبر.', 65.00,
+    'levantine', 'starter', 'unavailable',
+    ARRAY['برغل', 'لحمة مفرومة', 'صنوبر', 'بصل']::text[], ARRAY['جلوتين', 'مكسرات']::text[],
+    610, 'ai',
+    NULL
+  );
+
+  -- مطبخ التجربة التالت — +201000000003, OTP 000003
+  INSERT INTO auth.users (
+    id, instance_id, aud, role, phone, phone_confirmed_at,
+    encrypted_password, created_at, updated_at,
+    raw_app_meta_data, raw_user_meta_data,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    phone_change, phone_change_token, email_change_token_current, reauthentication_token
+  ) VALUES (
+    '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid, '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', '+201000000003', now(),
+    'not-a-real-password-hash', now(), now(),
+    '{"provider":"phone","providers":["phone"]}'::jsonb, '{}'::jsonb,
+    '', '', '', '', '', '', '', ''
+  );
+
+  INSERT INTO public.kitchen_profiles
+    (cook_id, display_name, story, area, delivery_terms, address_form)
+  VALUES (
+    '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid, 'مطبخ التجربة التالت', 'المطبخ ده موجود علشان نشوف الأكل في منطقة تالتة.',
+    'مصر الجديدة', 'التوصيل للمنطقة القريبة بس، بالاتفاق.', 'feminine'
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'fceace85-1127-5221-891c-7391cd92678c'::uuid, '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid,
+    'برجر لحمة', 'برجر لحمة بلدي في عيش بريوش، ومعاه بطاطس.', 85.00,
+    'international', 'main', 'published',
+    ARRAY['لحمة', 'عيش', 'جبنة', 'طماطم']::text[], ARRAY['جلوتين', 'ألبان']::text[],
+    780, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'd0ff1a24-8a7f-5e53-abf1-9aaf3b597411'::uuid, '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid,
+    'مكرونة بشاميل', 'مكرونة بلحمة مفرومة وبشاميل، متحمرة في الفرن.', 60.00,
+    'egyptian', 'main', 'published',
+    ARRAY['مكرونة', 'لحمة مفرومة', 'لبن', 'زبدة', 'جوزة الطيب']::text[], ARRAY['جلوتين', 'ألبان']::text[],
+    720, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'b4024c82-75f9-5a15-8606-f9ee8e77b379'::uuid, '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid,
+    'شوربة عدس', 'شوربة عدس أصفر بالكمون، سخنة وخفيفة.', 22.00,
+    'egyptian', 'starter', 'published',
+    ARRAY['عدس', 'جزر', 'بصل', 'كمون']::text[], '{}'::text[],
+    210, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    'a5234eb5-e4d7-5ef1-b029-9a8fd0ca4564'::uuid, '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid,
+    'بسبوسة بالقشطة', 'بسبوسة بالسميد والقشطة، مغرقة في الشربات.', 30.00,
+    'egyptian', 'dessert', 'published',
+    ARRAY['سميد', 'قشطة', 'سكر', 'جوز الهند']::text[], ARRAY['ألبان', 'جلوتين']::text[],
+    450, 'ai',
+    now()
+  );
+
+  INSERT INTO public.meals
+    (id, cook_id, title, description, price, cuisine, category, status,
+     ingredients, allergens, calories, nutrition_source, published_at)
+  VALUES (
+    '6f5d8f3c-60be-5b69-b948-c1780fcfdc04'::uuid, '43568172-6b91-536d-8a07-6d9fe65d9c17'::uuid,
+    'سلطة بلدي', 'طماطم وخيار وبصل وجرجير، بزيت زيتون وليمون.', 18.00,
+    'egyptian', 'side', 'published',
+    '{}'::text[], '{}'::text[],
+    90, 'ai',
+    now()
+  );
+
+  RAISE NOTICE 'demo data loaded: 3 cooks';
+END
+$demo$;
+-- <<< END GENERATED DEMO DATA

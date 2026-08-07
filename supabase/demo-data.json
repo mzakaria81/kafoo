@@ -1,0 +1,223 @@
+{
+  "purpose": "The Cooks, kitchens and Meals a demo build of Kafoo starts with. EDIT THIS FILE, not the SQL.",
+
+  "how_to_use": [
+    "Add or change entries below, then run: python3 scripts/generate-demo-seed.py",
+    "That rewrites a marked block at the foot of supabase/seed.sql. ./scripts/verify.sh fails if the two drift.",
+    "The data reaches a preview branch when the branch is CREATED. Changing this file and pushing does not re-run the seed — close and reopen the pull request.",
+    "A Meal seeded here has no vector, so it appears in browse and NOT in search until scripts/backfill-meal-embeddings.ts is run against that branch."
+  ],
+
+  "why_this_is_allowed": [
+    "business-rules.md forbids synthetic Cooks and Meals IN PRODUCTION, and this never reaches production: seed.sql runs locally and on preview branches only, because `supabase db push` applies migrations and nothing else.",
+    "The generated block refuses to insert anything into a database that already has a person in it, so it cannot land on top of real Cooks even if something ever ran it somewhere it should not.",
+    "Every Cook below is obviously not a real person. Keep it that way — the moment one reads as a real Egyptian home cook, a screenshot of it becomes a claim about a marketplace that does not exist yet."
+  ],
+
+  "cooks": [
+    {
+      "phone": "+201000000001",
+      "otp": "000001",
+      "address_form": "feminine",
+      "kitchen": {
+        "display_name": "مطبخ التجربة الأول",
+        "story": "مطبخ تجريبي مش بتاع حد حقيقي، موجود علشان نجرب كفو.",
+        "area": "المهندسين",
+        "delivery_terms": "التوصيل اتفاق بين الزبون والطباخ."
+      },
+      "meals": [
+        {
+          "title": "كشري",
+          "description": "عدس وأرز ومكرونة وصلصة وتقلية.",
+          "price": "35.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["عدس", "أرز", "مكرونة", "بصل", "توم", "صلصة"],
+          "allergens": ["جلوتين"],
+          "calories": 620
+        },
+        {
+          "title": "ملوخية بالفراخ",
+          "description": "ملوخية خضرا بتقلية توم، ومعاها فرخة مسلوقة.",
+          "price": "55.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["ملوخية", "فراخ", "توم", "سمنة"],
+          "allergens": ["ألبان"],
+          "calories": 480
+        },
+        {
+          "title": "محشي كرنب",
+          "description": "ورق كرنب متلفوف على أرز وشوية خضرة، من غير لحمة خالص.",
+          "price": "45.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["كرنب", "أرز", "طماطم", "بقدونس", "شبت"],
+          "allergens": [],
+          "calories": 310
+        },
+        {
+          "title": "أرز باللبن",
+          "description": "أرز باللبن بالفرن، وشها محمر.",
+          "price": "25.00",
+          "cuisine": "egyptian",
+          "category": "dessert",
+          "status": "published",
+          "ingredients": ["أرز", "لبن", "سكر"],
+          "allergens": ["ألبان"],
+          "calories": 290
+        },
+        {
+          "title": "بانيه بالبقسماط",
+          "description": "شرايح بانيه مقرمشة، ومعاها بطاطس.",
+          "price": "70.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "draft",
+          "ingredients": ["فراخ", "بقسماط", "بيض"],
+          "allergens": ["جلوتين", "بيض"],
+          "calories": 700
+        }
+      ]
+    },
+    {
+      "phone": "+201000000002",
+      "otp": "000002",
+      "address_form": "masculine",
+      "kitchen": {
+        "display_name": "مطبخ التجربة التاني",
+        "story": "كمان مطبخ تجريبي. مفيش طباخ حقيقي وراه.",
+        "area": "الدقي",
+        "delivery_terms": "الاستلام من البيت، والتوصيل حسب الاتفاق."
+      },
+      "meals": [
+        {
+          "title": "فتة باللحمة",
+          "description": "عيش محمص وأرز ولحمة ضاني، وصلصة بالتوم والخل.",
+          "price": "90.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["لحمة", "أرز", "عيش", "توم", "خل"],
+          "allergens": ["جلوتين"],
+          "calories": 830
+        },
+        {
+          "title": "سمك بلطي مشوي",
+          "description": "بلطي مشوي على الفحم، ومعاه أرز صيادية.",
+          "price": "110.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["سمك", "أرز", "ليمون", "كمون"],
+          "allergens": ["سمك"],
+          "calories": 540
+        },
+        {
+          "title": "طعمية",
+          "description": "طعمية مقلية بالسمسم، ومعاها طحينة.",
+          "price": "20.00",
+          "cuisine": "egyptian",
+          "category": "starter",
+          "status": "published",
+          "ingredients": ["فول", "كزبرة", "سمسم", "طحينة"],
+          "allergens": ["سمسم"],
+          "calories": 350
+        },
+        {
+          "title": "سلطة زبادي بالخيار",
+          "description": "زبادي بالخيار والنعناع، تنفع جنب أي أكلة.",
+          "price": "15.00",
+          "cuisine": "egyptian",
+          "category": "side",
+          "status": "published",
+          "ingredients": ["زبادي", "خيار", "نعناع", "توم"],
+          "allergens": ["ألبان"],
+          "calories": 120
+        },
+        {
+          "title": "كبيبة مقلية",
+          "description": "كبيبة برغل محشية لحمة مفرومة وصنوبر.",
+          "price": "65.00",
+          "cuisine": "levantine",
+          "category": "starter",
+          "status": "unavailable",
+          "ingredients": ["برغل", "لحمة مفرومة", "صنوبر", "بصل"],
+          "allergens": ["جلوتين", "مكسرات"],
+          "calories": 610
+        }
+      ]
+    },
+    {
+      "phone": "+201000000003",
+      "otp": "000003",
+      "address_form": "feminine",
+      "kitchen": {
+        "display_name": "مطبخ التجربة التالت",
+        "story": "المطبخ ده موجود علشان نشوف الأكل في منطقة تالتة.",
+        "area": "مصر الجديدة",
+        "delivery_terms": "التوصيل للمنطقة القريبة بس، بالاتفاق."
+      },
+      "meals": [
+        {
+          "title": "برجر لحمة",
+          "description": "برجر لحمة بلدي في عيش بريوش، ومعاه بطاطس.",
+          "price": "85.00",
+          "cuisine": "international",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["لحمة", "عيش", "جبنة", "طماطم"],
+          "allergens": ["جلوتين", "ألبان"],
+          "calories": 780
+        },
+        {
+          "title": "مكرونة بشاميل",
+          "description": "مكرونة بلحمة مفرومة وبشاميل، متحمرة في الفرن.",
+          "price": "60.00",
+          "cuisine": "egyptian",
+          "category": "main",
+          "status": "published",
+          "ingredients": ["مكرونة", "لحمة مفرومة", "لبن", "زبدة", "جوزة الطيب"],
+          "allergens": ["جلوتين", "ألبان"],
+          "calories": 720
+        },
+        {
+          "title": "شوربة عدس",
+          "description": "شوربة عدس أصفر بالكمون، سخنة وخفيفة.",
+          "price": "22.00",
+          "cuisine": "egyptian",
+          "category": "starter",
+          "status": "published",
+          "ingredients": ["عدس", "جزر", "بصل", "كمون"],
+          "allergens": [],
+          "calories": 210
+        },
+        {
+          "title": "بسبوسة بالقشطة",
+          "description": "بسبوسة بالسميد والقشطة، مغرقة في الشربات.",
+          "price": "30.00",
+          "cuisine": "egyptian",
+          "category": "dessert",
+          "status": "published",
+          "ingredients": ["سميد", "قشطة", "سكر", "جوز الهند"],
+          "allergens": ["ألبان", "جلوتين"],
+          "calories": 450
+        },
+        {
+          "title": "سلطة بلدي",
+          "description": "طماطم وخيار وبصل وجرجير، بزيت زيتون وليمون.",
+          "price": "18.00",
+          "cuisine": "egyptian",
+          "category": "side",
+          "status": "published",
+          "ingredients": [],
+          "allergens": [],
+          "calories": 90
+        }
+      ]
+    }
+  ]
+}

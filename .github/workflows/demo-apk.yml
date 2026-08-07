@@ -1,0 +1,122 @@
+name: Demo APK
+
+# AN ANDROID APP THE FOUNDER CAN ACTUALLY INSTALL, WHICH UNTIL 2026-08-07 DID NOT EXIST.
+#
+# `deploy.yml` archives an `.aab` on every merge to main. That is a Play Store upload format and it
+# cannot be installed on a phone — and it is built with no `--dart-define`, so `main()` throws
+# before the first frame on a missing SUPABASE_URL. Both facts together mean every "release
+# candidate" archived so far is an app that cannot start. Neither is a bug in this workflow's
+# scope to fix; deploy.yml is aimed at the stores and both properties are correct there.
+#
+# What was missing is a build aimed at a person holding a phone. That is this.
+#
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+# IT POINTS AT A PREVIEW BRANCH, NEVER AT PRODUCTION.
+#
+# The demo data in supabase/demo-data.json creates Cooks and Meals. `.claude/rules/business-rules.md`
+# calls synthetic Cooks and Meals on the real marketplace product-fatal, so the URL and key are
+# INPUTS rather than secrets: a secret gets set once and then quietly points wherever it was last
+# set, and the one mistake this workflow must never make is the one nobody would notice.
+#
+# Typing the URL each time is the friction that keeps production out of it. The check below refuses
+# the production ref outright, because friction is not a control.
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+#
+# The APK is DEBUG-SIGNED and that is deliberate: apps/mobile/android/app/build.gradle.kts falls
+# back to debug keys when key.properties is absent, and a debug-signed APK sideloads fine. It is not
+# publishable, which is the correct property for a build carrying demo data.
+
+on:
+  workflow_dispatch:
+    inputs:
+      supabase_url:
+        description: 'Preview-branch API URL, e.g. https://abcdefgh.supabase.co — NOT production'
+        required: true
+      publishable_key:
+        description: 'That branch''s publishable (anon) key'
+        required: true
+
+jobs:
+  apk:
+    name: demo apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # The one thing this workflow must refuse. The production ref is public in the repository's
+      # own CI configuration, so comparing against it needs no secret.
+      - name: Refuse production
+        env:
+          URL: ${{ inputs.supabase_url }}
+        run: |
+          if [ "${URL}" = "https://cshrkpvljknxsdzwhhle.supabase.co" ]; then
+            echo "::error::That is the production project. This build seeds demo Cooks and Meals," \
+                 "which business-rules.md calls product-fatal on the real marketplace."
+            exit 1
+          fi
+          case "${URL}" in
+            https://*.supabase.co) ;;
+            *) echo "::error::Expected a https://<ref>.supabase.co URL."; exit 1 ;;
+          esac
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Activate melos
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      # `*.g.dart` is gitignored, so a clean checkout has none of it and the app does not compile
+      # without it. Declared here rather than inherited from another job — deploy.yml learned that
+      # one the hard way when moving the gate took the side effect with it.
+      - name: Generate code
+        run: melos exec --depends-on=build_runner -- dart run build_runner build
+
+      # An APK, not an app bundle. `--split-per-abi` would be three files and a question about which
+      # one to install; one fat APK is bigger and is the file a person can just open.
+      #
+      # NOT obfuscated, unlike the store build: this is for looking at behaviour, and a readable
+      # stack trace is worth more here than an unreadable binary.
+      - name: Build APK
+        working-directory: apps/mobile
+        run: |
+          flutter build apk --release \
+            --build-number="${{ github.run_number }}" \
+            --dart-define=SUPABASE_URL='${{ inputs.supabase_url }}' \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY='${{ inputs.publishable_key }}'
+
+      - name: Archive APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-demo-${{ github.run_number }}
+          path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: How to install it
+        run: |
+          {
+            echo "### Kafoo demo APK"
+            echo ""
+            echo "Points at \`${{ inputs.supabase_url }}\`."
+            echo ""
+            echo "1. Download **kafoo-demo-${{ github.run_number }}** from the Artifacts section"
+            echo "   at the bottom of this page. It arrives as a zip; the APK is inside."
+            echo "2. Open it on an Android phone. Allow \"install unknown apps\" when asked —"
+            echo "   this build is signed with a debug key, which is why it is not publishable."
+            echo "3. It opens on food, signed in to nothing. That is the Customer surface."
+            echo ""
+            echo "To sign in as a Cook, use one of the demo numbers in \`supabase/demo-data.json\`,"
+            echo "with the code recorded beside it. They work only because the branch config"
+            echo "declares them as test numbers; no SMS is sent."
+            echo ""
+            echo "**Search will find nothing until the branch has embeddings.** Seeded Meals have no"
+            echo "vector, so they show in browse and not in search — harder to find, never lost."
+            echo "Run \`scripts/backfill-meal-embeddings.ts\` against the branch to fix that."
+          } >> "$GITHUB_STEP_SUMMARY"
