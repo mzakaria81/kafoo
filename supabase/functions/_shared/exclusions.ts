@@ -18,7 +18,6 @@ export interface Exclusion {
 /// the rest of the phrase as the food.
 export const NEGATION_MARKERS: readonly string[] = [
   'عندي حساسية من',
-  'عندى حساسية من',
   'حساسية من',
   'من غير ما يكون فيه',
   'مش عايزة',
@@ -32,10 +31,8 @@ export const NEGATION_MARKERS: readonly string[] = [
 
 /// Words that can sit between the marker and the food without being part of it.
 export const FILLERS: readonly string[] = [
-  'أي',
   'اي',
-  'ولا',
-  'شوية',
+  'شويه',
 ];
 
 export const EXCLUSIONS: readonly Exclusion[] = [
@@ -44,7 +41,7 @@ export const EXCLUSIONS: readonly Exclusion[] = [
     surfaceForms: [
       'لحم',
       'لحوم',
-      'كبدة',
+      'كبد',
       'سجق',
       'بسطرمة',
       'لانشون',
@@ -81,6 +78,8 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'محار',
       'سبيط',
       'كاليماري',
+      'قريدس',
+      'حبار',
       'جندوفلي',
     ],
   },
@@ -100,7 +99,7 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'قشطة',
       'قشدة',
       'زبدة',
-      'سمنة',
+      'سمن',
       'كريمة',
       'قريش',
     ],
@@ -142,12 +141,13 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'سميد',
       'بقسماط',
       'مكرونة',
+      'معكرونة',
       'عيش',
       'خبز',
       'رقاق',
       'فريك',
       'شعرية',
-      'عجينة',
+      'عجين',
       'شوفان',
     ],
   },

@@ -38,7 +38,7 @@
 -- ────────────────────────────────────────────────────────────────────────────────────────────────
 
 BEGIN;
-SELECT plan(13);
+SELECT plan(16);
 
 SELECT tests.create_supabase_user('cook@exclusion.kafoo');
 
@@ -243,6 +243,66 @@ SELECT is(
    WHERE id = 'eeeeeeee-0000-4000-8000-000000000007'),
   1,
   'folding governs spelling and never meaning — the pasta Meal survives a meat exclusion'
+);
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- 14-16. The characters nobody can see.
+--
+-- Found by rls-reviewer and localization-reviewer on 2026-08-07, both by RUNNING the fold rather
+-- than reading it, after the first version of this migration had been written and reviewed:
+--
+--   * `[[:space:]]` under COLLATE "C" is ASCII only, so a no-break space inside a two-word form was
+--     never collapsed here and WAS collapsed by the Dart and JavaScript folds. The comment on
+--     fold_arabic says all three must agree; they did not, and walnut escaped a nut exclusion.
+--   * The strip class covered tatweel and stopped there, leaving its invisible neighbours. A
+--     zero-width non-joiner renders as nothing at all on every screen in the product, so a Cook
+--     could defeat every meat exclusion with one character no reviewer could see.
+--
+-- SEEN TO FAIL: with the widened classes reverted to the first version, 14 and 15 go red and 16
+-- stays green.
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+
+SELECT tests.clear_authentication();
+
+INSERT INTO public.meals (id, cook_id, title, description, price, cuisine, category, status,
+                          ingredients, allergens, embedding, published_at)
+VALUES
+  -- A no-break space inside the two-word form for walnut. Renders identically to a normal space.
+  ('eeeeeeee-0000-4000-8000-000000000008', tests.user_id('cook@exclusion.kafoo'),
+   'بسبوسة بالمكسرات', 'وصف', 45, 'مصري', 'تحلية', 'published',
+   ARRAY[E'\u0639\u064A\u0646\u00A0\u0627\u0644\u062C\u0645\u0644', 'سميد'], ARRAY[]::text[],
+   (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
+
+  -- A zero-width non-joiner in the middle of the word for meat.
+  ('eeeeeeee-0000-4000-8000-000000000009', tests.user_id('cook@exclusion.kafoo'),
+   'حواوشي', 'وصف', 50, 'مصري', 'رئيسي', 'published',
+   ARRAY[E'\u0644\u200C\u062D\u0645\u0629 \u0645\u0641\u0631\u0648\u0645\u0629'], ARRAY[]::text[],
+   (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now());
+
+SELECT tests.authenticate_as_anon();
+
+-- 14. The space that is not a space.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['عين الجمل'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000008'),
+  0,
+  'a no-break space inside the Cook''s ingredient does not defeat a nut exclusion'
+);
+
+-- 15. The character that is nothing.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['لحم'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000009'),
+  0,
+  'a zero-width joiner in the Cook''s ingredient does not defeat a meat exclusion'
+);
+
+-- 16. And still only what was asked for. Widening the fold must not widen what it excludes.
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY['لحم'], NULL)
+   WHERE id = 'eeeeeeee-0000-4000-8000-000000000008'),
+  1,
+  'the nut Meal survives a meat exclusion — invisible characters are spelling, never meaning'
 );
 
 SELECT * FROM finish();

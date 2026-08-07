@@ -121,7 +121,6 @@ abstract final class ExclusionVocabulary {
   /// the food. Measured: `مش عايزة لحمة` reported not-understood on `ة لحمة`.
   static const List<String> negationMarkers = <String>[
     'عندي حساسية من',
-    'عندى حساسية من',
     'حساسية من',
     'من غير ما يكون فيه',
     'مش عايزة',
@@ -135,7 +134,7 @@ abstract final class ExclusionVocabulary {
 
   /// Words that can sit between the marker and the food without being part of
   /// it — `من غير أي لحمة`.
-  static const Set<String> _fillers = {'أي', 'اي', 'ولا', 'شوية'};
+  static const Set<String> _fillers = {'اي', 'شويه'};
 
   /// Every exclusion Kafoo understands.
   ///
@@ -177,7 +176,7 @@ abstract final class ExclusionVocabulary {
         'لحم', 'لحوم',
         // The cuts and products a Cook actually lists. Naming the word for meat
         // and stopping there misses everything an Egyptian menu is made of.
-        'كبدة', 'سجق', 'بسطرمة', 'لانشون',
+        'كبد', 'سجق', 'بسطرمة', 'لانشون',
       },
     ),
     // بانيه matters more than it looks: it stands alone in an ingredients list
@@ -207,6 +206,8 @@ abstract final class ExclusionVocabulary {
         'محار',
         'سبيط',
         'كاليماري',
+        'قريدس',
+        'حبار',
         'جندوفلي',
       },
     ),
@@ -227,7 +228,7 @@ abstract final class ExclusionVocabulary {
         // قشدة is not a spelling of قشطة — different letter, both are written.
         'قشدة',
         'زبدة',
-        'سمنة',
+        'سمن',
         'كريمة',
         'قريش',
       },
@@ -268,12 +269,13 @@ abstract final class ExclusionVocabulary {
         'سميد',
         'بقسماط',
         'مكرونة',
+        'معكرونة',
         'عيش',
         'خبز',
         'رقاق',
         'فريك',
         'شعرية',
-        'عجينة',
+        'عجين',
         'شوفان',
       },
     ),
@@ -291,47 +293,100 @@ abstract final class ExclusionVocabulary {
     final needle = term.trim();
     if (needle.isEmpty) return const NoExclusion();
 
+    // BOTH READINGS ARE WEIGHED, RATHER THAN THE FIRST ONE THAT MATCHES AT ALL.
+    //
+    // `من غير زبدة الفول السوداني` answered `dairy`: `زبدة` starts the phrase,
+    // and the article-stripped reading — where `سوداني` finally begins a word
+    // and wins on length — was never reached, because the first candidate had
+    // already matched something. Peanut butter excluding milk and leaving every
+    // peanut Meal on the screen is the dangerous direction, in front of the
+    // allergy people most often mean.
+    final matches = <({Exclusion exclusion, int length, int at, int index})>[];
     for (final candidate in {
       foldArabic(needle),
       foldArabic(_withoutArticles(needle)),
     }) {
-      for (final (exclusion, form) in _formsLongestFirst) {
-        // CONTAINS, NOT EQUALS, AND THE TWO SIDES NOW ASK THE SAME QUESTION.
-        // `search_meals` matches a form as a substring of what the Cook typed,
-        // so `لحم` reaches `لحمة مفرومة`. This side compared for equality, so
-        // the same list that reached a Cook's `لحمة مفرومة` did NOT reach a
-        // Customer who simply said `لحمة` — the word had to be listed twice,
-        // once as a spelling and once as the word itself, and every entry
-        // somebody forgot to list twice failed on the Customer's side only.
-        //
-        // Over-matching is the direction this is wrong in: `سمكري` would be
-        // read as fish. It follows a negation marker, so the Customer asked for
-        // something to be left out, and leaving out too much shows them less
-        // food rather than the thing they asked to avoid.
-        if (candidate.contains(form)) return ExclusionFound(exclusion);
-      }
+      final match = _matchAtWordStart(candidate);
+      if (match != null) matches.add(match);
     }
-    return ExclusionNotUnderstood(needle);
+    if (matches.isEmpty) return ExclusionNotUnderstood(needle);
+    matches.sort((a, b) => b.length.compareTo(a.length));
+    return ExclusionFound(matches.first.exclusion);
   }
 
-  /// Every form, folded, longest first — so the most specific word wins.
+  /// The food a Customer named, matched where a WORD BEGINS.
   ///
-  /// **`كابوريا` contains `بوري`.** Crab carries the name of a mullet inside
-  /// it, so a Customer excluding crab was answered with the fish exclusion
-  /// purely because fish is listed earlier in [all]. That is the order of a
-  /// list deciding what a Customer gets, which this file forbids elsewhere and
-  /// was doing here. Longest first is a rule instead: a longer form is a more
-  /// specific word, and it does not change when somebody reorders the list.
+  /// **`أبيض` contains `بيض`, and that is not a Customer asking about eggs.**
+  /// This side matched anywhere inside the string for one afternoon, to make it
+  /// ask the same question the Cook's side asks, and localization-reviewer ran
+  /// it: `من غير جبنة بيضاء` — the most ordinary way a Cairene names white
+  /// cheese — answered `egg`. The Customer is then told Kafoo removed the food
+  /// with eggs in it, and the white cheese is still on the screen. That is
+  /// under-exclusion of the food they named, wearing a label naming a food they
+  /// did not, which is the one combination this file promises not to produce.
+  /// `فلفل أبيض`, `رز أبيض` and `ملبن` all did the same thing.
   ///
-  /// The overlap itself stays, and stays safe: on the Cook's side `search_meals`
-  /// still matches `بوري` inside `كابوريا`, so excluding fish also removes
-  /// crab. That is over-exclusion — less food shown, never the food they asked
-  /// to avoid. Word-boundary matching would end it and is a two-sided change
-  /// with its own measurement (WP-017 note 1, `بيض` inside `أبيض`).
-  static final List<(Exclusion, String)> _formsLongestFirst = [
+  /// **THE LOOSENESS IS ONE-SIDED, AND DELIBERATELY SO.** `search_meals` keeps
+  /// matching anywhere, because a Cook writes `بالبصل`, `والتوم`, `بالسمنة`,
+  /// and a word-start rule there would miss every one of them — that is
+  /// under-exclusion on the side where it is dangerous. Here the input is a
+  /// short phrase somebody said, so a word start is exactly the right shape.
+  ///
+  /// **Longest first, then earliest.** `زبدة الفول السوداني` starts with a
+  /// dairy word and is a peanut product; taking the earliest match would answer
+  /// `dairy` and leave every peanut Meal on the screen, in front of somebody
+  /// who may be allergic to peanuts. The longer form is the more specific word.
+  /// Position only breaks ties — `جبنة بيضاء` matches `جبن` and `بيض` at the
+  /// same length, and the food the Customer said first is the honest answer.
+  ///
+  /// The ordering is TOTAL on purpose, down to the vocabulary index. Ordering
+  /// on length alone left the tie to the sort algorithm, and Dart's is not
+  /// stable while JavaScript's is — so the two sides answered `من غير جبنة
+  /// بيضاء` differently, and a Dart SDK bump could have changed either without
+  /// a diff. Found by localization-reviewer by running both.
+  static ({Exclusion exclusion, int length, int at, int index})?
+      _matchAtWordStart(String candidate) {
+    ({Exclusion exclusion, int length, int at, int index})? best;
+
+    for (final (index, entry) in _foldedForms.indexed) {
+      final (exclusion, form) = entry;
+      final at = _wordStartIndexOf(candidate, form);
+      if (at < 0) continue;
+      if (best == null ||
+          form.length > best.length ||
+          (form.length == best.length && at < best.at) ||
+          (form.length == best.length && at == best.at && index < best.index)) {
+        best =
+            (exclusion: exclusion, length: form.length, at: at, index: index);
+      }
+    }
+    return best;
+  }
+
+  /// Where [form] appears at the start of a word in [text], or -1.
+  static int _wordStartIndexOf(String text, String form) {
+    var from = 0;
+    while (true) {
+      final at = text.indexOf(form, from);
+      if (at < 0) return -1;
+      if (at == 0 || text[at - 1] == ' ') return at;
+      from = at + 1;
+    }
+  }
+
+  /// Every form, folded, in vocabulary order. The order is a tie-break of last
+  /// resort in [_matchAtWordStart] and decides nothing on its own.
+  static final List<(Exclusion, String)> _foldedForms = [
     for (final exclusion in all)
       for (final form in exclusion.surfaceForms) (exclusion, foldArabic(form)),
-  ]..sort((a, b) => b.$2.length.compareTo(a.$2.length));
+  ];
+
+  /// Words that join two foods in one breath — `من غير لبن ولا بيض`.
+  ///
+  /// Matched as whole words. A bare `و` is also a prefix (`وبصل`), so splitting
+  /// on the character rather than the word would cut ordinary food names in
+  /// half.
+  static const Set<String> _conjunctions = {'ولا', 'و', 'أو', 'او'};
 
   /// One shape for a word Arabic writes several ways.
   ///
@@ -349,16 +404,45 @@ abstract final class ExclusionVocabulary {
   /// `normalise_area` has and this does not: substring matching already reaches
   /// `اللحمة` from `لحم`, and a Customer's side handles `ال` separately in
   /// [_withoutArticles].
+  /// **The character sets are written out rather than using `\s`.** Dart's `\s`
+  /// is Unicode-aware, Postgres' `[[:space:]]` under `COLLATE "C"` is ASCII
+  /// only, and the two quietly disagreed on seventeen codepoints — a no-break
+  /// space inside `عين الجمل` folded here and not there, so walnut escaped a
+  /// nut exclusion. Nobody has to type one: `meals.ingredients` is AI-extracted
+  /// text and nothing between the model and the column touches it. Pinning the
+  /// same explicit set in all three is the only way "they fold identically"
+  /// stays true rather than being true on the day it was written.
   static String foldArabic(String value) => value
-      .trim()
       .toLowerCase()
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .replaceAll(RegExp('[أإآٱ]'), 'ا')
-      .replaceAll('ى', 'ي')
-      .replaceAll('ة', 'ه')
-      // Diacritics (064B–0652) and tatweel (0640): typed rarely, omitted
-      // usually, and fatal to a substring match when present.
-      .replaceAll(RegExp('[ً-ْـ]'), '');
+      // INVISIBLE MARKS FIRST, AND ENTIRELY. Diacritics, tatweel, and the
+      // zero-width and directional characters beside it. `\u0644\u200C\u062D\u0645` with a
+      // zero-width non-joiner renders identically to `\u0644\u062D\u0645` on every screen in
+      // the product, and defeated every meat exclusion — the same class as the
+      // tatweel this fold was written to close, left half open.
+      //
+      // Before the whitespace step, because U+FEFF is whitespace to Dart and
+      // JavaScript and is not whitespace to Postgres: collapsing first would
+      // turn it into a space in two folds and delete it in the third.
+      .replaceAll(_invisible, '')
+      .replaceAll(_whitespace, ' ')
+      // Trimmed AFTER collapsing, never before. Postgres' one-argument btrim
+      // strips only U+0020, so trimming first left a leading tab to become a
+      // space that nothing then removed.
+      .trim()
+      .replaceAll(RegExp('[\u0623\u0625\u0622\u0671]'), '\u0627')
+      .replaceAll('\u0649', '\u064A')
+      .replaceAll('\u0629', '\u0647');
+
+  /// Marks that carry no spelling: Arabic diacritics, tatweel, and the
+  /// zero-width and directional characters that render as nothing at all.
+  static final RegExp _invisible =
+      RegExp('[\u0640\u064B-\u065F\u0670\u06D6-\u06ED'
+          '\u200B-\u200F\u061C\uFEFF]');
+
+  /// Every space Unicode has, written out. See the note above [foldArabic].
+  static final RegExp _whitespace =
+      RegExp('[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A'
+          '\u2028\u2029\u202F\u205F\u3000]+');
 
   /// Drops a leading `ال` from each word.
   ///
@@ -388,7 +472,21 @@ abstract final class ExclusionVocabulary {
   /// breath gets the first honoured and is told about it; that is a smaller
   /// wrong than guessing at the second.
   static ExclusionLookup parse(String phrase) {
-    final text = phrase.trim();
+    // FOLDED FIRST, MARKERS INCLUDED, AND THAT IS NOT TIDINESS.
+    //
+    // The foods were folded on 2026-08-07 and the markers were left compared
+    // raw, one line above them. `حساسية` is the only marker word carrying a ة,
+    // and `حساسيه` is at least as common in how Egyptians type — so
+    // `عندي حساسيه من المكسرات` returned NoExclusion. Not not-understood:
+    // NOTHING. A Customer states a nut allergy, the screen says nothing at all,
+    // and the nuts come back.
+    //
+    // That is verbatim the failure this file's own comment says was found and
+    // closed the same morning. It was closed for the marker LIST and reopened
+    // by the marker SPELLING, and the list hand-enumerating `عندي` and `عندى`
+    // is the tell that nobody looked at it again. Found by
+    // localization-reviewer, by running it.
+    final text = foldArabic(phrase);
     if (text.isEmpty) return const NoExclusion();
 
     // `negationMarkers` is longest-first, and a test holds it that way:
@@ -396,22 +494,40 @@ abstract final class ExclusionVocabulary {
     // first takes "ما يكون فيه لحمة" as the food — which is not a food, so a
     // phrase Kafoo handles would report not-understood.
     for (final marker in negationMarkers) {
-      final at = text.indexOf(marker);
+      final at = text.indexOf(foldArabic(marker));
       if (at < 0) continue;
 
-      final remainder = text.substring(at + marker.length).trim();
+      final remainder = text.substring(at + foldArabic(marker).length).trim();
       if (remainder.isEmpty) return ExclusionNotUnderstood(remainder);
+
+      final words = remainder.split(' ').where((w) => w.isNotEmpty).toList();
+      while (words.length > 1 && _fillers.contains(foldArabic(words.first))) {
+        words.removeAt(0);
+      }
+
+      // ONE BREATH, TWO FOODS: THE FIRST IS THE ONE HONOURED, AND IT STOPPED
+      // BEING. `من غير لبن ولا بيض` excluded EGGS after the Customer's side
+      // began matching inside a phrase — the whole remainder matched, and the
+      // second food won on the ordering. So the Customer names milk, Kafoo
+      // names eggs, and the milk is still on the screen. Two exclusions in one
+      // breath is the ordinary shape of an allergy sentence, not an edge case.
+      //
+      // Cutting at the conjunction restores what this method has always
+      // promised. The second food is still dropped — that is the documented
+      // smaller wrong — but the one that is honoured is the one they said
+      // first.
+      final conjunction =
+          words.indexWhere((w) => _conjunctions.contains(foldArabic(w)));
+      final firstFood =
+          conjunction < 0 ? words : words.take(conjunction).toList();
+      if (firstFood.isEmpty) return ExclusionNotUnderstood(remainder);
 
       // Longest run of words first, so a two-word food beats its first word.
       // Shorter runs then catch the ordinary case where the food is followed by
       // something that is not part of it — `من غير لحمة خالص`, the phrase the
       // 2026-08-06 measurement used, where `خالص` is an intensifier.
-      final words = remainder.split(RegExp(r'\s+')).toList();
-      while (words.length > 1 && _fillers.contains(words.first)) {
-        words.removeAt(0);
-      }
-      for (var take = words.length; take >= 1; take--) {
-        final candidate = words.take(take).join(' ');
+      for (var take = firstFood.length; take >= 1; take--) {
+        final candidate = firstFood.take(take).join(' ');
         final outcome = lookUp(candidate);
         if (outcome is ExclusionFound) return outcome;
       }

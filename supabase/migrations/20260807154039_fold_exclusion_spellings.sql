@@ -53,18 +53,45 @@ STRICT
 SET search_path = ''
 AS $$
   SELECT
-    -- Diacritics and tatweel last: they are removed outright rather than mapped, and removing them
-    -- first would let a stretched letter split a pair the translate below is meant to see.
-    regexp_replace(
-      translate(
-        -- COLLATE "C" for the same reason normalise_area pins it: lower() otherwise resolves
-        -- collation from its argument, and an ICU bump would change what this function returns.
-        -- IMMUTABLE has to be true rather than merely declared.
-        regexp_replace(btrim(lower(value COLLATE "C")), '[[:space:]]+', ' ', 'g'),
-        'أإآٱىة',
-        'اااايه'
+    -- 4. Unify the letters Arabic writes more than one way. Per character, so it is order-free
+    --    against the steps below.
+    translate(
+      -- 3. Collapse what is left, THEN trim. Trimming first strips only U+0020 — one-argument
+      --    btrim is not whitespace-aware — so a leading tab survived the trim, became a space at
+      --    the collapse, and stayed. `\tلحم` folded to ` لحم`, and the pattern `% لحم %` then
+      --    matched no Cook's ingredient at all. Found by rls-reviewer 2026-08-07, measured, and
+      --    the identical ordering bug in normalise_area is fixed below.
+      btrim(
+        -- 2. WHITESPACE, INCLUDING THE KIND THAT IS NOT ASCII. `[[:space:]]` under COLLATE "C" is
+        --    ASCII-only, so a no-break space inside `عين الجمل` was never collapsed and walnut
+        --    escaped a nut exclusion. That was also a live DIVERGENCE from the two sibling folds
+        --    this function's own COMMENT says it must match: Dart's `\s` and JavaScript's `\s` are
+        --    Unicode-aware and collapse all of these. Measured rather than reasoned about.
+        --
+        --    Reachable without anybody typing one: `meals.ingredients` is AI-extracted text from
+        --    analyze-meal, and nothing between the model's output and the column touches it. A
+        --    model emitting U+00A0 lands it verbatim, the Cook approves a string that renders
+        --    identically to a normal one, and the exclusion fails with nothing logged.
+        regexp_replace(
+          -- 1. INVISIBLE MARKS GO FIRST AND GO ENTIRELY. Diacritics, tatweel, and the zero-width
+          --    and directional characters beside it. FIRST rather than last, because U+FEFF counts
+          --    as whitespace to Dart and JavaScript: collapsing before stripping would turn it into
+          --    a space in two of the three folds and delete it in the third.
+          --
+          --    Tatweel was closed by the first version of this function and its invisible
+          --    neighbours were not, which left the class half open — `ل‌حم` with a zero-width
+          --    non-joiner renders identically to `لحم` on every screen in the product and defeated
+          --    every meat exclusion. A Cook wanting to escape a filter needs one invisible
+          --    character, and nobody reviewing their Meal could see it.
+          regexp_replace(
+            lower(value COLLATE "C"),
+            U&'[\0640\064B-\065F\0670\06D6-\06ED\200B-\200F\061C\FEFF]', '', 'g'
+          ),
+          U&'[[:space:]\00A0\1680\2000-\200A\2028\2029\202F\205F\3000]+', ' ', 'g'
+        )
       ),
-      '[ً-ْـ]', '', 'g'
+      'أإآٱىة',
+      'اااايه'
     )
 $$;
 
@@ -73,6 +100,70 @@ COMMENT ON FUNCTION public.fold_arabic(text) IS
   'identically to foldArabic in packages/domain/lib/exclusion.dart and in discover/parse.ts.';
 
 GRANT EXECUTE ON FUNCTION public.fold_arabic(text) TO anon, authenticated;
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- normalise_area carries the same trim-before-collapse bug, and it is REACHABLE.
+--
+-- `btrim(lower(...))` strips U+0020 and nothing else, so a leading tab or newline survived the trim
+-- and then became a leading space. That space sits in front of the `^(ال|el-|...)` anchor below, so
+-- the definite article is never stripped:
+--
+--     normalise_area('المهندسين') = normalise_area(E'\tالمهندسين')   ->  false
+--
+-- A Cook whose area field carries a leading tab is unfindable by area — which is the exact case the
+-- btrim was added on 2026-08-07 to fix, defeated by one character it does not cover. `area` is free
+-- text a Cook typed and Kafoo never rewrites it, so this is not a hypothetical value.
+--
+-- Non-ASCII spaces are folded here for the same reason as above.
+--
+-- THE REINDEX BELOW IS MANDATORY AND THIS FUNCTION'S OWN COMMENT SAYS SO. `kitchen_profiles_area_norm`
+-- is an expression index over these values; Postgres does not recompute one when the function
+-- changes, so without it the index keeps the old strings and silently disagrees with the function
+-- that built it. A kitchen would be findable through a sequential scan and invisible through the
+-- index.
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.normalise_area(value text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+SET search_path = ''
+AS $$
+  SELECT
+    CASE folded
+      WHEN 'مصر الجديده' THEN 'heliopolis'
+      WHEN 'هليوبوليس'   THEN 'heliopolis'
+      WHEN 'heliopolis'  THEN 'heliopolis'
+      WHEN 'معادي'       THEN 'maadi'
+      WHEN 'maadi'       THEN 'maadi'
+      ELSE folded
+    END
+  FROM (
+    SELECT
+      regexp_replace(
+        -- The article strip, now reached because the trim below actually trims.
+        btrim(
+          translate(
+            regexp_replace(
+              regexp_replace(
+                lower(value COLLATE "C"),
+                U&'[\0640\064B-\065F\0670\06D6-\06ED\200B-\200F\061C\FEFF]', '', 'g'
+              ),
+              U&'[[:space:]\00A0\1680\2000-\200A\2028\2029\202F\205F\3000]+', ' ', 'g'
+            ),
+            'أإآٱىة',
+            'اااايه'
+          )
+        ),
+        '^(ال|el-|el |al-|al )', '', 'i'
+      )
+    AS folded
+  ) t
+$$;
+
+-- Not optional, and not a tidy-up. See the block above.
+REINDEX INDEX public.kitchen_profiles_area_norm;
 
 -- Republished whole rather than patched, because a SQL function has no partial form. Everything
 -- outside the exclusion branch is unchanged from 20260806231625_add_meal_embeddings.sql, and the
@@ -88,6 +179,14 @@ LANGUAGE sql
 STABLE
 SECURITY INVOKER
 PARALLEL SAFE
+-- INERT TODAY, AND THAT IS WHY IT GOES IN TODAY. This was the only Kafoo-authored function in
+-- `public` without it — found by rls-reviewer against pg_proc rather than by reading. It is not
+-- exploitable while the function is SECURITY INVOKER and every table is schema-qualified, but
+-- `<=>` and ILIKE resolve through search_path, so a caller who could set it could shadow ILIKE
+-- with a function returning false and switch off their own exclusion. The comment above warns
+-- that somebody may later make this DEFINER; that is the day it stops being inert, and the person
+-- making that change has no reason to look here.
+SET search_path = ''
 AS $$
   WITH candidate AS MATERIALIZED (
   SELECT m.*
@@ -127,6 +226,11 @@ AS $$
     )
   )
   SELECT * FROM candidate
-  ORDER BY embedding <=> query_embedding
+  -- THE OPERATOR IS SCHEMA-QUALIFIED BECAUSE search_path IS EMPTY. Left bare it raises
+  -- "operator does not exist: public.vector <=> public.vector" and the function fails on every
+  -- search — the identical trap 20260806231625 documents above protect_meal_embedding for `<>`,
+  -- met again here the moment the pin above went in. ILIKE needs no qualification: it is syntax
+  -- for pg_catalog.~~*, and pg_catalog is always in scope.
+  ORDER BY embedding OPERATOR(public.<=>) query_embedding
   LIMIT 50;
 $$;

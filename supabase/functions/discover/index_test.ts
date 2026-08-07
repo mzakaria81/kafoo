@@ -177,6 +177,49 @@ Deno.test('a spelling nobody enumerated is still understood, on this side too', 
   }
 });
 
+Deno.test('THE SHARED CORPUS: this side answers exactly what the Dart side answers', () => {
+  // Every case here was found by localization-reviewer running both sides on 2026-08-07 against
+  // suites that were green. `exclusion_vocabulary_test.dart` carries the identical list. The app
+  // and this function parse the same sentence, and a silent disagreement is a Customer's exclusion
+  // understood on one side and matching nothing on the other.
+  const cases: ReadonlyArray<readonly [string, string]> = [
+    // An allergy spelled with the other letter. Returned `nothing` — not not-understood, NOTHING.
+    ['\u0639\u0646\u062F\u064A \u062D\u0633\u0627\u0633\u064A\u0647 \u0645\u0646 \u0627\u0644\u0645\u0643\u0633\u0631\u0627\u062A', 'nuts'],
+    ['\u062D\u0633\u0627\u0633\u064A\u0647 \u0645\u0646 \u0627\u0644\u0644\u0628\u0646', 'dairy'],
+    // Two foods in one breath: the first is the one honoured.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0644\u0628\u0646 \u0648\u0644\u0627 \u0628\u064A\u0636', 'dairy'],
+    ['\u0645\u0634 \u0639\u0627\u064A\u0632 \u0633\u0645\u0643 \u0648\u0644\u0627 \u0644\u062D\u0645\u0629', 'fish'],
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0644\u062D\u0645\u0629 \u0648\u0644\u0627 \u0641\u0631\u0627\u062E', 'meat'],
+    // White cheese is dairy, not eggs.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u062C\u0628\u0646\u0629 \u0628\u064A\u0636\u0627\u0621', 'dairy'],
+    // Peanut butter is peanut, not butter.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0632\u0628\u062F\u0629 \u0627\u0644\u0641\u0648\u0644 \u0627\u0644\u0633\u0648\u062F\u0627\u0646\u064A', 'peanut'],
+    // Crab, not the mullet inside it.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0643\u0627\u0628\u0648\u0631\u064A\u0627', 'shellfish'],
+    // The bare stem an ingredient list actually carries.
+    ['\u0628\u062F\u0648\u0646 \u0633\u0645\u0646', 'dairy'],
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0645\u0639\u0643\u0631\u0648\u0646\u0629', 'gluten'],
+    // An invisible character changes nothing: zero-width non-joiner, then a no-break space.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0644\u200C\u062D\u0645\u0629', 'meat'],
+    ['\u0645\u0646 \u063A\u064A\u0631\u00A0\u0644\u062D\u0645\u0629', 'meat'],
+  ];
+  for (const [phrase, id] of cases) {
+    const outcome = parsePhrase(phrase).exclusion;
+    assertEquals(outcome.kind, 'found', phrase);
+    assertEquals(outcome.kind === 'found' ? outcome.id : '', id, phrase);
+  }
+
+  // A food name inside another word is not the food. Kafoo says it did not understand rather than
+  // guessing, which is the visible failure rather than the silent one.
+  for (const phrase of [
+    '\u0645\u0634 \u0639\u0627\u064A\u0632 \u0641\u0644\u0641\u0644 \u0623\u0628\u064A\u0636',
+    '\u0645\u0646 \u063A\u064A\u0631 \u0631\u0632 \u0623\u0628\u064A\u0636',
+    '\u0645\u0646 \u063A\u064A\u0631 \u0645\u0644\u0628\u0646',
+  ]) {
+    assertEquals(parsePhrase(phrase).exclusion.kind, 'not-understood', phrase);
+  }
+});
+
 Deno.test('ONE SENTENCE CARRIES THE PHRASE, THE EXCLUSION AND THE AREA', async () => {
   // T207 and Principle IV. `عايز حاجة من غير لحمة في المهندسين` is what a Customer says; three
   // controls to collect it would be the form the rules forbid at exactly this point.
