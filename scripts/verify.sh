@@ -216,22 +216,19 @@ run "prompt bundle drift" bash -c '
 # This lived briefly as a unit test that read its own source, which worked but bought one file of
 # coverage at the price of giving every Edge Function test filesystem access. A grep here covers
 # every function that will ever exist and needs no permission at all.
-run "ai path holds no write credential" bash -c '
-  bad=0
-  for dir in supabase/functions/*/; do
-    name=$(basename "$dir")
-    grep -rqE "_shared/ai/" "$dir" 2>/dev/null || continue
-    hits=$(grep -rlE "SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|SERVICE_ROLE" "$dir" 2>/dev/null || true)
-    if [ -n "$hits" ]; then
-      echo "   ${name} reaches the model layer and names a write credential:"
-      printf "%s\n" "$hits"
-      bad=1
-    fi
-  done
-  [ "$bad" -eq 0 ] || {
-    echo "   The AI Assistant is structurally unable to write. That property comes from the" >&2
-    echo "   function not having the means, not from it choosing well." >&2
-    exit 1; }'
+# Moved into a script on 2026-08-07, and made NARROWER rather than looser in the same change.
+#
+# It used to be four lines of grep here: any function importing the model layer must not name a
+# write credential. `embed-meal` needs both — it calls a provider and stores the vector — so the
+# blanket ban would have killed the feature, and editing the check to let it through would have been
+# the one move the check exists to prevent.
+#
+# ADR-0011 records the founder's decision: one exception, for the single AI-derived value that
+# "AI suggests, humans approve" cannot sensibly cover, and the exception carries constraints the old
+# check never had. The script asserts embed-meal writes exactly `meals.embedding` and never inserts,
+# deletes or calls an RPC — so adding a second column turns the gate red again. Mutation-tested
+# four ways plus the un-allowlisted case.
+run "ai write boundary" python3 scripts/check-ai-write-boundary.py
 
 # Credentials belong in the environment, never in the repository. Two are live
 # in this project and both are rotate-everything incidents if committed:
