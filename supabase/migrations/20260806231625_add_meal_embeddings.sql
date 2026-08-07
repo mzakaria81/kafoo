@@ -225,10 +225,16 @@ CREATE INDEX kitchen_profiles_area_norm ON public.kitchen_profiles
 -- RLS decides what is visible; this ranks only what survived. Discovery gains no authority of its
 -- own.
 --
--- ORDER BY IS PLACED SO THE HNSW INDEX CAN BE USED. Written the other way — filtering in an outer
--- query the planner cannot push into — Postgres scans every Meal, computes every distance, and
--- returns THE RIGHT ANSWER SLOWLY. Nothing fails and no test catches it. Check the plan directly;
--- correctness of results is not evidence.
+-- THIS COMMENT USED TO SAY THE OPPOSITE OF WHAT IT NOW SAYS, and the correction is the point.
+-- It read: "ORDER BY is placed so the HNSW index can be used. Written the other way — filtering in
+-- an outer query the planner cannot push into — Postgres computes every distance and returns THE
+-- RIGHT ANSWER SLOWLY." Every clause of that is true. What it missed is that the arrangement it
+-- recommended returns THE WRONG ANSWER QUICKLY, and the wrong answer is an empty list. See the
+-- measurement above the body.
+--
+-- Slow and right beats fast and empty, at the sizes Kafoo will see for years. Check the plan
+-- directly when changing this — correctness of results on a small fixture is not evidence either
+-- way, which is how the original arrangement survived review.
 CREATE OR REPLACE FUNCTION public.search_meals(
   query_embedding vector(768),
   exclude_terms text[] DEFAULT NULL,
@@ -239,32 +245,37 @@ LANGUAGE sql
 STABLE
 SECURITY INVOKER
 PARALLEL SAFE
--- ⚠️ KNOWN DEFECT, NOT FIXED BY THE LINE BELOW. READ THIS BEFORE TRUSTING AN EMPTY RESULT.
+-- FILTER FIRST, RANK SECOND. THE ORDER IS THE CORRECTNESS ARGUMENT, NOT A PERFORMANCE CHOICE.
 --
--- An HNSW scan visits hnsw.ef_search candidates — 40 by default — and this function then
--- post-filters them by status, exclusions and area. So a narrow filter over a large corpus can
--- return NOTHING while matching Meals plainly exist: the 40 global nearest neighbours were all
--- somewhere else.
+-- An HNSW scan visits hnsw.ef_search candidates — 40 by default — and returns them in distance
+-- order. Filter those candidates AFTERWARDS and a narrow filter over a large corpus returns NOTHING
+-- while matching Meals plainly exist, because the global nearest neighbours were all somewhere else.
 --
--- Reproduced 2026-08-07: 5,000 published Meals in one area and 1 in another.
---     SELECT count(*) ... WHERE area = 'أسوان'        -> 1   (genuinely on offer)
---     SELECT count(*) FROM search_meals(v, NULL, 'أسوان') -> 0   (what a Customer is told)
+-- Measured 2026-08-07, 5,000 published Meals in one area and 1 in أسوان:
+--     genuinely on offer in أسوان                          1
+--     HNSW then post-filter                                0   ← what a Customer was told
+--     HNSW then post-filter, hnsw.iterative_scan=strict    0   ← reached 4,991 rows, still missed it
+--     filter first, then order exactly                     1   in 0.19 ms
 --
 -- THIS MATTERS BECAUSE OF WHAT KAFOO PROMISES. FR-024 says Kafoo tells a Customer their area is
--- empty, and FR-024a then offers them the areas that are not. Both statements become untrue if
--- "empty" can mean "the index stopped looking", and the Customer has no way to tell.
+-- empty, and FR-024a then offers them the areas that are not. Both statements are untrue if "empty"
+-- can mean "the index stopped looking", and the Customer has no way to tell the difference.
 --
--- THE SET BELOW DOES NOT FIX IT, and that was measured rather than assumed. The function-local GUC
--- IS visible inside the body — current_setting reads 'strict_order' — and the same query run
--- directly with the same GUC returns the row correctly, while the call through this function still
--- returns none. The difference appears to be the parameterised plan, and chasing it further is a
--- design change (filtering before the vector search rather than after) that should be reviewed
--- rather than written at 03:00. The setting is kept because it is directionally right and harmless.
+-- A NOTE HERE PREVIOUSLY BLAMED THE PARAMETERISED PLAN and said the same query worked outside the
+-- function. Re-measured with EXPLAIN: it does not. It fails identically written out, so the
+-- function was never the variable — post-filtering was. `hnsw.iterative_scan` widened the scan and
+-- did not close the hole, so it is gone rather than kept for looking directionally right.
 --
--- UNTIL THIS IS RESOLVED, AN EMPTY AREA RESULT IS NOT EVIDENCE THE AREA IS EMPTY. Do not build
--- FR-024's "we looked and there is nothing here" message on it.
-SET hnsw.iterative_scan = 'strict_order'
+-- THE COST OF BEING EXACT, MEASURED RATHER THAN FEARED. The MATERIALIZED CTE narrows first, so the
+-- ranking sorts only what survived. With a narrowing filter it is faster than the index path. With
+-- NO filter it sorts the whole corpus: 27 ms at 5,001 Meals, against a one-second budget for search.
+-- Linear, so the budget is reached somewhere near 180,000 Meals.
+--
+-- SO THE HNSW INDEX IS CURRENTLY UNUSED BY THIS FUNCTION, and that is deliberate. It is kept for
+-- the corpus size that needs it, and taking it then is a one-line change guarded by a measurement.
+-- Taking it now buys 26 ms and costs the ability to answer "is there anything in أسوان" truthfully.
 AS $$
+  WITH candidate AS MATERIALIZED (
   SELECT m.*
   FROM public.meals m
   WHERE
@@ -321,7 +332,9 @@ AS $$
           AND public.normalise_area(k.area) = public.normalise_area(area_query)
       )
     )
-  ORDER BY m.embedding <=> query_embedding
+  )
+  SELECT * FROM candidate
+  ORDER BY embedding <=> query_embedding
   LIMIT 50;
 $$;
 
