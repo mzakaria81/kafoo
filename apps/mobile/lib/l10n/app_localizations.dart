@@ -1393,6 +1393,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.'**
   String get searchAreasUnknown;
+
+  /// Shown above the results when the AI Assistant judges that none of them answers what the Customer asked for. THE RESULTS STAY ON SCREEN UNDERNEATH — the judgement says something about a set, it never edits one. No second person anywhere: Arabic marks gender on `you`, and there is no neutral form, so the sentence is about the request rather than about the person who made it.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش أكلة هنا مطابقة للطلب ده.'**
+  String get searchJudgementNothingAnswers;
+
+  /// The same sentence with the Meals the AI Assistant named instead. `names` are real titles of Meals already on the screen — never words a model wrote, and never a claim that one is popular or nearby, neither of which Kafoo can know.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش أكلة هنا مطابقة للطلب ده. الموجود دلوقتي: {names}.'**
+  String searchJudgementAlternatives(String names);
 }
 
 class _AppLocalizationsDelegate

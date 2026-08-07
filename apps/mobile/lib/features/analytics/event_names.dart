@@ -38,4 +38,17 @@ abstract final class EventNames {
   // a search happened and how many results came back, never what was searched for. The obvious
   // attribute to add here is the phrase, and it is the one thing this event must never carry.
   static const String searchPerformed = 'SearchPerformed';
+
+  // SearchFailed is emitted when the JUDGEMENT says nothing answers, not when the database returns
+  // no rows. Those are different facts: retrieval returning rows is not the same as those rows
+  // answering the question, and conflating them is what a score threshold tried and failed to do.
+  //
+  // It carries NOTHING AT ALL. Not the phrase, and not a count either — a count of results that
+  // did not answer is a number nobody can act on, and the phrase is the thing FR-029 names.
+  static const String searchFailed = 'SearchFailed';
+
+  // RecommendationAccepted is emitted when a Customer opens a Meal the AI Assistant named instead.
+  // It carries `rank`, which is where that Meal already sat in the results — never the phrase, and
+  // never the Meal's id, which would let a search be reconstructed from two rows.
+  static const String recommendationAccepted = 'RecommendationAccepted';
 }

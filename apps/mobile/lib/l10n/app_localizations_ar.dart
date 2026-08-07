@@ -1491,4 +1491,12 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get searchAreasUnknown =>
       'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.';
+
+  @override
+  String get searchJudgementNothingAnswers => 'مفيش أكلة هنا مطابقة للطلب ده.';
+
+  @override
+  String searchJudgementAlternatives(String names) {
+    return 'مفيش أكلة هنا مطابقة للطلب ده. الموجود دلوقتي: $names.';
+  }
 }

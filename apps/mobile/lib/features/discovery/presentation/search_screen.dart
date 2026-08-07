@@ -8,12 +8,15 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../analytics/emit_event.dart';
+import '../../analytics/event_names.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/voice_button.dart';
 import '../../settings/data/search_consent_store.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../application/browse_controller.dart';
 import '../application/search_controller.dart';
+import '../data/discovery_repository.dart';
 import 'browse_screen.dart';
 
 /// Asking for food, and everything that happens when a Customer does.
@@ -301,15 +304,67 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _note(l10n.searchNarrowedToArea(area), KafooColors.onSurface),
             const SizedBox(height: KafooSpacing.sm),
           ],
+          // NOTHING HERE ANSWERS — SAID ABOVE RESULTS THAT DO NOT MOVE.
+          //
+          // The list underneath is exactly what the database returned, in the
+          // order it returned it. That is not a rendering convenience: the
+          // judgement may not reorder, filter, add to or remove a Meal, and a
+          // screen that showed only the named alternatives would be filtering
+          // wearing a layout. It says something ABOUT a set the Customer can
+          // still see all of.
+          //
+          // The Meals named are looked up from the results by id, so the words
+          // on screen are titles Cooks wrote about food that is on offer. The
+          // AI Assistant never supplies a word of this sentence.
+          if (outcome.results.judgement
+              case final NothingAnswers judgement) ...[
+            _note(
+              judgement.alternatives.isEmpty
+                  ? l10n.searchJudgementNothingAnswers
+                  : l10n.searchJudgementAlternatives(
+                      judgement.alternatives.map((m) => m.title).join('، '),
+                    ),
+              KafooColors.onSurface,
+            ),
+            const SizedBox(height: KafooSpacing.sm),
+          ],
           for (final result in outcome.results.results)
             discoveredMealCard(
               l10n: l10n,
               item: result.item,
-              onOpen: widget.onOpen,
+              onOpen: _openFrom(outcome, result),
             ),
         ],
       ),
     );
+  }
+
+  /// Opening a Meal, and noticing when it is one the AI Assistant named.
+  ///
+  /// RecommendationAccepted answers "did saying 'nothing here answers you, but
+  /// there is this' actually help", which is the only question that tells us
+  /// whether the judgement is worth its cost. It carries the RANK the Meal
+  /// already had and nothing else — not the phrase, and not the Meal's id,
+  /// because an id plus a timestamp is a search somebody could reconstruct.
+  void Function(DiscoveredMeal)? _openFrom(
+    SearchOutcome outcome,
+    DiscoveryResult result,
+  ) {
+    final open = widget.onOpen;
+    if (open == null) return null;
+    return (item) {
+      if (outcome.results.judgement case final NothingAnswers judgement) {
+        if (judgement.alternatives.any((m) => m.id == item.meal.id)) {
+          unawaited(
+            emitEvent(
+              EventNames.recommendationAccepted,
+              attributes: {'rank': result.rank},
+            ),
+          );
+        }
+      }
+      open(item);
+    };
   }
 
   /// FR-029a. Said before anything is sent, in plain terms, with refusing as an

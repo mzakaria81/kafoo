@@ -1541,4 +1541,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get searchAreasUnknown =>
       'We can\'t work out which areas have food right now. Try again in a moment.';
+
+  @override
+  String get searchJudgementNothingAnswers =>
+      'Nothing here matches that request.';
+
+  @override
+  String searchJudgementAlternatives(String names) {
+    return 'Nothing here matches that request. On offer right now: $names.';
+  }
 }

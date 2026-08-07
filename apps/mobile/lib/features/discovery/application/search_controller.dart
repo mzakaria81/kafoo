@@ -280,5 +280,19 @@ class SearchController extends _$SearchController {
         area: outcome.area,
       ),
     );
+
+    // SearchFailed BELONGS HERE AND NOT WHERE THE DATABASE RETURNED NOTHING.
+    // Retrieval returning rows is not the same as those rows answering the
+    // question — conflating the two is exactly what a score threshold tried
+    // and failed to do, and the event would then be measuring the wrong fact.
+    //
+    // It carries NOTHING. Not the phrase, which FR-029 forbids, and not a
+    // count either: the number of results that did not answer is not something
+    // anybody can act on. `search_failed_test` asserts the attribute set is
+    // EMPTY rather than asserting a size, because a test that checks only a
+    // count stays green the day somebody adds a phrase beside it.
+    if (judgement is NothingAnswers) {
+      unawaited(emitEvent(EventNames.searchFailed));
+    }
   }
 }

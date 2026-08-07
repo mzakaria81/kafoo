@@ -602,6 +602,116 @@ void main() {
     });
   });
 
+  group('the judgement', () {
+    testWidgets('NOTHING HERE ANSWERS, AND THE RESULTS DO NOT MOVE',
+        (tester) async {
+      // The whole design in one assertion. The judgement says something ABOUT a
+      // set; it may not reorder, filter, add to or remove a Meal. A screen
+      // showing only the named alternatives would be filtering wearing a
+      // layout, and it is the failure this test exists to catch.
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = NothingAnswers(alternatives: [_onOffer.first.meal]);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز سوشي ياباني');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('مفيش أكلة هنا'), findsOneWidget);
+
+      // EVERY Meal is still on screen, in the order the database returned.
+      for (final item in _onOffer) {
+        expect(find.text(item.meal.title), findsOneWidget,
+            reason: '${item.meal.title} was removed by an opinion about it');
+      }
+      final titles = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data)
+          .where((d) => _onOffer.any((i) => i.meal.title == d))
+          .toList();
+      expect(titles, _onOffer.map((i) => i.meal.title).toList(),
+          reason: 'the judgement reordered the results');
+    });
+
+    testWidgets('the named alternative is a real Meal title, not model prose',
+        (tester) async {
+      final named = _onOffer.first.meal;
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = NothingAnswers(alternatives: [named]);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز سوشي ياباني');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(named.title), findsWidgets);
+    });
+
+    testWidgets('a judgement that never arrives costs a sentence, not results',
+        (tester) async {
+      // T161. The Customer keeps every Meal and simply never sees the note.
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..holdJudgement = true;
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز سوشي ياباني');
+      await tester.pumpAndSettle();
+
+      for (final item in _onOffer) {
+        expect(find.text(item.meal.title), findsOneWidget);
+      }
+      expect(find.textContaining('مفيش أكلة هنا'), findsNothing);
+    });
+
+    testWidgets('results that answer say nothing at all', (tester) async {
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = const ResultsAnswer();
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز فراخ مشوية');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('مفيش أكلة هنا'), findsNothing);
+    });
+
+    testWidgets('the sentence fits at 200% text scale', (tester) async {
+      // Six Customer-facing sentences shipped at 48 points past twenty-five
+      // passing tests this week. A sentence nobody can read is a sentence Kafoo
+      // did not say.
+      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = NothingAnswers(alternatives: [_onOffer.first.meal]);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+          child: _app(repo, consent),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز سوشي ياباني');
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('مفيش أكلة هنا'), findsOneWidget);
+    });
+  });
+
   group('measurement', () {
     testWidgets('SearchPerformed carries result_count AND NOTHING ELSE',
         (tester) async {
@@ -628,6 +738,95 @@ void main() {
       // And the phrase is nowhere in anything that was emitted.
       for (final event in events) {
         expect(event.$2.values.join(' ').contains('فراخ'), isFalse,
+            reason: '${event.$1} carries the phrase');
+      }
+    });
+
+    testWidgets(
+        'SearchFailed carries NOTHING, and only when the judgement says so',
+        (tester) async {
+      // The attribute SET is asserted empty, not its size. A test checking only
+      // a count stays green the day somebody adds the phrase beside it, which
+      // is the one thing FR-029 forbids.
+      final events = <(String, Map<String, Object>)>[];
+      debugEventRecorder = (name, attributes) => events.add((name, attributes));
+      addTearDown(() => debugEventRecorder = null);
+
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = NothingAnswers(alternatives: [_onOffer.first.meal]);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز سوشي ياباني');
+      await tester.pumpAndSettle();
+
+      final failed = events.where((e) => e.$1 == 'SearchFailed').toList();
+      expect(failed.length, 1);
+      expect(failed.single.$2, isEmpty,
+          reason: 'SearchFailed carries no attributes at all');
+
+      for (final event in events) {
+        expect(event.$2.values.join(' ').contains('سوشي'), isFalse,
+            reason: '${event.$1} carries the phrase');
+      }
+    });
+
+    testWidgets('results that answer emit no SearchFailed', (tester) async {
+      // The event names a judgement, not an empty database. Emitting it
+      // whenever retrieval was thin would measure the fact a score already
+      // failed to measure.
+      final events = <String>[];
+      debugEventRecorder = (name, _) => events.add(name);
+      addTearDown(() => debugEventRecorder = null);
+
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = const ResultsAnswer();
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز فراخ مشوية');
+      await tester.pumpAndSettle();
+
+      expect(events.contains('SearchFailed'), isFalse);
+    });
+
+    testWidgets('RecommendationAccepted only for a Meal the judgement named',
+        (tester) async {
+      final events = <(String, Map<String, Object>)>[];
+      debugEventRecorder = (name, attributes) => events.add((name, attributes));
+      addTearDown(() => debugEventRecorder = null);
+
+      final named = _onOffer.first.meal;
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer)
+        ..judgement = NothingAnswers(alternatives: [named]);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      // An opener is required: without one the cards are not openable at all,
+      // and a test that taps nothing would pass by emitting nothing.
+      await tester.pumpWidget(_app(repo, consent, onOpen: (_) {}));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز سوشي ياباني');
+      await tester.pumpAndSettle();
+
+      // The Meal that was NOT named. Opening it is an ordinary open.
+      await tester.tap(find.text(_onOffer.last.meal.title).first);
+      await tester.pumpAndSettle();
+      expect(events.where((e) => e.$1 == 'RecommendationAccepted'), isEmpty);
+
+      await tester.tap(find.text(named.title).first);
+      await tester.pumpAndSettle();
+
+      final accepted =
+          events.where((e) => e.$1 == 'RecommendationAccepted').toList();
+      expect(accepted.length, 1);
+      expect(accepted.single.$2.keys.toList(), ['rank']);
+      for (final event in events) {
+        expect(event.$2.values.join(' ').contains('سوشي'), isFalse,
             reason: '${event.$1} carries the phrase');
       }
     });
