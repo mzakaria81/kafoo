@@ -1299,3 +1299,48 @@ want, and a wanted outcome is the least examined one. A check gated on environme
 different right answer per environment, so its verdict must be predicted per environment and then
 compared — otherwise the mutation test faithfully demonstrates the defect and is read as proof of
 its absence.
+
+### Observation 95: A privacy requirement stated as a screen behaviour must be implemented as a single choke point, not a screen branch
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — building a search screen whose acceptance criterion was "with the consent switch off, ZERO words leave the device, verified by watching what leaves rather than by reading the code that decides."
+**Skill:** New skill candidate: verifying-egress-constraints
+**Type:** open-source
+**Phase/Area:** Implementation and test design for privacy/consent gates
+
+**Issue:** The requirement was phrased as something the interface does ("the search box is unavailable"), which invites an implementation where the screen checks consent before calling the network. That is a branch among several — a suggestion chip, a deep link, a retry button, a voice button, and a "choose another area" action are all separate entry points, and each one added later walks past a screen-level check. The founder's framing ("the consent gate and the search screen are the same piece of work, not two") named the trap precisely: the failure is not a wrong branch, it is a second door.
+
+**Suggested improvement:** For any constraint of the form "X must never leave under condition C", implement one choke point that every path funnels through, and prove it by recording what crossed the boundary rather than by asserting the branch. Two concrete techniques worth documenting: (a) give the test double a list that records every value handed to the outside — not a call count, which cannot answer "what left"; (b) mutation-test the gate by deliberately routing the forbidden case to the network and confirming the test goes red. A test asserting "the refused branch was taken" passes just as happily against an implementation that takes the branch AND sends the data.
+
+**Principle:** An egress constraint is a property of a boundary, not of a screen. Implement it at the single point every path must cross, and verify it by recording what crossed rather than by asserting which branch ran — a branch assertion and an egress assertion look identical in the passing case and differ only in the case that matters.
+
+### Observation 96: An error message is an egress path, and it is the one nobody audits
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — the `discover` Edge Function returned `detail: String(error)` on a 503, while the same feature's requirements forbid the Customer's phrase reaching "the event, a log line, or an error carrying the request".
+**Skill:** New skill candidate: verifying-egress-constraints
+**Type:** open-source
+**Phase/Area:** Reviewing data-handling code
+
+**Issue:** The forbidden value never appeared in the function's own code near the error. It arrived through two hops: the vendor adapter interpolated the provider's HTTP response body into an exception message, and providers routinely quote the offending request back in that body. So a function that carefully never logs the input still hands it to the caller inside an error, and the code reads as though it does not.
+
+**Suggested improvement:** When auditing where a sensitive value can go, treat every `String(error)`, `err.message`, stack trace and structured error payload as an egress path and trace it to the layer that CONSTRUCTS the message, not the layer that emits it. The test that catches it asserts on the whole serialised response containing the sensitive string, across each failure mode — not on the fields the author remembered to check.
+
+**Principle:** Sensitive data leaves through errors more often than through logs, because an error message is assembled somewhere else and read as opaque at the point it is returned. Audit error construction at its source, and assert on the entire outgoing payload rather than on named fields.
+
+### Observation 97: A generated-file gate makes a comment about the rule a violation of it
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — a project vocabulary check failed on a new ARB entry whose *description* said the string "names the AI Assistant by its canonical name — never bot, chatbot or model". The banned words appeared only as an explanation of the ban, and only in a generated Dart file compiled from the ARB.
+**Skill:** task-observer (or a repo-conventions skill)
+**Type:** open-source
+**Phase/Area:** Working with generated artefacts and lint-style content gates
+
+**Issue:** Documentation prose about a forbidden term is indistinguishable, to a substring scanner, from a use of the forbidden term — and the failure surfaced in a file the author never edited, which makes the error message point at the wrong place. Time was spent looking for a real vocabulary mistake before recognising it was the comment about the rule.
+
+**Suggested improvement:** When a content gate scans generated output, expect prose *about* the rule to trip it, and phrase rule-explaining comments by reference rather than enumeration ("rather than any of the words the vocabulary check forbids"). More generally: when a check fails inside a generated file, resolve the finding to its SOURCE file before diagnosing it.
+
+**Principle:** A scanner cannot distinguish mention from use. Comments that explain a prohibition should refer to it rather than quote it, and a finding in a generated file is a finding about its source.
