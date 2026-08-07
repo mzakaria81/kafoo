@@ -35,15 +35,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "IN_PROGRESS",
+  "owner": "session_01Fzybf4HcqK3mFMEjTutZsE",
   "priority": 3,
   "spend_envelope_usd": 2.5,
   "suggested_model": "opencode-go/grok-4.5",
-  "branch": null,
+  "branch": "claude/e3-start-7sfmcm",
   "pr": null,
   "blocked_reason": null,
-  "notes": "The only thing in Kafoo on an AI path holding a service-role key. The argument for it is in plan.md's Complexity Tracking: an embedding is not a claim, so Principle II is not what stops it. That argument must be checked by something other than the document making it, which is why T214 is an acceptance criterion rather than a nicety. The manipulation hole it closes is real and invisible: a client that supplies the vector can supply the one nearest every query, and that Cook's Meal ranks first for everything, permanently.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
+  "notes": "The only thing in Kafoo on an AI path holding a service-role key. The argument for it is in plan.md's Complexity Tracking: an embedding is not a claim, so Principle II is not what stops it. That argument must be checked by something other than the document making it, which is why T214 is an acceptance criterion rather than a nicety. The manipulation hole it closes is real and invisible: a client that supplies the vector can supply the one nearest every query, and that Cook's Meal ranks first for everything, permanently.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.\n\nUNBLOCKED 2026-08-07: the founder accepted the cost (~$4/month, docs/ops/discovery-model-costs.md). The PAID TIER IS NOT ON YET — his answer was 'later' — so this package is built and tested against the free tier's 1,000 requests/day, which is ample for development and for golden cases. It is NOT ample for launch, because publishing Meals alone spends against it. That is a pre-launch checklist item, not something this package can close.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T19:30:00Z"
+  "updated_at": "2026-08-07T05:30:00Z"
 }
