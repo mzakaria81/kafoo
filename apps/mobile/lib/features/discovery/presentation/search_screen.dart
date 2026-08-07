@@ -321,9 +321,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _note(
               judgement.alternatives.isEmpty
                   ? l10n.searchJudgementNothingAnswers
-                  : l10n.searchJudgementAlternatives(
-                      judgement.alternatives.map((m) => m.title).join('، '),
-                    ),
+                  : _namedAlternatives(l10n, judgement.alternatives),
               KafooColors.onSurface,
             ),
             const SizedBox(height: KafooSpacing.sm),
@@ -336,6 +334,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  /// The sentence naming Meals, with the grammar of the list left to the ARB.
+  ///
+  /// **The separator used to be `، ` hardcoded here, and it shipped an Arabic
+  /// comma to English readers** — measured by localization-reviewer against the
+  /// real screen under `Locale('en')`: "Koshari، Molokhia، Fattah", and no "and"
+  /// anywhere. Joining is grammar, and grammar belongs where a translator can
+  /// reach it: Arabic repeats و before every item, English uses one `and` before
+  /// the last, and no single separator can serve both.
+  ///
+  /// **Each title is isolated between U+2068 and U+2069.** Two Latin-script
+  /// titles side by side fuse into one left-to-right island inside a
+  /// right-to-left sentence, and the island's internal order runs against the
+  /// sentence — measured, "Pizza، Burger" put Burger to the RIGHT of Pizza, so
+  /// the Meal named first was read second. Isolation fixes it and changes
+  /// nothing for Arabic titles.
+  String _namedAlternatives(AppLocalizations l10n, List<Meal> alternatives) {
+    // At most three arrive — `judge-results` caps them — and the ARB carries a
+    // plural arm per count rather than a joined string.
+    String isolated(int index) => index < alternatives.length
+        ? '\u2068${alternatives[index].title}\u2069'
+        : '';
+    return l10n.searchJudgementAlternatives(
+      alternatives.length,
+      isolated(0),
+      isolated(1),
+      isolated(2),
     );
   }
 

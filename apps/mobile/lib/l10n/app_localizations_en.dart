@@ -1544,10 +1544,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchJudgementNothingAnswers =>
-      'Nothing here matches that request.';
+      'Nothing here is exactly what you asked for.';
 
   @override
-  String searchJudgementAlternatives(String names) {
-    return 'Nothing here matches that request. On offer right now: $names.';
+  String searchJudgementAlternatives(
+      int count, String first, String second, String third) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: $first, $second and $third',
+      two:
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: $first and $second',
+      one:
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: $first',
+    );
+    return '$_temp0';
   }
 }

@@ -31,6 +31,11 @@ void main() {
       'popularity',
       'proximity',
       'adversarial',
+      // Separate from `adversarial`: the corpus had one adversarial fixture,
+      // injecting through the Customer's phrase, and it satisfied both corpus
+      // checks — so injection through a COOK's description, which is the source
+      // the rules name and the one with a commercial motive, was invisible.
+      'description-injection',
     ]) {
       expect(kinds, contains(required),
           reason: 'no fixture of kind "$required" — the contract names it');

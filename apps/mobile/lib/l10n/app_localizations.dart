@@ -1394,17 +1394,18 @@ abstract class AppLocalizations {
   /// **'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.'**
   String get searchAreasUnknown;
 
-  /// Shown above the results when the AI Assistant judges that none of them answers what the Customer asked for. THE RESULTS STAY ON SCREEN UNDERNEATH — the judgement says something about a set, it never edits one. No second person anywhere: Arabic marks gender on `you`, and there is no neutral form, so the sentence is about the request rather than about the person who made it.
+  /// Shown above the results when the AI Assistant judges that none of them answers what the Customer asked for. THE RESULTS STAY ON SCREEN UNDERNEATH — the judgement says something about a set, it never edits one. No second person anywhere: Arabic marks gender on `you` and has no neutral form, so the sentence is about the food rather than about the person who asked. Says `زي كده` rather than `مطابقة للطلب`: the second is spec-sheet Modern Standard, and `الطلب` is Kafoo's word for an ORDER, so a Customer reads it as being about an Order they placed.
   ///
   /// In ar, this message translates to:
-  /// **'مفيش أكلة هنا مطابقة للطلب ده.'**
+  /// **'مفيش أكلة هنا زي كده بالظبط.'**
   String get searchJudgementNothingAnswers;
 
-  /// The same sentence with the Meals the AI Assistant named instead. `names` are real titles of Meals already on the screen — never words a model wrote, and never a claim that one is popular or nearby, neither of which Kafoo can know.
+  /// The same sentence with the Meals the AI Assistant named instead — real titles of Meals already on the screen, never words a model wrote. `من اللي معروض` and not `الموجود`: the second claims these are everything on offer while up to 47 other Meals sit visible underneath it. THE JOINING GRAMMAR IS HERE AND NOT IN DART. It was a hardcoded `، ` in a widget, so the English locale rendered Arabic commas and never said `and` — Arabic repeats و before every item and English uses one `and` before the last, which is why no single separator can serve both. There is no full stop after the list: after a Latin-script title it resolves to the paragraph direction and lands to the LEFT of the name.
   ///
   /// In ar, this message translates to:
-  /// **'مفيش أكلة هنا مطابقة للطلب ده. الموجود دلوقتي: {names}.'**
-  String searchJudgementAlternatives(String names);
+  /// **'{count, plural, =1{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: {first}} =2{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: {first} و{second}} other{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: {first} و{second} و{third}}}'**
+  String searchJudgementAlternatives(
+      int count, String first, String second, String third);
 }
 
 class _AppLocalizationsDelegate

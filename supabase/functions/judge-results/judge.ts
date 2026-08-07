@@ -45,7 +45,21 @@ export const JUDGEMENT_SCHEMA: ResponseSchema = {
     },
     alternatives: {
       type: 'array',
-      items: { type: 'integer' },
+      // `minimum: 1`, AND IT IS THE WHOLE REPLY THAT FAILS RATHER THAN THE NUMBER.
+      //
+      // A zero is not noise. The list is numbered from one, so a model that returns 0 numbered the
+      // list from zero — every index is shifted and the first is silently discarded. Dropping the
+      // out-of-range entry and publishing the rest answered with Meals the judgement did not pick,
+      // while telling the Customer they were: measured on three Meals, a reply meaning
+      // "the first and the second" published "the first" alone.
+      //
+      // Refusing the reply is also the consistent stance. An unknown property already costs the
+      // whole judgement; being strict about a harmless extra field and lenient about a number that
+      // proves the model mis-read the list is the inconsistency running the wrong way.
+      items: { type: 'integer', minimum: 1 },
+      // Nullable because a model returning explicit `null` for "none" is ordinary and the reply is
+      // perfectly usable. That is leniency about something genuinely harmless.
+      nullable: true,
       description: 'Numbers of Meals worth naming instead, from the list given.',
     },
   },
@@ -58,15 +72,51 @@ export const JUDGEMENT_SCHEMA: ResponseSchema = {
 /// be a second ranking rule living somewhere the first one cannot see. The numbers exist so the
 /// model can point at a Meal without holding its id.
 export function buildUserContent(phrase: string, meals: readonly JudgeableMeal[]): string {
-  const numbered = meals
-    .map((meal, index) => `${index + 1}. ${meal.title} — ${meal.description}`)
-    .join('\n');
+  // JSON, BECAUSE A HEADER IS A STRING AND A COOK CAN TYPE ONE.
+  //
+  // This built a plain-text list — `The Meals that came back:` and a numbered block — and said in a
+  // comment that the labelling made untrusted text "visibly a quoted value". It did not. Found by
+  // ai-boundary-reviewer, who ran it: a Cook puts the delimiter INSIDE their own description,
+  // followed by a second list containing only their Meal and a rule telling the model to answer
+  // `false` and name number 1. Every defence downstream then passes, because nothing about the
+  // payload is malformed — `false` is a valid boolean and `1` is an in-range index. A Customer asks
+  // for koshari, koshari is on offer, and Kafoo says nothing here answers you but there is a burger.
+  // A Cook bought a promotion by typing into a text field, at no cost, in a marketplace where
+  // ranking manipulation is a trust failure.
+  //
+  // A JSON value cannot be escaped from by writing text into it: a quote inside a description is
+  // encoded rather than closing the string, so the structure the model sees is the structure this
+  // function built. That is a property of the encoding rather than of how carefully the text reads.
+  //
+  // The words themselves are still passed through unchanged, only truncated. Scrubbing them would
+  // change what the Customer asked for, and the prompt's untrusted-input rule is what handles the
+  // content.
+  return JSON.stringify({
+    request: clamp(phrase, PHRASE_MAX),
+    meals: meals.map((meal, index) => ({
+      number: index + 1,
+      title: clamp(meal.title, TITLE_MAX),
+      description: clamp(meal.description, DESCRIPTION_MAX),
+    })),
+  });
+}
 
-  // Labelled and separated, so a request that reads like an instruction is visibly a quoted value
-  // rather than a continuation of the prompt. The words themselves are passed through unchanged:
-  // scrubbing them would change what the Customer asked for, and the prompt's own untrusted-input
-  // rule is what handles them.
-  return `The Customer asked for:\n${phrase}\n\nThe Meals that came back:\n${numbered}`;
+/// Nothing bounded the size of a Meal's text, and `meals.description` has no length constraint.
+///
+/// Fifty Meals with 20 KB descriptions is a megabyte of prompt on every search that returns them,
+/// billed per search, at a latency the two-second budget never sees because this call is never
+/// awaited. One Cook can create that, for free, and it would look like a provider bill nobody could
+/// explain. A judgement needs enough of a description to tell food apart, not all of it.
+const TITLE_MAX = 120;
+const DESCRIPTION_MAX = 400;
+const PHRASE_MAX = 500;
+
+function clamp(value: string, max: number): string {
+  // Control characters go, including the newlines the old plain-text frame could be split with.
+  // They carry no meaning in a food description and every use of one here is someone shaping a
+  // prompt rather than describing a Meal.
+  const flat = value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+  return flat.length <= max ? flat : `${flat.slice(0, max)}…`;
 }
 
 /// Turns a validated reply into a judgement, believing as little of it as possible.

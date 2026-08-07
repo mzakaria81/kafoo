@@ -1348,16 +1348,29 @@
   "@searchAreasUnknown": {
     "description": "FR-024a. Shown when a Customer's named area is empty AND Kafoo could not find out which areas do have food — the browse load failed, or no Cook wrote an area at all. It is NOT browseNothingOnOffer: telling a Customer the whole marketplace is empty when Kafoo simply has not been told is a lie by a different route, and it lands right after telling them their own area is empty. Customer-facing and ungendered per ADR-0010."
   },
-  "searchJudgementNothingAnswers": "مفيش أكلة هنا مطابقة للطلب ده.",
+  "searchJudgementNothingAnswers": "مفيش أكلة هنا زي كده بالظبط.",
   "@searchJudgementNothingAnswers": {
-    "description": "Shown above the results when the AI Assistant judges that none of them answers what the Customer asked for. THE RESULTS STAY ON SCREEN UNDERNEATH — the judgement says something about a set, it never edits one. No second person anywhere: Arabic marks gender on `you`, and there is no neutral form, so the sentence is about the request rather than about the person who made it."
+    "description": "Shown above the results when the AI Assistant judges that none of them answers what the Customer asked for. THE RESULTS STAY ON SCREEN UNDERNEATH — the judgement says something about a set, it never edits one. No second person anywhere: Arabic marks gender on `you` and has no neutral form, so the sentence is about the food rather than about the person who asked. Says `زي كده` rather than `مطابقة للطلب`: the second is spec-sheet Modern Standard, and `الطلب` is Kafoo's word for an ORDER, so a Customer reads it as being about an Order they placed."
   },
-  "searchJudgementAlternatives": "مفيش أكلة هنا مطابقة للطلب ده. الموجود دلوقتي: {names}.",
+  "searchJudgementAlternatives": "{count, plural, =1{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: {first}} =2{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: {first} و{second}} other{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: {first} و{second} و{third}}}",
   "@searchJudgementAlternatives": {
-    "description": "The same sentence with the Meals the AI Assistant named instead. `names` are real titles of Meals already on the screen — never words a model wrote, and never a claim that one is popular or nearby, neither of which Kafoo can know.",
+    "description": "The same sentence with the Meals the AI Assistant named instead — real titles of Meals already on the screen, never words a model wrote. `من اللي معروض` and not `الموجود`: the second claims these are everything on offer while up to 47 other Meals sit visible underneath it. THE JOINING GRAMMAR IS HERE AND NOT IN DART. It was a hardcoded `، ` in a widget, so the English locale rendered Arabic commas and never said `and` — Arabic repeats و before every item and English uses one `and` before the last, which is why no single separator can serve both. There is no full stop after the list: after a Latin-script title it resolves to the paragraph direction and lands to the LEFT of the name.",
     "placeholders": {
-      "names": {
-        "type": "String"
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "first": {
+        "type": "String",
+        "example": "كشري"
+      },
+      "second": {
+        "type": "String",
+        "example": "ملوخية"
+      },
+      "third": {
+        "type": "String",
+        "example": "فتة لحمة"
       }
     }
   }

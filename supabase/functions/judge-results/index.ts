@@ -8,8 +8,9 @@
 // THIS FUNCTION HOLDS NO SERVICE-ROLE KEY AND WRITES NOTHING. Like `discover`, it reads with the
 // caller's own credentials and gains no authority of its own — so RLS decides which Meals it can
 // see, and an unpublished Meal is invisible to the judgement exactly as it is to the Customer.
-// index.test.ts asserts both properties against this file's source rather than trusting the
-// sentence above (FR-018, T217).
+// index_test.ts asserts both properties against this directory's sources rather than trusting the
+// sentence above (FR-018, T217). The filename is `_test` and not `.test`: the gate globs the first
+// and the second means "needs a live stack", which scripts/verify.sh now says out loud.
 //
 // IT NEVER RECORDS THE PHRASE. Not a log line, not a cache keyed on it, not an analytics attribute.
 // FR-029 and SC-011, the same rule `discover` carries — a cache keyed on what somebody said is a
