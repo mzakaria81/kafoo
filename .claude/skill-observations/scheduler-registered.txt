@@ -1,0 +1,7 @@
+2026-08-07
+Routine: weekly-skill-review (trig_01QWBe6oE7zEP6WMgGoYbbaj)
+Environment: env_01NpYZDM5LA44MKerp1tdNiC (Kafoo_Dev)
+Schedule: 0 6 * * 1 — Mondays 06:00 UTC, 09:00 Cairo
+Delivery: triage, stage under skill-updates/, push chore/skill-review-<date>. No PR, no merge.
+Note: fired sessions carry no MCP connectors, so they use git over the shell and never the
+GitHub MCP tools. That is why this Routine pushes a branch rather than opening a pull request.
