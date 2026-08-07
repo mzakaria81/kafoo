@@ -116,6 +116,22 @@ Customer or Cook reads. The English entry is the translation.
 Domain words that must not be "corrected" into Modern Standard Arabic, because they are what
 people actually say: `كشري` (Koshary), `فراخ` (chicken — not `دجاج`), `عيش` (bread — not `خبز`).
 
+**Participants have one Arabic name each, the same way they have one English one.** These were
+being decided one string at a time until 2026-08-07, when a Customer-facing sentence introduced
+`الزبون` with no entry anywhere and a second name for the AI Assistant alongside the five strings
+that already had one.
+
+| Concept | Arabic | Never |
+|---|---|---|
+| Customer | `الزبون` | `العميل` — the bank's word, not a marketplace's |
+| Cook | `الطباخ` | `الشيف`, `البائع` |
+| AI Assistant | `المساعد الذكي` | `البوت`, `الروبوت`, `الذكاء الاصطناعي` used as a name |
+
+`المساعد الذكي` is what the five existing strings say, so it is the name — not because it is the
+better of the two. `مساعد كفو` is arguably better register and does not assert cleverness, and
+changing to it is a seven-string sweep and a founder's call, not something to do in two new strings
+and leave the concept with two names.
+
 Transliterated English is normal in this register and must be searchable: `برجر` (burger),
 `بانيه` (panée). Cross-language matching is an embedding property, verified in evals — never a
 `LIKE` query.

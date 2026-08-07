@@ -103,13 +103,23 @@ class SearchState {
 
 /// Searching, and the one gate a phrase has to pass to leave the device.
 ///
-/// **[search] is the only path from a Customer's words to the network, and the
-/// consent check is the first thing in it.** That is deliberate and structural:
-/// SC-014 requires that a Customer who refused sends zero words anywhere, and
-/// the only way to be sure of that is for there to be one door. A check placed
-/// in the screen instead would be one branch among several, and the second
-/// entry point somebody adds later — a suggestion chip, a deep link, a retry —
-/// would walk straight past it.
+/// **[_send] is the only path from a Customer's words to the network, and the
+/// consent check is the first thing in it.** SC-014 requires that a Customer
+/// who refused sends zero words anywhere, and the only way to be sure of that
+/// is for there to be one door.
+///
+/// **The gate was on [search] until trust-reviewer walked round it on
+/// 2026-08-07**, and the way it did so is the reason this comment is worth
+/// reading. [chooseArea] is a second entry point — the one FR-024a requires —
+/// and it called `_send` directly. A Customer could search, turn the switch
+/// off, and still have their sentence sent by choosing an area. The screen hid
+/// the buttons, so the only thing standing between a refused Customer and an
+/// outbound phrase was a widget branch: exactly the arrangement SC-014 was
+/// written to forbid.
+///
+/// The guard belongs on the FUNNEL and not on the entrances, because entrances
+/// keep being added. This class doc named that failure mode and the code did
+/// not follow it.
 @riverpod
 class SearchController extends _$SearchController {
   DiscoveryRepository get _repository => ref.read(discoveryRepositoryProvider);
@@ -125,23 +135,16 @@ class SearchController extends _$SearchController {
     final trimmed = phrase.trim();
     if (trimmed.isEmpty) return;
 
+    // The question, at the first attempt to search and not before — FR-029a.
+    // Everything else is `_send`'s to refuse.
     final consent = await ref.read(searchConsentControllerProvider.future);
     if (!ref.mounted) return;
-
-    switch (consent) {
-      case SearchConsent.unanswered:
-        // The question, at the first attempt to search and not before — FR-029a.
-        state = state.copyWith(asking: true, pendingPhrase: trimmed);
-      case SearchConsent.refused:
-        state = state.copyWith(
-          searchIsOff: true,
-          outcome: null,
-          error: null,
-          searching: false,
-        );
-      case SearchConsent.granted:
-        await _send(trimmed, null);
+    if (consent.needsAsking) {
+      state = state.copyWith(asking: true, pendingPhrase: trimmed);
+      return;
     }
+
+    await _send(trimmed, null);
   }
 
   /// Records the Customer's answer and, if they agreed, runs what they asked
@@ -198,10 +201,28 @@ class SearchController extends _$SearchController {
     await _send(phrase, area);
   }
 
+  /// Whether the phrase may leave, and the only place that question is asked.
+  ///
+  /// Every outbound path runs through [_send], and [_send] runs through this.
+  Future<bool> _mayLeave() async {
+    final consent = await ref.read(searchConsentControllerProvider.future);
+    if (!ref.mounted) return false;
+    if (consent.allowsSearch) return true;
+    state = state.copyWith(
+      searchIsOff: !consent.needsAsking,
+      searching: false,
+    );
+    return false;
+  }
+
   /// Clears the search and returns to what is on offer.
   void clear() => state = const SearchState();
 
   Future<void> _send(String phrase, String? area) async {
+    // THE GATE. First statement, before anything is put on the wire and before
+    // the state says a search is running.
+    if (!await _mayLeave()) return;
+
     state = state.copyWith(
       searching: true,
       error: null,

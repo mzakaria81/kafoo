@@ -83,7 +83,7 @@ final class SearchOutcome {
   const SearchOutcome({
     required this.results,
     this.excludedId,
-    this.notUnderstood,
+    this.notUnderstood = false,
     this.area,
   });
 
@@ -93,8 +93,14 @@ final class SearchOutcome {
   /// Which exclusion Kafoo acted on, if any. An id, never the Customer's words.
   final String? excludedId;
 
-  /// The words following a negation marker that Kafoo could not map to a food.
-  final String? notUnderstood;
+  /// Whether a negation was recognised and the food after it was not.
+  ///
+  /// **A flag and not the words.** `discover` returned the Customer's own words
+  /// here until 2026-08-07 — the whole tail of the sentence after the negation
+  /// marker — and nothing ever read them: the sentence Kafoo says about this
+  /// has no placeholder in it. Carrying them was a channel held open across the
+  /// network, and into an error body, for no feature.
+  final bool notUnderstood;
 
   /// The area the search was narrowed to, in the Customer's own words.
   ///
@@ -157,7 +163,7 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
           SearchOutcome(
             results: const DiscoveryResults(results: []),
             excludedId: data['excluded'] as String?,
-            notUnderstood: data['notUnderstood'] as String?,
+            notUnderstood: data['notUnderstood'] == true,
             area: data['area'] as String?,
           ),
         );
@@ -200,7 +206,7 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
         SearchOutcome(
           results: DiscoveryResults(results: ranked),
           excludedId: data['excluded'] as String?,
-          notUnderstood: data['notUnderstood'] as String?,
+          notUnderstood: data['notUnderstood'] == true,
           area: data['area'] as String?,
         ),
       );

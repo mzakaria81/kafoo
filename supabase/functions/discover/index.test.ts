@@ -62,7 +62,7 @@ Deno.test('a recognised exclusion becomes a predicate, not a phrase for the mode
   const body = await response.json();
 
   assertEquals(body.excluded, 'meat');
-  assertEquals(body.notUnderstood, null);
+  assertEquals(body.notUnderstood, false);
   assertEquals((recorder.searched[0].exclude ?? []).includes('لحمة'), true);
   // The words stay in the embedded text. Stripping them would silently change the request.
   assertEquals(recorder.embedded[0], 'أكل من غير لحمة خالص');
@@ -77,7 +77,7 @@ Deno.test('AN EXCLUSION KAFOO DID NOT UNDERSTAND IS REPORTED, NEVER DROPPED', as
   const body = await response.json();
 
   assertEquals(response.status, 200);
-  assertEquals(body.notUnderstood, 'كافيار');
+  assertEquals(body.notUnderstood, true);
   assertEquals(body.excluded, null);
   // And nothing was filtered on, because Kafoo does not know what to filter on — which is exactly
   // why the interface must say so.
@@ -122,7 +122,7 @@ Deno.test('a failure still reports what was understood', async () => {
   // identical to one from a request with no exclusion in it.
   const [d] = deps({ search: () => Promise.reject(new Error('down')) });
   const body = await (await handleDiscover(post({ phrase: 'من غير كافيار' }), d)).json();
-  assertEquals(body.notUnderstood, 'كافيار');
+  assertEquals(body.notUnderstood, true);
 });
 
 Deno.test('an empty or missing phrase is refused before anything is spent', async () => {
@@ -203,6 +203,36 @@ Deno.test('the area is never normalised here', () => {
   // Cook's side already compares through it. Folding here too would be one rule in two languages.
   assertEquals(parsePhrase('كشري في العجوزة').area, 'العجوزة');
   assertEquals(parsePhrase('كشري في العجوزه').area, 'العجوزه');
+});
+
+Deno.test('NO WORD OF THE PHRASE COMES BACK EXCEPT THE AREA', async () => {
+  // TIGHTENED 2026-08-07 after trust-reviewer walked past the test below. That one asserts the
+  // WHOLE phrase is absent, and `notUnderstood` was returning the entire tail of the sentence after
+  // the negation marker — most of a phrase, which is not the whole of it, so it passed while
+  // `المايونيز بتاع محل عمو سيد جنب بيتي` sat in a 503 body.
+  //
+  // A test that asserts on the exact input string can only catch a verbatim echo. This asserts word
+  // by word, which is what "the phrase does not come back" actually means.
+  //
+  // The area IS returned, and deliberately: the interface says "results from المهندسين only", so it
+  // needs the word. It is one token a Cook also wrote about their own kitchen, not the sentence.
+  const phrase = 'عايز حاجة من غير المايونيز بتاع محل عمو سيد جنب بيتي في المهندسين';
+  const [d] = deps();
+  const responses = [
+    await handleDiscover(post({ phrase }), d),
+    await handleDiscover(
+      post({ phrase }),
+      deps({ embedQuery: () => Promise.reject(new Error('down')) })[0],
+    ),
+  ];
+
+  for (const response of responses) {
+    const text = await response.text();
+    for (const word of phrase.split(/\s+/)) {
+      if (word === 'المهندسين') continue;
+      assertEquals(text.includes(word), false, `"${word}" came back in ${text}`);
+    }
+  }
 });
 
 Deno.test('AN ERROR NEVER CARRIES THE PHRASE OUT', async () => {

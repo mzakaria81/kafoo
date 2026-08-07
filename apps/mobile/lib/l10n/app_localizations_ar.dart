@@ -37,7 +37,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchUnavailable =>
-      'البحث مش شغال دلوقتي، بس تقدر تتفرج على الأكل الموجود.';
+      'البحث مش شغال دلوقتي، بس الفرجة على الأكل الموجود شغالة عادي.';
 
   @override
   String mealCardSemanticLabel(String kitchen, String price, String title) {
@@ -1387,18 +1387,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsTitle => 'الإعدادات';
 
   @override
-  String get settingsSearchTitle => 'البحث بمساعد كفو';
+  String get settingsSearchTitle => 'البحث بالمساعد الذكي';
 
   @override
   String get settingsSearchExplanation =>
-      'علشان نلاقي الأكل المطلوب، الكلام اللي بيتكتب في البحث بيروح لخدمة بره كفو تفهم معناه. لو ده مقفول، البحث مش هيشتغل، والتفرج على الأكل هيفضل شغال زي ما هو.';
+      'علشان نلاقي الأكل المطلوب، الكلام اللي بيتكتب في البحث بيروح لخدمة بره كفو بتفهم معناه. لو ده مقفول، البحث مش هيشتغل، والفرجة على الأكل هتفضل شغالة زي ما هي.';
 
   @override
   String get settingsSearchStorageNote =>
-      'الإجابة دي محفوظة على الموبايل ده بس. كفو مش بيسجل الكلام اللي بيتبحث بيه، ولا بيحتفظ بالإجابة عنده.';
+      'الرد ده محفوظ على الموبايل ده بس. كفو مش بيسجل الكلام اللي بيتكتب في البحث، ولا بيحتفظ بالرد عنده.';
 
   @override
-  String get searchLabel => 'نفسك في إيه؟';
+  String get searchLabel => 'أكل إيه النهاردة؟';
 
   @override
   String get searchHint => 'حاجة سخنة من غير لحمة في المهندسين';
@@ -1414,7 +1414,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchVoiceUnavailable =>
-      'الموبايل ده مش بيدعم الكلام بالصوت دلوقتي. الكتابة شغالة عادي.';
+      'الصوت مش شغال على الموبايل ده دلوقتي. الكتابة شغالة عادي.';
 
   @override
   String get searchIsOff =>
@@ -1422,15 +1422,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchFoundNothing =>
-      'ملقيناش حاجة بالوصف ده. ده كل اللي معروض دلوقتي.';
+      'ملقيناش حاجة زي كده. ده كل اللي معروض دلوقتي.';
 
   @override
   String get searchExclusionNotUnderstood =>
-      'فهمنا إن في حاجة مش مطلوبة في الأكل، بس مش عارفين هي إيه بالظبط — فما اتشالتش أي أكلة على أساسها.';
+      'فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.';
 
   @override
   String searchFilteredOn(String food) {
-    return 'شيلنا الأكلات المكتوب فيها $food. ده على حسب اللي الطباخين كتبوه وتقدير مساعد كفو — مش تأكيد إن باقي الأكلات خالية منها.';
+    return 'شيلنا الأكلات المكتوب فيها $food. ده على حسب اللي الطباخين كتبوه وتقدير المساعد الذكي — مش معناه إن باقي الأكلات مفيهاش $food.';
   }
 
   @override
@@ -1449,7 +1449,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchConsentQuestion =>
-      'علشان كفو يفهم الكلام ويلاقي الأكل المناسب، لازم يبعت اللي اتكتب في البحث لخدمة بره كفو. الكلام ده مش بيتسجل عندنا ولا بيتحفظ. نبعته؟';
+      'علشان كفو يفهم الكلام ويلاقي الأكل المناسب، لازم يبعت اللي اتكتب في البحث لخدمة بره كفو. كفو نفسه مش بيسجل الكلام ده ولا بيحتفظ بيه. ولو الكلام اتقال بالصوت، الموبايل نفسه هو اللي بيحوّله لكتابة. نبعته؟';
 
   @override
   String get searchConsentAgree => 'أيوه، ابعتوه';
@@ -1459,7 +1459,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchConsentNote =>
-      'لو الرد لأ، البحث مش هيشتغل والتفرج على الأكل هيفضل شغال. الإجابة محفوظة على الموبايل ده بس وينفع تتغير من الإعدادات في أي وقت.';
+      'لو الرد لأ، البحث مش هيشتغل والفرجة على الأكل هتفضل شغالة. الرد هيتحفظ على الموبايل ده بس، وينفع يتغير من الإعدادات في أي وقت.';
 
   @override
   String exclusionName(String food) {
@@ -1469,7 +1469,7 @@ class AppLocalizationsAr extends AppLocalizations {
         'meat': 'لحمة',
         'chicken': 'فراخ',
         'fish': 'سمك',
-        'shellfish': 'مأكولات بحرية',
+        'shellfish': 'جمبري ومحار',
         'egg': 'بيض',
         'dairy': 'ألبان',
         'peanut': 'فول سوداني',
@@ -1487,4 +1487,8 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get mealNoLongerOnOffer =>
       'الأكلة دي مبقتش معروضة. الطباخ شالها من المنيو دلوقتي.';
+
+  @override
+  String get searchAreasUnknown =>
+      'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.';
 }

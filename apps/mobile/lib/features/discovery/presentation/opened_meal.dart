@@ -61,14 +61,21 @@ class _OpenedMealState extends ConsumerState<OpenedMeal> {
       // The Cook's OWN stored form, never the reader's — ADR-0010.
       cookAddressForm: widget.item.kitchen.addressForm,
       onOpenKitchen: widget.onOpenKitchen,
+      // The `Builder` for the same reason as `_note` in search_screen.dart: this
+      // widget's own context sits above the `Scaffold` that PublicMealView
+      // owns, so `DefaultTextStyle.of(context)` here resolves to MaterialApp's
+      // error style — 48-point monospace under a yellow underline — rather than
+      // to the theme's body text. Read it below the Scaffold or not at all.
       notice: _gone
           ? Semantics(
               liveRegion: true,
-              child: Text(
-                l10n.mealNoLongerOnOffer,
-                style: DefaultTextStyle.of(context)
-                    .style
-                    .copyWith(color: KafooColors.danger),
+              child: Builder(
+                builder: (inner) => Text(
+                  l10n.mealNoLongerOnOffer,
+                  style: DefaultTextStyle.of(inner)
+                      .style
+                      .copyWith(color: KafooColors.danger),
+                ),
               ),
             )
           : null,

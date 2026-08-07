@@ -8,6 +8,8 @@
 // branch was taken" would pass just as happily against an implementation that
 // took the branch AND sent the phrase.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,7 +77,7 @@ const _onOffer = <DiscoveredMeal>[
 SearchOutcome _outcome({
   List<DiscoveredMeal> items = const [_koshariPair],
   String? excludedId,
-  String? notUnderstood,
+  bool notUnderstood = false,
   String? area,
 }) =>
     SearchOutcome(
@@ -122,6 +124,25 @@ Future<void> _ask(WidgetTester tester, String phrase) async {
   await tester.enterText(find.byType(TextField), phrase);
   await tester.tap(find.byIcon(Icons.search));
   await tester.pumpAndSettle();
+}
+
+/// Browse fails while search succeeds. The shipped fake fails both together,
+/// which is why the empty-area state could tell a Customer the marketplace was
+/// empty for two months of nobody noticing.
+class _BrowseFails extends FakeDiscoveryRepository {
+  @override
+  Future<Result<List<DiscoveredMeal>, AppError>> mealsOnOffer() async =>
+      const Failure(AppError(messageKey: 'discoveryLoadError'));
+}
+
+/// Browse has not answered yet. The ordinary case, not the exotic one: search
+/// answers in a few hundred milliseconds.
+class _BrowseHangs extends FakeDiscoveryRepository {
+  @override
+  Future<Result<List<DiscoveredMeal>, AppError>> mealsOnOffer() async {
+    await Completer<void>().future;
+    return const Success(<DiscoveredMeal>[]);
+  }
 }
 
 late AppLocalizations ar;
@@ -257,9 +278,79 @@ void main() {
       expect(await controller.requestVoice(), isFalse);
       await tester.pumpAndSettle();
 
+      // `chooseArea` with no earlier search returns before it reaches anything,
+      // so the line above proves nothing about the gate — trust-reviewer found
+      // it passing vacuously on 2026-08-07. The real case is below.
+
       expect(repo.phrases, isEmpty);
       expect(repo.judged, isEmpty);
       expect(find.text(ar.searchIsOff), findsOneWidget);
+    });
+
+    testWidgets(
+        'SWITCHING OFF MID-SESSION STOPS THE NEXT PHRASE, INCLUDING '
+        'the one behind an area button', (tester) async {
+      // The second entry point. FR-024a requires that a Customer may choose
+      // another area, and `chooseArea` reached the network without passing the
+      // gate: search, turn the switch off, choose an area, and the sentence
+      // went out. The screen hid the buttons, which made a widget branch the
+      // only thing standing between a refused Customer and an outbound phrase
+      // — the exact arrangement SC-014 exists to forbid.
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: const [], area: 'أسوان');
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'كشري في أسوان');
+      expect(repo.phrases, ['كشري في أسوان']);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SearchScreen)),
+        listen: false,
+      );
+      await container
+          .read(searchConsentControllerProvider.notifier)
+          .answer(SearchConsent.refused);
+      await tester.pumpAndSettle();
+
+      await container
+          .read(searchControllerProvider.notifier)
+          .chooseArea('الدقي');
+      await tester.pumpAndSettle();
+
+      expect(repo.phrases, ['كشري في أسوان'],
+          reason: 'a refused Customer sent a second phrase');
+      expect(find.text(ar.searchIsOff), findsOneWidget);
+    });
+
+    testWidgets('THE QUESTION DOES NOT COME BACK AFTER SETTINGS ANSWERS IT',
+        (tester) async {
+      // SC-015. `searchConsentNote` tells the Customer they can change the
+      // answer in Settings and the Settings icon is in this screen's own bar,
+      // so this is the route the copy sends them down. It came back to the
+      // question they had just answered, with a live "No" button on top of a
+      // granted answer.
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome();
+      final consent = FakeSearchConsentStore();
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'كشري');
+      expect(find.text(ar.searchConsentQuestion), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      expect(consent.stored, SearchConsent.granted);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text(ar.searchConsentQuestion), findsNothing);
+      expect(find.text(ar.searchConsentRefuse), findsNothing);
     });
 
     testWidgets('search is UNAVAILABLE, not degraded, and browsing works',
@@ -397,13 +488,13 @@ void main() {
       // The sentence names the source of the information and refuses the claim.
       final stated = ar.searchFilteredOn(ar.exclusionName('meat'));
       expect(stated.contains('لحمة'), isTrue);
-      expect(stated.contains('مش تأكيد'), isTrue);
+      expect(stated.contains('مش معناه'), isTrue);
     });
 
     testWidgets('an exclusion Kafoo did not understand is said out loud',
         (tester) async {
       final repo = FakeDiscoveryRepository(onOffer: _onOffer)
-        ..searchOutcome = _outcome(notUnderstood: 'كافيار');
+        ..searchOutcome = _outcome(notUnderstood: true);
       final consent = FakeSearchConsentStore(SearchConsent.granted);
       await tester.pumpWidget(_app(repo, consent));
       await tester.pumpAndSettle();
@@ -455,6 +546,35 @@ void main() {
       expect(find.text(ar.searchNarrowedToArea('المهندسين')), findsOneWidget);
     });
 
+    testWidgets('AN AREA KAFOO COULD NOT CHECK IS NEVER AN EMPTY MARKETPLACE',
+        (tester) async {
+      // Search answers in a few hundred milliseconds and browse has not, or
+      // browse failed. `onOffer` is empty in both, and neither means no Cook
+      // anywhere has food. Saying so lands immediately after telling the
+      // Customer their own area is empty — two sentences of Kafoo asserting
+      // something it does not know. `BrowseState.saysNothingOnOffer` exists to
+      // prevent exactly this and was not being asked.
+      //
+      // The shipped fake fails browse and search TOGETHER, which is why this
+      // was never seen: these two subclasses break only browse.
+      for (final broken in [_BrowseFails.new, _BrowseHangs.new]) {
+        final repo = broken()
+          ..searchOutcome = _outcome(items: const [], area: 'أسوان');
+        final consent = FakeSearchConsentStore(SearchConsent.granted);
+        await tester.pumpWidget(_app(repo, consent));
+        await tester.pump();
+
+        await tester.enterText(find.byType(TextField), 'كشري في أسوان');
+        await tester.tap(find.byIcon(Icons.search));
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+
+        expect(find.text(ar.searchAreaEmpty('أسوان')), findsOneWidget);
+        expect(find.text(ar.browseNothingOnOffer), findsNothing,
+            reason: 'Kafoo claimed the marketplace is empty without knowing');
+      }
+    });
     testWidgets(
         'FR-024b and FR-024c: no distance, no ordering by proximity, '
         'no promise of delivery', (tester) async {
@@ -572,6 +692,106 @@ void main() {
 
       expect(find.text(ar.mealNoLongerOnOffer), findsNothing);
       expect(find.text('عدس ومكرونة وأرز'), findsOneWidget);
+    });
+  });
+
+  group('it renders on a phone', () {
+    // NOTHING IN THIS REPOSITORY SET A TEXT SCALE OR A PHONE-SIZED VIEWPORT
+    // UNTIL 2026-08-07, and the default test surface is 800x600 — a viewport no
+    // phone has. Twenty-five tests passed over six Customer-facing sentences
+    // that were rendering in MaterialApp's error style: 48-point monospace
+    // under a double yellow underline, overflowing a 360dp screen at ORDINARY
+    // text scale. `find.text` does not look at style, and nothing looked at
+    // size. `.claude/rules/dart.md` has required "test at 200% text scale" all
+    // along and nothing enforced it.
+    Future<void> onAPhone(
+      WidgetTester tester,
+      Widget app, {
+      double scale = 1.0,
+    }) async {
+      tester.view
+        ..physicalSize = const Size(360, 640)
+        ..devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: app,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a sentence Kafoo says is body text, not the error style',
+        (tester) async {
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer);
+      final consent = FakeSearchConsentStore(SearchConsent.refused);
+      await onAPhone(tester, _app(repo, consent));
+
+      final style = tester.widget<Text>(find.text(ar.searchIsOff)).style!;
+      // The error style is 48-point w900 monospace with a yellow double
+      // underline. Asserting "not that" rather than an exact size, because the
+      // theme's body size is the theme's business and this is not.
+      expect(style.fontSize ?? 14, lessThan(24));
+      expect(style.decoration, isNot(TextDecoration.underline));
+      expect(style.fontFamily, isNot('monospace'));
+    });
+
+    testWidgets('nothing overflows at 200% text scale', (tester) async {
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(excludedId: 'meat', area: 'المهندسين');
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await onAPhone(tester, _app(repo, consent), scale: 2.0);
+
+      await tester.enterText(find.byType(TextField), 'من غير لحمة');
+      await tester.tap(find.byIcon(Icons.search));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the consent question fits at 200% text scale', (tester) async {
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer);
+      final consent = FakeSearchConsentStore();
+      await onAPhone(tester, _app(repo, consent), scale: 2.0);
+
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byIcon(Icons.search));
+      await tester.pumpAndSettle();
+
+      expect(find.text(ar.searchConsentQuestion), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('BOTH ANSWERS ARE THE SAME KIND OF BUTTON', (tester) async {
+      // Same size and same prominence, in fact rather than in a comment. A
+      // FilledButton beside an OutlinedButton is Material's high-emphasis
+      // widget beside its medium-emphasis one, which on a consent choice is
+      // the dark pattern the trust rules call product-fatal.
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer);
+      final consent = FakeSearchConsentStore();
+      await onAPhone(tester, _app(repo, consent));
+
+      await tester.enterText(find.byType(TextField), 'كشري');
+      await tester.tap(find.byIcon(Icons.search));
+      await tester.pumpAndSettle();
+
+      expect(find.text(ar.searchConsentAgree), findsOneWidget);
+      expect(find.text(ar.searchConsentRefuse), findsOneWidget);
+      expect(find.byType(FilledButton), findsNothing);
+      final agree = tester.getSize(
+        find.ancestor(
+          of: find.text(ar.searchConsentAgree),
+          matching: find.byType(OutlinedButton),
+        ),
+      );
+      final refuse = tester.getSize(
+        find.ancestor(
+          of: find.text(ar.searchConsentRefuse),
+          matching: find.byType(OutlinedButton),
+        ),
+      );
+      expect(agree.width, refuse.width);
     });
   });
 

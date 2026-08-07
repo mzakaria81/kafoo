@@ -58,14 +58,28 @@ export interface DiscoverDeps {
 /// failure the whole exclusion design exists to prevent: the Customer said "without prawns", Kafoo
 /// did not recognise the word, and the results arrive looking exactly like results for a request
 /// with no exclusion in it.
+///
+/// **`notUnderstood` IS A BOOLEAN, AND IT USED TO BE THE WORDS.** `Understanding.phrase` is not a
+/// word — it is the whole remainder of the sentence after the negation marker — so this returned
+/// `عمو سيد جنب بيتي في المهندسين` and put it in the 200 body AND in both 503 bodies. Found by
+/// trust-reviewer on 2026-08-07, one commit after `detail: String(error)` was removed for the same
+/// reason, and past the test written to catch that: it asserts the WHOLE phrase is absent, and most
+/// of a phrase is not the whole of it.
+///
+/// The interface never needed the words. Both call sites read `!= null` and the sentence they
+/// render — `searchExclusionNotUnderstood` — carries no placeholder. So this was a Customer's own
+/// words crossing the network, and landing inside an error, for a screen that only ever asked
+/// whether the field was set.
+///
+/// `excluded` and `area` stay as values because the interface interpolates both.
 function understandingForResponse(exclusion: Understanding) {
   switch (exclusion.kind) {
     case 'nothing':
-      return { excluded: null, notUnderstood: null };
+      return { excluded: null, notUnderstood: false };
     case 'found':
-      return { excluded: exclusion.id, notUnderstood: null };
+      return { excluded: exclusion.id, notUnderstood: false };
     case 'not-understood':
-      return { excluded: null, notUnderstood: exclusion.phrase };
+      return { excluded: null, notUnderstood: true };
   }
 }
 

@@ -37,7 +37,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchUnavailable =>
-      'Search isn\'t working right now, but you can still look at what\'s on offer.';
+      'Search isn\'t working right now, but browsing what\'s on offer works as usual.';
 
   @override
   String mealCardSemanticLabel(String kitchen, String price, String title) {
@@ -1445,10 +1445,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSearchStorageNote =>
-      'This answer is kept on this phone only. Kafoo does not record what is searched for, and does not keep the answer either.';
+      'This answer is kept on this phone only. Kafoo does not record the words typed into search, and does not keep the answer either.';
 
   @override
-  String get searchLabel => 'What do you feel like?';
+  String get searchLabel => 'What food today?';
 
   @override
   String get searchHint => 'Something hot, no meat, in Mohandessin';
@@ -1464,7 +1464,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchVoiceUnavailable =>
-      'This phone doesn\'t support speaking right now. Typing works normally.';
+      'Voice isn\'t working on this phone right now. Typing works normally.';
 
   @override
   String get searchIsOff =>
@@ -1476,11 +1476,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchExclusionNotUnderstood =>
-      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it.';
+      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it. Try naming the food on its own.';
 
   @override
   String searchFilteredOn(String food) {
-    return 'We removed Meals listed as containing $food. That\'s based on what Cooks wrote and the AI Assistant\'s estimate — it is not a confirmation that the rest are free of it.';
+    return 'We removed Meals listed as containing $food. That\'s based on what Cooks wrote and the AI Assistant\'s estimate — it does not mean the rest have no $food in them.';
   }
 
   @override
@@ -1499,7 +1499,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchConsentQuestion =>
-      'For Kafoo to understand the words and find the right food, what was typed into search has to go to a service outside Kafoo. It isn\'t recorded or kept here. Shall we send it?';
+      'For Kafoo to understand the words and find the right food, what was typed into search has to go to a service outside Kafoo. Kafoo itself does not record these words or keep them. And when the words are spoken, it is the phone itself that turns them into text. Shall we send it?';
 
   @override
   String get searchConsentAgree => 'Yes, send it';
@@ -1509,7 +1509,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchConsentNote =>
-      'If the answer is no, search won\'t work and browsing what\'s on offer carries on. The answer is kept on this phone only and can be changed in Settings at any time.';
+      'If the answer is no, search won\'t work and browsing what\'s on offer carries on. The answer will be kept on this phone only, and can be changed in Settings at any time.';
 
   @override
   String exclusionName(String food) {
@@ -1537,4 +1537,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mealNoLongerOnOffer =>
       'This Meal is no longer on offer. The Cook has taken it off the menu.';
+
+  @override
+  String get searchAreasUnknown =>
+      'We can\'t work out which areas have food right now. Try again in a moment.';
 }

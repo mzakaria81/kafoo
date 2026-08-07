@@ -121,11 +121,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // INTO and a sentence saying why — FR-029e says Kafoo states plainly that
     // searching is off and browsing still works, and stating it only after they
     // have tried and failed is stating it late.
-    final refused = switch (ref.watch(searchConsentControllerProvider)) {
-      AsyncData(value: SearchConsent.refused) => true,
-      _ => false,
+    final answer = switch (ref.watch(searchConsentControllerProvider)) {
+      AsyncData(value: final consent) => consent,
+      _ => null,
     };
-    final searchIsOff = state.searchIsOff || refused;
+    final searchIsOff = state.searchIsOff || answer == SearchConsent.refused;
+
+    // SC-015: after ANY answer the question appears zero times. `state.asking`
+    // alone was not enough — `searchConsentNote` tells the Customer they can
+    // change the answer in Settings, the Settings icon is in this screen's own
+    // bar, and following that instruction brought them back to the question
+    // they had just answered, with a live "No" button sitting on top of a
+    // granted answer. Found by trust-reviewer on 2026-08-07 by doing exactly
+    // what the copy says to do.
+    final asking = state.asking && (answer == null || answer.needsAsking);
 
     return Scaffold(
       appBar: AppBar(
@@ -148,7 +157,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (!searchIsOff) _input(l10n),
-            Expanded(child: _content(l10n, state, searchIsOff: searchIsOff)),
+            Expanded(
+              child: _content(
+                l10n,
+                state,
+                searchIsOff: searchIsOff,
+                asking: asking,
+              ),
+            ),
           ],
         ),
       ),
@@ -198,9 +214,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     AppLocalizations l10n,
     SearchState state, {
     required bool searchIsOff,
+    required bool asking,
   }) {
     // The question. Reached only from an attempt to search — FR-029a.
-    if (state.asking) return _consentQuestion(l10n);
+    if (asking) return _consentQuestion(l10n);
 
     // Refused. UNAVAILABLE, NOT DEGRADED — FR-029e. There is no reduced search
     // here that matches on spelling; a phrase leaves Kafoo in order to become
@@ -246,7 +263,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _note(l10n.searchFoundNothing, KafooColors.onSurface),
-          if (outcome.notUnderstood != null)
+          if (outcome.notUnderstood)
             _note(l10n.searchExclusionNotUnderstood, KafooColors.danger),
           Expanded(child: _browse()),
         ],
@@ -276,7 +293,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // nothing here is the failure the whole exclusion design exists to
           // prevent: the results look exactly like results for a request with no
           // exclusion in it.
-          if (outcome.notUnderstood != null) ...[
+          if (outcome.notUnderstood) ...[
             _note(l10n.searchExclusionNotUnderstood, KafooColors.danger),
             const SizedBox(height: KafooSpacing.sm),
           ],
@@ -306,8 +323,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             children: [
               Text(l10n.searchConsentQuestion, textAlign: TextAlign.center),
               const SizedBox(height: KafooSpacing.md),
-              FilledButton(
-                style: FilledButton.styleFrom(
+              // BOTH OUTLINED, AND THAT IS THE FINDING RATHER THAN THE STYLE.
+              // Agreeing was a `FilledButton` and refusing an `OutlinedButton`,
+              // which are Material's high- and medium-emphasis widgets — that
+              // is the whole reason both exist. Three places in this repository
+              // asserted "the same size and the same prominence"; the sizes
+              // matched and the prominence did not. On a consent choice that is
+              // the dark pattern the trust rules name as product-fatal.
+              // Neither answer is the one Kafoo wants.
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
                 ),
                 onPressed: () => unawaited(
@@ -318,9 +343,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: Text(l10n.searchConsentAgree),
               ),
               const SizedBox(height: KafooSpacing.sm),
-              // Refusing is a button of the same size and the same prominence.
-              // A refusal that is harder to reach than agreement is the dark
-              // pattern the trust rules forbid by name.
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
@@ -360,6 +382,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         if (item.kitchen.area.trim().isNotEmpty) item.kitchen.area.trim(),
     }.toList();
 
+    // WHY THIS BRANCHES ON THE BROWSE STATE AND NOT ON `areas.isEmpty`.
+    // `onOffer` is empty while the first load runs and empty when it failed,
+    // and neither of those means the marketplace is empty. Saying
+    // `browseNothingOnOffer` there tells a Customer that no Cook anywhere has
+    // anything — a thing Kafoo does not know — right after telling them their
+    // own area is empty. `BrowseState.saysNothingOnOffer` exists precisely to
+    // stop that and was not being asked. Found by trust-reviewer 2026-08-07;
+    // the ordinary case is search answering in 300 ms while browse has not.
+    final String? insteadOfAreas = browse.loading
+        ? l10n.browseLoading
+        : browse.error != null
+            ? l10n.searchAreasUnknown
+            : browse.saysNothingOnOffer
+                ? l10n.browseNothingOnOffer
+                // Food on offer, and not one Cook wrote an area. Kafoo cannot
+                // name the areas that have food, and saying the marketplace is
+                // empty would be the same lie by a different route.
+                : areas.isEmpty
+                    ? l10n.searchAreasUnknown
+                    : null;
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
@@ -370,8 +413,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           children: [
             Text(l10n.searchAreaEmpty(area), textAlign: TextAlign.center),
             const SizedBox(height: KafooSpacing.md),
-            if (areas.isEmpty)
-              Text(l10n.browseNothingOnOffer, textAlign: TextAlign.center)
+            if (insteadOfAreas != null)
+              Text(insteadOfAreas, textAlign: TextAlign.center)
             else ...[
               Text(l10n.searchAreaChoose, textAlign: TextAlign.center),
               const SizedBox(height: KafooSpacing.sm),
@@ -402,6 +445,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _browse() => BrowseBody(onOpen: widget.onOpen, entry: widget.entry);
 
+  /// A sentence Kafoo says about the results.
+  ///
+  /// **THE `Builder` IS LOAD-BEARING AND WAS NOT HERE.** `DefaultTextStyle.of`
+  /// resolves from whatever context it is handed, and `this.context` inside a
+  /// `State` sits ABOVE the `Scaffold` — above the `Material` that installs the
+  /// theme's body style. What it picked up instead was `MaterialApp`'s
+  /// `_errorTextStyle`: 48-point black monospace under a double yellow
+  /// underline, the style Flutter installs at the root precisely so that stray
+  /// text is impossible to miss.
+  ///
+  /// Measured by localization-reviewer on 2026-08-07: at 360dp and ordinary
+  /// text scale, `searchIsOff` rendered 966 pixels tall and overflowed; with
+  /// the `Builder` it is 80. Six Customer-facing sentences went through here,
+  /// including the allergy sentence and the one about an exclusion Kafoo did
+  /// not understand.
+  ///
+  /// **Twenty-five widget tests passed over it.** `find.text` does not look at
+  /// style, and the test harness renders 800x600 — a viewport no phone has.
+  /// `browse_screen.dart` carries the identical line and is CORRECT, because
+  /// its context comes from a `LayoutBuilder` at the insertion point. The same
+  /// line is right in one file and wrong in the other, and only where the
+  /// context comes from tells them apart.
   Widget _note(String text, Color color) => Padding(
         padding: const EdgeInsetsDirectional.symmetric(
           horizontal: KafooSpacing.md,
@@ -409,11 +474,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         child: Semantics(
           liveRegion: true,
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            // Copied from the ambient style so it keeps inheriting text scaling.
-            style: DefaultTextStyle.of(context).style.copyWith(color: color),
+          child: Builder(
+            builder: (inner) => Text(
+              text,
+              textAlign: TextAlign.center,
+              // Copied from the ambient style so it keeps inheriting text
+              // scaling — from `inner`, which is below the Scaffold.
+              style: DefaultTextStyle.of(inner).style.copyWith(color: color),
+            ),
           ),
         ),
       );
