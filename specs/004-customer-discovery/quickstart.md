@@ -50,17 +50,31 @@ Two specific things to try by hand, because a mutation tool will not think of th
    fixtures only contain published Meals and the suite is proving nothing.
 2. **Remove whatever stops a Cook writing `meals.embedding`.** Case 9 must go red.
 
-## 2. Prove the index is actually used
+## 2. Prove the search still fits the budget — the HNSW index is deliberately NOT used
 
-The failure this catches returns **correct answers slowly**, so no test will find it.
+**This section used to say the opposite, and following it would reintroduce a defect.** It told you
+to look for the HNSW index in the plan and to treat a sequential scan as the thing to fix. A
+sequential scan is now the correct state, and the arrangement that used the index is the one that
+told a Customer their governorate was empty when it was not. See the note above the function body in
+`20260806231625_add_meal_embeddings.sql`.
 
 ```sql
-EXPLAIN ANALYZE SELECT * FROM search_meals(<a query vector>, NULL, NULL);
+EXPLAIN ANALYZE SELECT * FROM search_meals(<a query vector>, NULL, 'أسوان');
 ```
 
-Look for the HNSW index in the plan. A sequential scan over `meals` means the visibility predicate
-and the ordering were written so the planner cannot use the index. Results will be right. It will get
-slower every month.
+Expect a `CTE Scan on candidate` with the filters applied **inside** the CTE, before the ordering.
+An `Index Scan using meals_embedding_hnsw` with the filters in a `Filter:` line underneath it is the
+defect returning: the index chooses its candidates first and the filters then discard them, so a
+narrow search over a large corpus returns nothing while matching Meals exist.
+
+What to actually check:
+
+1. **`discovery_search_test.sql` assertions 2–4 pass.** They are the behavioural statement of the
+   above, and assertion 2 fails within seconds of the CTE being un-materialised.
+2. **The timing fits the budget.** Exact ranking is linear: measured at 27 ms for 5,001 Meals
+   against a one-second budget for search, so the budget is reached somewhere near 180,000 Meals.
+   **This is the number that will change**, and the day it stops fitting is the day the HNSW index
+   earns its place back — with a design that filters before it ranks, not by reverting this.
 
 ## 3. Retrieval quality
 

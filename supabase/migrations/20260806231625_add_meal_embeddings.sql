@@ -43,8 +43,17 @@ COMMENT ON COLUMN public.meals.embedding IS
   'A machine representation of title and description. Not a claim, shown to nobody, and never '
   'written by a client — see protect_meal_embedding below. NULL means unsearchable, not lost.';
 
--- The index the ranking function needs. Cosine distance, matching how the vectors are normalised
--- before they are stored.
+-- CREATED NOW, UNUSED NOW, AND NOT DEAD WEIGHT. Cosine distance, matching how the vectors are
+-- normalised before they are stored.
+--
+-- This comment said "the index the ranking function needs" and contradicted the note above
+-- `search_meals`, which explains why the function deliberately does not use it. An index whose own
+-- comment says it is required is the setup for somebody either dropping it as unused or rearranging
+-- the function to satisfy this line — and that rearrangement is the defect the function's note
+-- describes. Read that note before touching either.
+--
+-- It is deferred capacity: exact ranking fits the budget until roughly 180,000 Meals, and this is
+-- what makes the day after that a design change rather than a migration.
 CREATE INDEX meals_embedding_hnsw ON public.meals
   USING hnsw (embedding vector_cosine_ops);
 

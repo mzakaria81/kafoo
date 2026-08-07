@@ -31,9 +31,17 @@ it.
 
 ### `meals` — one new index
 
-An HNSW index over `embedding` for cosine distance. It exists so the visibility predicate and the
-ordering can be satisfied together; **written wrongly it is silently unused** and search degrades to
-scanning every Meal and computing every distance, returning correct answers slowly.
+An HNSW index over `embedding` for cosine distance, **created now and deliberately unused now.**
+
+This paragraph previously described scanning every Meal as the failure mode. The design does that on
+purpose. An approximate index picks its candidates and any filter applied afterwards discards them,
+so a narrow search over a large corpus returns nothing while matching Meals plainly exist —
+measured, and the reason `search_meals` narrows first and ranks what survives.
+
+Exact ranking costs 27 ms at 5,001 Meals against a one-second budget and grows linearly, so the
+budget is reached near 180,000 Meals. The index is **deferred capacity for that day**, not dead
+weight and not something a later migration should drop. Taking it up again means filtering before
+ranking rather than after — not reverting to the arrangement this replaced.
 
 `cook_id` is already indexed (E2), which the existing policies need.
 
