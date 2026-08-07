@@ -39,15 +39,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "IN_PROGRESS",
+  "owner": "session_01Fzybf4HcqK3mFMEjTutZsE",
   "priority": 4,
   "spend_envelope_usd": 2.5,
   "suggested_model": "opencode-go/grok-4.5",
-  "branch": null,
+  "branch": "claude/e3-start-7sfmcm",
   "pr": null,
   "blocked_reason": null,
-  "notes": "grok-4.5 because this is health-adjacent and the model table reserves that row for subtle logic near safety. Measured 2026-08-06: asking for food with no meat returned meat dishes, first correct answer at rank 6, precision@5 of 0.00. A Customer excluding a food is usually doing so for dietary, religious or health reasons, so serving them the opposite is a betrayal rather than a poor result. The sharp edge is that meals.allergens is frequently an AI estimate carrying nutrition_source — hence 'states what it filtered on, never that a Meal is safe'. Touches search_meals, which WP-013 created; serialised behind it by dependency.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
+  "notes": "grok-4.5 because this is health-adjacent and the model table reserves that row for subtle logic near safety. Measured 2026-08-06: asking for food with no meat returned meat dishes, first correct answer at rank 6, precision@5 of 0.00. A Customer excluding a food is usually doing so for dietary, religious or health reasons, so serving them the opposite is a betrayal rather than a poor result. The sharp edge is that meals.allergens is frequently an AI estimate carrying nutrition_source — hence 'states what it filtered on, never that a Meal is safe'. Touches search_meals, which WP-013 created; serialised behind it by dependency.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.\n\nSTARTED 2026-08-07 by the founder's instruction, and SPLIT, because the dependency list is right and I had told him otherwise. WP-017 depends on WP-015, and WP-015 embeds a Customer's spoken phrase — a paid model call the founder has not yet approved a cost for. So the package cannot reach READY_FOR_REVIEW today.\n\nWHAT PROCEEDS NOW, needing no model call: the SQL exclusion suite against search_meals' existing predicate (SC-005, FR-020, FR-021), and the domain vocabulary and phrase parsing in packages/domain/lib/exclusion.dart, whose `all` list is still empty.\n\nWHAT WAITS FOR WP-015: the acceptance criterion 'the interface states what was filtered on and NEVER states that a Meal is safe', which needs a search interface to state it on. Do not mark this package READY_FOR_REVIEW until that criterion is met — the wording is the half a Customer with an allergy actually reads.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T19:30:00Z"
+  "updated_at": "2026-08-07T04:45:00Z"
 }

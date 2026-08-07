@@ -115,7 +115,52 @@ abstract final class ExclusionVocabulary {
   ];
 
   /// Every exclusion Kafoo understands.
-  static const List<Exclusion> all = <Exclusion>[];
+  ///
+  /// **Small on purpose, and additive on purpose.** These are the things a
+  /// Customer most often needs excluded for a reason that matters — the major
+  /// allergens, the meats a religious or dietary rule turns on, and two
+  /// aromatics people genuinely cannot eat. Growing it is how exclusions
+  /// improve; guessing at it is how somebody gets served food they asked not to
+  /// see.
+  ///
+  /// **The forms are how the word is WRITTEN, not what it means.** They are
+  /// matched as substrings against what a Cook typed into a Meal's ingredients
+  /// and allergens, so `لحمة` reaches `لحمة مفرومة` without either party having
+  /// agreed on a vocabulary. That direction of looseness is deliberate: a
+  /// substring match over-excludes rather than under-excludes, and
+  /// over-excluding shows a Customer less food while under-excluding hands them
+  /// the thing they asked to avoid.
+  ///
+  /// **A form is never shared between two entries.** `exclusion_vocabulary_test`
+  /// asserts it, because a form claimed twice would let list order decide which
+  /// exclusion a Customer gets, and the order of a list is not a decision
+  /// anybody made.
+  static const List<Exclusion> all = <Exclusion>[
+    Exclusion(id: 'meat', surfaceForms: {'لحمة', 'لحمه', 'لحم'}),
+    Exclusion(id: 'chicken', surfaceForms: {'فراخ', 'فرخة', 'فرخه', 'دجاج'}),
+    Exclusion(id: 'fish', surfaceForms: {'سمك', 'سمكة', 'سمكه'}),
+    Exclusion(
+      id: 'shellfish',
+      surfaceForms: {'جمبري', 'جمبرى', 'استاكوزا', 'كابوريا'},
+    ),
+    Exclusion(id: 'egg', surfaceForms: {'بيض', 'بيضة', 'بيضه'}),
+    Exclusion(
+      id: 'dairy',
+      surfaceForms: {'لبن', 'حليب', 'جبنة', 'جبنه', 'زبادي', 'قشطة'},
+    ),
+    // Peanut is its own entry rather than part of `nuts`, because it is not a
+    // nut and because someone allergic to one is frequently not allergic to the
+    // other. Merging them would exclude food nobody needed excluded.
+    Exclusion(id: 'peanut', surfaceForms: {'فول سوداني', 'سوداني'}),
+    Exclusion(
+      id: 'nuts',
+      surfaceForms: {'مكسرات', 'لوز', 'عين جمل', 'بندق', 'فستق', 'كاجو'},
+    ),
+    Exclusion(id: 'sesame', surfaceForms: {'سمسم', 'طحينة', 'طحينه'}),
+    Exclusion(id: 'gluten', surfaceForms: {'قمح', 'دقيق', 'جلوتين'}),
+    Exclusion(id: 'onion', surfaceForms: {'بصل'}),
+    Exclusion(id: 'garlic', surfaceForms: {'توم', 'ثوم'}),
+  ];
 
   /// Finds the exclusion [term] names, if Kafoo knows it.
   ///
@@ -133,5 +178,47 @@ abstract final class ExclusionVocabulary {
       }
     }
     return ExclusionNotUnderstood(needle);
+  }
+
+  /// Reads what a Customer asked to avoid out of what they said.
+  ///
+  /// **Returning [NoExclusion] for a phrase that contained a negation would be
+  /// the whole defect**, so it happens in exactly one case: no negation marker
+  /// is present at all. A marker with a food nobody recognises — or with
+  /// nothing after it, which is what a cut-off recording produces — is
+  /// [ExclusionNotUnderstood], and the interface must say so rather than
+  /// answering as though the Customer had asked for nothing.
+  ///
+  /// Only the first marker is read. A Customer excluding two things in one
+  /// breath gets the first honoured and is told about it; that is a smaller
+  /// wrong than guessing at the second.
+  static ExclusionLookup parse(String phrase) {
+    final text = phrase.trim();
+    if (text.isEmpty) return const NoExclusion();
+
+    // `negationMarkers` is longest-first, and a test holds it that way:
+    // 'من غير ما يكون فيه' contains 'من غير', and matching the shorter one
+    // first takes "ما يكون فيه لحمة" as the food — which is not a food, so a
+    // phrase Kafoo handles would report not-understood.
+    for (final marker in negationMarkers) {
+      final at = text.indexOf(marker);
+      if (at < 0) continue;
+
+      final remainder = text.substring(at + marker.length).trim();
+      if (remainder.isEmpty) return ExclusionNotUnderstood(remainder);
+
+      // Longest run of words first, so a two-word food beats its first word.
+      // Shorter runs then catch the ordinary case where the food is followed by
+      // something that is not part of it — `من غير لحمة خالص`, the phrase the
+      // 2026-08-06 measurement used, where `خالص` is an intensifier.
+      final words = remainder.split(RegExp(r'\s+'));
+      for (var take = words.length; take >= 1; take--) {
+        final candidate = words.take(take).join(' ');
+        final outcome = lookUp(candidate);
+        if (outcome is ExclusionFound) return outcome;
+      }
+      return ExclusionNotUnderstood(remainder);
+    }
+    return const NoExclusion();
   }
 }
