@@ -1344,3 +1344,35 @@ its absence.
 **Suggested improvement:** When a content gate scans generated output, expect prose *about* the rule to trip it, and phrase rule-explaining comments by reference rather than enumeration ("rather than any of the words the vocabulary check forbids"). More generally: when a check fails inside a generated file, resolve the finding to its SOURCE file before diagnosing it.
 
 **Principle:** A scanner cannot distinguish mention from use. Comments that explain a prohibition should refer to it rather than quote it, and a finding in a generated file is a finding about its source.
+
+### Observation 98: A widget test suite with no viewport and no text scale can pass over text rendered in the framework's own "this is broken" style
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — twenty-five passing widget tests covered six user-facing sentences that were rendering at 48-point monospace under a double yellow underline (Flutter's root `_errorTextStyle`), overflowing a phone-sized screen at ordinary text scale. Found by a review agent that rendered the screen at a real device size.
+**Skill:** New skill candidate: widget-test-fidelity
+**Type:** open-source
+**Phase/Area:** Widget/UI test design
+
+**Issue:** Two independent blind spots lined up. The finder API matches on text content and never inspects style, so every assertion passed. And the default test surface is a desktop-sized viewport at 1.0 text scale, which no phone has — so the overflow that would have made the defect obvious never occurred. A project rule requiring testing at 200% text scale had been in place for months and nothing enforced it, because enforcement would have meant a test that sets a viewport and nothing did.
+
+The proximate cause is worth recording separately: an ambient-style lookup (`DefaultTextStyle.of(context)`) resolved from a `State`'s own context, which sits ABOVE the widget that installs the theme. The identical line elsewhere in the same codebase was correct because its context came from a builder at the insertion point. Right in one file, wrong in another, and only where the context comes from distinguishes them.
+
+**Suggested improvement:** For any UI test suite, keep at least one test that (a) sets a realistic device viewport, (b) sets a large text scale, and (c) asserts on rendered properties — size, style, absence of overflow exceptions — rather than on content. Content assertions verify that the right words are present; they cannot verify that anyone can read them. When a framework provides a deliberately-alarming fallback style, assert against it directly: it is the cheapest possible canary.
+
+**Principle:** A test that matches on content is blind to presentation, and a default test viewport is a device nobody owns. A UI suite needs at least one assertion about how something rendered, at a size and scale somebody will actually use, or "all tests pass" means only that the strings exist.
+
+### Observation 99: A guard placed on an entrance is a guard the next entrance walks past — and its test can pass vacuously
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Kafoo WP-015 — a consent check was placed on the primary method, with a documented comment predicting exactly the failure that then occurred: a second method reached the network without passing it. The test that appeared to cover the second method returned early on an unset precondition and asserted nothing.
+**Skill:** New skill candidate: verifying-egress-constraints
+**Type:** open-source
+**Phase/Area:** Guard placement and negative-test design
+
+**Issue:** Two failures compounding. First, the guard was on an entrance rather than on the funnel every entrance already crossed — and the class documentation *stated the correct principle* while the code did not follow it, which is the most persuasive form of wrong, because reading the file leaves you convinced. Second, the negative test called the unguarded method on state where it returns immediately, so it exercised the early return rather than the guard. It read as coverage and was coverage of nothing.
+
+**Suggested improvement:** When placing a guard, find the narrowest point that every path crosses and put it there — usually the private method the public ones delegate to, not the public ones. When writing a negative test for a guard, first establish the preconditions under which the guarded code would actually run, and confirm the test fails when the guard is removed. A negative test that has not been watched turning red is indistinguishable from one that is testing an early return.
+
+**Principle:** Guard the funnel, not the entrances; entrances keep being added. And a negative test must be shown to fail for the reason it claims — an early return produces the same green as a working guard.
