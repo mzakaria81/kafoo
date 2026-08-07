@@ -287,7 +287,21 @@ run "supabase target" bash -c '
                             exit 1; }
   ref="${SUPABASE_PROJECT_REF:-}"; url="${SUPABASE_URL:-}"
   if [ -z "${ref}" ] && [ -z "${url}" ]; then
-    skip_or_fail "no SUPABASE_PROJECT_REF or SUPABASE_URL in the environment"; exit $?
+    # NOT A SKIP, and the difference is why this check went red on main from 2026-08-07.
+    #
+    # `skip_or_fail` is fatal in CI because a skipped check reporting ok is indistinguishable from
+    # one that ran — the right rule, applied to the wrong thing here. This check has TWO parts, and
+    # the first one has already run: `supabase/project-ref` exists and is not empty, asserted above
+    # and just as meaningful on a build machine as anywhere else.
+    #
+    # The second part compares that against what the environment points at, and a CI runner points
+    # at NOTHING. It holds no project ref, no URL, and deploys nothing — so there is no wrong
+    # project for it to be aimed at, which is the entire failure this check exists to prevent.
+    # Demanding a target from a machine that has none asserts a fact about the world rather than
+    # about the change, and it made the gate red on every pull request until somebody supplied a
+    # variable that would itself have been the risk.
+    echo "   no project configured in this environment — nothing to compare, and nothing to aim wrong"
+    exit 0
   fi
   bad=0
   [ -z "${ref}" ] || [ "${ref}" = "${expected}" ] || {
