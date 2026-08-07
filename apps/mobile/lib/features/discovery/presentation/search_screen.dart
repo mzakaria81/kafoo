@@ -8,12 +8,15 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../analytics/emit_event.dart';
+import '../../analytics/event_names.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/voice_button.dart';
 import '../../settings/data/search_consent_store.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../application/browse_controller.dart';
 import '../application/search_controller.dart';
+import '../data/discovery_repository.dart';
 import 'browse_screen.dart';
 
 /// Asking for food, and everything that happens when a Customer does.
@@ -301,15 +304,107 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _note(l10n.searchNarrowedToArea(area), KafooColors.onSurface),
             const SizedBox(height: KafooSpacing.sm),
           ],
+          // NOTHING HERE ANSWERS — SAID ABOVE RESULTS THAT DO NOT MOVE.
+          //
+          // The list underneath is exactly what the database returned, in the
+          // order it returned it. That is not a rendering convenience: the
+          // judgement may not reorder, filter, add to or remove a Meal, and a
+          // screen that showed only the named alternatives would be filtering
+          // wearing a layout. It says something ABOUT a set the Customer can
+          // still see all of.
+          //
+          // THE GUARANTEE THAT A NAMED MEAL IS ON OFFER LIVES IN THE
+          // REPOSITORY, NOT HERE. This comment used to say the screen looks up
+          // each Meal by id; it does not — it renders the titles it is handed.
+          // `SupabaseDiscoveryRepository.judge` is what matches the ids the
+          // function returned against the Meals that were actually on screen
+          // and drops anything else, so a Meal the AI Assistant invented never
+          // becomes a `NothingAnswers` in the first place. Trust-reviewer proved
+          // the difference by handing this screen a judgement naming a Meal that
+          // was not in the results: the title rendered, with no card beneath it.
+          //
+          // Naming the wrong layer for a product-fatal invariant is how the next
+          // change deletes it, which is why this says where the guard is instead
+          // of implying there are two.
+          //
+          // The AI Assistant still supplies no word of this sentence: the titles
+          // are the Cook's and the rest is Kafoo's own copy.
+          if (outcome.results.judgement
+              case final NothingAnswers judgement) ...[
+            _note(
+              judgement.alternatives.isEmpty
+                  ? l10n.searchJudgementNothingAnswers
+                  : _namedAlternatives(l10n, judgement.alternatives),
+              KafooColors.onSurface,
+            ),
+            const SizedBox(height: KafooSpacing.sm),
+          ],
           for (final result in outcome.results.results)
             discoveredMealCard(
               l10n: l10n,
               item: result.item,
-              onOpen: widget.onOpen,
+              onOpen: _openFrom(outcome, result),
             ),
         ],
       ),
     );
+  }
+
+  /// The sentence naming Meals, with the grammar of the list left to the ARB.
+  ///
+  /// **The separator used to be `، ` hardcoded here, and it shipped an Arabic
+  /// comma to English readers** — measured by localization-reviewer against the
+  /// real screen under `Locale('en')`: "Koshari، Molokhia، Fattah", and no "and"
+  /// anywhere. Joining is grammar, and grammar belongs where a translator can
+  /// reach it: Arabic repeats و before every item, English uses one `and` before
+  /// the last, and no single separator can serve both.
+  ///
+  /// **Each title is isolated between U+2068 and U+2069.** Two Latin-script
+  /// titles side by side fuse into one left-to-right island inside a
+  /// right-to-left sentence, and the island's internal order runs against the
+  /// sentence — measured, "Pizza، Burger" put Burger to the RIGHT of Pizza, so
+  /// the Meal named first was read second. Isolation fixes it and changes
+  /// nothing for Arabic titles.
+  String _namedAlternatives(AppLocalizations l10n, List<Meal> alternatives) {
+    // At most three arrive — `judge-results` caps them — and the ARB carries a
+    // plural arm per count rather than a joined string.
+    String isolated(int index) => index < alternatives.length
+        ? '\u2068${alternatives[index].title}\u2069'
+        : '';
+    return l10n.searchJudgementAlternatives(
+      alternatives.length,
+      isolated(0),
+      isolated(1),
+      isolated(2),
+    );
+  }
+
+  /// Opening a Meal, and noticing when it is one the AI Assistant named.
+  ///
+  /// RecommendationAccepted answers "did saying 'nothing here answers you, but
+  /// there is this' actually help", which is the only question that tells us
+  /// whether the judgement is worth its cost. It carries the RANK the Meal
+  /// already had and nothing else — not the phrase, and not the Meal's id,
+  /// because an id plus a timestamp is a search somebody could reconstruct.
+  void Function(DiscoveredMeal)? _openFrom(
+    SearchOutcome outcome,
+    DiscoveryResult result,
+  ) {
+    final open = widget.onOpen;
+    if (open == null) return null;
+    return (item) {
+      if (outcome.results.judgement case final NothingAnswers judgement) {
+        if (judgement.alternatives.any((m) => m.id == item.meal.id)) {
+          unawaited(
+            emitEvent(
+              EventNames.recommendationAccepted,
+              attributes: {'rank': result.rank},
+            ),
+          );
+        }
+      }
+      open(item);
+    };
   }
 
   /// FR-029a. Said before anything is sent, in plain terms, with refusing as an

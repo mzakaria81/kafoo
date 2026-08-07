@@ -184,6 +184,26 @@ run "edge functions" bash -c '
 # It was, until 2026-08-05: it held the pre-ADR-0010 answer for the Arabic word for Cook, and its
 # marker test could not see a marker behind an Arabic conjunction. Neither shows up in a replay,
 # because a replay only reports what the detector found.
+#
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+# THE FILENAME DECIDES WHETHER A SUITE RUNS HERE, AND THAT COST US THREE SUITES IN SILENCE.
+#
+# `*_test.ts` runs in the gate. `*.test.ts` does NOT — one character, no warning, and the check
+# still prints ok. Found 2026-08-07: `discover/index.test.ts` and `embed-meal/index.test.ts` had
+# never run in CI. That is WP-015's entire Edge Function suite, including the assertion that no
+# word of a Customer's phrase comes back in a response — the FR-029 check, gating nothing. Both
+# pass; both were renamed to `_test.ts` and now actually run.
+#
+# `delete-account/index.test.ts` keeps the dotted name ON PURPOSE and stays out. It is an
+# integration suite that needs the local stack `supabase start` prints keys for, and it fails with
+# "supabaseKey is required" anywhere else. So the two names now mean something:
+#
+#     index_test.ts   pure, runs in the gate
+#     index.test.ts   needs a live stack, run by hand
+#
+# Written down because it was previously a convention nobody had stated, which is the same thing as
+# an accident.
+# ────────────────────────────────────────────────────────────────────────────────────────────────
 run "edge function tests" bash -c '
   files=$(find supabase/functions scripts -name "*_test.ts" -type f 2>/dev/null | sort)
   [ -n "${files}" ] || { echo "   no edge function unit tests yet — skipping"; exit 0; }
@@ -221,6 +241,16 @@ run "prompt bundle drift" bash -c '
 # words. A hand-maintained second copy drifts, and the direction it drifts is an allergy recognised
 # on one surface and not the other — which is the failure the whole exclusion design exists to
 # prevent, arriving through a build step.
+# The demo Cooks, kitchens and Meals a preview branch starts with. Source is supabase/demo-data.json,
+# which the founder maintains; the SQL at the foot of supabase/seed.sql is compiled from it.
+#
+# Checked for the same reason the prompt bundle and the exclusion vocabulary are: an edit to the
+# JSON that was never regenerated is a preview branch quietly seeded with the previous version, and
+# nothing at run time would say so.
+run "demo seed drift" bash -c '
+  [ -f supabase/demo-data.json ] || { echo "   no demo data yet — skipping"; exit 0; }
+  python3 scripts/generate-demo-seed.py --check'
+
 run "exclusion vocabulary" python3 scripts/generate-exclusions.py --check
 
 # Principle II, made mechanical rather than reviewed.

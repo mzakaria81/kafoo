@@ -1,0 +1,23 @@
+{
+  "name": "Franco-Arabic, typed the way people actually type on a phone",
+  "kind": "dialect",
+  "phrase": "3ayez koshary 7ara",
+  "note": "Latin letters and numerals standing in for Arabic sounds — 3 for ع, 7 for ح. The rules require two dialect or slang cases and the corpus had none. Cross-script matching is an embedding property and retrieval already found the koshari; what is tested here is that the judgement reads the request at all rather than refusing because it does not look like Arabic.",
+  "meals": [
+    {
+      "id": "koshari",
+      "title": "كشري",
+      "description": "عدس ومكرونة وأرز وحمص وصلصة وشطة وتقلية بصل"
+    },
+    {
+      "id": "kebda",
+      "title": "كبدة إسكندراني",
+      "description": "كبدة مقطعة بالتوم والفلفل والكمون والشطة"
+    }
+  ],
+  "modelReply": "{\"answers\": true, \"alternatives\": []}",
+  "expect": {
+    "answers": true,
+    "alternatives": []
+  }
+}

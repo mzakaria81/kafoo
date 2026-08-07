@@ -18,7 +18,6 @@ export interface Exclusion {
 /// the rest of the phrase as the food.
 export const NEGATION_MARKERS: readonly string[] = [
   'عندي حساسية من',
-  'عندى حساسية من',
   'حساسية من',
   'من غير ما يكون فيه',
   'مش عايزة',
@@ -32,22 +31,17 @@ export const NEGATION_MARKERS: readonly string[] = [
 
 /// Words that can sit between the marker and the food without being part of it.
 export const FILLERS: readonly string[] = [
-  'أي',
   'اي',
-  'ولا',
-  'شوية',
+  'شويه',
 ];
 
 export const EXCLUSIONS: readonly Exclusion[] = [
   {
     id: 'meat',
     surfaceForms: [
-      'لحمة',
-      'لحمه',
       'لحم',
       'لحوم',
-      'كبدة',
-      'كبده',
+      'كبد',
       'سجق',
       'بسطرمة',
       'لانشون',
@@ -57,30 +51,21 @@ export const EXCLUSIONS: readonly Exclusion[] = [
     id: 'chicken',
     surfaceForms: [
       'فراخ',
-      'فرخة',
-      'فرخه',
       'فرخ',
       'دجاج',
       'بانيه',
-      'بانية',
     ],
   },
   {
     id: 'fish',
     surfaceForms: [
       'سمك',
-      'سمكة',
-      'سمكه',
       'أسماك',
-      'اسماك',
       'سلمون',
       'رنجة',
-      'رنجه',
       'فسيخ',
       'بلطي',
-      'بلطى',
       'بوري',
-      'بورى',
       'سردين',
     ],
   },
@@ -88,14 +73,13 @@ export const EXCLUSIONS: readonly Exclusion[] = [
     id: 'shellfish',
     surfaceForms: [
       'جمبري',
-      'جمبرى',
       'استاكوزا',
-      'إستاكوزا',
-      'أستاكوزا',
       'كابوريا',
       'محار',
       'سبيط',
       'كاليماري',
+      'قريدس',
+      'حبار',
       'جندوفلي',
     ],
   },
@@ -103,8 +87,6 @@ export const EXCLUSIONS: readonly Exclusion[] = [
     id: 'egg',
     surfaceForms: [
       'بيض',
-      'بيضة',
-      'بيضه',
     ],
   },
   {
@@ -113,29 +95,19 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'لبن',
       'حليب',
       'جبن',
-      'جبنة',
-      'جبنه',
       'زبادي',
-      'زبادى',
       'قشطة',
-      'قشطه',
       'قشدة',
       'زبدة',
-      'زبده',
-      'سمنة',
-      'سمنه',
+      'سمن',
       'كريمة',
-      'كريمه',
       'قريش',
     ],
   },
   {
     id: 'peanut',
     surfaceForms: [
-      'فول سوداني',
-      'فول سودانى',
       'سوداني',
-      'سودانى',
     ],
   },
   {
@@ -157,7 +129,6 @@ export const EXCLUSIONS: readonly Exclusion[] = [
     surfaceForms: [
       'سمسم',
       'طحينة',
-      'طحينه',
     ],
   },
   {
@@ -170,12 +141,13 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'سميد',
       'بقسماط',
       'مكرونة',
+      'معكرونة',
       'عيش',
       'خبز',
       'رقاق',
       'فريك',
       'شعرية',
-      'عجينة',
+      'عجين',
       'شوفان',
     ],
   },

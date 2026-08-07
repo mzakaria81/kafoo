@@ -162,6 +162,28 @@ Then confirm the bundle carries no service-role key:
 npm run build && grep -r "service_role\|SERVICE_ROLE" .open-next/ || echo "clean"
 ```
 
+## 5b. The judgement — what Kafoo says when nothing answers
+
+Search for something the marketplace plainly cannot answer (`سوشي ياباني`), and for something it
+answers well (`حاجة تدفي في البرد`). By hand, on a device or the simulator:
+
+- The results appear **first**, and the sentence arrives afterwards or not at all. If you never see
+  it, that is a correct outcome — a judgement that fails costs a sentence and never a result.
+- When it says nothing here answers, **every Meal is still on the screen, in the same order**. The
+  named Meals are named in the sentence; nothing is removed, nothing moves up. A screen showing only
+  the named Meals is a bug, not a tidier layout.
+- The Meals it names are on offer right now. Open one and check it is real.
+- The sentence never says a Meal is popular, nearby, fast, or safe. Kafoo knows none of those things.
+- Read it at 200% text scale, in Arabic. It must address a woman as readily as a man — there should
+  be no `you` in it at all.
+
+Then take the network away mid-search and repeat. The results must be unchanged and the sentence
+simply absent.
+
+**SC-004 is not met by any of this.** The judgement's accuracy has never been measured against a
+real model — only its rules have, against replies this repository wrote. Read
+`docs/ops/eval-discovery-judgement.md` before signing that criterion off.
+
 ## 6. The gate
 
 ```bash

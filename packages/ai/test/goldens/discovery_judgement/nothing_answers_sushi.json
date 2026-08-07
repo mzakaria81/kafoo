@@ -1,0 +1,16 @@
+{
+  "name": "Japanese sushi, in a marketplace of Egyptian home cooking",
+  "kind": "nothing",
+  "phrase": "سوشي ياباني",
+  "note": "The corpus query q_nothing_matches. This is the EASY half of the job — the Meals are plainly unrelated — and it is here so the hard case has something to be measured against, not because catching it proves anything.",
+  "meals": [
+    { "id": "koshari", "title": "كشري", "description": "عدس ومكرونة وأرز وحمص وصلصة وشطة وتقلية بصل" },
+    { "id": "samak", "title": "سمك بلطي في الفرن", "description": "بلطي متبل بالكمون والليمون ومخبوز بالطحينة" },
+    { "id": "molokhia", "title": "ملوخية بالأرانب", "description": "ملوخية خضرا مفرومة بالتوم والكزبرة مع أرانب وأرز أبيض" }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [2, 1]}",
+  "expect": {
+    "answers": false,
+    "alternatives": ["samak", "koshari"]
+  }
+}

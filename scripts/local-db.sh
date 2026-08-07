@@ -131,9 +131,23 @@ start() {
       echo "migration failed: $(basename "$f")" >&2; return 1; }
   done
 
+  # THE DEMO BLOCK IS STRIPPED HERE, AND THAT IS NOT TIDINESS.
+  #
+  # seed.sql carries two unrelated things: the pgTAP harness every authorization suite needs, and
+  # the demo Cooks and Meals a preview branch is seeded with so a human has something to look at.
+  # This cluster exists to run the suites, and several of them assert ABSOLUTE counts — "exactly one
+  # kitchen is discoverable", "anon reaches both published Meals". Thirteen demo Meals sitting in
+  # the database turns every one of those red, which is what happened the moment the demo data
+  # landed.
+  #
+  # The counts are right to be absolute: "at least one" is the assertion that cannot fail. So the
+  # fixture is what moves, not the test. A preview branch runs the whole file; this harness runs
+  # the half it needs.
   log "seed"
+  sed '/^-- >>> GENERATED DEMO DATA/,/^-- <<< END GENERATED DEMO DATA/d' \
+    "${REPO}/supabase/seed.sql" > "${CLUSTER}/seed-no-demo.sql" || return 1
   psql -h "${SOCKET}" -U postgres -d "${DB}" -v ON_ERROR_STOP=1 -q \
-    -f "${REPO}/supabase/seed.sql" || return 1
+    -f "${CLUSTER}/seed-no-demo.sql" || return 1
 
   # Written last, and only on success, so a cluster left half-built by a failed migration has no
   # stamp and is rebuilt on the next run rather than reused.

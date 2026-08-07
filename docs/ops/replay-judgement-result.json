@@ -1,0 +1,284 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "criterion": "SC-004",
+  "outcomes": [
+    {
+      "caseId": "sushi",
+      "size": 5,
+      "answers": false,
+      "alternatives": [
+        "samak",
+        "gambari"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "burger",
+      "size": 5,
+      "answers": false,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "pizza",
+      "size": 4,
+      "answers": false,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "mango_konafa",
+      "size": 4,
+      "answers": false,
+      "alternatives": [
+        "konafa"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "smoked_salmon",
+      "size": 3,
+      "answers": false,
+      "alternatives": [
+        "samak",
+        "gambari"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "bechamel",
+      "size": 3,
+      "answers": false,
+      "alternatives": [
+        "pasta_white"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "fried_chicken",
+      "size": 4,
+      "answers": false,
+      "alternatives": [
+        "firakh_mashwia",
+        "sadr_firakh",
+        "shawerma"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "steak",
+      "size": 4,
+      "answers": false,
+      "alternatives": [
+        "fatta",
+        "tagen_batates",
+        "roqaq"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "ice_cream",
+      "size": 4,
+      "answers": false,
+      "alternatives": [
+        "roz_belaban"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "crab",
+      "size": 2,
+      "answers": false,
+      "alternatives": [
+        "gambari",
+        "samak"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "juice",
+      "size": 4,
+      "answers": false,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "beef_shawerma",
+      "size": 4,
+      "answers": false,
+      "alternatives": [
+        "fatta",
+        "roqaq"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "light",
+      "size": 4,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "sweet",
+      "size": 4,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "breakfast",
+      "size": 4,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "seafood",
+      "size": 3,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "chicken",
+      "size": 4,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "warming",
+      "size": 3,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "traditional",
+      "size": 4,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "grilled_chicken_en",
+      "size": 3,
+      "answers": true,
+      "alternatives": [],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "burger",
+      "size": 15,
+      "answers": false,
+      "alternatives": [
+        "roqaq",
+        "bechamel",
+        "kebda"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "burger",
+      "size": 34,
+      "answers": false,
+      "alternatives": [
+        "crepe",
+        "bechamel",
+        "roqaq"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "mango_konafa",
+      "size": 15,
+      "answers": false,
+      "alternatives": [
+        "konafa"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "mango_konafa",
+      "size": 34,
+      "answers": false,
+      "alternatives": [
+        "konafa"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "fried_chicken",
+      "size": 15,
+      "answers": false,
+      "alternatives": [
+        "firakh_mashwia",
+        "sadr_firakh",
+        "shawerma"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "fried_chicken",
+      "size": 34,
+      "answers": false,
+      "alternatives": [
+        "firakh_mashwia",
+        "sadr_firakh",
+        "shawerma"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "beef_shawerma",
+      "size": 15,
+      "answers": false,
+      "alternatives": [
+        "shawerma",
+        "fatta",
+        "roqaq"
+      ],
+      "refusal": null,
+      "correct": true
+    },
+    {
+      "caseId": "beef_shawerma",
+      "size": 34,
+      "answers": false,
+      "alternatives": [
+        "shawerma",
+        "fatta",
+        "roqaq"
+      ],
+      "refusal": null,
+      "correct": true
+    }
+  ]
+}

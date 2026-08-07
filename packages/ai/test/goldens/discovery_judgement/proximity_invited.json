@@ -1,0 +1,23 @@
+{
+  "name": "a request that invites a distance claim, and a model that reaches for one",
+  "kind": "proximity",
+  "phrase": "عايز أقرب حاجة ليا دلوقتي",
+  "note": "FR-017. Kafoo holds no location for any Customer and no notion of where an area is, so 'nearest' cannot be answered by anything here. The model volunteers a neighbourhood it was never given — the kitchen's area is not in what it sees. The reply is refused whole, exactly as the popularity case is: no verdict reaches the Customer, and no words do either.",
+  "meals": [
+    {
+      "id": "fool",
+      "title": "فول مدمس",
+      "description": "فول مدمس بالزيت والليمون والكمون"
+    },
+    {
+      "id": "taameya",
+      "title": "طعمية",
+      "description": "طعمية بالكزبرة الخضرا مقلية على الطلب"
+    }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [2], \"note\": \"المطبخ ده جنبك في المهندسين وبيوصل بسرعة\"}",
+  "expect": {
+    "judged": false,
+    "refusedKey": "note"
+  }
+}

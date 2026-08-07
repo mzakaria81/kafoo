@@ -1541,4 +1541,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get searchAreasUnknown =>
       'We can\'t work out which areas have food right now. Try again in a moment.';
+
+  @override
+  String get searchJudgementNothingAnswers =>
+      'Nothing here is exactly what you asked for.';
+
+  @override
+  String searchJudgementAlternatives(
+      int count, String first, String second, String third) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first», «$second» and «$third»',
+      two:
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first» and «$second»',
+      one:
+          'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first»',
+    );
+    return '$_temp0';
+  }
 }

@@ -1491,4 +1491,22 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get searchAreasUnknown =>
       'مش قادرين نعرف دلوقتي المناطق اللي فيها أكل. جرب تاني كمان شوية.';
+
+  @override
+  String get searchJudgementNothingAnswers => 'مفيش أكلة هنا زي كده بالظبط.';
+
+  @override
+  String searchJudgementAlternatives(
+      int count, String first, String second, String third) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «$first» و«$second» و«$third»',
+      two:
+          'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «$first» و«$second»',
+      one: 'مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «$first»',
+    );
+    return '$_temp0';
+  }
 }

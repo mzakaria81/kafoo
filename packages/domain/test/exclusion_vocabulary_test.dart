@@ -36,6 +36,42 @@ void main() {
       }
     });
 
+    test('no form is a second spelling of another form of the same food', () {
+      // Both sides fold now, so `جبنة` and `جبنه` are one form written twice.
+      // A list that carries both teaches the next author to keep adding pairs —
+      // and the pairs were never the coverage, since the pair nobody thought of
+      // is the one that let a Meal through.
+      for (final exclusion in ExclusionVocabulary.all) {
+        final folded =
+            exclusion.surfaceForms.map(ExclusionVocabulary.foldArabic).toList();
+        expect(folded.toSet().length, folded.length,
+            reason: '${exclusion.id} lists one word twice: $folded');
+      }
+    });
+
+    test('a longer form of one food never hides inside another food', () {
+      // Cross-entry containment makes list order decide the answer. There is
+      // exactly one, it is pinned here, and a second one fails this test rather
+      // than quietly changing what a Customer gets.
+      final overlaps = <String>[];
+      for (final exclusion in ExclusionVocabulary.all) {
+        for (final form in exclusion.surfaceForms) {
+          final folded = ExclusionVocabulary.foldArabic(form);
+          for (final other in ExclusionVocabulary.all) {
+            if (identical(other, exclusion)) continue;
+            for (final otherForm in other.surfaceForms) {
+              if (folded.contains(ExclusionVocabulary.foldArabic(otherForm))) {
+                overlaps.add('${exclusion.id}:$form ⊃ ${other.id}:$otherForm');
+              }
+            }
+          }
+        }
+      }
+      expect(overlaps, ['shellfish:كابوريا ⊃ fish:بوري'],
+          reason: 'a new overlap between two foods — decide which word wins '
+              'rather than letting the length of the string decide');
+    });
+
     test('every surface form finds its own exclusion', () {
       // The forms are what reach the database as exclude_terms, so a form that
       // does not round-trip through the lookup is a word a Customer can say and
@@ -61,6 +97,164 @@ void main() {
       final outcome = ExclusionVocabulary.parse('عايز أكل من غير لحمة');
       expect(outcome, isA<ExclusionFound>());
       expect((outcome as ExclusionFound).exclusion.id, 'meat');
+    });
+
+    test('a spelling nobody enumerated is still understood', () {
+      // The gap this folding closed, said in the Customer's voice. Each of
+      // these was ExclusionNotUnderstood before 2026-08-07: the word is
+      // ordinary, the spelling is ordinary, and nobody had listed that exact
+      // one. `لحـمة` is the tatweel case — one stretched letter, and the whole
+      // vocabulary missed it.
+      for (final (phrase, id) in const [
+        ('من غير مكرونه', 'gluten'),
+        ('من غير بسطرمه', 'meat'),
+        ('من غير قشده', 'dairy'),
+        ('عندي حساسية من جندوفلى', 'shellfish'),
+        ('من غير لحـمة', 'meat'),
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(),
+            reason: '"$phrase" was not read');
+        expect((outcome as ExclusionFound).exclusion.id, id, reason: phrase);
+      }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // EVERY CASE BELOW WAS FOUND BY localization-reviewer RUNNING THE CODE, on
+    // 2026-08-07, against a suite that was green. They are the shared corpus:
+    // `discover/index_test.ts` carries the identical list, because the app and
+    // the Edge Function parse the same sentence and a silent disagreement
+    // between them is a Customer's exclusion understood on one side and
+    // matching nothing on the other.
+    // ─────────────────────────────────────────────────────────────────────
+    test('an allergy spelled with ه is still an allergy', () {
+      // The markers were compared raw while the foods folded. `حساسية` is the
+      // only marker word carrying a ة and `حساسيه` is at least as common, so
+      // this returned NoExclusion — not not-understood, NOTHING. A Customer
+      // states a nut allergy, the screen says nothing, the nuts come back.
+      for (final (phrase, id) in const [
+        ('عندي حساسيه من المكسرات', 'nuts'),
+        ('حساسيه من اللبن', 'dairy'),
+        ('عندى حساسيه من الفول السوداني', 'peanut'),
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(), reason: phrase);
+        expect((outcome as ExclusionFound).exclusion.id, id, reason: phrase);
+      }
+    });
+
+    test('two foods in one breath: the FIRST one is honoured', () {
+      // Documented behaviour that stopped being true the moment this side
+      // started matching inside a phrase — the second food won on the
+      // ordering, so a Customer naming milk had eggs excluded and the milk came
+      // back. Two exclusions in one breath is the ordinary shape of an allergy
+      // sentence.
+      for (final (phrase, id) in const [
+        ('من غير لبن ولا بيض', 'dairy'),
+        ('مش عايز سمك ولا لحمة', 'fish'),
+        ('من غير لحمة ولا فراخ', 'meat'),
+        ('مش عايزة عيش ولا جبنة', 'gluten'),
+        ('بدون قمح ولا لبن', 'gluten'),
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(), reason: phrase);
+        expect((outcome as ExclusionFound).exclusion.id, id, reason: phrase);
+      }
+    });
+
+    test('a food name inside another word is not the food', () {
+      // `أبيض` contains `بيض`. Matching anywhere inside the phrase answered
+      // `egg` for white cheese — so the cheese stayed on the screen under a
+      // label naming eggs, which is under-exclusion of the named food wearing
+      // the wrong name. Word-start matching is the fix, and it is one-sided:
+      // the Cook's side must keep matching anywhere, because ingredients are
+      // written `بالبصل` and `بالسمنة`.
+      expect(
+        (ExclusionVocabulary.parse('من غير جبنة بيضاء') as ExclusionFound)
+            .exclusion
+            .id,
+        'dairy',
+      );
+      for (final phrase in const [
+        'مش عايز فلفل أبيض',
+        'من غير رز أبيض',
+        'من غير ملبن',
+      ]) {
+        expect(ExclusionVocabulary.parse(phrase), isA<ExclusionNotUnderstood>(),
+            reason: '$phrase should say Kafoo did not understand, not guess');
+      }
+    });
+
+    test('peanut butter is peanut, not butter', () {
+      // `زبدة` begins the phrase and `سوداني` only begins a word once the
+      // article is stripped. Taking the first reading that matched anything
+      // answered `dairy` — leaving every peanut Meal on the screen, in front of
+      // the allergy people most often mean by that sentence.
+      expect(
+        (ExclusionVocabulary.parse('من غير زبدة الفول السوداني')
+                as ExclusionFound)
+            .exclusion
+            .id,
+        'peanut',
+      );
+    });
+
+    test('over-exclusion that is deliberate stays', () {
+      // `سمكري` is a plumber and reads as fish; `بلاش أكل لبناني` reads as
+      // dairy because `لبناني` genuinely begins with `لبن`. Both show the
+      // Customer LESS food, which is the safe direction, and both are pinned so
+      // that nobody "fixes" them into under-exclusion later. Fixing them
+      // properly needs a list of words that are not foods, which is a bigger
+      // thing than this file.
+      expect(
+          (ExclusionVocabulary.parse('من غير سمكري') as ExclusionFound)
+              .exclusion
+              .id,
+          'fish');
+      expect(
+          (ExclusionVocabulary.parse('بلاش أكل لبناني') as ExclusionFound)
+              .exclusion
+              .id,
+          'dairy');
+    });
+
+    test('the bare stem an Egyptian ingredient list actually carries', () {
+      // Folding solves ة against ه and does nothing for a word written without
+      // the ة at all. Eleven entries were listed only in their ة form, so
+      // `سمن بلدي` — the most ordinary way ghee is written — missed a dairy
+      // exclusion entirely.
+      for (final (phrase, id) in const [
+        ('بدون سمن', 'dairy'),
+        ('من غير عجين', 'gluten'),
+        ('من غير كبد', 'meat'),
+        ('من غير معكرونة', 'gluten'),
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(), reason: phrase);
+        expect((outcome as ExclusionFound).exclusion.id, id, reason: phrase);
+      }
+    });
+
+    test('an invisible character changes nothing', () {
+      // A zero-width non-joiner renders identically to nothing at all on every
+      // screen in the product. Before the fold covered it, `ل\u200Cحم` defeated
+      // every meat exclusion and no reviewer could have seen it.
+      for (final phrase in const [
+        'من غير ل\u200Cحمة',
+        'من غير لحمة\u200F',
+        'من غير\u00A0لحمة',
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(), reason: phrase);
+        expect((outcome as ExclusionFound).exclusion.id, 'meat',
+            reason: phrase);
+      }
+    });
+
+    test('crab is crab, not the fish whose name is inside it', () {
+      final outcome = ExclusionVocabulary.parse('من غير كابوريا');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'shellfish');
     });
 
     test('the longest marker wins', () {

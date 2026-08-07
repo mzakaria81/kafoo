@@ -39,15 +39,15 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "NOT_STARTED",
-  "owner": null,
+  "status": "READY_FOR_REVIEW",
+  "owner": "session_01LBqqj1SRHPQcEHL1VYyZLc",
   "priority": 4,
   "spend_envelope_usd": 2.5,
   "suggested_model": "opencode-go/qwen3.6-plus",
-  "branch": null,
-  "pr": null,
+  "branch": "claude/e3-wp016-judgement",
+  "pr": 54,
   "blocked_reason": null,
-  "notes": "This exists because both candidate thresholds measured BACKWARDS — a query the corpus cannot answer scored higher than one answered correctly. Within a corpus that is entirely food, every food query is topically similar to everything, and a better model does not fix that. The E2 finding applies directly: replaying meal-description against a real model caught it stating things the Cook never said while three golden cases marked all of it PASS. The same failure here names food nobody is cooking.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.",
+  "notes": "This exists because both candidate thresholds measured BACKWARDS — a query the corpus cannot answer scored higher than one answered correctly. Within a corpus that is entirely food, every food query is topically similar to everything, and a better model does not fix that. The E2 finding applies directly: replaying meal-description against a real model caught it stating things the Cook never said while three golden cases marked all of it PASS. The same failure here names food nobody is cooking.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder: the OpenCode weekly limit is reached. Do this package's work directly and do NOT dispatch to opencode-delegate or claude-delegate until the founder says otherwise. suggested_model and spend_envelope_usd are kept as the plan for when it resumes; they are not permission to spend today.\n\nSTARTED 2026-08-07 on claude/e3-wp016-judgement, alongside WP-017's enumeration gap, which the founder reassigned to the same session. Written directly — delegation is suspended.\n\nWHAT IS DONE: prompts/discovery-judgement.md, supabase/functions/judge-results/ with its own suite, seven goldens in packages/ai/test/goldens/discovery_judgement/ read by both a Deno and a Dart suite, the nothing-matched sentence in both ARB files, and SearchFailed and RecommendationAccepted.\n\nSC-004 IS NOW MET, measured 2026-08-07 against a live model with the founder's approval: 20 of 20 requests that nothing answers were stated as such, flat across 5, 15 and 34 Meals, no false refusals, no reply refused before a verdict, no alternative named outside the handed set. The near-misses are what carry it — mango kunafa against pistachio kunafa, fried against grilled chicken, a burger against minced meat in bread. docs/ops/eval-discovery-judgement.md records the limits: retrieval was not run, one model on one day, 36 Meals rather than 50. WAS NOT MET WHEN THIS PACKAGE WAS FIRST WRITTEN UP: The criterion is 100% of tested cases and no degradation with corpus size; the goldens run against the stub adapter, so they measure Kafoo's rules and not a model's judgement. docs/ops/eval-discovery-judgement.md sets out the two runs it needs and what they cost. It is a founder decision, not outstanding work.",
   "created_at": "2026-08-06T18:00:00Z",
-  "updated_at": "2026-08-06T19:30:00Z"
+  "updated_at": "2026-08-07T18:20:00Z"
 }

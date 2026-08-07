@@ -266,6 +266,21 @@ class SearchController extends _$SearchController {
 
   Future<void> _judge(String phrase, SearchOutcome outcome) async {
     if (outcome.results.results.isEmpty) return;
+
+    // THE JUDGEMENT IS A SECOND WAY FOR THE WORDS TO LEAVE, so it passes the
+    // same gate rather than inheriting the one `_send` passed a moment ago.
+    //
+    // Consent was checked before the search; this call goes out afterwards,
+    // one network round-trip later, carrying the same phrase again. A Customer
+    // who reaches Settings and revokes in that window had their words sent a
+    // second time under a permission they had just withdrawn. The window is
+    // narrow today — trust-reviewer called it too narrow to be a finding — and
+    // it stops being narrow the day somebody adds a retry, a queue, or a
+    // longer timeout. `_send` re-reads consent and this did not, and an
+    // asymmetry between two outbound paths is how the second one gets
+    // forgotten.
+    final consent = await ref.read(searchConsentControllerProvider.future);
+    if (!ref.mounted || !consent.allowsSearch) return;
     final judgement =
         await _repository.judge(phrase: phrase, results: outcome.results);
     if (!ref.mounted || judgement == null) return;
@@ -280,5 +295,19 @@ class SearchController extends _$SearchController {
         area: outcome.area,
       ),
     );
+
+    // SearchFailed BELONGS HERE AND NOT WHERE THE DATABASE RETURNED NOTHING.
+    // Retrieval returning rows is not the same as those rows answering the
+    // question — conflating the two is exactly what a score threshold tried
+    // and failed to do, and the event would then be measuring the wrong fact.
+    //
+    // It carries NOTHING. Not the phrase, which FR-029 forbids, and not a
+    // count either: the number of results that did not answer is not something
+    // anybody can act on. `search_failed_test` asserts the attribute set is
+    // EMPTY rather than asserting a size, because a test that checks only a
+    // count stays green the day somebody adds a phrase beside it.
+    if (judgement is NothingAnswers) {
+      unawaited(emitEvent(EventNames.searchFailed));
+    }
   }
 }

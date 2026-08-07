@@ -92,9 +92,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   TO anon, authenticated, service_role;
 
 -- Supabase's auth.users, cut down to the columns Kafoo's foreign keys and helpers touch.
--- Columns are exactly those tests.create_supabase_user in supabase/seed.sql writes, plus the keys
--- Kafoo's own migrations reference. Real auth.users has many more; adding them here would be
--- inventing a schema rather than standing in for one.
+-- Columns are exactly those supabase/seed.sql writes, plus the keys Kafoo's own migrations
+-- reference. Real auth.users has many more; adding them here would be inventing a schema rather
+-- than standing in for one.
+--
+-- THE PHONE COLUMNS ARRIVED 2026-08-07 AND THEY ARE NOT SPECULATIVE. Kafoo authenticates by phone
+-- number and by nothing else — E1's whole identity design — so a stand-in for auth.users without
+-- `phone_confirmed_at` cannot hold a person who could actually sign in. It was only ever exercised
+-- by the email-based test helper, so nobody noticed until the demo seed created a Cook the app is
+-- meant to be able to log in as, and this file rejected it.
 CREATE TABLE IF NOT EXISTS auth.users (
   id                     uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   instance_id            uuid,
@@ -104,6 +110,11 @@ CREATE TABLE IF NOT EXISTS auth.users (
   phone                  text UNIQUE,
   encrypted_password     varchar(255),
   email_confirmed_at     timestamptz,
+  phone_confirmed_at     timestamptz,
+  phone_change           text,
+  phone_change_token     varchar(255),
+  email_change_token_current varchar(255),
+  reauthentication_token varchar(255),
   raw_app_meta_data      jsonb,
   raw_user_meta_data     jsonb,
   confirmation_token     varchar(255),

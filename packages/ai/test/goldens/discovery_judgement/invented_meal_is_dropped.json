@@ -1,0 +1,22 @@
+{
+  "name": "the model names a Meal nobody handed it",
+  "kind": "invented",
+  "phrase": "حاجة حلوة بعد الأكل",
+  "note": "FR-015 and the E2 finding: replaying meal-description against a real model caught it stating things the Cook never said while three golden cases marked all of it PASS. The same failure here names food nobody is cooking.\n\nTHIS FIXTURE USED TO EXPECT THE BAD NUMBERS DROPPED AND THE REST PUBLISHED, and ai-boundary-reviewer showed that reading was wrong. A 0 is not noise — the list is numbered from one, so a model returning 0 numbered the list from zero, every index is shifted, and dropping the out-of-range entry publishes the SHIFTED answer. Measured on three Meals: a reply meaning 'the first and the second' published 'the first' alone, while telling the Customer those were the Meals the judgement picked. So a number outside the range now refuses the whole reply, which is also the consistent stance — an unknown property already costs the whole judgement.",
+  "meals": [
+    {
+      "id": "basbousa",
+      "title": "بسبوسة",
+      "description": "بسبوسة بالسميد والقشطة والشربات"
+    },
+    {
+      "id": "mahalabeya",
+      "title": "مهلبية",
+      "description": "مهلبية باللبن وماء الورد والفستق"
+    }
+  ],
+  "modelReply": "{\"answers\": false, \"alternatives\": [7, 2, 0, -1]}",
+  "expect": {
+    "judged": false
+  }
+}

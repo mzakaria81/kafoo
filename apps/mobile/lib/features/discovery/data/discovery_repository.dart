@@ -236,6 +236,19 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
       );
       final data = response.data;
       if (data is! Map) return null;
+
+      // THE FIELD MUST BE PRESENT AND MUST BE A BOOLEAN, and requiring that is
+      // the difference between the server promising and the client checking.
+      //
+      // Any 200 whose `answers` was not `true` read as "nothing here answers
+      // you" — including a 200 carrying `{"error": "no judgement"}`, which is
+      // the exact body the function returns when it declines to judge. It sends
+      // that with a 503 and never a 200, so nothing was broken; the point is
+      // that the safety of the whole design rested on no layer in between ever
+      // turning a body into a 200. A gateway, a retry wrapper, or a platform
+      // error page would have told a Customer their perfectly good results were
+      // worthless. Found by ai-boundary-reviewer.
+      if (data['answers'] is! bool) return null;
       if (data['answers'] == true) return const ResultsAnswer();
 
       // MATCHED against the set that was handed over, never looked up. A Meal
