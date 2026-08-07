@@ -1,0 +1,580 @@
+#!/usr/bin/env node
+/**
+ * delegate-skills · opencode-delegate · relay.mjs
+ *
+ * Dispatch a self-contained brief to the OpenCode CLI (`opencode run`),
+ * capture the run, and write a structured result the orchestrating agent can
+ * review. The orchestrator runs this one command and reads the result JSON —
+ * every OpenCode-specific mechanic lives in here, which keeps the skill
+ * orchestrator-agnostic. Verified against opencode CLI v1.17.13.
+ *
+ * Trust posture: relay.mjs itself makes no network calls, reads or writes no
+ * credentials, and sends no telemetry; it has no dependencies (Node built-ins
+ * only). It shells out only to `opencode` and `git`. The `opencode` process it
+ * launches does authenticate — exactly as you do at the terminal. Read this
+ * file before you run it.
+ *
+ * It deliberately does NOT commit. Committing is always the orchestrator's job —
+ * after it reviews the diff and re-runs the project gates.
+ *
+ * OpenCode autonomy is governed by the chosen agent, not a sandbox enum:
+ *   build (default) — write-capable; edits files in the working dir headlessly.
+ *   plan            — read-only; reviews/diagnoses without touching the tree.
+ * A build run passes `--auto` by default so OpenCode never blocks on a permission
+ * prompt no one can answer in headless mode; the orchestrator's diff review is the
+ * safety net. Pass --no-auto to instead honor the agent's own permission config.
+ * A plan (read-only) run never gets --auto, so it can't be auto-approved into edits.
+ *
+ * Usage:
+ *   node relay.mjs --brief <file> [options]
+ *   cat brief.txt | node relay.mjs [options]
+ *
+ * Options:
+ *   --brief <file>          Path to the brief. If omitted, the brief is read from stdin.
+ *   --cd <dir>              Working root for OpenCode (default: current directory).
+ *   --model <name>          Model as provider/model. REQUIRED for a fresh run — OpenCode has no
+ *                           safe default; a resumed run inherits its session's model.
+ *   --agent <name>          OpenCode agent (default: build). Use plan for read-only review.
+ *   --read-only             Shortcut for --agent plan (review/diagnosis, no edits).
+ *   --variant <name>        Provider reasoning effort (e.g. high, max, minimal).
+ *   --no-auto               Don't pass --auto; honor the agent's own permission config (a headless
+ *                           run may then hang if the agent is set to ask for a permission).
+ *   --resume-last           Continue the most recent OpenCode session; send only the delta brief.
+ *   --session <id>          Continue a specific session id (ses_...); send only the delta brief.
+ *   --pure                  Run OpenCode without external plugins (cleaner event stream).
+ *   --timeout <dur>         Relay-side watchdog (default: off). Durations use h/m/s
+ *                           strings like 30m or 2h. On expiry the opencode child is
+ *                           killed and result.json gets status "timeout".
+ *   --out-dir <dir>         Where to write run artifacts (default: a fresh dir under
+ *                           the system temp dir, so the repo under review stays clean).
+ *   -h, --help              Show this help.
+ *
+ * Result: written to <out-dir>/result.json and summarized on stdout —
+ *   status, exitCode, signal, opencodeVersion, sessionId (for a later resume), finalMessage
+ *   (OpenCode's own report), touchedFiles (git porcelain, null if git can't report), and the
+ *   paths to events.jsonl and final.txt.
+ *
+ * Exit codes: a pre-run usage error (bad/missing args, empty brief) exits 2
+ * before any run and writes no result file; a missing `opencode` binary exits 127;
+ * otherwise the exit code mirrors OpenCode's own (0 success, non-zero failure).
+ * If the child dies on a signal, the exit code is 128 plus the signal number and
+ * `result.json` records the signal.
+ * Once the brief validates, `result.json` is written on every outcome —
+ * completed, failed, timeout (the --timeout watchdog fired), aborted (the relay
+ * itself was killed and forwarded the kill to opencode), or
+ * opencode_unavailable. An orchestrator that polls for the
+ * file must therefore also treat a non-zero exit with no file as a usage error.
+ */
+
+import { spawn, execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, appendFileSync } from "node:fs";
+import { join, resolve, basename } from "node:path";
+import { constants, tmpdir } from "node:os";
+import { StringDecoder } from "node:string_decoder";
+
+function fail(message, code = 2) {
+  process.stderr.write(`relay: ${message}\n`);
+  process.exit(code);
+}
+
+function parseArgs(argv) {
+  const opts = {
+    brief: null,
+    cd: process.cwd(),
+    model: null,
+    agent: "build",
+    variant: null,
+    auto: true,
+    resumeLast: false,
+    session: null,
+    pure: false,
+    timeout: null,
+    outDir: null,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    const next = () => {
+      const value = argv[i + 1];
+      if (value === undefined) fail(`${arg} requires a value`);
+      i += 1;
+      return value;
+    };
+    switch (arg) {
+      case "-h":
+      case "--help":
+        process.stdout.write(headerComment());
+        process.exit(0);
+        break;
+      case "--brief": opts.brief = next(); break;
+      case "--cd": opts.cd = resolve(next()); break;
+      case "--model": opts.model = next(); break;
+      case "--agent": opts.agent = next(); break;
+      case "--read-only": opts.agent = "plan"; break;
+      case "--variant": opts.variant = next(); break;
+      case "--auto": opts.auto = true; break;
+      case "--no-auto": opts.auto = false; break;
+      case "--resume-last": opts.resumeLast = true; break;
+      case "--session": opts.session = next(); break;
+      case "--pure": opts.pure = true; break;
+      case "--timeout": opts.timeout = next(); break;
+      case "--out-dir": opts.outDir = resolve(next()); break;
+      default:
+        fail(`unknown option: ${arg}`);
+    }
+  }
+  // The watchdog is relay-only (the opencode launch has no timeout flag), so a malformed
+  // --timeout must fail loudly here - a silent no-watchdog fallback would be wrong.
+  if (opts.timeout !== null && parseDuration(opts.timeout) === null) {
+    fail(`--timeout "${opts.timeout}" is not a duration; use h/m/s strings like 30m, 90s, or 1h30m`);
+  }
+  return opts;
+}
+
+function parseDuration(duration) {
+  // Whole-string match: "1mtypo" must be rejected, not read as one minute.
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(duration);
+  if (!match || (!match[1] && !match[2] && !match[3])) return null;
+  return (Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0)) * 1000;
+}
+
+function killChild(child, signal = "SIGTERM") {
+  // The kill must reach the whole process family, not just the immediate child — a tool
+  // subprocess left running would keep editing after the relay reports timeout/aborted.
+  // On Windows the child is the .cmd shim (the shell:true launch above), Windows has no
+  // process-group signals, and Node can't kill a process family without a Job Object, so
+  // kill the tree by pid with the OS tool: /t includes descendants, /f forces it — the
+  // same idiom tree-kill and npm/pnpm use.
+  if (process.platform === "win32") {
+    if (signal !== "SIGTERM") return; // the first taskkill /f already felled the whole tree
+    // stderr is inherited so a real taskkill failure (e.g. access denied) is visible to the operator;
+    // its non-zero exit when the tree is already gone is the expected race and carries nothing to do.
+    try { execFileSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: ["ignore", "ignore", "inherit"] }); }
+    catch { /* already gone — nothing left to kill */ }
+  } else {
+    // On POSIX the child leads its own process group (the detached launch), so the negative-pid
+    // signal reaches every descendant; fall back to the lone pid if the group is already gone.
+    try { process.kill(-child.pid, signal); } catch { try { child.kill(signal); } catch { /* already gone */ } }
+  }
+}
+
+function headerComment() {
+  // The leading block comment doubles as --help text.
+  const src = readFileSync(new URL(import.meta.url), "utf8");
+  const match = src.match(/\/\*\*([\s\S]*?)\*\//);
+  if (!match) return "relay.mjs — dispatch a brief to opencode run\n";
+  return match[1].replace(/^\s*\* ?/gm, "").trim() + "\n";
+}
+
+function readBrief(opts) {
+  if (opts.brief) {
+    if (!existsSync(opts.brief)) fail(`brief file not found: ${opts.brief}`);
+    return readFileSync(opts.brief, "utf8");
+  }
+  // No --brief: read from stdin (fd 0). Empty stdin is an error.
+  if (process.stdin.isTTY) {
+    fail("no --brief given and stdin is a TTY; pass --brief <file> or pipe the brief on stdin");
+  }
+  let stdin = "";
+  try {
+    stdin = readFileSync(0, "utf8");
+  } catch {
+    stdin = "";
+  }
+  return stdin;
+}
+
+function opencodeVersion() {
+  try {
+    // On Windows, npm installs `opencode` as a .cmd shim; Node's CreateProcess only
+    // auto-appends .exe, never .cmd, so launching it needs shell:true there or it
+    // ENOENTs on a working install. POSIX is unaffected. (git installs a real
+    // git.exe and must NOT get this flag — see gitTouchedFiles.)
+    return execFileSync("opencode", ["--version"], { encoding: "utf8", shell: process.platform === "win32" }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function gitTouchedFiles(cwd) {
+  // null (not []) when git can't report — git missing, or a non-repo run — so the
+  // caller can tell "git unavailable" apart from "OpenCode changed nothing."
+  // [] means git ran and the working tree is clean.
+  try {
+    const out = execFileSync("git", ["status", "--porcelain"], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    return out.split("\n").map((line) => line.trimEnd()).filter(Boolean);
+  } catch {
+    return null;
+  }
+}
+
+function timestamp() {
+  // Local script (not a workflow): Date is available and fine here.
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function buildArgv(opts) {
+  const argv = ["run", "--format", "json"];
+  if (opts.pure) argv.push("--pure");
+  // Resume continues an existing session; --session pins a specific id, otherwise
+  // --continue picks up the most recent one. A resumed run inherits its original
+  // agent, so we only set --agent on a fresh run.
+  if (opts.session) {
+    argv.push("--session", opts.session);
+  } else if (opts.resumeLast) {
+    argv.push("--continue");
+  } else {
+    argv.push("--agent", opts.agent);
+  }
+  if (opts.model) argv.push("--model", opts.model);
+  if (opts.variant) argv.push("--variant", opts.variant);
+  // --auto (on by default) auto-approves permissions so a headless build run doesn't
+  // block on a prompt no one can answer; --no-auto honors the agent's own config.
+  // Never on a plan (read-only) run: --auto would approve the plan agent's ask-gated
+  // edit/bash permissions and let a "read-only" review modify the tree. A plan run
+  // only reads, so it doesn't need auto-approval anyway.
+  if (opts.auto && opts.agent !== "plan") argv.push("--auto");
+  // No message argument: the brief is piped on stdin (see dispatchToOpenCode),
+  // which avoids all argv-quoting issues with multi-line, XML-tagged briefs.
+  return argv;
+}
+
+function makeEventScanner(onObject) {
+  // OpenCode emits newline-delimited JSON events on stdout, but local plugins can
+  // prepend terminal-notify escape sequences (e.g. `]777;notify;...{...}`) on the
+  // same line. A plain line-splitter would choke on those. This brace-aware
+  // scanner instead walks the byte stream, ignores anything at depth 0 that isn't
+  // a top-level object, and emits each complete `{...}` it closes — robust to junk
+  // prefixes and concatenated objects alike. String/escape state is tracked so
+  // braces inside string values never throw off the depth count.
+  let buf = "";
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  return (chunk) => {
+    buf += chunk;
+    for (let i = 0; i < buf.length; i += 1) {
+      const ch = buf[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      // Only track strings inside an object (depth > 0). At depth 0 we're skipping a
+      // junk prefix (e.g. a terminal-notify escape), and an unmatched `"` there must
+      // not swallow the real `{...}` that follows in the same chunk.
+      if (ch === '"') { if (depth > 0) inString = true; continue; }
+      if (ch === "{") {
+        if (depth === 0) start = i;
+        depth += 1;
+      } else if (ch === "}") {
+        if (depth > 0) {
+          depth -= 1;
+          if (depth === 0 && start !== -1) {
+            const slice = buf.slice(start, i + 1);
+            try { onObject(JSON.parse(slice)); } catch { /* not a JSON object we care about */ }
+            start = -1;
+          }
+        }
+      }
+    }
+    // Retain only an in-progress object (if any) so the buffer can't grow without
+    // bound; everything already emitted or skipped is dropped. Reset the scanner
+    // state too: the next call re-derives depth/string state by scanning the
+    // retained buffer (which always begins at an object's `{`) from scratch.
+    // Without the reset, the carried-over depth double-counts the retained braces,
+    // so an object split across chunks never closes and its event is lost.
+    // ponytail: O(n^2) if a single object spans many chunks (each re-scans the
+    // retained prefix); fine for OpenCode's event sizes — switch to a suffix-only
+    // scan if it ever bites.
+    buf = depth > 0 && start !== -1 ? buf.slice(start) : "";
+    start = -1;
+    depth = 0;
+    inString = false;
+    escaped = false;
+  };
+}
+
+function prepareRunDir(opts, brief) {
+  const startedAt = new Date().toISOString();
+  // Default the run dir to system temp so the repo under review stays pristine —
+  // the touched-files report must show only OpenCode's edits, not relay's artifacts.
+  const outDir = opts.outDir || join(tmpdir(), "delegate-relay", `${basename(opts.cd) || "repo"}-${timestamp()}`);
+  mkdirSync(outDir, { recursive: true });
+  const run = {
+    startedAt,
+    eventsPath: join(outDir, "events.jsonl"),
+    finalPath: join(outDir, "final.txt"),
+    briefPath: join(outDir, "brief.txt"),
+    resultPath: join(outDir, "result.json"),
+  };
+  writeFileSync(run.briefPath, brief, "utf8");
+  writeFileSync(run.eventsPath, "", "utf8");
+  return run;
+}
+
+function makeResultWriter(opts, version, run) {
+  // Returns writeResult(extra): merges the per-outcome fields onto the run's
+  // standing metadata, persists result.json, and returns the object it just
+  // wrote so the caller can hand it straight to printSummary.
+  return (extra) => {
+    const resuming = Boolean(opts.session || opts.resumeLast);
+    const result = {
+      schema: "delegate-relay.result.v1",
+      tool: "opencode",
+      workdir: opts.cd,
+      agent: resuming ? "(inherited from resumed session)" : opts.agent,
+      model: opts.model,
+      auto: opts.auto,
+      resumeLast: opts.resumeLast,
+      opencodeVersion: version,
+      startedAt: run.startedAt,
+      finishedAt: new Date().toISOString(),
+      briefPath: run.briefPath,
+      eventsPath: run.eventsPath,
+      finalPath: existsSync(run.finalPath) ? run.finalPath : null,
+      ...extra,
+    };
+    writeFileSync(run.resultPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+    return result;
+  };
+}
+
+function reportUnavailable(writeResult, resultPath) {
+  const result = writeResult({ status: "opencode_unavailable", exitCode: 127, signal: null, sessionId: null, finalMessage: "", touchedFiles: null, cost: null });
+  printSummary(result, resultPath);
+  process.stderr.write("relay: `opencode` not found on PATH. Install it (npm i -g opencode-ai) and run `opencode auth login`.\n");
+  process.exit(127);
+}
+
+function dispatchToOpenCode(opts, brief, run, writeResult) {
+  const argv = buildArgv(opts);
+  // Pin the working root two ways: `cwd` sets the child's real directory, and PWD
+  // is set explicitly because OpenCode can resolve its project root from the
+  // inherited PWD env — which spawn does NOT rewrite — so without it a run could
+  // operate on the orchestrator's directory instead of opts.cd (and, with --auto
+  // on, edit it unattended). Passing the path via env, not argv, keeps it clear of
+  // shell quoting.
+  // shell:true on Windows so the opencode.cmd shim resolves (see opencodeVersion).
+  // Safe: the brief is fed via child.stdin below — never argv — and argv holds only
+  // flag names, an agent enum, a model string, and a session id, with no shell
+  // metacharacters or spaceable paths.
+  const child = spawn("opencode", argv, {
+    cwd: opts.cd,
+    env: { ...process.env, PWD: opts.cd },
+    stdio: ["pipe", "pipe", "pipe"],
+    shell: process.platform === "win32",
+    detached: process.platform !== "win32", // POSIX: lead a new process group so killChild can fell the whole tree
+  });
+
+  let sessionId = opts.session || null;
+  let totalCost = 0;
+  let sawCost = false;
+  const textParts = new Map(); // part.id -> latest text
+  const textOrder = []; // part.ids in first-seen order
+  const stderrTail = [];
+
+  const scan = makeEventScanner((event) => {
+    // Session id: real events carry `sessionID` (camelCase); plugin notify objects
+    // carry `session_id` (snake_case). Accept either.
+    const sid = event.sessionID || event.session_id;
+    if (sid) sessionId = sid;
+    // Assistant text lives in `type:"text"` events under part.text. Key by part.id
+    // so streamed updates to the same part replace rather than duplicate; preserve
+    // first-seen order so multi-segment messages assemble correctly.
+    if (event.type === "text" && event.part && event.part.type === "text") {
+      const id = event.part.id || `anon-${textOrder.length}`;
+      if (!textParts.has(id)) textOrder.push(id);
+      textParts.set(id, event.part.text ?? "");
+    }
+    if (event.type === "step_finish" && event.part && typeof event.part.cost === "number") {
+      totalCost += event.part.cost;
+      sawCost = true;
+    }
+  });
+
+  // Decode across chunk boundaries: a multibyte UTF-8 character split between
+  // two data events would otherwise decode as U+FFFD and corrupt the report.
+  const stdoutDecoder = new StringDecoder("utf8");
+  const stderrDecoder = new StringDecoder("utf8");
+
+  child.stdout.on("data", (chunk) => {
+    appendFileSync(run.eventsPath, chunk); // faithful raw record of the event stream
+    scan(stdoutDecoder.write(chunk));
+  });
+
+  child.stderr.on("data", (chunk) => {
+    process.stderr.write(chunk); // surface OpenCode progress live for the orchestrator
+    const text = stderrDecoder.write(chunk);
+    for (const line of text.split("\n")) {
+      if (line.trim()) stderrTail.push(line.trimEnd());
+    }
+    while (stderrTail.length > 20) stderrTail.shift();
+  });
+
+  const assembleFinal = () => {
+    const message = textOrder.map((id) => textParts.get(id)).join("").trim();
+    if (message) writeFileSync(run.finalPath, message, "utf8");
+    return message;
+  };
+
+  let settled = false;
+  let watchdogFired = false;
+  let watchdogTimer = null;
+  let sigkillTimer = null;
+  const timeoutMs = opts.timeout === null ? null : parseDuration(opts.timeout);
+  if (timeoutMs !== null) {
+    watchdogTimer = setTimeout(() => {
+      watchdogFired = true;
+      child.once("exit", () => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+      });
+      killChild(child);
+      sigkillTimer = setTimeout(() => {
+        if (!settled) killChild(child, "SIGKILL");
+      }, 10_000);
+    }, timeoutMs);
+  }
+
+  const clearWatchdog = () => {
+    if (watchdogTimer) clearTimeout(watchdogTimer);
+    if (sigkillTimer) clearTimeout(sigkillTimer);
+  };
+
+  // The relay's own death must still produce a result: without this, a kill from the
+  // orchestrator's side (its command timeout, a stopped task, a closed terminal) writes
+  // no result.json and leaves the opencode child running or dying mid-edit with nothing
+  // recording why. SIGTERM/SIGHUP registration is a no-op on Windows; SIGINT works there.
+  for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+    process.on(sig, () => {
+      if (settled) return;
+      settled = true;
+      clearWatchdog();
+      const abortedFields = {
+        status: "aborted",
+        exitCode: 128 + (constants.signals[sig] || 15),
+        signal: sig,
+        sessionId,
+        finalMessage: assembleFinal(),
+        touchedFiles: gitTouchedFiles(opts.cd),
+        cost: sawCost ? Number(totalCost.toFixed(6)) : null,
+        stderrTail: stderrTail.slice(-20),
+        error: `the relay was killed by ${sig}; opencode was terminated with it — inspect the working tree before re-dispatching`,
+      };
+      const result = writeResult(abortedFields);
+      printSummary(result, run.resultPath);
+      killChild(child);
+      setTimeout(() => {
+        killChild(child, "SIGKILL");
+        // the child may flush files during the grace window; refresh the snapshot so the
+        // artifact matches the tree the orchestrator will actually find
+        writeResult({ ...abortedFields, touchedFiles: gitTouchedFiles(opts.cd) });
+        process.exit(result.exitCode);
+      }, 2000);
+    });
+  }
+
+  child.on("error", (err) => {
+    if (settled) return;
+    settled = true;
+    clearWatchdog();
+    const result = writeResult({ status: "failed", exitCode: 1, signal: null, sessionId, finalMessage: assembleFinal(), touchedFiles: gitTouchedFiles(opts.cd), cost: sawCost ? totalCost : null, error: String(err && err.message ? err.message : err) });
+    printSummary(result, run.resultPath);
+    process.exit(1);
+  });
+
+  child.on("close", (code, signal) => {
+    if (settled) return;
+    settled = true;
+    clearWatchdog();
+    // a descendant that ignored SIGTERM must not outlive the timeout report: once the
+    // parent is down, sweep the group (no-op where taskkill already felled the tree)
+    if (watchdogFired) killChild(child, "SIGKILL");
+    const finalMessage = assembleFinal();
+    // A timed-out run is never a success even if opencode handles SIGTERM by exiting 0 -
+    // orchestrators key off status and the relay exit code.
+    const succeeded = code === 0 && !watchdogFired;
+    const mapped = code ?? (constants.signals[signal] ? 128 + constants.signals[signal] : 1);
+    const result = writeResult({
+      status: succeeded ? "completed" : watchdogFired ? "timeout" : "failed",
+      exitCode: succeeded ? 0 : mapped === 0 ? 1 : mapped,
+      signal: signal ?? null,
+      sessionId,
+      finalMessage,
+      touchedFiles: gitTouchedFiles(opts.cd),
+      cost: sawCost ? Number(totalCost.toFixed(6)) : null,
+      ...(succeeded ? {} : { stderrTail: stderrTail.slice(-20) }),
+      ...(watchdogFired ? { error: `opencode did not finish within --timeout ${opts.timeout}; killed by the relay watchdog` } : {}),
+    });
+    printSummary(result, run.resultPath);
+    process.exit(result.exitCode);
+  });
+
+  // If the child failed to launch, writing to its stdin can emit a stray 'error'
+  // on the pipe; the 'error' handler above owns that outcome, so swallow it here.
+  child.stdin.on("error", () => {});
+  child.stdin.write(brief);
+  child.stdin.end();
+}
+
+function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  const brief = readBrief(opts);
+  if (!brief.trim()) fail("empty brief (pass --brief <file> or pipe the brief on stdin)");
+  // --session pins a specific session and --resume-last picks the most recent; passing both is a
+  // contradiction, and buildArgv would silently prefer --session. Reject it rather than guess.
+  if (opts.session && opts.resumeLast) {
+    fail("--session and --resume-last are mutually exclusive; pass only one");
+  }
+  // OpenCode has no safe default model (a bare `opencode run` errors), so a fresh run must name one.
+  // A resumed run inherits its session's model, so --model is optional there.
+  if (!opts.model && !opts.resumeLast && !opts.session) {
+    fail("no model given: pass --model provider/model — opencode has no safe default (e.g. a plan you're subscribed to, like opencode-go/kimi-k2.7-code)");
+  }
+
+  const version = opencodeVersion();
+  const run = prepareRunDir(opts, brief);
+  const writeResult = makeResultWriter(opts, version, run);
+
+  if (!version) {
+    reportUnavailable(writeResult, run.resultPath);
+    return;
+  }
+
+  dispatchToOpenCode(opts, brief, run, writeResult);
+}
+
+function printSummary(result, resultPath) {
+  const lines = [];
+  lines.push("");
+  lines.push(`relay: ${result.status} (exit ${result.exitCode}${result.signal ? `, killed by ${result.signal}` : ""})  ·  opencode ${result.opencodeVersion ?? "?"}`);
+  if (result.signal === "SIGKILL" && result.status === "failed") lines.push("hint: the host killed the process (commonly the OOM killer or a supervisor timeout) — this is not an opencode error; check host memory and re-dispatch, or split the task into smaller briefs.");
+  if (result.signal === "SIGTERM" && result.status === "failed") lines.push("hint: something outside the relay terminated opencode (a supervisor, the session ending, or a manual kill) — when the relay itself does the killing it reports status \"timeout\" or \"aborted\" instead; inspect the working tree before re-dispatching.");
+  if (result.resumeLast || result.agent === "(inherited from resumed session)") lines.push("mode: resumed existing session");
+  if (result.sessionId) lines.push(`session id (resume with: --session ${result.sessionId}): ${result.sessionId}`);
+  if (typeof result.cost === "number") lines.push(`cost: $${result.cost}`);
+  const touched = result.touchedFiles;
+  if (touched === null) {
+    lines.push("touched files: git unavailable — inspect the working tree directly");
+  } else {
+    lines.push(`touched files: ${touched.length}`);
+    for (const file of touched.slice(0, 40)) lines.push(`  ${file}`);
+    if (touched.length > 40) lines.push(`  … and ${touched.length - 40} more`);
+  }
+  if (result.stderrTail && result.stderrTail.length) {
+    lines.push("last stderr:");
+    for (const line of result.stderrTail.slice(-8)) lines.push(`  ${line}`);
+  }
+  lines.push("");
+  lines.push("--- opencode final report ---");
+  lines.push(result.finalMessage || "(no final message captured)");
+  lines.push("--- end report ---");
+  lines.push("");
+  lines.push(`result: ${resultPath}`);
+  lines.push("relay does not commit. Review the diff, re-run the project gates yourself, then commit from the orchestrator.");
+  process.stdout.write(`${lines.join("\n")}\n`);
+}
+
+main();

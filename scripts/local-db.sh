@@ -47,6 +47,27 @@ export PGUSER=postgres
 
 log() { printf '   %s\n' "$*"; }
 
+# WHAT THE CLUSTER WAS BUILT FROM, so a reused one cannot silently answer for a stale schema.
+#
+# `start` returned early on "already running" and stopped there until 2026-08-06. A migration that
+# landed after the cluster was created was therefore never applied, and `test` did not notice: it
+# exited 0 and reported 69 passing assertions against a schema missing a column, when the true count
+# was 76. Nothing warned, because a stale run and a correct run print identically — the discrepancy
+# surfaced only because a documented number had been derived independently and did not match.
+#
+# A cached environment turns "the tests passed" into "the tests passed against whatever this
+# environment happens to contain". The exit code cannot tell those apart, so the harness has to.
+STAMP="${CLUSTER}/built-from.sha256"
+built_from() {
+  cat "${REPO}"/supabase/migrations/*.sql "${REPO}/supabase/seed.sql" \
+      "${REPO}/scripts/local-db-bootstrap.sql" 2>/dev/null | sha256sum | cut -d' ' -f1
+}
+
+stop_cluster() {
+  su kafoopg -s /bin/bash -c "${PGBIN}/pg_ctl -D '${CLUSTER}/data' -m immediate stop" >/dev/null 2>&1
+  rm -rf "${CLUSTER}"
+}
+
 start() {
   if [ ! -x "${PGBIN}/initdb" ]; then
     echo "PostgreSQL ${PG_MAJOR} is not installed, and supabase/config.toml pins that version." >&2
@@ -68,8 +89,12 @@ start() {
   fi
 
   if [ -d "${CLUSTER}/data" ] && "${PGBIN}/pg_isready" -q 2>/dev/null; then
-    log "already running"
-    return 0
+    if [ "$(cat "${STAMP}" 2>/dev/null)" = "$(built_from)" ]; then
+      log "already running"
+      return 0
+    fi
+    log "migrations or seed changed since this cluster was built — rebuilding"
+    stop_cluster
   fi
 
   rm -rf "${CLUSTER}"
@@ -109,6 +134,10 @@ start() {
   log "seed"
   psql -h "${SOCKET}" -U postgres -d "${DB}" -v ON_ERROR_STOP=1 -q \
     -f "${REPO}/supabase/seed.sql" || return 1
+
+  # Written last, and only on success, so a cluster left half-built by a failed migration has no
+  # stamp and is rebuilt on the next run rather than reused.
+  built_from > "${STAMP}"
 
   log "ready — Postgres ${PG_MAJOR}, matching supabase/config.toml"
 }
@@ -158,9 +187,6 @@ case "${1:-}" in
   start) start ;;
   test)  shift; start >/dev/null || exit 1; run_tests "$@" ;;
   psql)  exec psql -h "${SOCKET}" -U postgres -d "${DB}" ;;
-  stop)
-    su kafoopg -s /bin/bash -c "${PGBIN}/pg_ctl -D '${CLUSTER}/data' -m immediate stop" >/dev/null 2>&1
-    rm -rf "${CLUSTER}"
-    log "stopped" ;;
+  stop)  stop_cluster; log "stopped" ;;
   *) sed -n '2,25p' "${BASH_SOURCE[0]}"; exit 2 ;;
 esac
