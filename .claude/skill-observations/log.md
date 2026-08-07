@@ -1257,3 +1257,45 @@ the shared one. Record the renumbering inside the moved entry so its old identif
 after a merge it is no longer an identity and cannot be used for deduplication. Reconciling on it
 deletes exactly the records that collided — and a count-based invariant cannot see the loss, because
 a drop and a keep balance. Match on content, and let the identifier be the thing you repair.
+
+### Observation 94: Watching a check fail proves it can fail, not that failing was right
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Adding a gate step asserting the environment's project ref matches the one the
+repository records, immediately after writing the skill section that demands new checks be seen to fail.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** "Did the check actually run, and could it have failed?" — the see-it-red rule
+
+**Issue:** The new check was mutation-tested properly: six cases, each run, each output read. One row
+was "no credentials set, CI=true → exit 1". That row was the bug. A build runner holds no project
+ref, points at no deployed project, and therefore has no wrong project to be aimed at — the failure
+the check exists to prevent cannot occur there. Demanding a target from a machine that has none
+asserts a fact about the world rather than about the change, and it turned the gate red on every
+run until another session fixed it.
+
+The row was printed, read, and recorded as correct. The see-it-red discipline had been satisfied to
+the letter and produced false confidence, because it answers "can this check fail?" and the question
+that mattered was "should it fail HERE?". Reading a red as success is the specific trap: a check
+being seen to fail is such a strong positive signal that the plausibility of the failure itself goes
+unexamined.
+
+Compounding it: the local environment had the variables set, so every local run passed. The
+environment that would fail was the one never exercised outside the synthetic test — and the
+synthetic test reproduced the failure faithfully and was misread.
+
+**Suggested improvement:** Extend the see-it-red rule with a second question, asked of every red
+observed: is this failure the one the check exists to produce, and is it correct in the environment
+that produced it? Specifically, for any check gated on environment state, enumerate the environments
+it will run in — developer machine, build runner, scheduled job, container with no credentials — and
+state the intended verdict for each BEFORE running it, so the test compares against an expectation
+rather than reporting behaviour to be rationalised. And treat "fails when a variable is absent" as
+requiring a reason absence is an error, not as self-evidently correct.
+
+**Principle:** Seeing a check go red establishes that it discriminates, not that it discriminates
+correctly. The two are easy to conflate because red is the outcome the discipline teaches you to
+want, and a wanted outcome is the least examined one. A check gated on environment state has a
+different right answer per environment, so its verdict must be predicted per environment and then
+compared — otherwise the mutation test faithfully demonstrates the defect and is read as proof of
+its absence.
