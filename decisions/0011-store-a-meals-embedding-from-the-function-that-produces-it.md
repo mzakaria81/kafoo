@@ -48,9 +48,16 @@ credential. Both fixed 2026-08-07, and both were found by running them rather th
 
 **The privileges are the real guarantee; the script is the second line.** Migration
 `20260807064927` grants `service_role` exactly `UPDATE (embedding)` and `SELECT (id, cook_id)` on
-`meals`, over a role holding no table-level privilege there. `data_api_grants_test.sql` asserts six
-consequences, including that `service_role` cannot publish a Meal, change a price, or write an
-allergen list. Every evasion demonstrated against the script dies at the database.
+`meals`, over a role holding no table-level privilege there. `data_api_grants_test.sql` asserts the
+consequence as an ENUMERATION — exactly three column privileges and no others — rather than as a
+list of forbidden columns, because a hand-written list of what is forbidden is only as good as the
+imagination of whoever wrote it. Six plausible widenings passed the hand-written version.
+
+A column grant constrains the statement and not the row that lands, so a later BEFORE trigger could
+write anything during the permitted update — demonstrated. `service_role_writes_only_embedding`
+states the rule directly, and `discovery_rls_test` cases 28-29 hold it.
+
+Every evasion demonstrated against the script dies at the database.
 
 ## Why an embedding is the value the approval rule cannot cover
 
