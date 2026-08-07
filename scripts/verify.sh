@@ -249,6 +249,42 @@ run "no committed credentials" bash -c '
                         echo "   move it to the environment and rotate it" >&2
                         exit 1; }'
 
+# WHICH DEPLOYED PROJECT THIS ENVIRONMENT POINTS AT.
+#
+# Credentials answer "may I", never "should this". On 2026-07-31 a session held a complete, valid
+# set of credentials — project ref, URL, database password, service-role key — every one of which
+# authenticated, for an entirely different product on the same account. The next command in that
+# plan would have created users in a live unrelated system, and an earlier step would have dropped
+# twenty tables. Two unrelated projects still sit on that account today.
+#
+# The check that catches it existed only as prose, in docs/ops/verifying-e1.md and docs/HANDOFF.md,
+# so it ran when somebody happened to read that paragraph and not otherwise. Prose verification is a
+# suggestion; the same check in the gate is a guarantee.
+#
+# No network call and no token. Fetching the project's detail record would answer the same question
+# while copying that project's database password and JWT signing secret into the transcript — a
+# read that returns secrets has published them. The identity comparison needs neither.
+# Neither the expected nor the configured ref is ever printed, so a mismatch does not leak either.
+run "supabase target" bash -c '
+  expected=$(head -1 supabase/project-ref 2>/dev/null | tr -d "[:space:]")
+  [ -n "${expected}" ] || { echo "   supabase/project-ref is missing or empty" >&2
+                            echo "   it records the deployed project this repository belongs to" >&2
+                            exit 1; }
+  ref="${SUPABASE_PROJECT_REF:-}"; url="${SUPABASE_URL:-}"
+  if [ -z "${ref}" ] && [ -z "${url}" ]; then
+    skip_or_fail "no SUPABASE_PROJECT_REF or SUPABASE_URL in the environment"; exit $?
+  fi
+  bad=0
+  [ -z "${ref}" ] || [ "${ref}" = "${expected}" ] || {
+    echo "   SUPABASE_PROJECT_REF names a different project than supabase/project-ref" >&2; bad=1; }
+  [ -z "${url}" ] || case "${url}" in (*"${expected}"*) ;; (*)
+    echo "   SUPABASE_URL does not contain this project ref" >&2; bad=1 ;; esac
+  [ "${bad}" -eq 0 ] || {
+    echo "   this environment points at another project, and its credentials will authenticate" >&2
+    echo "   List what the token can reach:" >&2
+    echo "     curl -H \"Authorization: Bearer \$SUPABASE_ACCESS_TOKEN\" https://api.supabase.com/v1/projects" >&2
+    exit 1; }'
+
 # Every migration that creates a table must enable RLS in the same file.
 run "rls coverage" bash -c '
   bad=0
