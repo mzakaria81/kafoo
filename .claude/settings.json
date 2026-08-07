@@ -1,29 +1,57 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
+    "_comment": "Every rule below names a tool this repository actually uses. Derived from pubspec.yaml (Dart pub workspace + melos 8), scripts/verify.sh, .github/workflows/, supabase/config.toml and CLAUDE.md on 2026-08-06. There is no package.json, so there are no npm/pnpm/yarn rules; there is no wrangler and no gh CLI here, so there are none of those either. If you add a tool, add its rules with it — a permission file naming tools the project does not have is a file nobody can trust to be current.",
+
     "allow": [
-      "Bash(melos:*)",
-      "Bash(flutter analyze:*)",
-      "Bash(flutter test:*)",
-      "Bash(flutter pub get:*)",
+      "Bash(melos bootstrap)",
+      "Bash(melos list:*)",
+      "Bash(melos run analyze)",
+      "Bash(melos run test)",
+      "Bash(melos run format)",
+      "Bash(melos exec:*)",
+
       "Bash(dart analyze:*)",
       "Bash(dart format:*)",
+      "Bash(dart test:*)",
       "Bash(dart run build_runner:*)",
-      "Bash(supabase start)",
-      "Bash(supabase stop)",
+      "Bash(dart pub get)",
+      "Bash(dart pub deps:*)",
+      "Bash(dart --version)",
+
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter pub get)",
+      "Bash(flutter gen-l10n:*)",
+      "Bash(flutter --version)",
+      "Bash(flutter doctor:*)",
+
+      "Bash(deno check:*)",
+      "Bash(deno fmt:*)",
+      "Bash(deno lint:*)",
+      "Bash(deno test:*)",
+      "Bash(deno --version)",
+
       "Bash(supabase status)",
-      "Bash(supabase migration new:*)",
-      "Bash(supabase db diff:*)",
-      "Bash(supabase functions serve:*)",
+      "Bash(supabase migration list:*)",
+      "Bash(supabase --version)",
+
+      "Bash(./scripts/verify.sh)",
+      "Bash(./scripts/local-db.sh:*)",
+      "Bash(python3 scripts/validate-coordination.py)",
+      "Bash(python3 scripts/opencode-spend.py:*)",
+      "Bash(python3 scripts/check-l10n-parity.py:*)",
+      "Bash(python3 scripts/mutate-policies.py:*)",
+
+      "Bash(opencode models:*)",
+      "Bash(opencode stats:*)",
+      "Bash(opencode --version)",
+
       "Bash(git status)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git add:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh issue view:*)",
-      "Bash(./scripts/verify.sh)",
-
       "Bash(git show:*)",
+      "Bash(git add:*)",
       "Bash(git branch)",
       "Bash(git branch --list:*)",
       "Bash(git rev-parse:*)",
@@ -47,23 +75,11 @@
       "Bash(du:*)",
       "Bash(df:*)",
       "Bash(which:*)",
-      "Bash(date:*)",
-
-      "Bash(deno check:*)",
-      "Bash(deno fmt:*)",
-      "Bash(deno lint:*)",
-      "Bash(deno test:*)",
-      "Bash(./scripts/local-db.sh:*)",
-      "Bash(python3 scripts/opencode-spend.py:*)",
-      "Bash(python3 scripts/validate-coordination.py)"
+      "Bash(date:*)"
     ],
     "ask": [
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(gh pr create:*)",
-      "Bash(supabase db reset)",
-      "Bash(supabase functions deploy:*)",
-
       "Bash(git checkout:*)",
       "Bash(git switch:*)",
       "Bash(git merge:*)",
@@ -72,25 +88,42 @@
       "Bash(git tag:*)",
       "Bash(git cherry-pick:*)",
       "Bash(git revert:*)",
-      "Bash(mv:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
+
+      "Bash(supabase start)",
+      "Bash(supabase stop)",
+      "Bash(supabase migration new:*)",
+      "Bash(supabase functions serve:*)",
+      "Bash(supabase db reset)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(supabase test db:*)",
+      "Bash(psql:*)",
+
+      "Bash(deno run:*)",
+      "Bash(opencode run:*)",
+      "Bash(opencode auth:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter create:*)",
+      "Bash(dart pub global:*)",
+      "Bash(./scripts/install-toolchain.sh:*)",
+      "Bash(./scripts/bootstrap.sh:*)",
+
       "Bash(cat:*)",
       "Bash(head:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(curl:*)"
     ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./**/*.pem)",
       "Read(./**/*service-role*)",
+
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
-      "Bash(supabase db push --linked:*)",
-      "Bash(supabase link:*)",
-      "Bash(wrangler deploy:*)",
-      "Bash(rm -rf:*)",
-
+      "Bash(git push --delete:*)",
       "Bash(git reset:*)",
       "Bash(git rebase:*)",
       "Bash(git clean:*)",
@@ -102,8 +135,12 @@
       "Bash(git filter-branch:*)",
       "Bash(git reflog delete:*)",
       "Bash(git commit --amend:*)",
-      "Bash(git push --delete:*)",
 
+      "Bash(supabase link:*)",
+      "Bash(supabase db push:*)",
+      "Bash(supabase secrets:*)",
+
+      "Bash(rm -rf:*)",
       "Bash(rm -r:*)",
       "Bash(rm -fr:*)",
       "Bash(chmod:*)",
@@ -111,16 +148,7 @@
       "Bash(sudo:*)",
       "Bash(apt-get:*)",
       "Bash(apt:*)",
-      "Bash(npm install -g:*)",
-      "Bash(pnpm add -g:*)",
-      "Bash(yarn global:*)",
-      "Bash(pip install:*)",
-
-      "Bash(cat .env:*)",
-      "Bash(cat ./.env:*)",
-      "Bash(head .env:*)",
-      "Bash(tail .env:*)",
-      "Bash(grep .env:*)"
+      "Bash(pip install:*)"
     ]
   },
   "hooks": {
