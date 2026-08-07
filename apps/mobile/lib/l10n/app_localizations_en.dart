@@ -1432,4 +1432,105 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSearchTitle => 'Search with the AI Assistant';
+
+  @override
+  String get settingsSearchExplanation =>
+      'To find the food being asked for, the words typed into search go to a service outside Kafoo that works out what they mean. With this off, search will not work, and browsing what\'s on offer carries on unchanged.';
+
+  @override
+  String get settingsSearchStorageNote =>
+      'This answer is kept on this phone only. Kafoo does not record what is searched for, and does not keep the answer either.';
+
+  @override
+  String get searchLabel => 'What do you feel like?';
+
+  @override
+  String get searchHint => 'Something hot, no meat, in Mohandessin';
+
+  @override
+  String get searchAction => 'Search';
+
+  @override
+  String get searchRunning => 'Looking for food...';
+
+  @override
+  String get searchVoiceHint => 'Speak';
+
+  @override
+  String get searchVoiceUnavailable =>
+      'This phone doesn\'t support speaking right now. Typing works normally.';
+
+  @override
+  String get searchIsOff =>
+      'Search is off. It can be turned back on in Settings at any time, and browsing what\'s on offer works as usual.';
+
+  @override
+  String get searchFoundNothing =>
+      'We didn\'t find anything like that. Here\'s everything on offer right now.';
+
+  @override
+  String get searchExclusionNotUnderstood =>
+      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it.';
+
+  @override
+  String searchFilteredOn(String food) {
+    return 'We removed Meals listed as containing $food. That\'s based on what Cooks wrote and the AI Assistant\'s estimate — it is not a confirmation that the rest are free of it.';
+  }
+
+  @override
+  String searchNarrowedToArea(String area) {
+    return 'Results from $area only.';
+  }
+
+  @override
+  String searchAreaEmpty(String area) {
+    return 'There\'s no food on offer in $area right now.';
+  }
+
+  @override
+  String get searchAreaChoose =>
+      'There is food in these areas, though. Kafoo doesn\'t know how far apart areas are, and delivery is a matter between the Customer and the Cook.';
+
+  @override
+  String get searchConsentQuestion =>
+      'For Kafoo to understand the words and find the right food, what was typed into search has to go to a service outside Kafoo. It isn\'t recorded or kept here. Shall we send it?';
+
+  @override
+  String get searchConsentAgree => 'Yes, send it';
+
+  @override
+  String get searchConsentRefuse => 'No, don\'t send it';
+
+  @override
+  String get searchConsentNote =>
+      'If the answer is no, search won\'t work and browsing what\'s on offer carries on. The answer is kept on this phone only and can be changed in Settings at any time.';
+
+  @override
+  String exclusionName(String food) {
+    String _temp0 = intl.Intl.selectLogic(
+      food,
+      {
+        'meat': 'meat',
+        'chicken': 'chicken',
+        'fish': 'fish',
+        'shellfish': 'shellfish',
+        'egg': 'egg',
+        'dairy': 'dairy',
+        'peanut': 'peanuts',
+        'nuts': 'nuts',
+        'sesame': 'sesame',
+        'gluten': 'gluten',
+        'onion': 'onion',
+        'garlic': 'garlic',
+        'other': 'that',
+      },
+    );
+    return '$_temp0';
+  }
 }

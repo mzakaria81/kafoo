@@ -2,11 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'features/discovery/presentation/browse_screen.dart';
+import 'features/discovery/presentation/search_screen.dart';
 import 'features/identity/presentation/change_phone_screen.dart';
 import 'features/identity/presentation/remove_account_screen.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
@@ -48,7 +49,12 @@ Future<void> main() async {
     publishableKey: _supabasePublishableKey,
   );
 
-  runApp(const KafooApp());
+  // A ProviderScope, WHICH THE APP DID NOT HAVE. Every `@riverpod` provider in Kafoo reads
+  // through one, and browse became the signed-out home in E3 as a ConsumerWidget — so the app
+  // threw on its first frame for anyone without an account. Nothing caught it: `app_test` skips
+  // `KafooApp` because `_AuthGate` needs a live Supabase, and every widget test builds its own
+  // scope. A screen tested in isolation is not a screen that has been run.
+  runApp(const ProviderScope(child: KafooApp()));
 }
 
 /// The Kafoo application root.
@@ -194,7 +200,7 @@ class _SignedOutHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return BrowseScreen(
+    return SearchScreen(
       entry: TextButton(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const SignInScreen()),

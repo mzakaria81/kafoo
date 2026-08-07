@@ -34,21 +34,46 @@ class BrowseScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final state = ref.watch(browseControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.browseTitle)),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(browseControllerProvider.notifier).refresh(),
-        // A live region, so a screen reader announces the move out of loading
-        // and announces what a refresh returned. Without it a blind Customer
-        // hears nothing and cannot tell a slow load from a broken app — the
-        // failure `browseNothingOnOffer` prevents visually and nothing
-        // prevented aloud.
-        child: Semantics(
-          liveRegion: true,
-          child: _body(context, ref, l10n, state),
-        ),
+      body: BrowseBody(onOpen: onOpen, entry: entry),
+    );
+  }
+}
+
+/// What is on offer, without a Scaffold of its own.
+///
+/// **Split out because the zero state of search IS browse, and so is the
+/// fallback when nothing matched — FR-012.** The search screen shows this
+/// underneath its input rather than reimplementing a list of Meals, so there is
+/// one place where a card is built, one live region, and one pull-to-refresh.
+/// Two copies would be two chances for a draft to appear in one of them.
+class BrowseBody extends ConsumerWidget {
+  /// Creates the body.
+  const BrowseBody({this.onOpen, this.entry, super.key});
+
+  /// Called when a Customer opens a Meal.
+  final void Function(DiscoveredMeal item)? onOpen;
+
+  /// A way in for someone with no account. See [BrowseScreen.entry].
+  final Widget? entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final state = ref.watch(browseControllerProvider);
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(browseControllerProvider.notifier).refresh(),
+      // A live region, so a screen reader announces the move out of loading
+      // and announces what a refresh returned. Without it a blind Customer
+      // hears nothing and cannot tell a slow load from a broken app — the
+      // failure `browseNothingOnOffer` prevents visually and nothing
+      // prevented aloud.
+      child: Semantics(
+        liveRegion: true,
+        child: _body(context, ref, l10n, state),
       ),
     );
   }
@@ -107,29 +132,8 @@ class BrowseScreen extends ConsumerWidget {
     );
   }
 
-  Widget _card(AppLocalizations l10n, DiscoveredMeal item) {
-    final kitchenLabel = l10n.browseKitchenLabel(item.kitchen.displayName);
-    // The price carries its currency. `Meal.price` is the exact string the Cook
-    // typed — `numeric(10,2)`, never a double — and this card was rendering it
-    // bare as "35" while the Meal one tap deeper said "٣٥ جنيه". Money a
-    // Customer reads is never a naked number.
-    final price = l10n.publicMealPriceValue(item.meal.price);
-
-    return MealCard(
-      title: item.meal.title,
-      price: price,
-      kitchenLabel: kitchenLabel,
-      // Composed here from an ARB entry so the separator follows the locale.
-      // Built inside the card it meant a hardcoded Arabic comma reaching every
-      // English voice.
-      semanticsLabel: l10n.mealCardSemanticLabel(
-        item.meal.title,
-        kitchenLabel,
-        price,
-      ),
-      onTap: onOpen == null ? null : () => onOpen!(item),
-    );
-  }
+  Widget _card(AppLocalizations l10n, DiscoveredMeal item) =>
+      discoveredMealCard(l10n: l10n, item: item, onOpen: onOpen);
 
   /// Scrollable so pull-to-refresh still works on a screen with nothing on it —
   /// which is exactly the screen a Customer most wants to retry.
@@ -144,40 +148,95 @@ class BrowseScreen extends ConsumerWidget {
     required VoidCallback onRetry,
     required String retryLabel,
   }) =>
-      LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      text,
-                      textAlign: TextAlign.center,
-                      // Copied from the ambient style rather than built fresh,
-                      // so it keeps inheriting text scaling.
-                      style: DefaultTextStyle.of(context)
-                          .style
-                          .copyWith(color: color),
+      discoveryMessage(
+        text: text,
+        color: color,
+        onRetry: onRetry,
+        retryLabel: retryLabel,
+      );
+}
+
+/// One Meal card, built the same way wherever it is shown.
+///
+/// Browse and search render the same thing: a result is a Meal on offer with the
+/// kitchen behind it, and a second card would be a second place for the price to
+/// lose its currency — which it did once already.
+Widget discoveredMealCard({
+  required AppLocalizations l10n,
+  required DiscoveredMeal item,
+  void Function(DiscoveredMeal item)? onOpen,
+}) {
+  final kitchenLabel = l10n.browseKitchenLabel(item.kitchen.displayName);
+  // The price carries its currency. `Meal.price` is the exact string the Cook
+  // typed — `numeric(10,2)`, never a double — and this card was rendering it
+  // bare as "35" while the Meal one tap deeper said "٣٥ جنيه". Money a
+  // Customer reads is never a naked number.
+  final price = l10n.publicMealPriceValue(item.meal.price);
+
+  return MealCard(
+    title: item.meal.title,
+    price: price,
+    kitchenLabel: kitchenLabel,
+    // Composed here from an ARB entry so the separator follows the locale.
+    // Built inside the card it meant a hardcoded Arabic comma reaching every
+    // English voice.
+    semanticsLabel: l10n.mealCardSemanticLabel(
+      item.meal.title,
+      kitchenLabel,
+      price,
+    ),
+    onTap: onOpen == null ? null : () => onOpen(item),
+  );
+}
+
+/// A sentence with something to press.
+///
+/// Scrollable so pull-to-refresh still works on a screen with nothing on it —
+/// which is exactly the screen a Customer most wants to retry.
+///
+/// The button is not a convenience. `RefreshIndicator` exposes **no** semantics
+/// action, so as the only way back it stranded a screen-reader Customer, and
+/// anyone who cannot make a precise vertical drag, on a message with nothing to
+/// press.
+Widget discoveryMessage({
+  required String text,
+  required Color color,
+  required VoidCallback onRetry,
+  required String retryLabel,
+}) =>
+    LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    // Copied from the ambient style rather than built fresh,
+                    // so it keeps inheriting text scaling.
+                    style: DefaultTextStyle.of(context)
+                        .style
+                        .copyWith(color: color),
+                  ),
+                  const SizedBox(height: KafooSpacing.md),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize:
+                          const Size.fromHeight(KafooSpacing.minTapTarget),
                     ),
-                    const SizedBox(height: KafooSpacing.md),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        minimumSize:
-                            const Size.fromHeight(KafooSpacing.minTapTarget),
-                      ),
-                      onPressed: onRetry,
-                      child: Text(retryLabel),
-                    ),
-                  ],
-                ),
+                    onPressed: onRetry,
+                    child: Text(retryLabel),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-      );
-}
+      ),
+    );

@@ -39,6 +39,23 @@ abstract interface class DiscoveryRepository {
     required String phrase,
     String? area,
   });
+
+  /// What the AI Assistant makes of a set of results, once they are on screen.
+  ///
+  /// **Never awaited before results are shown.** FR-011 and SC-007: the AI
+  /// Assistant does not sit between a Customer and their results. It is a
+  /// separate method rather than a field on [SearchOutcome] precisely so that
+  /// there is no shape in which the two can arrive together — a judgement
+  /// modelled as part of the result is a judgement something will eventually
+  /// wait for.
+  ///
+  /// Returns null when there is nothing to say, which is deliberately the same
+  /// answer as a failure, a timeout, or a provider returning nonsense (T161).
+  /// The Customer loses a sentence, never their results.
+  Future<Judgement?> judge({
+    required String phrase,
+    required DiscoveryResults results,
+  });
 }
 
 /// What came back from a search: the Meals, and what Kafoo understood.
@@ -54,6 +71,7 @@ final class SearchOutcome {
     required this.results,
     this.excludedId,
     this.notUnderstood,
+    this.area,
   });
 
   /// The Meals, in the order the database returned them. Never re-sorted here.
@@ -64,6 +82,18 @@ final class SearchOutcome {
 
   /// The words following a negation marker that Kafoo could not map to a food.
   final String? notUnderstood;
+
+  /// The area the search was narrowed to, in the Customer's own words.
+  ///
+  /// **Without this, an empty result in a named area is indistinguishable from
+  /// an empty marketplace**, and FR-024 turns on exactly that difference: one of
+  /// them is "nothing in المهندسين, but there is food in الدقي" and the other is
+  /// "no Cook anywhere has anything on offer". They are different sentences and
+  /// only one of them is true.
+  final String? area;
+
+  /// Whether Kafoo narrowed to an area and found nothing there — FR-024.
+  bool get areaIsEmpty => area != null && results.isEmpty;
 }
 
 /// The only layer that touches Supabase for discovery.
@@ -115,6 +145,7 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
             results: const DiscoveryResults(results: []),
             excludedId: data['excluded'] as String?,
             notUnderstood: data['notUnderstood'] as String?,
+            area: data['area'] as String?,
           ),
         );
       }
@@ -157,6 +188,7 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
           results: DiscoveryResults(results: ranked),
           excludedId: data['excluded'] as String?,
           notUnderstood: data['notUnderstood'] as String?,
+          area: data['area'] as String?,
         ),
       );
     } on Object catch (e) {
@@ -166,6 +198,41 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
       // wrong, because the screen's answer is to fall back to browsing and the
       // Customer should be told which of the two they are looking at.
       return Failure(AppError(messageKey: 'searchUnavailable', cause: e));
+    }
+  }
+
+  @override
+  Future<Judgement?> judge({
+    required String phrase,
+    required DiscoveryResults results,
+  }) async {
+    try {
+      final byId = <String, Meal>{
+        for (final result in results.results)
+          result.item.meal.id: result.item.meal,
+      };
+      final response = await _client.functions.invoke(
+        'judge-results',
+        body: {'phrase': phrase, 'mealIds': byId.keys.toList()},
+      );
+      final data = response.data;
+      if (data is! Map) return null;
+      if (data['answers'] == true) return const ResultsAnswer();
+
+      // MATCHED against the set that was handed over, never looked up. A Meal
+      // the AI Assistant invented has no id in this map and simply does not
+      // appear — FR-015 says an alternative is a Meal genuinely on offer, and
+      // the E2 finding was a model stating things nobody said.
+      final alternatives = <Meal>[
+        for (final id in (data['alternatives'] as List?) ?? const [])
+          if (byId[id.toString()] case final meal?) meal,
+      ];
+      return NothingAnswers(alternatives: alternatives);
+    } on Object catch (_) {
+      // Every failure is "nothing to say". T161: results stay exactly as they
+      // are and the Customer loses a sentence. `on Object` for the usual reason
+      // — an uninitialised client throws StateError, a missing plugin TypeError.
+      return null;
     }
   }
 

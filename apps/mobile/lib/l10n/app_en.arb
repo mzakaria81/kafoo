@@ -8,7 +8,9 @@
   "@browseKitchenLabel": {
     "description": "Names the kitchen behind a Meal on a browse card. 'Who cooked this' is the first question a Customer asks.",
     "placeholders": {
-      "kitchen": {"type": "String"}
+      "kitchen": {
+        "type": "String"
+      }
     }
   },
   "browseLoading": "Loading food...",
@@ -21,7 +23,7 @@
   },
   "browseRetry": "Try again",
   "@browseRetry": {
-    "description": "Retry button on the browse error state. Pull-to-refresh exposes no semantics action, so it cannot be the only way back. Customer-facing and ungendered per ADR-0010 \u2014 a bare imperative that is identical in both forms."
+    "description": "Retry button on the browse error state. Pull-to-refresh exposes no semantics action, so it cannot be the only way back. Customer-facing and ungendered per ADR-0010 — a bare imperative that is identical in both forms."
   },
   "browseSignInEntry": "Sign in",
   "@browseSignInEntry": {
@@ -41,11 +43,17 @@
   },
   "mealCardSemanticLabel": "{title}, {kitchen}, {price}",
   "@mealCardSemanticLabel": {
-    "description": "How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale \u2014 a hardcoded Arabic comma is announced or mispaused by many English voices.",
+    "description": "How a Meal card reads aloud. Composed here rather than in packages/ui so the separator follows the locale — a hardcoded Arabic comma is announced or mispaused by many English voices.",
     "placeholders": {
-      "kitchen": {"type": "String"},
-      "price": {"type": "String"},
-      "title": {"type": "String"}
+      "kitchen": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
     }
   },
   "publishMeal": "{addressForm, select, feminine{Publish Meal} other{Publish Meal}}",
@@ -1220,6 +1228,114 @@
     "description": "Action a Cook takes on a draft Meal to resume the conversation where they left off, rather than starting a new one.",
     "placeholders": {
       "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of Kafoo's only Settings screen, and the tooltip on the way in. Customer-facing and ungendered per ADR-0010 — a bare noun."
+  },
+  "settingsSearchTitle": "Search with the AI Assistant",
+  "@settingsSearchTitle": {
+    "description": "Label on the one switch Settings holds. Names the AI Assistant by its canonical glossary name rather than any of the words the vocabulary check forbids. Ungendered per ADR-0010."
+  },
+  "settingsSearchExplanation": "To find the food being asked for, the words typed into search go to a service outside Kafoo that works out what they mean. With this off, search will not work, and browsing what's on offer carries on unchanged.",
+  "@settingsSearchExplanation": {
+    "description": "FR-029c and FR-029e. Says what the switch does in terms of consequence: the words leave, and turning it off makes search UNAVAILABLE rather than worse. Customer-facing and ungendered per ADR-0010 — written in the first-person plural and the passive, because every second-person verb here carries gender. FLAG: wants a native Cairene ear."
+  },
+  "settingsSearchStorageNote": "This answer is kept on this phone only. Kafoo does not record what is searched for, and does not keep the answer either.",
+  "@settingsSearchStorageNote": {
+    "description": "FR-029d and SC-011. The part a Customer has no way to verify and every reason to want told. Customer-facing and ungendered per ADR-0010."
+  },
+  "searchLabel": "What do you feel like?",
+  "@searchLabel": {
+    "description": "Label on the ONE search input, which carries the phrase, the exclusion and the area together. Customer-facing and ungendered per ADR-0010: نفسك is written identically for a woman and a man, unlike every imperative that was tried first. FLAG: wants a native Cairene ear."
+  },
+  "searchHint": "Something hot, no meat, in Mohandessin",
+  "@searchHint": {
+    "description": "Example inside the search field, showing that one sentence carries all three things. Deliberately verbless — every Egyptian verb for wanting is gendered, and an example that addresses a man teaches the input is for men. Customer-facing and ungendered per ADR-0010."
+  },
+  "searchAction": "Search",
+  "@searchAction": {
+    "description": "Tooltip on the search button. A bare verbal noun: ungendered per ADR-0010, where the imperative دوّر/دوّري is not."
+  },
+  "searchRunning": "Looking for food...",
+  "@searchRunning": {
+    "description": "Announced to a screen reader while a search runs. Silence is indistinguishable from a broken app. First-person plural, which has no gender in Arabic."
+  },
+  "searchVoiceHint": "Speak",
+  "@searchVoiceHint": {
+    "description": "Label on the microphone in search. A bare prepositional phrase rather than an imperative — اتكلم/اتكلمي is the gendered pair ADR-0010 rules out. Customer-facing."
+  },
+  "searchVoiceUnavailable": "This phone doesn't support speaking right now. Typing works normally.",
+  "@searchVoiceUnavailable": {
+    "description": "FR-008: typing is never the degraded path, and a missing Arabic speech locale is the likeliest real outcome on an Egyptian handset (research.md §3). Said plainly rather than left as a dead microphone. Customer-facing and ungendered per ADR-0010."
+  },
+  "searchIsOff": "Search is off. It can be turned back on in Settings at any time, and browsing what's on offer works as usual.",
+  "@searchIsOff": {
+    "description": "FR-029e. Shown when a Customer has refused. Says search is OFF, not that it is failing — and says browsing still works in the same breath, because the two are different things and only one of them has stopped. Ungendered per ADR-0010: تقدر/تقدري was replaced with ينفع, which has no addressee at all."
+  },
+  "searchFoundNothing": "We didn't find anything like that. Here's everything on offer right now.",
+  "@searchFoundNothing": {
+    "description": "FR-012: the fallback when nothing matched is browse. Says what happened and hands over to what is on offer underneath. First-person plural, ungendered per ADR-0010."
+  },
+  "searchExclusionNotUnderstood": "We understood that something was to be left out, but not what it was — so no Meal was removed on account of it.",
+  "@searchExclusionNotUnderstood": {
+    "description": "THE SENTENCE THE WHOLE EXCLUSION DESIGN EXISTS FOR. A negation Kafoo recognised without recognising the food must reach the Customer as words: without this the results look exactly like results for a request with no exclusion in it, and the Customer is served the thing they asked to avoid. Never says a Meal is safe. Ungendered per ADR-0010."
+  },
+  "searchFilteredOn": "We removed Meals listed as containing {food}. That's based on what Cooks wrote and the AI Assistant's estimate — it is not a confirmation that the rest are free of it.",
+  "@searchFilteredOn": {
+    "description": "STATES WHAT WAS FILTERED ON AND NEVER THAT A MEAL IS SAFE. meals.allergens is frequently an AI estimate carrying nutrition_source, so the strongest true statement is what was removed and where that came from. A Customer with an allergy is exactly the person who would act on a safety claim, which is why Kafoo does not make one about food it did not cook. Ungendered per ADR-0010.",
+    "placeholders": {
+      "food": {
+        "type": "String"
+      }
+    }
+  },
+  "searchNarrowedToArea": "Results from {area} only.",
+  "@searchNarrowedToArea": {
+    "description": "Says what the search was narrowed to, in the Cook's own words. FR-024b: no distance, and no ordering by proximity — Kafoo holds no location for anyone. Ungendered per ADR-0010.",
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "searchAreaEmpty": "There's no food on offer in {area} right now.",
+  "@searchAreaEmpty": {
+    "description": "FR-024. Kafoo says the named area is empty rather than silently showing kitchens elsewhere. First-person negation, ungendered per ADR-0010.",
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "searchAreaChoose": "There is food in these areas, though. Kafoo doesn't know how far apart areas are, and delivery is a matter between the Customer and the Cook.",
+  "@searchAreaChoose": {
+    "description": "FR-024a, FR-024b and FR-024c in one sentence. Names the areas that do have food and leaves the choosing to the Customer; states plainly that Kafoo holds no notion of distance and is not promising that anyone there delivers. Ungendered per ADR-0010."
+  },
+  "searchConsentQuestion": "For Kafoo to understand the words and find the right food, what was typed into search has to go to a service outside Kafoo. It isn't recorded or kept here. Shall we send it?",
+  "@searchConsentQuestion": {
+    "description": "FR-029a. Asked ONCE, at the first attempt to search, and never on arrival — browsing must not require an answer. Says the words leave before they leave. Ends in the first-person plural, which has no gender: every second-person phrasing of 'do you agree' does. FLAG: wants a native Cairene ear."
+  },
+  "searchConsentAgree": "Yes, send it",
+  "@searchConsentAgree": {
+    "description": "Agreeing to the disclosure. Addressed to Kafoo in the plural, so it is ungendered per ADR-0010 while a Customer speaking about themselves would not be."
+  },
+  "searchConsentRefuse": "No, don't send it",
+  "@searchConsentRefuse": {
+    "description": "Refusing. Same size and same prominence as agreeing — a refusal that is harder to reach than agreement is the dark pattern the trust rules forbid by name. Ungendered per ADR-0010."
+  },
+  "searchConsentNote": "If the answer is no, search won't work and browsing what's on offer carries on. The answer is kept on this phone only and can be changed in Settings at any time.",
+  "@searchConsentNote": {
+    "description": "FR-029c, FR-029d and FR-029e, under the question, so refusing is an informed answer rather than a leap. Ungendered per ADR-0010."
+  },
+  "exclusionName": "{food, select, meat{meat} chicken{chicken} fish{fish} shellfish{shellfish} egg{egg} dairy{dairy} peanut{peanuts} nuts{nuts} sesame{sesame} gluten{gluten} onion{onion} garlic{garlic} other{that}}",
+  "@exclusionName": {
+    "description": "Turns an exclusion id into a word a Customer reads. The ids in packages/domain/lib/exclusion.dart are stable names that are never shown to anyone, so the interface cannot state what it filtered on without this. One ICU select rather than twelve keys, so a new exclusion is one line in two files rather than four. The `other` branch is what a Customer sees if the vocabulary gains an entry before this does — vague, and never wrong. Ungendered per ADR-0010.",
+    "placeholders": {
+      "food": {
         "type": "String"
       }
     }
