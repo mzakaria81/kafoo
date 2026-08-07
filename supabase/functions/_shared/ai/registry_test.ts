@@ -8,7 +8,14 @@
 // Run with: deno test supabase/functions/_shared/ai/registry_test.ts
 
 import { assertEquals, assertThrows } from 'jsr:@std/assert@1';
-import { DEFAULT_PROVIDER, PROVIDERS, resolveProvider, TIERS } from './registry.ts';
+import {
+  DEFAULT_PROVIDER,
+  EMBEDDING_DIMENSIONS,
+  PROVIDERS,
+  resolveEmbedding,
+  resolveProvider,
+  TIERS,
+} from './registry.ts';
 
 /// Builds an env lookup from a plain object, so a test can describe a whole deployment's
 /// configuration in one literal without touching process-wide state.
@@ -152,6 +159,100 @@ Deno.test('a missing key fails before anything reaches the network', () => {
   // a much worse way to learn that a secret was never set on this deployment.
   assertThrows(
     () => resolveProvider('fast', envFrom({ AI_PROVIDER: 'gemini', ANTHROPIC_API_KEY: 'key-a' })),
+    Error,
+    'GEMINI_API_KEY is not set',
+  );
+});
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────
+// Embeddings
+//
+// A different capability from the tiers above, and it fails differently. A provider that cannot
+// complete a prompt is a broken deployment nobody can miss; a provider that cannot EMBED still
+// serves every conversational call in Kafoo perfectly, and only discovery stops working — which is
+// exactly the shape of failure that reaches production.
+// ────────────────────────────────────────────────────────────────────────────────────────────────
+
+Deno.test('every provider declares whether it can embed, in both places', () => {
+  // THE HALF-ADDED PROVIDER, in its embedding form. A model name with no implementation resolves a
+  // model and then calls null; an implementation with no model name is a capability nobody can
+  // reach. Both are silent, and both are one forgetful edit away.
+  for (const [id, entry] of Object.entries(PROVIDERS)) {
+    const hasImplementation = entry.adapter.embed !== null;
+    const hasModel = entry.embeddingModel !== null;
+    assertEquals(
+      hasImplementation,
+      hasModel,
+      `${id} declares embed=${hasImplementation ? 'a function' : 'null'} but embeddingModel=` +
+        `${hasModel ? entry.embeddingModel : 'null'}. They must agree.`,
+    );
+  }
+});
+
+Deno.test('at least one provider can actually embed', () => {
+  // Otherwise every assertion above is satisfied by a registry where nothing works.
+  const able = Object.values(PROVIDERS).filter((e) => e.adapter.embed !== null);
+  assertEquals(able.length > 0, true, 'no provider can produce embeddings');
+});
+
+Deno.test('a provider that cannot embed refuses instead of falling back', () => {
+  // THE WRONG-PROVIDER FALLBACK. AI_PROVIDER=anthropic is a valid, working configuration for every
+  // conversational call, and Anthropic has no embedding model. The tempting behaviour is to quietly
+  // use Gemini anyway — which spends a key nobody selected, on a provider nobody chose, discovered
+  // at the bill. Same argument as the unknown-provider case, one level in.
+  const error = assertThrows(
+    () =>
+      resolveEmbedding(envFrom({
+        AI_PROVIDER: 'anthropic',
+        ANTHROPIC_API_KEY: 'k',
+        GEMINI_API_KEY: 'k',
+      })),
+    Error,
+  );
+  assertEquals(error.message.includes('cannot produce embeddings'), true, error.message);
+  // The message names who CAN, because "embedding failed" sends the reader nowhere.
+  assertEquals(error.message.includes('gemini'), true, error.message);
+});
+
+Deno.test('an unknown provider fails the same way for embeddings as for completions', () => {
+  assertThrows(
+    () => resolveEmbedding(envFrom({ AI_PROVIDER: 'gemni', GEMINI_API_KEY: 'k' })),
+    Error,
+    'is not a known provider',
+  );
+});
+
+Deno.test('embedding resolves the measured model and width by default', () => {
+  const resolved = resolveEmbedding(envFrom({ GEMINI_API_KEY: 'k' }));
+  assertEquals(resolved.model, PROVIDERS[DEFAULT_PROVIDER].embeddingModel);
+  assertEquals(resolved.dimensions, EMBEDDING_DIMENSIONS);
+  assertEquals(resolved.apiKey, 'k');
+});
+
+Deno.test('the embedding width matches what the database column stores', () => {
+  // If these drift, every write fails at the column — loudly, but only in production, and only
+  // once a Meal is published. The migration is the source of truth; this is the second copy, so it
+  // is asserted against the migration text rather than against a number typed twice.
+  const migration = Deno.readTextFileSync(
+    new URL('../../../migrations/20260806231625_add_meal_embeddings.sql', import.meta.url),
+  );
+  assertEquals(
+    migration.includes(`vector(${EMBEDDING_DIMENSIONS})`),
+    true,
+    `the migration does not declare vector(${EMBEDDING_DIMENSIONS})`,
+  );
+});
+
+Deno.test('an explicit embedding model overrides the default', () => {
+  const resolved = resolveEmbedding(
+    envFrom({ GEMINI_API_KEY: 'k', AI_MODEL_EMBEDDING: 'something-else' }),
+  );
+  assertEquals(resolved.model, 'something-else');
+});
+
+Deno.test('a missing key is reported before any call is attempted', () => {
+  assertThrows(
+    () => resolveEmbedding(envFrom({})),
     Error,
     'GEMINI_API_KEY is not set',
   );

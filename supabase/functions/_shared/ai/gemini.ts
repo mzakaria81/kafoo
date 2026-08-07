@@ -4,7 +4,15 @@
 // name for the system prompt, different streaming format. That is the point: an abstraction proven
 // against two similar providers has not been proven. No model name here; the registry passes one in.
 
-import { ModelError, ModelRequest, ModelResponse, ProviderAdapter } from './types.ts';
+import {
+  EmbeddingTask,
+  EmbedRequest,
+  EmbedResponse,
+  ModelError,
+  ModelRequest,
+  ModelResponse,
+  ProviderAdapter,
+} from './types.ts';
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -100,6 +108,14 @@ function stopReasonFromCandidates(payload: {
   return 'other';
 }
 
+/// Gemini names the two retrieval roles this way. Kafoo's vocabulary is `document` and `query`
+/// because those are what they are; this is the translation, kept in the adapter with every other
+/// provider-specific string.
+const TASK_TYPES: Readonly<Record<EmbeddingTask, string>> = {
+  document: 'RETRIEVAL_DOCUMENT',
+  query: 'RETRIEVAL_QUERY',
+};
+
 export const geminiAdapter: ProviderAdapter = {
   id: 'gemini',
   apiKeyEnvVar: 'GEMINI_API_KEY',
@@ -143,6 +159,49 @@ export const geminiAdapter: ProviderAdapter = {
     return response.body
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(sseToTextDeltas());
+  },
+
+  async embed(request: EmbedRequest, apiKey: string): Promise<EmbedResponse> {
+    const response = await fetch(
+      `${BASE}/${encodeURIComponent(request.model)}:embedContent`,
+      {
+        method: 'POST',
+        headers: headers(apiKey),
+        body: JSON.stringify({
+          content: { parts: [{ text: request.text }] },
+          taskType: TASK_TYPES[request.task],
+          // Sent explicitly. The provider's default is 3072, which pgvector stores and cannot
+          // index — correct answers, sequential scans, no error anywhere.
+          outputDimensionality: request.dimensions,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw translateFailure(response.status, await response.text());
+    }
+
+    const values = (await response.json())?.embedding?.values;
+
+    // THE WIDTH IS CHECKED HERE RATHER THAN LEFT TO POSTGRES. A vector of the wrong length is
+    // rejected by the column, but by then it is a failed write inside a function holding a
+    // service-role key, reported as a database error. Checking it at the boundary names the actual
+    // problem — the provider ignored outputDimensionality — which is the thing a person would need
+    // to know.
+    if (!Array.isArray(values) || values.length !== request.dimensions) {
+      throw new ModelError(
+        `expected a ${request.dimensions}-dimension vector, got ${
+          Array.isArray(values) ? values.length : typeof values
+        }`,
+        'invalid_response',
+      );
+    }
+
+    if (values.some((value: unknown) => typeof value !== 'number' || !Number.isFinite(value))) {
+      throw new ModelError('the vector contains a value that is not a number', 'invalid_response');
+    }
+
+    return { vector: values as number[] };
   },
 };
 

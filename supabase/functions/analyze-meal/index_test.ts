@@ -67,6 +67,10 @@ function makeAdapter(
       return complete(req);
     },
     stream: async () => new ReadableStream(),
+    // This fake serves the meal-analysis path, which does not embed. Declared rather than omitted
+    // for the same reason the real adapters declare it: an absent capability and a forgotten one
+    // must not look alike.
+    embed: null,
   };
 }
 

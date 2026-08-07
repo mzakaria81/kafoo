@@ -76,6 +76,38 @@ export class ModelError extends Error {
   }
 }
 
+/// Whether the text being embedded is a Meal or a Customer's question.
+///
+/// **The provider treats these differently and the difference was measured, not assumed.**
+/// research.md §1 records that an untyped embedding call loses retrieval quality: a Meal's
+/// description and a question about food are not the same kind of text, and telling the model which
+/// one it is looking at is free.
+export type EmbeddingTask = 'document' | 'query';
+
+export interface EmbedRequest {
+  readonly model: string;
+
+  /// What to represent. A Meal's title and description, or a Customer's phrase.
+  readonly text: string;
+
+  readonly task: EmbeddingTask;
+
+  /// **Must match `meals.embedding`'s declared width or the database rejects the write.** Passed
+  /// explicitly rather than left to the provider's default, because that default is 3072 — a size
+  /// pgvector accepts and cannot index, which produces correct answers, sequential scans, and no
+  /// error anywhere.
+  readonly dimensions: number;
+}
+
+export interface EmbedResponse {
+  readonly vector: readonly number[];
+}
+
+export type EmbedFunction = (
+  request: EmbedRequest,
+  apiKey: string,
+) => Promise<EmbedResponse>;
+
 export interface ProviderAdapter {
   /// The id used in `AI_PROVIDER`.
   readonly id: string;
@@ -95,4 +127,14 @@ export interface ProviderAdapter {
   /// normalisation is the single most provider-specific thing here and therefore belongs in the
   /// adapter rather than anywhere a caller can see it.
   stream(request: ModelRequest, apiKey: string): Promise<ReadableStream<string>>;
+
+  /// How this provider turns text into a vector, or `null` if it cannot.
+  ///
+  /// **Required and nullable rather than optional, and the difference is the point.** An optional
+  /// method is absent both when a provider genuinely has no embedding model and when somebody
+  /// adding a provider forgot — and those need opposite responses. Writing `embed: null` is a
+  /// statement somebody made; a missing key is a question nobody answered. `registry_test.ts`
+  /// asserts every provider declares one or the other, so a half-added provider fails at test time
+  /// instead of at the first Meal published after a provider switch.
+  readonly embed: EmbedFunction | null;
 }
