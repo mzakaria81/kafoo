@@ -106,13 +106,36 @@ abstract final class ExclusionVocabulary {
   /// sample of them. Longest first: `من غير ما يكون فيه` contains `من غير`, and
   /// matching the shorter one first would take the rest of the phrase as the
   /// thing excluded.
+  ///
+  /// **An allergy is a negation, and leaving it out was a silent drop.** Found
+  /// 2026-08-07 by running the code rather than reading it: `عندي حساسية من
+  /// المكسرات` returned [NoExclusion] — not not-understood, nothing excluded.
+  /// The Customer states an allergy, is served the food, and is told nothing.
+  /// It is the failure this file exists to prevent, arriving through the marker
+  /// list instead of the food list, on the phrasing most likely to carry a real
+  /// medical need.
+  ///
+  /// **The feminine forms are not politeness, they are half the customers.**
+  /// `مش عايز` is masculine; a woman says `مش عايزة`, which matched the
+  /// masculine marker as a prefix and left the ة behind as the first word of
+  /// the food. Measured: `مش عايزة لحمة` reported not-understood on `ة لحمة`.
   static const List<String> negationMarkers = <String>[
+    'عندي حساسية من',
+    'عندى حساسية من',
+    'حساسية من',
     'من غير ما يكون فيه',
+    'مش عايزة',
+    'مش عاوزة',
     'مش عايز',
     'مش عاوز',
     'من غير',
     'بدون',
+    'بلاش',
   ];
+
+  /// Words that can sit between the marker and the food without being part of
+  /// it — `من غير أي لحمة`.
+  static const Set<String> _fillers = {'أي', 'اي', 'ولا', 'شوية'};
 
   /// Every exclusion Kafoo understands.
   ///
@@ -136,28 +159,123 @@ abstract final class ExclusionVocabulary {
   /// exclusion a Customer gets, and the order of a list is not a decision
   /// anybody made.
   static const List<Exclusion> all = <Exclusion>[
-    Exclusion(id: 'meat', surfaceForms: {'لحمة', 'لحمه', 'لحم'}),
-    Exclusion(id: 'chicken', surfaceForms: {'فراخ', 'فرخة', 'فرخه', 'دجاج'}),
-    Exclusion(id: 'fish', surfaceForms: {'سمك', 'سمكة', 'سمكه'}),
+    // A broken plural inserts a letter, so the singular is not a substring of
+    // it: a Cook writing لحوم حمراء is not reached by لحم. Same for أسماك.
+    Exclusion(
+      id: 'meat',
+      surfaceForms: {
+        'لحمة', 'لحمه', 'لحم', 'لحوم',
+        // The cuts and products a Cook actually lists. Naming the word for meat
+        // and stopping there misses everything an Egyptian menu is made of.
+        'كبدة', 'كبده', 'سجق', 'بسطرمة', 'لانشون',
+      },
+    ),
+    // بانيه matters more than it looks: it stands alone in an ingredients list
+    // with no فراخ anywhere near it. It is correct transliterated register —
+    // do not "correct" it to Arabic.
+    Exclusion(
+      id: 'chicken',
+      surfaceForms: {'فراخ', 'فرخة', 'فرخه', 'فرخ', 'دجاج', 'بانيه', 'بانية'},
+    ),
+    Exclusion(
+      id: 'fish',
+      surfaceForms: {
+        'سمك', 'سمكة', 'سمكه', 'أسماك', 'اسماك',
+        // Named fish. Excluding سمك and being served رنجة is the failure.
+        'سلمون', 'رنجة', 'رنجه', 'فسيخ', 'بلطي', 'بلطى', 'بوري', 'بورى',
+        'سردين',
+      },
+    ),
+    // Crustaceans and molluscs are distinct allergies and are grouped here.
+    // That over-excludes, which is the safe direction and matches how the word
+    // "shellfish" is normally understood.
     Exclusion(
       id: 'shellfish',
-      surfaceForms: {'جمبري', 'جمبرى', 'استاكوزا', 'كابوريا'},
+      surfaceForms: {
+        'جمبري',
+        'جمبرى',
+        'استاكوزا',
+        'إستاكوزا',
+        'أستاكوزا',
+        'كابوريا',
+        'محار',
+        'سبيط',
+        'كاليماري',
+        'جندوفلي',
+      },
     ),
     Exclusion(id: 'egg', surfaceForms: {'بيض', 'بيضة', 'بيضه'}),
+    // Butter and ghee before cream: anyone avoiding dairy means سمنة and زبدة
+    // long before they mean قشطة, and Egyptian cooking uses both constantly.
+    // لبنة and لبن رايب need no entry — لبن reaches them as a substring.
     Exclusion(
       id: 'dairy',
-      surfaceForms: {'لبن', 'حليب', 'جبنة', 'جبنه', 'زبادي', 'قشطة'},
+      surfaceForms: {
+        'لبن',
+        'حليب',
+        'جبن',
+        'جبنة',
+        'جبنه',
+        'زبادي',
+        'زبادى',
+        'قشطة',
+        'قشطه',
+        'قشدة',
+        'زبدة',
+        'زبده',
+        'سمنة',
+        'سمنه',
+        'كريمة',
+        'كريمه',
+        'قريش',
+      },
     ),
     // Peanut is its own entry rather than part of `nuts`, because it is not a
     // nut and because someone allergic to one is frequently not allergic to the
     // other. Merging them would exclude food nobody needed excluded.
-    Exclusion(id: 'peanut', surfaceForms: {'فول سوداني', 'سوداني'}),
+    Exclusion(
+      id: 'peanut',
+      surfaceForms: {'فول سوداني', 'فول سودانى', 'سوداني', 'سودانى'},
+    ),
     Exclusion(
       id: 'nuts',
-      surfaceForms: {'مكسرات', 'لوز', 'عين جمل', 'بندق', 'فستق', 'كاجو'},
+      surfaceForms: {
+        'مكسرات', 'لوز', 'عين جمل', 'عين الجمل', 'بندق', 'فستق', 'كاجو',
+        // In every stuffed dish, and absent from every list that forgets it.
+        'صنوبر', 'بيكان',
+      },
     ),
+    // طحين is deliberately NOT here. In Modern Standard Arabic and the Levant it
+    // means FLOUR, so an AI-written ingredient list could map a sesame exclusion
+    // onto bread — an exclusion that points at the wrong food is worse than one
+    // that misses.
     Exclusion(id: 'sesame', surfaceForms: {'سمسم', 'طحينة', 'طحينه'}),
-    Exclusion(id: 'gluten', surfaceForms: {'قمح', 'دقيق', 'جلوتين'}),
+    // NAMING FLOUR AND STOPPING THERE WAS NOT USABLE BY A COELIAC. Every entry
+    // added below is ordinary Egyptian ingredient text that قمح/دقيق/جلوتين do
+    // not reach. شوفان is included though oats are not wheat: cross-contamination
+    // is routine, and over-excluding is the direction to be wrong in.
+    //
+    // This entry still wants review by somebody who knows coeliac practice
+    // rather than by somebody who knows Arabic.
+    Exclusion(
+      id: 'gluten',
+      surfaceForms: {
+        'قمح',
+        'دقيق',
+        'جلوتين',
+        'غلوتين',
+        'سميد',
+        'بقسماط',
+        'مكرونة',
+        'عيش',
+        'خبز',
+        'رقاق',
+        'فريك',
+        'شعرية',
+        'عجينة',
+        'شوفان',
+      },
+    ),
     Exclusion(id: 'onion', surfaceForms: {'بصل'}),
     Exclusion(id: 'garlic', surfaceForms: {'توم', 'ثوم'}),
   ];
@@ -172,13 +290,30 @@ abstract final class ExclusionVocabulary {
     final needle = term.trim();
     if (needle.isEmpty) return const NoExclusion();
 
-    for (final exclusion in all) {
-      if (exclusion.surfaceForms.contains(needle)) {
-        return ExclusionFound(exclusion);
+    for (final candidate in {needle, _withoutArticles(needle)}) {
+      for (final exclusion in all) {
+        if (exclusion.surfaceForms.contains(candidate)) {
+          return ExclusionFound(exclusion);
+        }
       }
     }
     return ExclusionNotUnderstood(needle);
   }
+
+  /// Drops a leading `ال` from each word.
+  ///
+  /// **The looseness has to point both ways.** A Cook's ingredients are matched
+  /// by substring, so `اللحمة` in a Meal already reaches the form `لحمة`. The
+  /// Customer's side was exact, so `من غير اللحمة` — the most natural way to
+  /// say it — reported not-understood. That asymmetry was invisible because
+  /// each side is correct on its own.
+  ///
+  /// It also reaches `عين الجمل` from the form `عين جمل` without a second entry.
+  static String _withoutArticles(String term) => term
+      .split(RegExp(r'\s+'))
+      .map((word) =>
+          word.length > 3 && word.startsWith('ال') ? word.substring(2) : word)
+      .join(' ');
 
   /// Reads what a Customer asked to avoid out of what they said.
   ///
@@ -211,7 +346,10 @@ abstract final class ExclusionVocabulary {
       // Shorter runs then catch the ordinary case where the food is followed by
       // something that is not part of it — `من غير لحمة خالص`, the phrase the
       // 2026-08-06 measurement used, where `خالص` is an intensifier.
-      final words = remainder.split(RegExp(r'\s+'));
+      final words = remainder.split(RegExp(r'\s+')).toList();
+      while (words.length > 1 && _fillers.contains(words.first)) {
+        words.removeAt(0);
+      }
       for (var take = words.length; take >= 1; take--) {
         final candidate = words.take(take).join(' ');
         final outcome = lookUp(candidate);

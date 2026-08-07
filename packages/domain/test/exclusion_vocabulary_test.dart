@@ -101,6 +101,49 @@ void main() {
           isA<ExclusionNotUnderstood>());
     });
 
+    test('an allergy is a negation — "عندي حساسية من" is how people say it',
+        () {
+      // Found by localization-reviewer 2026-08-07, by running the code: this
+      // returned NoExclusion. Not not-understood — NOTHING EXCLUDED. The
+      // Customer states an allergy, Kafoo serves them the food, and says
+      // nothing. It is the silent drop this whole file exists to prevent,
+      // arriving through the marker list rather than the food list, and it is
+      // the single most likely phrasing for the case the list is FOR.
+      final outcome = ExclusionVocabulary.parse('عندي حساسية من المكسرات');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'nuts');
+    });
+
+    test('a woman asking is understood as well as a man', () {
+      // 'مش عايز' is masculine. A woman says 'مش عايزة', which matched the
+      // masculine marker as a PREFIX and left the ة behind as the first word of
+      // the food — measured, it reported not-understood on "ة لحمة". Half the
+      // customer base, on mainstream phrasing.
+      for (final phrase in ['مش عايزة لحمة', 'مش عاوزة لحمة']) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(),
+            reason: '"$phrase" was not understood');
+        expect((outcome as ExclusionFound).exclusion.id, 'meat');
+      }
+    });
+
+    test('the definite article does not defeat a match', () {
+      // ال is the most natural way to say it, and matching was exact on the
+      // Customer's side while being loose on the Cook's. The looseness has to
+      // point both ways.
+      for (final phrase in ['من غير اللحمة', 'من غير البصل', 'من غير اللبن']) {
+        expect(ExclusionVocabulary.parse(phrase), isA<ExclusionFound>(),
+            reason: '"$phrase" was not understood');
+      }
+    });
+
+    test('a filler word between the marker and the food is skipped', () {
+      for (final phrase in ['من غير أي لحمة', 'من غير اي لحمة', 'بلاش بصل']) {
+        expect(ExclusionVocabulary.parse(phrase), isA<ExclusionFound>(),
+            reason: '"$phrase" was not understood');
+      }
+    });
+
     test('every marker is usable, not just the first', () {
       for (final marker in ExclusionVocabulary.negationMarkers) {
         final outcome = ExclusionVocabulary.parse('$marker لحمة');
