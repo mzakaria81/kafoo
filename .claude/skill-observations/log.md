@@ -1383,3 +1383,18 @@ rather than capability, and neither shows up in a feature list.
 feature list does, because features are advertised and defaults are assumed. Ask what an artifact
 ignores by default and what objective it was tuned against — a capable tool aimed at a different
 objective is a worse fit than a weaker tool aimed at ours.
+
+### Observation 99: A misattributed source name is an ambiguity that looks like a precise instruction
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** Founder asked to "borrow the benchmark from alibaba and tune it for our repo", following a session that evaluated an arXiv paper. There is no benchmark by Alibaba in that paper: Alibaba is Qwen, whose *models* the paper measures; the benchmark the paper *cites* is BenchForce, which is Salesforce's. A third candidate (VoiceBench) exists and is associated with Alibaba only because Qwen publishes scores against it. Three non-interchangeable artefacts, one confident-sounding request. The founder deferred the work when the three were laid out.
+**Skill:** New skill candidate: evaluating-external-dependencies (same candidate as Observation 93) — or any skill covering how to act on a request that names a source
+**Type:** open-source
+**Phase/Area:** Interpreting a request that names an external artefact
+
+**Issue:** A request naming a specific source reads as *more* precise than a vague one, so it invites going straight to work. Here the name was wrong in a way that was invisible without checking — "the benchmark from X" where X is the party whose product was *measured*, not the party who wrote the benchmark. Picking any one of the three and building it would have produced confident, well-executed, wrong work, and the error would only have surfaced after delivery. The cost of checking was two searches.
+
+**Suggested improvement:** Add a rule: before acting on a request that names an external artefact (paper, benchmark, library, dataset) *and* an attribution, verify that the artefact and the attribution actually go together. Where a source was discussed earlier in the session, re-read what it said rather than relying on the conversational summary of it. If the name resolves to more than one plausible artefact, enumerate them with their differences and ask — do not rank-and-pick silently. Do all work that does not depend on the answer first, so the question costs the user a decision and not a stalled session.
+
+**Principle:** Specificity is not accuracy. A request that names a source, a version, or an author sounds verified and is not — misattribution is the most common way a confident instruction points at the wrong thing, and it survives every check except looking. Confirm the referent exists as named before building on it, and when one name maps to several real artefacts, that is an ambiguity to surface rather than a preference to infer.
