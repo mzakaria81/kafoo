@@ -7,6 +7,12 @@
 // supplies the vector's source text can supply the text nearest every query, and that Cook's Meal
 // ranks first for everything, permanently, invisibly, and against every other Cook. So the title
 // and description are read FROM THE DATABASE by id, and any text in the request body is ignored.
+//
+// `index.test.ts` PROVES that by driving this handler with a fake database whose stored Meal differs
+// from the one named in the request body. The first version of this file claimed the test proved it
+// while the test only exercised a pure function that cannot see a request — a tautology, caught by
+// ai-boundary-reviewer, which pointed out that changing the line below to
+// `body.text ?? embeddableText(meal)` would have left every test and the whole gate green.
 // `index.test.ts` proves the ignoring rather than asserting it.
 //
 // The database refuses a client-written vector too — see `protect_meal_embedding` — so this is the
@@ -46,7 +52,7 @@
 // If a later change makes this function write a second column, the reasoning collapses AND the
 // database refuses it. Widening it is an ADR and a migration, not a review comment.
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
 import { resolveEmbedding } from '../_shared/ai/registry.ts';
 import { embeddableText } from './text.ts';
@@ -63,7 +69,35 @@ function json(body: unknown, status: number): Response {
   });
 }
 
-Deno.serve(async (req) => {
+/// A Meal as this function needs to see it. Title and description, and nothing else — there is no
+/// field here for a caller's words to arrive through.
+export interface MealRow {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string | null;
+}
+
+/// Everything that touches the outside world, injected so the handler can be driven in a test.
+///
+/// Named individually rather than passed as a Supabase client, because the point of the seam is
+/// that a test can hand this function a database whose Meal says something DIFFERENT from what the
+/// request body says, and watch which one is embedded.
+export interface EmbedMealDeps {
+  /// The signed-in caller, or null. Never read from the body.
+  verifyCaller(authHeader: string): Promise<{ id: string } | null>;
+
+  /// The Meal, scoped to its owner. Null when it does not exist OR is not theirs — one answer, so
+  /// a stranger cannot learn which ids exist.
+  readMeal(mealId: string, cookId: string): Promise<MealRow | null>;
+
+  /// Text in, vector out. Throws when the provider is unreachable.
+  embed(text: string): Promise<readonly number[]>;
+
+  /// The only write. Throws on refusal.
+  writeVector(mealId: string, cookId: string, vector: readonly number[]): Promise<void>;
+}
+
+export async function handleEmbedMeal(req: Request, deps: EmbedMealDeps): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -78,22 +112,12 @@ Deno.serve(async (req) => {
     return json({ error: 'unauthorized' }, 401);
   }
 
-  // Publishable key first; the platform still injects SUPABASE_ANON_KEY under the older name.
-  // Both are the same low-privilege key.
-  const publishableKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ??
-    Deno.env.get('SUPABASE_ANON_KEY')!;
-
-  // The Cook's own client. Every read below runs under RLS as them.
-  const asCook = createClient(Deno.env.get('SUPABASE_URL')!, publishableKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const { data: { user }, error: authError } = await asCook.auth.getUser();
-  if (authError || !user) {
+  const caller = await deps.verifyCaller(authHeader);
+  if (!caller) {
     return json({ error: 'unauthorized' }, 401);
   }
 
-  // 2. The id, and only the id.
+  // 2. The id, and only the id. Every other field in the body is read by nothing.
   let mealId: unknown;
   try {
     mealId = (await req.json())?.mealId;
@@ -107,24 +131,15 @@ Deno.serve(async (req) => {
 
   // 3. Read the Meal, scoped to its owner.
   //
-  //    READ AS THE COOK, so `cook reads own meals` does the work and this cannot see a Meal the
-  //    caller could not already open. The `cook_id` predicate is kept as well, because RLS lets a
-  //    Cook read their own draft and a stranger read anything published — without it, any account
-  //    could walk every published Meal id and force a model call for each, on Kafoo's key, with
-  //    nothing in E3 rate-limiting it. Two statements of one rule, and the database owns the
-  //    stronger one.
-  const { data: meal, error: readError } = await asCook
-    .from('meals')
-    .select('id, title, description')
-    .eq('id', mealId)
-    .eq('cook_id', user.id)
-    .maybeSingle();
-
-  if (readError) {
+  //    The ownership predicate is not about secrecy — a published Meal's title is public. It is
+  //    about who may SPEND. Without it, any account could walk every published Meal id and force a
+  //    model call for each, on Kafoo's key, with nothing in E3 rate-limiting it.
+  let meal: MealRow | null;
+  try {
+    meal = await deps.readMeal(mealId, caller.id);
+  } catch {
     return json({ error: 'could not read the meal' }, 500);
   }
-  // Not found and not-yours are one answer on purpose: distinguishing them tells a stranger which
-  // ids exist.
   if (!meal) {
     return json({ error: 'no such meal' }, 404);
   }
@@ -136,41 +151,93 @@ Deno.serve(async (req) => {
 
   // 4. Embed.
   //
-  //    A FAILURE HERE IS NOT A FAILURE OF PUBLISHING, and the separation is deliberate. Publishing
-  //    a Meal does not call this function inline — `meals.embedding` is nullable and a Meal without
-  //    one is invisible to search and fully visible to browsing. So an unreachable provider, an
-  //    exhausted quota or a bad key makes a Meal HARDER TO FIND, never lost, and never a Cook who
-  //    cannot publish because a model provider is down.
+  //    A FAILURE HERE IS NOT A FAILURE OF PUBLISHING. Publishing does not call this function
+  //    inline — `meals.embedding` is nullable and a Meal without one is invisible to search and
+  //    fully visible to browsing. So an unreachable provider, an exhausted quota or a bad key makes
+  //    a Meal HARDER TO FIND, never lost, and never a Cook who cannot publish.
   let vector: readonly number[];
   try {
-    const { embed, model, apiKey, dimensions } = resolveEmbedding((key) => Deno.env.get(key));
-    const response = await embed({ model, text, task: 'document', dimensions }, apiKey);
-    vector = response.vector;
+    vector = await deps.embed(text);
   } catch (error) {
     // 503 rather than 500: this is "come back later", and a caller that retries on 5xx should.
     return json({ error: 'the model provider is unavailable', detail: String(error) }, 503);
   }
 
   // 5. Write exactly one column, with the only credential that may.
-  //
-  //    This client can do nothing else to `meals` — not because the code declines to, but because
-  //    the grant does not exist. See the migration named above.
-  const writer = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
-
-  const { error: writeError } = await writer
-    .from('meals')
-    .update({ embedding: JSON.stringify(vector) })
-    .eq('id', meal.id)
-    .eq('cook_id', user.id);
-
-  if (writeError) {
+  try {
+    await deps.writeVector(meal.id, caller.id, vector);
+  } catch {
     return json({ error: 'could not store the vector' }, 500);
   }
 
   // The vector is not returned. Nothing renders it, it is 8 KB of JSON, and handing it back would
   // make it look like something a client is meant to hold.
   return json({ mealId: meal.id, dimensions: vector.length }, 200);
-});
+}
+
+/// The real world. Every Supabase call in this function lives here, in one place a reader can check
+/// against ADR-0011 and `scripts/check-ai-write-boundary.py`.
+export function createDefaultDeps(): EmbedMealDeps {
+  const url = Deno.env.get('SUPABASE_URL')!;
+  // Publishable key first; the platform still injects SUPABASE_ANON_KEY under the older name.
+  // Both are the same low-privilege key.
+  const publishableKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ??
+    Deno.env.get('SUPABASE_ANON_KEY')!;
+
+  const asCook = (authHeader: string): SupabaseClient =>
+    createClient(url, publishableKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+  // The narrow credential. Postgres grants it UPDATE (embedding) and SELECT (id, cook_id) on meals
+  // and nothing else — see migration 20260807064927. It cannot publish a Meal, change a price or
+  // read a title, and that is a property of the grant rather than of this code.
+  const writer = (): SupabaseClient =>
+    createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+  let header = '';
+
+  return {
+    async verifyCaller(authHeader) {
+      header = authHeader;
+      const { data, error } = await asCook(authHeader).auth.getUser();
+      if (error || !data.user) return null;
+      return { id: data.user.id };
+    },
+
+    async readMeal(mealId, cookId) {
+      // Read as the Cook, so RLS decides what this function can see.
+      const { data, error } = await asCook(header)
+        .from('meals')
+        .select('id, title, description')
+        .eq('id', mealId)
+        .eq('cook_id', cookId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as MealRow | null;
+    },
+
+    async embed(text) {
+      const { embed, model, apiKey, dimensions } = resolveEmbedding((key) => Deno.env.get(key));
+      const response = await embed({ model, text, task: 'document', dimensions }, apiKey);
+      return response.vector;
+    },
+
+    async writeVector(mealId, cookId, vector) {
+      const { error } = await writer()
+        .from('meals')
+        .update({ embedding: JSON.stringify(vector) })
+        .eq('id', mealId)
+        .eq('cook_id', cookId);
+      if (error) throw error;
+    },
+  };
+}
+
+// Deno.serve is the only top-level side effect, and it is guarded — same shape as analyze-meal.
+// Without the guard, importing this module to test the handler starts a server and the test fails
+// with "Requires net access" instead of an assertion, which is how the tautological test got
+// written in the first place.
+if (import.meta.main) {
+  Deno.serve((req) => handleEmbedMeal(req, createDefaultDeps()));
+}

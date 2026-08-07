@@ -226,5 +226,44 @@ export function resolveEmbedding(
     );
   }
 
-  return { embed, model, apiKey, dimensions: EMBEDDING_DIMENSIONS };
+  return { embed: guarded(embed), model, apiKey, dimensions: EMBEDDING_DIMENSIONS };
+}
+
+/// Wraps an adapter's embed so the width check and the normalisation are properties of the SEAM
+/// rather than of whichever adapter happened to be written first.
+///
+/// **The width check existed only inside `gemini.ts`**, while ADR-0011's blast-radius argument —
+/// "the model's output reaches the database only as numbers, whose width is checked before the
+/// write" — is a claim about the boundary. The next adapter would have inherited the claim without
+/// the code. The adapter keeps its own check, because it can say *the provider ignored
+/// outputDimensionality*, which is the useful sentence.
+///
+/// **The normalisation makes three documents true that were not.** T133 required it, the migration
+/// says the index matches "how the vectors are normalised before they are stored", and
+/// `contracts/embed-meal.md` says "Vectors are normalised". Nothing did. It is harmless while
+/// ranking uses cosine distance, which normalises internally — and silently wrong the day somebody
+/// switches to inner product for speed. Five lines here removes that trap permanently.
+function guarded(embed: EmbedFunction): EmbedFunction {
+  return async (request, apiKey) => {
+    const { vector } = await embed(request, apiKey);
+
+    if (vector.length !== request.dimensions) {
+      throw new Error(
+        `the provider returned a ${vector.length}-dimension vector, expected ${request.dimensions}`,
+      );
+    }
+    if (vector.some((value) => !Number.isFinite(value))) {
+      throw new Error('the provider returned a vector containing a value that is not a number');
+    }
+
+    const magnitude = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
+    // A zero vector has no direction to preserve; normalising it would divide by zero. It is also
+    // not a legitimate embedding, so it is refused rather than stored as a Meal that sits at the
+    // origin and is equidistant from every query.
+    if (!(magnitude > 0)) {
+      throw new Error('the provider returned a zero vector, which represents nothing');
+    }
+
+    return { vector: vector.map((value) => value / magnitude) };
+  };
 }

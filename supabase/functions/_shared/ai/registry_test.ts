@@ -257,3 +257,101 @@ Deno.test('a missing key is reported before any call is attempted', () => {
     'GEMINI_API_KEY is not set',
   );
 });
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────
+// The guard around an adapter's embed
+//
+// ADR-0011 says "the model's output reaches the database only as numbers, whose width is checked
+// before the write". That was true of gemini.ts and of nothing else, so the next adapter would have
+// inherited the claim without the code. These assert it at the seam.
+// ────────────────────────────────────────────────────────────────────────────────────────────────
+
+/// Swaps in a fake embed so the guard can be driven without a provider.
+function withFakeEmbed<T>(vector: readonly number[], run: (resolved: unknown) => T): T {
+  const entry = PROVIDERS[DEFAULT_PROVIDER] as unknown as {
+    adapter: { embed: unknown };
+  };
+  const real = entry.adapter.embed;
+  entry.adapter.embed = () => Promise.resolve({ vector });
+  try {
+    return run(resolveEmbedding(envFrom({ GEMINI_API_KEY: 'k' })));
+  } finally {
+    entry.adapter.embed = real;
+  }
+}
+
+Deno.test('a vector of the wrong width is refused at the seam, not at the column', async () => {
+  // Postgres would reject it anyway, but as a failed write inside a function holding a write
+  // credential, reported as a database error. The provider ignoring outputDimensionality is the
+  // thing a person needs to be told.
+  const resolved = withFakeEmbed(new Array(1536).fill(0.1), (r) => r) as {
+    embed: (r: unknown, k: string) => Promise<unknown>;
+    model: string;
+    dimensions: number;
+  };
+  let message = '';
+  try {
+    await resolved.embed(
+      { model: resolved.model, text: 'كشري', task: 'document', dimensions: resolved.dimensions },
+      'k',
+    );
+  } catch (error) {
+    message = String(error);
+  }
+  assertEquals(message.includes('1536-dimension'), true, message);
+});
+
+Deno.test('a vector carrying something that is not a number is refused', async () => {
+  const resolved = withFakeEmbed([...new Array(767).fill(0.1), Number.NaN], (r) => r) as {
+    embed: (r: unknown, k: string) => Promise<unknown>;
+    model: string;
+    dimensions: number;
+  };
+  let message = '';
+  try {
+    await resolved.embed(
+      { model: resolved.model, text: 'كشري', task: 'document', dimensions: resolved.dimensions },
+      'k',
+    );
+  } catch (error) {
+    message = String(error);
+  }
+  assertEquals(message.includes('not a number'), true, message);
+});
+
+Deno.test('a zero vector is refused rather than stored at the origin', async () => {
+  // A zero vector has no direction, and normalising it divides by zero. Stored, it would sit
+  // equidistant from every query — a Meal that is equally irrelevant to everything, forever.
+  const resolved = withFakeEmbed(new Array(768).fill(0), (r) => r) as {
+    embed: (r: unknown, k: string) => Promise<unknown>;
+    model: string;
+    dimensions: number;
+  };
+  let message = '';
+  try {
+    await resolved.embed(
+      { model: resolved.model, text: 'كشري', task: 'document', dimensions: resolved.dimensions },
+      'k',
+    );
+  } catch (error) {
+    message = String(error);
+  }
+  assertEquals(message.includes('zero vector'), true, message);
+});
+
+Deno.test('what reaches the caller is normalised', async () => {
+  // Three documents claimed this and nothing did it — the migration's index comment, the
+  // embed-meal contract, and T133. Harmless under cosine distance, silently wrong the day somebody
+  // switches to inner product for speed.
+  const resolved = withFakeEmbed(new Array(768).fill(2), (r) => r) as {
+    embed: (r: unknown, k: string) => Promise<{ vector: readonly number[] }>;
+    model: string;
+    dimensions: number;
+  };
+  const { vector } = await resolved.embed(
+    { model: resolved.model, text: 'كشري', task: 'document', dimensions: resolved.dimensions },
+    'k',
+  );
+  const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
+  assertEquals(Math.abs(magnitude - 1) < 1e-9, true, `magnitude was ${magnitude}`);
+});
