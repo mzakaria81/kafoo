@@ -28,49 +28,57 @@ They prove the **rules hold when a model breaks them**:
 Everything above is a property of Kafoo's code. It is worth having and it is not a measurement of a
 model.
 
-## What has NOT been measured, and why it matters
+## Measured against a live model, 2026-08-07
 
-**SC-004 says Kafoo states that nothing answers in 100% of tested cases, and does not degrade with
-corpus size. That is a claim about a model's judgement, and no model has been asked.**
+**SC-004 is met.** `gemini-3.1-flash-lite`, 28 calls, run by `scripts/replay-judgement.ts` with the
+founder's approval.
 
-The stub returns replies this repository wrote. So the burger fixture passes because the fixture
-says `answers: false` — not because any model looked at four meat dishes and concluded none of them
-is a burger. **The suite currently proves that a correct judgement survives the pipeline, not that
-the judgement is correct.**
+| | |
+|---|---|
+| Requests nothing answers, stated correctly | **20/20 — 100%** |
+| At 5 Meals / 15 / 34 | 12/12 · 4/4 · 4/4 — **no degradation with corpus size** |
+| False refusals on requests something DOES answer | 0/8 |
+| Replies refused before a verdict existed | 0/28 |
+| Alternatives named outside the handed set | 0 |
 
-This is the E2 finding, one epic later. Replaying `meal-description` against a real model on
-2026-08-05 caught it stating things the Cook never said, while three golden cases had marked all of
-it PASS — see `docs/ops/eval-meal-description-findings.md`. The equivalent failure here is a model
-that says `answers: true` for a request nothing answers, which is the confident wrong answer in
-front of a Customer that Principle I forbids and this whole function exists to prevent.
+**The near-misses are what make this worth believing.** The cases that passed are not "sushi in an
+Egyptian marketplace". They are mango kunafa when pistachio kunafa is on offer; pasta with béchamel
+when only white-sauce pasta is there; fried chicken against grilled chicken; beef shawarma against
+chicken shawarma; a burger against minced meat served in bread. Every one of those is close enough
+that `research.md` §4 measured a score getting it backwards, and the model said `false` to all of
+them while still naming the near-miss as an alternative — which is the honest shape the prompt asks
+for: *no, and here is what there is.*
 
-The two halves of SC-004 need different runs:
+**The strictness worry did not materialise.** `judge-results` refuses any reply carrying a field the
+schema does not have, and the concern was that a chatty model would make the feature silently dead.
+Zero of 28 replies were refused. On this model, strict costs nothing.
 
-- **100% of tested cases.** Every query in `discovery-corpus.json` judged against the Meals
-  retrieval actually returns for it, with `q_nothing_matches` and a set of deliberately
-  close-but-wrong requests among them. Roughly 20–30 judgements.
-- **Does not degrade with corpus size.** The same requests judged against a growing handed set —
-  5, 15, 50 Meals — because the failure mode being tested is a model that gets more agreeable as the
-  list in front of it gets longer. `search_meals` caps at 50, so 50 is the ceiling that matters.
+### What this does NOT establish
 
-## What the replay would cost
+- **Retrieval was not run.** The handed sets are constructed to be what a vector search would
+  plausibly return, by removing the food that would answer and keeping the nearest. A full
+  end-to-end run needs the corpus embedded, which is a separate paid step.
+- **One model, one day.** A provider switch or a model bump is a new measurement, not a
+  continuation of this one. `AI_PROVIDER` is one environment variable, so this can change without
+  a code diff — which is exactly why the date and the model id are recorded here.
+- **36 Meals, not 50.** `search_meals` caps at 50 and the corpus holds 36. The trend across 5, 15
+  and 34 is flat, so there is no reason to expect a cliff at 50, and no measurement of one either.
+- **This measures the verdict, not the wording.** The sentence a Customer reads is Kafoo's own
+  copy; nothing here tests it.
 
-Roughly 60–90 calls at the fast tier, a few hundred tokens each. On the current default
-(`gemini-3.1-flash-lite`) that is **cents, not dollars** — the cost is not the reason it has not
-run. It has not run because a paid model call is a decision the founder takes, and because a replay
-that reports a number nobody planned to act on is worse than no replay.
+Raw outcomes: `docs/ops/replay-judgement-result.json`.
 
-**The decision it is worth taking, in one sentence:** if the model says "yes, this answers" for the
-burger case, the judgement is not shippable and the alternative is to say nothing at all rather than
-say something wrong — so the result changes what ships, which is what makes it worth running.
+## Running it again
 
-## How to run it when that decision is taken
+```bash
+deno run --allow-env --allow-read --allow-write --allow-net scripts/replay-judgement.ts
+```
 
-`scripts/replay-goldens.ts` is the harness E2 used for `meal-description`. It is not wired to this
-prompt yet, and wiring it is small: the corpus and the assertions are the work, not the plumbing.
-Do not extend it speculatively — build it against the questions above, so the report answers them
-rather than reporting whatever was easy to count.
+**It costs money and it resumes.** An outcome already recorded with a real verdict is kept; only
+cases the transport ate are asked again. That matters because the first run hit the provider's rate
+limit on the thirteenth call and recorded twelve un-judged cases as failures — it printed "60%",
+and the truth was that 60% of the cases had been asked at all. A measurement that reports the
+harness as though it were the model is worse than no measurement, so the script now paces itself,
+backs off on a rate limit, and distinguishes a refusal the model produced from one the network did.
 
-Record the result here with the date, the model id, and the failures rather than only the score. The
-date on `prompts/discovery-judgement.md` is `last_evaluated: 2026-08-07` and means "the rules are
-asserted", never "the model was measured". Change it when that stops being true.
+Record every run here with the date, the model id and the failures — never only the score.

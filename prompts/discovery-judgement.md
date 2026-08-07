@@ -8,12 +8,16 @@ version: 2
 # cannot be escaped by writing text into it, so the structure the model sees is the structure Kafoo
 # built.
 model_tier: fast
-last_evaluated: 2026-08-07 # Stub goldens only — packages/ai/test/goldens/discovery_judgement/ and
-# supabase/functions/judge-results/index_test.ts. NOT replayed against a live model: that costs
-# money the founder has not approved for this package. The E2 finding says plainly what that means —
-# replaying meal-description against a real model caught it stating things the Cook never said while
-# three golden cases had marked all of it PASS. Treat this date as "the rules are asserted", never
-# as "the model was measured".
+last_evaluated: 2026-08-07 # Replayed against a live model, 28 calls, and SC-004 is MET: 20 of 20
+# requests that nothing answers were stated as such, flat across 5, 15 and 34 Meals, with no false
+# refusals and no reply refused before a verdict. The cases that carry the result are the
+# near-misses — mango kunafa against pistachio kunafa, fried against grilled chicken, a burger
+# against minced meat in bread — not the obvious ones.
+#
+# THE MODEL ID IS IN THE REPORT AND NOT HERE, because a model name belongs in the registry or an
+# environment variable and nowhere else (ADR-0005 Amendment 1), and the gate enforces that over
+# prompts/. Report, limits and the exact model: docs/ops/eval-discovery-judgement.md. A provider
+# switch or a model bump is a NEW measurement, not a continuation of this one.
 ---
 
 # Discovery judgement
