@@ -1520,3 +1520,51 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Document a short fallback ladder for PDF text extraction: (1) the harness Read tool; (2) `pdftotext` if poppler is present; (3) `pypdf` with a stubbed `cryptography.hazmat.primitives.ciphers` module on PYTHONPATH — pypdf imports it only for encrypted-PDF support and a three-class stub satisfies the import; (4) raw zlib stream decode as a last resort. Note that WebFetch on an arXiv PDF returns a *summary produced by a small model*, not the text — for a paper whose numbers matter, always extract the real text rather than trusting the fetched summary.
 
 **Principle:** When a tool returns a *model-generated summary* of a source rather than the source itself, treat it as a lead, not as evidence. Any claim that will drive a recommendation must be traced back to the primary text. And for routine ingestion steps that can fail on environment grounds, carry a documented fallback ladder rather than improvising one under time pressure — the improvisation cost lands in the middle of analytical work, exactly where attention is most expensive.
+
+### Observation 106: A filename convention that silently decides whether a test suite runs
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** WP-016 (Kafoo E3). Adding a Deno test suite for a new Edge Function; discovered while choosing a filename that the project gate globbed `*_test.ts` and three existing `*.test.ts` suites had never run in CI — including the entire Edge Function suite of the previous work package, which contained the assertion that a Customer's search phrase never appears in a response.
+
+**Skill:** New skill candidate: verification-gate-auditing (or an addition to `verification-before-completion`)
+**Type:** open-source
+**Phase/Area:** Verifying that a check actually covers what it claims
+
+**Issue:** The gate reported "edge function tests: ok" while silently covering a subset of the test files present. Nothing was broken — the check ran, passed, and printed a success line. The discrepancy was one underscore versus one dot, invisible in every report the gate produced. It was found only because a new file had to be named and the glob was read while choosing the name. A privacy assertion had been decorative for days.
+
+**Suggested improvement:** When adding to a verification suite, do not only run the new check — enumerate what the harness selects and diff it against what exists on disk. Add a step to verification workflows: "list the files the gate actually selected; compare against the files that exist; any file present but unselected is either a deliberate exclusion that must be documented in the check, or a hole." Where a naming convention genuinely carries meaning (pure unit suite versus one needing live infrastructure), the check must state the convention in a comment at the point of selection, so the next author picking a filename learns it from the code rather than by accident.
+
+**Principle:** A passing check proves the checked set passed; it says nothing about whether the checked set is the intended set. Any selector — a glob, a directory list, a tag filter — is an unverified assumption sitting upstream of every assertion it feeds, and it fails silently by design because selecting nothing is indistinguishable from finding nothing wrong. Audit the selector, not just the result.
+
+### Observation 107: A negative test that would have passed either way
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** WP-017 (Kafoo E3). Wrote four database assertions for a normalisation fix, ran them green, then deliberately reverted the fix to confirm they went red. Three did. One stayed green — it had been written with a test value that the surrounding substring match already satisfied, so it was testing a different mechanism than the one it named.
+
+**Skill:** `test-driven-development` (the "watch it fail" step) and `verification-before-completion`
+**Type:** open-source
+**Phase/Area:** Confirming a test fails before making it pass
+
+**Issue:** "Seen to fail" was treated as a property of the suite rather than of each assertion. The suite as a whole went red when the fix was reverted, which reads as confirmation — but the redness came from three assertions, and the fourth was carried along by them. Had the fix been broken later in exactly the way that assertion was written to catch, it would have stayed green. The failure was in the fixture data, not the assertion logic, which is why reading it did not reveal it.
+
+**Suggested improvement:** When reverting an implementation to confirm tests fail, record WHICH assertions went red, by name, and compare that list against the assertions the change was supposed to protect. Any assertion that stays green during the revert is either redundant or mis-written and must be fixed before proceeding. Write the per-assertion result into the test file as a comment, so the next reader can see which assertions have been demonstrated and which have only ever passed.
+
+**Principle:** A suite going red does not demonstrate that every test in it can go red. Verify the fail step per assertion, not per run — an assertion that passes in both the broken and the fixed state is not a weak test, it is not a test of that behaviour at all, and it is indistinguishable from a strong one in every report either state produces.
+
+### Observation 108: A safety check that forbids a word cannot read the test that forbids the same word
+
+**Status:** OPEN
+**Date:** 2026-08-07
+**Session context:** WP-016 (Kafoo E3). A repository check greps functions that call a model for the names of write credentials. A new test asserting "this function names no write credential" failed that check — by naming the credentials in its assertion list.
+
+**Skill:** New skill candidate: writing-checks-with-exemptions, or an addition to a testing-practices skill
+**Type:** open-source
+**Phase/Area:** Static checks and their exemptions
+
+**Issue:** The obvious resolutions were both wrong. Weakening the check to skip test files puts a hole in it shaped like "unless it is a test", and test files are exactly where somebody would prototype the thing being forbidden. Rewriting the assertion to avoid the literal makes the test awkward. The project already had precedent for the same collision (a data file whose content is the list of forbidden words), resolved by exempting one named file rather than a directory.
+
+**Suggested improvement:** When a static check collides with code whose purpose is to describe what the check forbids, prefer bending the describing code over widening the check — build the forbidden literal from parts, or name a single exempt file rather than a pattern. Record the reason at the point of the awkwardness, because otherwise it reads as obfuscation and the next author "cleans it up". Never exempt a category (tests, fixtures, examples): the exemption becomes the place the forbidden thing lives.
+
+**Principle:** A check that forbids a token cannot distinguish mentioning from using, and the fix belongs on the mentioning side. Exemptions should be one named file with a stated reason, never a class of files — a categorical exemption is a permanent hole whose shape exactly matches what a motivated author would need.
