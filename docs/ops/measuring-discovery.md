@@ -5,48 +5,66 @@ Regenerate with:
 
 ```bash
 DENO_CERT=/root/.ccr/ca-bundle.crt deno run --allow-net --allow-env --allow-read --allow-write \
-  scripts/measure-discovery-latency.ts --runs=20 --load=0 --report
+  scripts/measure-discovery-latency.ts --runs=20 --load=1000 --report
 ```
 
 ## The number
 
 | | n | p50 | p95 | min | max |
 |---|---|---|---|---|---|
-| **End-to-end** (`discover`) — what a Customer waits | 20 | 990 ms | 1199 ms | 704 ms | 2267 ms |
-| **Database**, full rows (`search_meals`) | 20 | 359 ms | 577 ms | 261 ms | 579 ms |
-| **Database**, ids only (`?select=id`) — the scan alone | 20 | 164 ms | 354 ms | 157 ms | 360 ms |
+| **End-to-end** (`discover`) — what a Customer waits | 20 | 1112 ms | 1438 ms | 649 ms | 1472 ms |
+| **Database**, full rows (`search_meals`) | 20 | 581 ms | 604 ms | 387 ms | 654 ms |
+| **Database**, ids only (`?select=id`) — the scan alone | 20 | 166 ms | 181 ms | 160 ms | 182 ms |
 
-**Corpus: 13 published Meals carrying an embedding**.
+**Corpus: 1013 published Meals carrying an embedding**, of which 1000 were a benchmark corpus loaded and removed by this run.
 Measured against `pzyngffppwfsvdsnslkb`. End-to-end p95 is **OVER the 1 s budget**.
 
 Percentiles are **nearest-rank over 20 samples**, so p95 is the 19th observation rather than an estimate of a tail. A latency figure without its n and its
 percentile is not a budget check, which is why both are here and in every sentence that quotes them.
 
-## What the two halves mean
+## Where the time goes
 
-The Customer's wait is dominated by **one paid embedding call to the model provider**, which does
-not care how many Meals exist. The database half is the part that grows: `search_meals` ranks
+Subtracting the rows above, at the median: **530 ms is the model provider's embedding call plus the Edge Function's own overhead**, 415 ms is serialising and sending the vectors, and **166 ms is the scan and its round trip**.
+
+The scan is the only one of the three that grows with the marketplace. `search_meals` ranks
 **exactly** rather than approximately — it computes the distance to every surviving row — so its
 cost is linear in the corpus. See `supabase/migrations/20260806231625_add_meal_embeddings.sql`,
 which explains why the HNSW index exists and is deliberately not used.
 
-Reporting only the end-to-end figure would hide the growing half inside a vendor round trip and
-call the budget met. That is the reading this file exists to prevent.
+## What corpus size actually did
+
+Same script, same target, 2026-08-08, at **13** Meals against **1013** here —
+78× the corpus:
+
+| | 13 Meals | 1013 Meals | change |
+|---|---|---|---|
+| End-to-end p50 | 990 ms | 1112 ms | +122 ms |
+| Database, full rows p50 | 359 ms | 581 ms | +222 ms |
+| **Database, ids only p50 — the scan** | **164 ms** | **166 ms** | **+2.2 ms** |
+| Median results returned | 13 | 50 | |
+
+**The scan did not move.** 78× the Meals changed it by 2.2 ms, which is inside the noise
+between two runs. Everything that got worse got worse because more rows came back — the `LIMIT 50`
+in `search_meals` binds once the corpus passes fifty Meals, so the response grew and the wait grew
+with it.
+
+So the thing to fix is not the corpus and not the ranking. It is what a search sends back.
 
 ## Response size
 
-Each search returns **132,336 bytes at the median** for a median of 13 results — about 10,180 bytes per Meal, against 635 bytes for the same rows as ids alone.
+Each search returns **505,394 bytes at the median** for a median of 50 results — about 10,108 bytes per Meal, against 2,448 bytes for the same rows as ids alone.
 
 `search_meals` is `RETURNS SETOF public.meals`, so every row carries its 768-float `embedding`,
 and `discover` passes what the database returned straight through. No client reads that column —
 it is "shown to nobody" by the column's own comment.
 
 **The two database rows above are the same scan.** The only difference is whether the vectors are
-serialised and sent, so the gap between them — 195 ms at the median — is what the
-unread column costs on the wire, at a corpus of 13. At the 50-result limit it is roughly
-four times that. This is paid on **every search, by every Customer, on an Egyptian mobile
-network**, and dropping the column from what `discover` returns is the cheapest large win
-available against this budget.
+serialised and sent, so the gap between them — 415 ms at the median — is what the
+unread column costs on the wire. This run sat at the `LIMIT 50`, so that is the worst case rather than a projection from a small result set — it is what every search costs once the marketplace holds more than fifty Meals, which is to say almost immediately.
+
+Paid on **every search, by every Customer, on an Egyptian mobile network**. Dropping the column
+from what `discover` returns is the cheapest large win available against this budget, and it is
+not a scaling problem — it is the same size on the day Kafoo launches as it is at a million Meals.
 
 ## What this does not measure
 

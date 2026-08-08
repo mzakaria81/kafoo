@@ -64,6 +64,25 @@
 //   --report      Write docs/ops/measuring-discovery.md as well as printing.
 //   --dry-run     Validate credentials and print the plan. Spends nothing, writes nothing.
 
+// THE RUN THIS ONE IS COMPARED AGAINST, so a single report can show what corpus size does and what
+// it does not. Same script, same target, same day, 77× fewer Meals. Kept as a constant for the same
+// reason `measure-e2-performance.ts` keeps PRIOR_PUBLISH: the comparison is the finding, and a
+// finding that lives only in a pull request comment is one nobody reads again.
+//
+// REPLACE THIS WHEN THE SHAPE CHANGES — a new provider, a new region, a change to what `discover`
+// returns — and say in the report that it was replaced. Do not leave a stale baseline making a
+// change look like an improvement it was not.
+const PRIOR = {
+  when: "2026-08-08",
+  corpus: 13,
+  runs: 20,
+  e2eP50: 990,
+  e2eP95: 1199,
+  dbFullP50: 359,
+  dbLeanP50: 164,
+  medianResults: 13,
+} as const;
+
 const PRODUCTION_REF = "cshrkpvljknxsdzwhhle";
 const REPORT_PATH = "docs/ops/measuring-discovery.md";
 const BUDGET_MS = 1000;
@@ -503,6 +522,17 @@ function fmt(ms: number): string {
   return ms >= 100 ? `${Math.round(ms)} ms` : `${ms.toFixed(1)} ms`;
 }
 
+function signed(deltaMs: number): string {
+  const sign = deltaMs >= 0 ? "+" : "−";
+  return `${sign}${fmt(Math.abs(deltaMs))}`;
+}
+
+function ordinal(n: number): string {
+  const rest = n % 100;
+  if (rest >= 11 && rest <= 13) return `${n}th`;
+  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+}
+
 function verdict(p95: number): string {
   return p95 <= BUDGET_MS ? "WITHIN the 1 s budget" : "**OVER the 1 s budget**";
 }
@@ -547,20 +577,45 @@ DENO_CERT=/root/.ccr/ca-bundle.crt deno run --allow-net --allow-env --allow-read
 Measured against \`${ref}\`. End-to-end p95 is ${verdict(e.p95)}.
 
 Percentiles are **nearest-rank over ${e.n} samples**, so p95 is the ${
-    Math.ceil(0.95 * e.n)
-  }th observation rather than an estimate of a tail. A latency figure without its n and its
+    ordinal(Math.ceil(0.95 * e.n))
+  } observation rather than an estimate of a tail. A latency figure without its n and its
 percentile is not a budget check, which is why both are here and in every sentence that quotes them.
 
-## What the two halves mean
+## Where the time goes
 
-The Customer's wait is dominated by **one paid embedding call to the model provider**, which does
-not care how many Meals exist. The database half is the part that grows: \`search_meals\` ranks
+Subtracting the rows above, at the median: **${
+    fmt(e.p50 - d.p50)
+  } is the model provider's embedding call plus the Edge Function's own overhead**, ${
+    fmt(d.p50 - l.p50)
+  } is serialising and sending the vectors, and **${fmt(l.p50)} is the scan and its round trip**.
+
+The scan is the only one of the three that grows with the marketplace. \`search_meals\` ranks
 **exactly** rather than approximately — it computes the distance to every surviving row — so its
 cost is linear in the corpus. See \`supabase/migrations/20260806231625_add_meal_embeddings.sql\`,
 which explains why the HNSW index exists and is deliberately not used.
 
-Reporting only the end-to-end figure would hide the growing half inside a vendor round trip and
-call the budget met. That is the reading this file exists to prevent.
+## What corpus size actually did
+
+Same script, same target, ${PRIOR.when}, at **${PRIOR.corpus}** Meals against **${corpus}** here —
+${(corpus / PRIOR.corpus).toFixed(0)}× the corpus:
+
+| | ${PRIOR.corpus} Meals | ${corpus} Meals | change |
+|---|---|---|---|
+| End-to-end p50 | ${fmt(PRIOR.e2eP50)} | ${fmt(e.p50)} | ${signed(e.p50 - PRIOR.e2eP50)} |
+| Database, full rows p50 | ${fmt(PRIOR.dbFullP50)} | ${fmt(d.p50)} | ${signed(d.p50 - PRIOR.dbFullP50)} |
+| **Database, ids only p50 — the scan** | **${fmt(PRIOR.dbLeanP50)}** | **${fmt(l.p50)}** | **${
+    signed(l.p50 - PRIOR.dbLeanP50)
+  }** |
+| Median results returned | ${PRIOR.medianResults} | ${results.p50} | |
+
+**The scan did not move.** ${
+    (corpus / PRIOR.corpus).toFixed(0)
+  }× the Meals changed it by ${fmt(Math.abs(l.p50 - PRIOR.dbLeanP50))}, which is inside the noise
+between two runs. Everything that got worse got worse because more rows came back — the \`LIMIT 50\`
+in \`search_meals\` binds once the corpus passes fifty Meals, so the response grew and the wait grew
+with it.
+
+So the thing to fix is not the corpus and not the ranking. It is what a search sends back.
 
 ## Response size
 
@@ -578,10 +633,19 @@ it is "shown to nobody" by the column's own comment.
 
 **The two database rows above are the same scan.** The only difference is whether the vectors are
 serialised and sent, so the gap between them — ${fmt(d.p50 - l.p50)} at the median — is what the
-unread column costs on the wire, at a corpus of ${corpus}. At the 50-result limit it is roughly
-four times that. This is paid on **every search, by every Customer, on an Egyptian mobile
-network**, and dropping the column from what \`discover\` returns is the cheapest large win
-available against this budget.
+unread column costs on the wire. ${
+    results.p50 >= 50
+      ? "This run sat at the `LIMIT 50`, so that is the worst case rather than a projection " +
+        "from a small result set — it is what every search costs once the marketplace holds " +
+        "more than fifty Meals, which is to say almost immediately."
+      : `This run returned a median of ${results.p50} results, below the \`LIMIT 50\`. A full ` +
+        `page of results costs roughly ${(50 / Math.max(1, results.p50)).toFixed(0)}× this, and ` +
+        `a corpus past fifty Meals reaches it.`
+  }
+
+Paid on **every search, by every Customer, on an Egyptian mobile network**. Dropping the column
+from what \`discover\` returns is the cheapest large win available against this budget, and it is
+not a scaling problem — it is the same size on the day Kafoo launches as it is at a million Meals.
 
 ## What this does not measure
 

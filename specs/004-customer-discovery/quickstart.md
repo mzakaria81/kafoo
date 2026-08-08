@@ -78,9 +78,13 @@ What to actually check:
 
    **That 27 ms is not SC-006 and must not be quoted as though it were.** It is `EXPLAIN ANALYZE`
    inside Postgres. SC-006 is what a Customer waits, which is a model provider's embedding call
-   plus a round trip plus the bytes coming back — measured at **990 ms median and 1199 ms at p95
-   over 20 samples, against a corpus of 13**, which is over budget before the corpus has grown at
-   all. See §2a.
+   plus a round trip plus the bytes coming back. Measured, that is **over the one-second budget**
+   — figures in `docs/ops/measuring-discovery.md`, procedure in §2a.
+
+   And the scan is not what is spending it. Measured at 13 Meals and again at 1,013 on the same
+   day, **78× the corpus moved the scan by about 2 ms.** What grew was the response: `search_meals`
+   returns whole Meal rows including the `embedding` column, so a full page of fifty results is
+   half a megabyte of vectors no client reads.
 
 ## 2a. Search latency, end to end — the SC-006 check
 
