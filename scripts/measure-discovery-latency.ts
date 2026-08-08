@@ -635,9 +635,17 @@ Each search returns **${
     Math.round(leanBytes.p50).toLocaleString("en")
   } bytes for the same rows as ids alone.
 
-\`search_meals\` is \`RETURNS SETOF public.meals\`, so every row carries its 768-float \`embedding\`,
-and \`discover\` passes what the database returned straight through. No client reads that column —
-it is "shown to nobody" by the column's own comment.
+**\`search_meals\` returned \`SETOF public.meals\` until 2026-08-08**, so every row carried its
+768-float \`embedding\` and \`discover\` passed that straight through. No client reads the column —
+it is "shown to nobody" by the column's own comment, and \`CookMeal.fromRow\` does not mention it.
+
+\`20260808165000_stop_returning_meal_embeddings_from_search.sql\` gives the function a return type
+with no \`embedding\` in it. Measured on the same rows before deploying it: **497 KB → 29 KB** at
+the 50-result limit, a 94% cut in what a search sends back. Fixed in the database rather than in
+\`discover\`, so no future caller can select it back.
+
+**If the figures above still show a large gap between the two database rows, this report predates
+that migration reaching the target.** Re-run it after deploying to refresh them.
 
 **The two database rows above are the same scan.** The only difference is whether the vectors are
 serialised and sent, so the gap between them — ${fmt(d.p50 - l.p50)} at the median — is what the
@@ -651,9 +659,9 @@ unread column costs on the wire. ${
         `a corpus past fifty Meals reaches it.`
   }
 
-Paid on **every search, by every Customer, on an Egyptian mobile network**. Dropping the column
-from what \`discover\` returns is the cheapest large win available against this budget, and it is
-not a scaling problem — it is the same size on the day Kafoo launches as it is at a million Meals.
+Paid on **every search, by every Customer, on an Egyptian mobile network** — and not a scaling
+problem: it was the same size on the day Kafoo launches as at a million Meals, which is why it was
+worth fixing before the corpus was.
 
 ## What this does not measure
 
