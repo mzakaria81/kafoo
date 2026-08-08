@@ -58,11 +58,33 @@ production.** Production has no Cooks and nothing to reach, so nothing is at ris
 pre-launch checklist item, not a live hole, and it is written down here because the place it would
 otherwise be noticed is after launch.
 
-## What you will not see working
+## Search — working since 2026-08-08, and what it took
 
-**Search finds nothing until the database has embeddings.** A Meal seeded by `seed.sql` has no
-vector, so it appears in browsing and not in search — the documented behaviour of a missing
-embedding, which is *harder to find, never lost*. On a permanent database this is a one-off:
+Browse, search, exclusion and area narrowing were all verified live against this database on
+2026-08-08. Two things had to be true, and neither was:
+
+**The Edge Functions had to be declared.** `discover`, `judge-results` and `embed-meal` had no
+entries in `supabase/config.toml`, and only declared functions deploy — so `discover` answered 404
+here *and on production*, and E3's search had never run anywhere. `./scripts/verify.sh` now fails on
+a function directory with no entry, because the rule was already written in `config.toml`'s own
+header and being stated in the file people forget to open is not enforcement.
+
+**The branch needed its own model key.** A Supabase branch is a separate project and inherits no
+secrets, so `GEMINI_API_KEY` was absent and every search returned 503 — reported to the Customer as
+"search is unavailable", with no detail, because the detail leaks the phrase. Set once, per branch:
+
+```bash
+supabase secrets set GEMINI_API_KEY=<key> --project-ref <branch ref>
+```
+
+**That key is spendable by anyone holding the demo APK.** `discover` calls a paid embedding provider
+per search and the APK ships the publishable key that reaches it. Small at demo scale and real —
+if the APK goes further than intended, rotate the key or clear the secret, which stops search and
+leaves browsing working.
+
+**Embeddings are a one-off on a permanent database.** Seeded Meals have no vector, and a Meal
+without one browses normally and never appears in search — *harder to find, never lost*. All
+thirteen were embedded on 2026-08-08. Re-run only after changing the demo data:
 
 ```bash
 SUPABASE_URL=<demo url> SUPABASE_SERVICE_ROLE_KEY=<demo service key> \
@@ -70,8 +92,11 @@ GEMINI_API_KEY=<key> DENO_CERT=/root/.ccr/ca-bundle.crt \
 deno run --allow-net --allow-env scripts/backfill-meal-embeddings.ts
 ```
 
-Thirteen Meals, spaced 4.5 seconds apart against the free tier, so about a minute. Run it again
-after changing the demo data.
+Add `--dry-run` first; it lists what would be embedded and spends nothing. Thirteen Meals spaced
+4.5 seconds apart against the free tier is about a minute, and it selects on `embedding IS NULL`, so
+re-running only does the ones that are missing.
+
+## What you will not see working
 
 **Photos are absent.** No Meal in the demo set carries one. `photo_path` is nullable and every
 screen renders correctly without it, which is deliberate — but it means the demo looks plainer than
