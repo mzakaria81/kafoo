@@ -1694,3 +1694,20 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** At the start of a testing task in a transpiled language, spend one command establishing what the runner can actually execute today, rather than inheriting the constraint encoded in the neighbouring test file. When a runtime limitation forces a small change to the code under test, make the change and record why in a comment at that spot — otherwise the next person "cleans it up" and silently breaks the ability to test.
 
 **Principle:** Workarounds outlive the limitations that caused them, and a test-shape adopted under an expired constraint keeps testing the wrong thing. Verify the tool's current capability before accepting the previous author's compromise as a fact about the world.
+
+---
+
+### Observation 117: Verifying an acceptance criterion "by name" is a different act from reviewing the diff, and finds different things
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Completing a unit of work whose acceptance criteria included "verified field by field: what is visible on surface B is identical to what is visible on surface A".
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Final verification, before declaring work done
+
+**Issue:** The full automated gate passed, types checked, the build succeeded, and every test written for the change was green. Walking the acceptance criteria one at a time afterwards — specifically the one demanding a field-by-field comparison against the other surface — surfaced a real user-facing defect that none of that had touched, and that was not in the diff at all: a value rendered on three pre-existing pages was missing a unit that the reference surface displays. It had been wrong since that surface shipped. A diff review cannot find it, because the defect is in code the change does not modify; a test suite cannot find it, because no test knew to compare the two surfaces; and the criterion names it exactly.
+
+**Suggested improvement:** Treat "check the acceptance criteria by name" as a distinct verification step with its own output, performed after the automated gate rather than assumed to be covered by it. For each criterion, state what was actually done to check it and what the result was — and when a criterion asks for a comparison against something outside the change, go and read that other thing rather than reasoning about it. A criterion that can only be satisfied by inspection is the one most likely to be marked done by assertion.
+
+**Principle:** Automated gates verify the change; acceptance criteria verify the outcome, and the gap between them is where pre-existing defects in scope of the criterion survive indefinitely. A criterion phrased as a comparison is an instruction to look at both sides, not a claim to endorse.
