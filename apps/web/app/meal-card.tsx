@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { fill, messages } from '@/lib/messages';
+import { fill, messages, priceLabel } from '@/lib/messages';
 import type { DiscoveredMeal } from '@/lib/supabase';
 import { photoUrl } from '@/lib/supabase';
 
@@ -31,7 +31,7 @@ export function MealCard({
       <div>
         <h2>{item.meal.title}</h2>
         <p>{fill(t.browseKitchenLabel, { kitchen: item.kitchen.display_name })}</p>
-        <p className="price">{item.meal.price}</p>
+        <p className="price">{priceLabel(item.meal.price)}</p>
       </div>
     </Link>
   );

@@ -378,6 +378,27 @@ test('every phrase-carrying call goes through the one gate', () => {
   assert.ok(gate > 0 && gate < request, 'the consent check must precede the request');
 });
 
+test('SC-009: every price a Customer reads carries its currency', () => {
+  // The app renders `٣٥ جنيه`; this surface rendered `35` on three pages. Money
+  // a Customer reads is never a naked number, and "identical to what is visible
+  // inside" is the criterion rather than a preference.
+  for (const file of [
+    'app/meal-card.tsx',
+    'app/m/[id]/page.tsx',
+    'app/k/[id]/page.tsx',
+  ]) {
+    const source = readFileSync(file, 'utf8');
+    const prices = source.match(/className="price">\{[^}]*\}/g) ?? [];
+    assert.ok(prices.length > 0, `${file} renders no price at all`);
+    for (const rendered of prices) {
+      assert.ok(
+        rendered.includes('priceLabel('),
+        `${file} renders a bare price: ${rendered}`,
+      );
+    }
+  }
+});
+
 test('no user-facing string is written into the code', () => {
   // FR-028 and ADR-0008: every string a Customer reads lives in the messages
   // files, on this surface exactly as in the app.

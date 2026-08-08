@@ -6,6 +6,7 @@
   "kitchenMealsTitle": "الأكل المعروض",
   "kitchenArea": "المنطقة",
   "kitchenDeliveryTerms": "التوصيل",
+  "publicMealPriceValue": "{price} جنيه",
   "notFound": "الصفحة دي مش موجودة، أو المطبخ ده مفيش عنده أكل معروض دلوقتي.",
   "loadError": "مش قادرين نجيب الأكل دلوقتي. نجرب تاني كمان شوية.",
   "searchLabel": "أكل إيه النهاردة؟",

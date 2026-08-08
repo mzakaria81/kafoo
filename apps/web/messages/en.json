@@ -6,6 +6,7 @@
   "kitchenMealsTitle": "On offer",
   "kitchenArea": "Area",
   "kitchenDeliveryTerms": "Delivery",
+  "publicMealPriceValue": "{price} EGP",
   "notFound": "This page does not exist, or that kitchen has nothing on offer right now.",
   "loadError": "We couldn't load the food right now. Let's try again in a moment.",
   "searchLabel": "What food today?",
