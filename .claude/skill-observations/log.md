@@ -1568,3 +1568,33 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a static check collides with code whose purpose is to describe what the check forbids, prefer bending the describing code over widening the check — build the forbidden literal from parts, or name a single exempt file rather than a pattern. Record the reason at the point of the awkwardness, because otherwise it reads as obfuscation and the next author "cleans it up". Never exempt a category (tests, fixtures, examples): the exemption becomes the place the forbidden thing lives.
 
 **Principle:** A check that forbids a token cannot distinguish mentioning from using, and the fix belongs on the mentioning side. Exemptions should be one named file with a stated reason, never a class of files — a categorical exemption is a permanent hole whose shape exactly matches what a motivated author would need.
+
+### Observation 109: A status field only a dead actor may set is never set
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Closing out two coordination work packages whose code had merged to main a day earlier while both records still read READY_FOR_REVIEW with `pr: null`.
+**Skill:** Project documentation — `coordination/README.md` lifecycle
+**Type:** open-source
+**Phase/Area:** Work-package lifecycle, the `pr` field
+
+**Issue:** The lifecycle assigns `READY_FOR_REVIEW` to the worker and `COMPLETED` to the coordinator, and the `pr` field is described as "so the coordinator can see state without asking". But nothing writes `pr` at the moment the PR is opened. Both packages carried `pr: null` through open, review and merge, so the one field that would have let anyone check the merge from the record was the field the record never had. The workers were not negligent: containers are destroyed on inactivity, so by the time the number mattered the only session that knew it was gone. The record then looked identical to unfinished work, which is the exact failure the directory exists to prevent.
+
+**Suggested improvement:** Require `pr` to be written in the same edit that moves a package to `READY_FOR_REVIEW` — the transition that means "my PR is open and green" is the moment the number exists and the worker is still alive. Where a validator exists, make `READY_FOR_REVIEW` with `pr: null` an error, the same way `BLOCKED` with no `blocked_reason` already is.
+
+**Principle:** When a field's only writer is an actor that predictably disappears before the field matters, the field will be empty exactly when it is needed. Bind writing it to the last transition that actor is guaranteed to be present for, and let the schema check refuse the transition without it.
+
+### Observation 110: A criterion that names an identifier is checkable by searching for the identifier
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Walking eleven acceptance criteria against merged code to decide whether a package was genuinely done.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Verifying acceptance criteria against a codebase
+
+**Issue:** One criterion read "SC-002 and SC-003 verified by name". The feature it describes worked, was well tested, and had shipped — so reading the code invited the conclusion that the criterion held. It did not: neither identifier appeared in any test in the repository, and the only hits for that string belonged to a different, earlier specification that happened to reuse the number. The cheap check found in seconds what a careful read of the feature would have talked itself out of.
+
+**Suggested improvement:** When a criterion names a stable identifier — a requirement id, a ticket number, an error code, a metric name — check it by searching the repository for that identifier before reading any implementation, and treat zero hits as unmet regardless of how good the feature looks. Then check the hits actually belong to the right document, because identifier schemes are reused across specifications.
+
+**Principle:** An identifier named in a criterion is a grep-able assertion, and grep does not rationalise. Run the mechanical check first; reading the implementation first primes you to accept an outcome that resembles the requirement instead of the one that satisfies it.
