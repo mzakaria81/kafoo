@@ -3,7 +3,7 @@
 -- Run with: supabase test db
 
 BEGIN;
-SELECT plan(7);
+SELECT plan(13);
 
 -- GRANTED HERE ON PURPOSE, AND ONLY HERE.
 --
@@ -121,6 +121,80 @@ SELECT is(
   0,
   'no one can update an existing event'
 );
+
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+-- 7 to 11. DISCOVERY HAPPENS WITHOUT AN ACCOUNT, SO ITS EVENTS MUST REACH THE TABLE WITHOUT ONE.
+--
+-- Case 3 above is E1's world and is still correct: an anonymous caller may not insert an arbitrary
+-- event. It was written when the only two things that could happen before somebody was known to
+-- Kafoo were requesting a sign-in code and failing to use it.
+--
+-- E3 then built discovery on the premise that it works signed out — the whole reason a shared
+-- WhatsApp link is worth anything, and the entire basis of the Customer web surface. Its three
+-- events were emitted by anonymous callers into a policy that named two event names and neither of
+-- them. Every one was rejected with 42501 and swallowed, because `emitEvent` catches everything on
+-- purpose: a measurement outage must never interrupt a Customer.
+--
+-- So nothing was broken loudly enough to notice, and the whole of E3 recorded no searches at all.
+-- These cases are the statement of what the policy is FOR, rather than of which two names it
+-- happened to list. See docs/product/business-questions.md.
+-- ────────────────────────────────────────────────────────────────────────────────────────────────
+
+-- 7. Anonymous records a search → allowed. Discovery works without an account.
+SELECT tests.authenticate_as_anon();
+
+SELECT lives_ok(
+  $$ INSERT INTO public.analytics_events (name, person_id, attributes)
+     VALUES ('SearchPerformed', NULL, '{"result_count": 3}'::jsonb) $$,
+  'anonymous can record that a search happened'
+);
+
+-- 8. And the two events that follow from one.
+SELECT lives_ok(
+  $$ INSERT INTO public.analytics_events (name, person_id) VALUES ('SearchFailed', NULL) $$,
+  'anonymous can record that nothing answered'
+);
+
+SELECT lives_ok(
+  $$ INSERT INTO public.analytics_events (name, person_id, attributes)
+     VALUES ('MealOpened', NULL, '{"source": "search"}'::jsonb) $$,
+  'anonymous can record opening a Meal'
+);
+
+-- 9. THE LIST IS STILL A LIST. A widened policy that widened to everything would be the defect this
+--    change is fixing, in the other direction — an anonymous caller inventing a Cook's activity.
+SELECT throws_ok(
+  $$ INSERT INTO public.analytics_events (name, person_id)
+     VALUES ('MealPublished', NULL) $$,
+  '42501',
+  NULL,
+  'anonymous still cannot record a Cook publishing a Meal'
+);
+
+-- 10. AND STILL ATTRIBUTED TO NOBODY. `person_id IS NULL` is the half of this policy that matters:
+--     without it an anonymous caller could write searches onto a real person's row, which is worse
+--     than not recording searches at all.
+SELECT throws_ok(
+  $$ INSERT INTO public.analytics_events (name, person_id)
+     VALUES ('SearchPerformed', tests.user_id('other@test.kafoo')) $$,
+  '42501',
+  NULL,
+  'anonymous cannot attribute a search to a person'
+);
+
+SELECT tests.clear_authentication();
+
+-- 11. A signed-in Customer searching records it against themselves, through the ordinary policy.
+--     Discovery works either way and both paths have to reach the table.
+SELECT tests.authenticate_as('other@test.kafoo');
+
+SELECT lives_ok(
+  $$ INSERT INTO public.analytics_events (name, person_id, attributes)
+     VALUES ('SearchPerformed', tests.user_id('other@test.kafoo'), '{"result_count": 0}'::jsonb) $$,
+  'a signed-in Customer records their own search'
+);
+
+SELECT tests.clear_authentication();
 
 SELECT finish();
 ROLLBACK;
