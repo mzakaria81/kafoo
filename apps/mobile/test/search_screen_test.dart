@@ -897,11 +897,11 @@ void main() {
   });
 
   group('measurement', () {
-    testWidgets('SearchPerformed carries result_count AND NOTHING ELSE',
+    testWidgets('SearchPerformed carries what Kafoo chose, never what was said',
         (tester) async {
-      // FR-029 and SC-011. Asserted on the ATTRIBUTE SET rather than the count,
-      // because a phrase added alongside it later would still pass a test that
-      // only checked the number.
+      // FR-029 and SC-011. Asserted on the ATTRIBUTE SET rather than the values,
+      // because a phrase added alongside them later would still pass a test that
+      // only checked the ones it knew about.
       final events = <(String, Map<String, Object>)>[];
       debugEventRecorder = (name, attributes) => events.add((name, attributes));
       addTearDown(() => debugEventRecorder = null);
@@ -916,14 +916,105 @@ void main() {
 
       final performed = events.where((e) => e.$1 == 'SearchPerformed').toList();
       expect(performed.length, 1);
-      expect(performed.single.$2.keys.toList(), ['result_count']);
+      expect(
+        performed.single.$2.keys.toList()..sort(),
+        ['area_narrowed', 'result_count', 'top_category', 'top_cuisine'],
+      );
       expect(performed.single.$2['result_count'], 2);
+      // The domain enums off the first result — what Kafoo SERVED. Chosen from
+      // a list by the Cook, never typed by the Customer.
+      expect(performed.single.$2['top_cuisine'], 'egyptian');
+      expect(performed.single.$2['top_category'], 'main');
+      expect(performed.single.$2['area_narrowed'], isFalse);
 
-      // And the phrase is nowhere in anything that was emitted.
+      // And the phrase is nowhere in anything that was emitted. The sentence
+      // above names an area and a food; neither may appear in a value.
       for (final event in events) {
-        expect(event.$2.values.join(' ').contains('فراخ'), isFalse,
+        final values = event.$2.values.join(' ');
+        expect(values.contains('فراخ'), isFalse,
             reason: '${event.$1} carries the phrase');
+        expect(values.contains('المهندسين'), isFalse,
+            reason: '${event.$1} carries the area the Customer named');
       }
+    });
+
+    testWidgets('a search narrowed to an area says SO, and never which area',
+        (tester) async {
+      // With result_count 0 this separates "no Cooks near this person" from
+      // "nothing like this on the menu". A boolean, because the area itself is
+      // a phrase the Customer said.
+      final events = <(String, Map<String, Object>)>[];
+      debugEventRecorder = (name, attributes) => events.add((name, attributes));
+      addTearDown(() => debugEventRecorder = null);
+
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: const [], area: 'الزمالك');
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      await tester.pumpWidget(_app(repo, consent));
+      await tester.pumpAndSettle();
+
+      await _ask(tester, 'عايز كشري في الزمالك');
+
+      final performed = events.singleWhere((e) => e.$1 == 'SearchPerformed');
+      expect(performed.$2['area_narrowed'], isTrue);
+      expect(performed.$2['result_count'], 0);
+      // Nothing was served, so there is no cuisine to name. A literal rather
+      // than an absent key, so every SearchPerformed is the same shape.
+      expect(performed.$2['top_cuisine'], 'none');
+      expect(performed.$2['top_category'], 'none');
+
+      for (final event in events) {
+        expect(event.$2.values.join(' ').contains('الزمالك'), isFalse,
+            reason: '${event.$1} carries the area the Customer named');
+      }
+    });
+
+    testWidgets(
+        'MealOpened says where it was opened from, and what kind of food',
+        (tester) async {
+      // The strongest demand signal Kafoo has before Orders exist: what somebody
+      // CHOSE, rather than what the ranker returned.
+      final events = <(String, Map<String, Object>)>[];
+      debugEventRecorder = (name, attributes) => events.add((name, attributes));
+      addTearDown(() => debugEventRecorder = null);
+
+      final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+        ..searchOutcome = _outcome(items: _onOffer);
+      final consent = FakeSearchConsentStore(SearchConsent.granted);
+      // An onOpen, because a card with nowhere to go has no tap handler and so
+      // emits nothing — which is correct, and would make this test pass by
+      // measuring an absence.
+      await tester.pumpWidget(_app(repo, consent, onOpen: (_) {}));
+      await tester.pumpAndSettle();
+
+      // Opened from what is on offer, before any search has run.
+      await tester.tap(find.text('كشري'));
+      await tester.pumpAndSettle();
+
+      var opened = events.where((e) => e.$1 == 'MealOpened').toList();
+      expect(opened.length, 1);
+      expect(
+        opened.single.$2.keys.toList()..sort(),
+        ['category', 'cuisine', 'source'],
+      );
+      expect(opened.single.$2['source'], 'browse');
+      expect(opened.single.$2['cuisine'], 'egyptian');
+      expect(opened.single.$2['category'], 'main');
+      // NEVER THE MEAL'S ID. An id and a timestamp together are a search
+      // somebody could reconstruct — the reasoning that keeps it off
+      // RecommendationAccepted keeps it off this.
+      expect(opened.single.$2.values.contains('m1'), isFalse);
+
+      events.clear();
+      await _ask(tester, 'عايز كشري');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('كشري'));
+      await tester.pumpAndSettle();
+
+      opened = events.where((e) => e.$1 == 'MealOpened').toList();
+      expect(opened.length, 1);
+      expect(opened.single.$2['source'], 'search',
+          reason: 'the same card in the results must say it came from search');
     });
 
     testWidgets(

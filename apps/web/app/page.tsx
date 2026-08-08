@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function BrowsePage() {
   const t = messages();
+  const backend = publicBackend();
   const { meals: items, failed } = await mealsOnOffer();
 
   // The areas that have food right now, in the order the Cooks' Meals came back
@@ -35,7 +36,7 @@ export default async function BrowsePage() {
       <h1>{t.browseTitle}</h1>
 
       <SearchPanel
-        backend={publicBackend()}
+        backend={backend}
         areas={areas}
         browseFailed={failed}
         browseIsEmpty={!failed && items.length === 0}
@@ -53,7 +54,14 @@ export default async function BrowsePage() {
         ) : items.length === 0 ? (
           <p className="empty">{t.browseNothingOnOffer}</p>
         ) : (
-          items.map((item) => <MealCard key={item.meal.id} item={item} />)
+          items.map((item) => (
+            <MealCard
+              key={item.meal.id}
+              item={item}
+              backend={backend}
+              source="browse"
+            />
+          ))
         )}
       </SearchPanel>
     </main>

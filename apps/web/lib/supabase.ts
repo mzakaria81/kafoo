@@ -10,10 +10,20 @@ import { createClient } from '@supabase/supabase-js';
  * a second one would be a second place for the visibility rules to be
  * approximated, and they would drift.
  *
- * **The key never reaches the browser.** Every page here is server-rendered and
- * nothing client-side talks to Supabase, so the publishable key stays on the
- * worker. ADR-0008 says a publishable key in a client bundle is fine by design;
- * not shipping one at all is simply better, and it is free here.
+ * **Everything in this file runs on the server, and the publishable key stays
+ * there.** Browsing, kitchens and Meal pages are all server-rendered, so nothing
+ * here puts a key in a bundle.
+ *
+ * **Searching is the exception, and it is deliberate.** `lib/discovery.ts` runs
+ * in the browser and takes the key with it, because a Customer's phrase must not
+ * pass through Kafoo's own Worker — see [publicBackend] and the note at the top
+ * of that file. ADR-0008 Amendment 1 settles the cost in terms: the publishable
+ * key belongs in the bundle.
+ *
+ * This paragraph said "the key never reaches the browser" until 2026-08-08, and
+ * it was true when it was written. A doc comment that describes a property the
+ * code stopped having is worse than none, because the next person reads it as a
+ * rule and works around a constraint nobody is keeping.
  *
  * The service-role key must never reach this surface in any form. `npm run
  * check:no-secret` fails the build if it appears in the output.
@@ -72,6 +82,16 @@ export type MealRow = {
   title: string;
   description: string;
   price: string;
+  /**
+   * The domain's fixed vocabularies — `packages/domain/lib/meal.dart`.
+   *
+   * **Nothing renders these.** They are here because `MealOpened` carries them,
+   * and they are the one kind of thing that event may carry: chosen from a list
+   * by the Cook, keys rather than copy, and never a word anybody typed. Two
+   * short strings a row is what that costs.
+   */
+  cuisine: string;
+  category: string;
   status: string;
   photo_path: string | null;
 };
@@ -93,7 +113,8 @@ export type KitchenRow = {
   photo_path: string | null;
 };
 
-const MEAL_COLUMNS = 'id, cook_id, title, description, price, status, photo_path';
+const MEAL_COLUMNS =
+  'id, cook_id, title, description, price, cuisine, category, status, photo_path';
 const KITCHEN_COLUMNS =
   'id, cook_id, display_name, story, area, delivery_terms, photo_path';
 

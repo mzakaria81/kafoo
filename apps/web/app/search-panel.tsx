@@ -238,6 +238,7 @@ export function SearchPanel({
         <Results
           outcome={outcome}
           judgement={judgement}
+          backend={backend}
           onOpenAlternative={(rank) => discovery.current?.recommendationAccepted(rank)}
         />
       )}
@@ -302,10 +303,12 @@ function ConsentQuestion({ onAnswer }: { onAnswer: (given: SearchConsent) => voi
 function Results({
   outcome,
   judgement,
+  backend,
   onOpenAlternative,
 }: {
   outcome: SearchOutcome | null;
   judgement: Judgement | null;
+  backend: Backend;
   onOpenAlternative: (rank: number) => void;
 }) {
   const t = messages();
@@ -374,6 +377,12 @@ function Results({
         <MealCard
           key={item.meal.id}
           item={item}
+          backend={backend}
+          source="search"
+          // `MealOpened` fires from inside the card for every open.
+          // `RecommendationAccepted` is the narrower question — did the sentence
+          // "nothing here answers you, but there is this" actually help — and
+          // only a Meal the AI Assistant named answers it.
           onOpen={
             alternatives.some((meal) => meal.id === item.meal.id)
               ? () => onOpenAlternative(index + 1)

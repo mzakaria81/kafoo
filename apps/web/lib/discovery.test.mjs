@@ -73,6 +73,8 @@ const MEAL = {
   title: 'كشري',
   description: 'كشري بلدي',
   price: '40',
+  cuisine: 'egyptian',
+  category: 'main',
   status: 'published',
   photo_path: null,
 };
@@ -271,19 +273,83 @@ const eventsIn = (fetch) =>
     .filter((r) => r.url.includes('/rest/v1/analytics_events'))
     .map((r) => JSON.parse(r.init.body));
 
-test('SearchPerformed carries a count and NOTHING else', async () => {
-  // Asserted on the attribute SET rather than on the count: a test that checks
-  // only the number stays green the day a phrase is added beside it, which is
-  // the exact way this requirement would be lost.
+test('SearchPerformed carries what Kafoo chose, never what was said', async () => {
+  // Asserted on the attribute SET rather than on the values: a test that checks
+  // only the ones it knows about stays green the day a phrase is added beside
+  // them, which is the exact way this requirement would be lost.
   const { instance, fetch } = discovery({ consent: 'granted', respond: respondWithOneMeal() });
   await instance.search(PHRASE, null);
 
   const events = eventsIn(fetch);
   assert.equal(events.length, 1, `expected one event, got ${JSON.stringify(events)}`);
   assert.equal(events[0].name, 'SearchPerformed');
-  assert.deepEqual(Object.keys(events[0].attributes), ['result_count']);
+  assert.deepEqual(
+    Object.keys(events[0].attributes).sort(),
+    ['area_narrowed', 'result_count', 'top_category', 'top_cuisine'],
+  );
   assert.equal(events[0].attributes.result_count, 1);
+  // The domain enums off the first result — what Kafoo SERVED.
+  assert.equal(events[0].attributes.top_cuisine, MEAL.cuisine);
+  assert.equal(events[0].attributes.top_category, MEAL.category);
+  assert.equal(events[0].attributes.area_narrowed, false);
   assert.ok(!fetch.everythingSent().includes('"person_id"'), 'this surface has no session to attach');
+});
+
+test('a search narrowed to an area says SO, and never which area', async () => {
+  // With result_count 0 this separates "no Cooks near this person" from "nothing
+  // like this on the menu". A boolean, because the area is a phrase the Customer
+  // said.
+  const { instance, fetch } = discovery({
+    consent: 'granted',
+    respond: async (url) =>
+      url.includes('/functions/v1/discover')
+        ? ok({ meals: [], excluded: null, notUnderstood: false, area: 'الزمالك' })
+        : ok({}),
+  });
+  await instance.search(PHRASE, null);
+
+  const [event] = eventsIn(fetch);
+  assert.equal(event.attributes.area_narrowed, true);
+  assert.equal(event.attributes.result_count, 0);
+  // Nothing served, so there is no cuisine to name. A literal rather than an
+  // absent key, so every SearchPerformed is the same shape.
+  assert.equal(event.attributes.top_cuisine, 'none');
+  assert.equal(event.attributes.top_category, 'none');
+  assert.ok(
+    !JSON.stringify(event).includes('الزمالك'),
+    'the area the Customer named reached an event',
+  );
+});
+
+test('MealOpened says where it was opened from, and what kind of food', async () => {
+  const { instance, fetch } = discovery({ consent: 'granted' });
+  instance.mealOpened(MEAL, 'browse');
+  await new Promise((r) => setTimeout(r, 0));
+
+  const [event] = eventsIn(fetch);
+  assert.equal(event.name, 'MealOpened');
+  assert.deepEqual(Object.keys(event.attributes).sort(), ['category', 'cuisine', 'source']);
+  assert.equal(event.attributes.source, 'browse');
+  assert.equal(event.attributes.cuisine, MEAL.cuisine);
+  assert.equal(event.attributes.category, MEAL.category);
+  // NEVER THE MEAL'S ID. An id and a timestamp together are a search somebody
+  // could reconstruct.
+  assert.ok(!JSON.stringify(event).includes(MEAL.id), 'MealOpened carries the Meal id');
+  // And never the Cook's own words — the title and description are what a Cook
+  // typed; cuisine and category are chosen from a list.
+  assert.ok(!JSON.stringify(event).includes(MEAL.title), 'MealOpened carries the title');
+});
+
+test('MealOpened is emitted whether or not a search ran', async () => {
+  // It is not behind the consent gate, and that is deliberate: the gate exists
+  // for a Customer's WORDS leaving Kafoo for an outside service. This is Kafoo
+  // recording, in its own database, that a Meal was opened — the same thing the
+  // app does from browse, where no consent question has ever been asked.
+  const { instance, fetch } = discovery({ consent: 'refused' });
+  instance.mealOpened(MEAL, 'browse');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(eventsIn(fetch).length, 1);
+  assert.ok(!fetch.everythingSent().includes('/functions/v1/'), 'no phrase left');
 });
 
 test('a search that never ran emits nothing at all', async () => {
@@ -343,11 +409,21 @@ test('RecommendationAccepted carries a rank and never an id', async () => {
 });
 
 test('no event carries a word the Customer said', async () => {
+  // The sweep that matters, now that attributes may be strings. Every word of a
+  // phrase naming a food and an area is checked against every value that left.
   const { instance, fetch } = discovery({ consent: 'granted', respond: respondWithOneMeal() });
   await instance.search(PHRASE, 'الدقي');
+  instance.mealOpened(MEAL, 'search');
+  await new Promise((r) => setTimeout(r, 0));
+
+  const words = [...PHRASE.split(/\s+/), 'الدقي'].filter((w) => w.length > 2);
   for (const event of eventsIn(fetch)) {
-    for (const value of Object.values(event.attributes)) {
-      assert.equal(typeof value, 'number', `${event.name} carries a non-numeric attribute`);
+    const values = Object.values(event.attributes).map(String).join(' ');
+    for (const word of words) {
+      assert.ok(
+        !values.includes(word),
+        `${event.name} carries "${word}" — a word the Customer typed`,
+      );
     }
   }
 });

@@ -106,7 +106,21 @@ const EVENTS = {
   searchPerformed: 'SearchPerformed',
   searchFailed: 'SearchFailed',
   recommendationAccepted: 'RecommendationAccepted',
+  mealOpened: 'MealOpened',
 } as const;
+
+/** Where a Customer was when they opened a Meal. Two values, no third. */
+export type MealOpenSource = 'browse' | 'search';
+
+/**
+ * The vocabulary word for a search that served nothing.
+ *
+ * A literal rather than an omitted key, so every `SearchPerformed` carries the
+ * same four attributes and a query never has to ask whether a field is missing
+ * or absent. It cannot collide with a real value — the domain enums have an
+ * `other` and neither has a `none`.
+ */
+const NOTHING_SERVED = 'none';
 
 export class Discovery {
   // Written out rather than declared as a constructor parameter property.
@@ -168,17 +182,28 @@ export class Discovery {
       return kitchen ? [{ meal, kitchen }] : [];
     });
 
-    // A COUNT AND NOTHING ELSE. FR-029 and SC-011: what a Customer searched for
-    // is not recorded, and the most natural shape for this event —
-    // `{phrase, result_count}` — is the violation. The attribute type below is
-    // numbers only, so the phrase cannot be added here without the type
-    // changing, which is a thing a reviewer sees.
+    // WHAT KAFOO CHOSE, NEVER WHAT THE CUSTOMER SAID. FR-029 and SC-011: the
+    // most natural shape for this event — `{phrase, result_count}` — is the
+    // violation.
+    //
+    // Every value here comes from a fixed vocabulary or is a number or boolean.
+    // The cuisine and category are the domain enums off the FIRST RESULT, which
+    // is what Kafoo SERVED rather than what was asked for — matching by meaning
+    // always returns something, so this is honest only when read beside
+    // `SearchFailed`. `area_narrowed` is a BOOLEAN AND NEVER THE AREA, which is
+    // a phrase the Customer said.
     //
     // Emitted from HERE rather than from the screen, because "a search that
     // never ran emits nothing" (event-model.md) is then structural: the gate
     // returns above this line, so a refused Customer produces no event at all
     // rather than one with a count of zero.
-    void this.emit(EVENTS.searchPerformed, { result_count: results.length });
+    const top = results[0]?.meal;
+    void this.emit(EVENTS.searchPerformed, {
+      result_count: results.length,
+      top_cuisine: top?.cuisine ?? NOTHING_SERVED,
+      top_category: top?.category ?? NOTHING_SERVED,
+      area_narrowed: understood.area !== null,
+    });
 
     return { kind: 'results', outcome: { results, ...understood } };
   }
@@ -252,6 +277,28 @@ export class Discovery {
   }
 
   /**
+   * A Customer opened a Meal, and where they opened it from.
+   *
+   * **The strongest demand signal Kafoo has before Orders exist**, because it
+   * records what somebody CHOSE rather than what the ranker returned. `source`
+   * is the only way to answer whether search is worth what it costs — an
+   * embedding call and an AI judgement per query, against browsing, which is
+   * free.
+   *
+   * The cuisine and category are the domain's fixed enums, taken off the row.
+   * **Never the Meal's id**: an id and a timestamp together are a search
+   * somebody could reconstruct, which is the reasoning that keeps it off
+   * `RecommendationAccepted` too.
+   */
+  mealOpened(meal: MealRow, source: MealOpenSource): void {
+    void this.emit(EVENTS.mealOpened, {
+      source,
+      cuisine: meal.cuisine,
+      category: meal.category,
+    });
+  }
+
+  /**
    * **THE GATE, AND THE ONLY DOOR A PHRASE LEAVES BY.**
    *
    * Every outbound path that carries a Customer's words runs through here, and
@@ -304,11 +351,13 @@ export class Discovery {
   /**
    * Records that something happened, and **never what was said**.
    *
-   * `Record<string, number>` is the enforcement rather than a convenience. The
-   * app carries a runtime guard that drops any string attribute over 100
-   * characters, because its emitter takes `Object`; here the phrase cannot be
-   * added at a call site without changing this signature, which is a thing a
-   * reviewer sees in a diff.
+   * **Every value passed here comes from a fixed vocabulary, a count or a
+   * boolean.** The type cannot say that on its own — a phrase is a string like
+   * any other — so what enforces it is that there are exactly four call sites,
+   * all in this file, and a test that asserts no attribute value appears
+   * anywhere in the phrase that was searched for. The app carries a runtime
+   * guard dropping any string attribute over 100 characters; the equivalent here
+   * is that a Customer's words never reach this method at all.
    *
    * Fails silently and is never awaited: a measurement outage must not interrupt
    * a Customer. `keepalive` is what makes the event survive the navigation that
@@ -321,7 +370,7 @@ export class Discovery {
    */
   private async emit(
     name: string,
-    attributes: Record<string, number>,
+    attributes: Record<string, number | boolean | string>,
   ): Promise<void> {
     try {
       await this.deps.fetch(`${this.deps.backend.url}/rest/v1/analytics_events`, {
