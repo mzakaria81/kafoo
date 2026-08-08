@@ -71,10 +71,36 @@ What to actually check:
 
 1. **`discovery_search_test.sql` assertions 2–4 pass.** They are the behavioural statement of the
    above, and assertion 2 fails within seconds of the CTE being un-materialised.
-2. **The timing fits the budget.** Exact ranking is linear: measured at 27 ms for 5,001 Meals
-   against a one-second budget for search, so the budget is reached somewhere near 180,000 Meals.
+2. **The scan itself fits the budget.** Exact ranking is linear: measured at 27 ms for 5,001 Meals
+   in Postgres, so the *scan* reaches a one-second budget somewhere near 180,000 Meals.
    **This is the number that will change**, and the day it stops fitting is the day the HNSW index
    earns its place back — with a design that filters before it ranks, not by reverting this.
+
+   **That 27 ms is not SC-006 and must not be quoted as though it were.** It is `EXPLAIN ANALYZE`
+   inside Postgres. SC-006 is what a Customer waits, which is a model provider's embedding call
+   plus a round trip plus the bytes coming back — measured at **990 ms median and 1199 ms at p95
+   over 20 samples, against a corpus of 13**, which is over budget before the corpus has grown at
+   all. See §2a.
+
+## 2a. Search latency, end to end — the SC-006 check
+
+```bash
+DENO_CERT=/root/.ccr/ca-bundle.crt \
+DEMO_SUPABASE_URL=<demo url> DEMO_SUPABASE_PUBLISHABLE_KEY=<demo publishable key> \
+deno run --allow-net --allow-env --allow-read --allow-write \
+  scripts/measure-discovery-latency.ts --runs=20 --report
+```
+
+Writes `docs/ops/measuring-discovery.md`. Read that file for the current figures and for what the
+measurement does not cover — chiefly that it runs from a cloud container, so a real Customer's
+network is added to every number in it.
+
+**It refuses production, and the refusal is the control rather than the intention.** `--load`
+publishes Meals no Cook cooks, which `.claude/rules/business-rules.md` calls product-fatal on the
+real marketplace. Point it at the demo database — `docs/ops/demo-environment.md`.
+
+**A figure over the budget is reported, never tuned away or re-run until it passes.** That is
+CLAUDE.md's performance-budget rule, and this measurement is currently over.
 
 ## 3. Retrieval quality
 
