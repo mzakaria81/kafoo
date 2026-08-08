@@ -1643,3 +1643,54 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When closing a unit of work that carries an unfinished task, MOVE the task id to the new unit rather than leaving or copying it, and write on both sides what was delivered under the old id. The delivered half stays recorded as history in the closed unit's notes; the id itself — the thing tools and dependency graphs read — travels with the work that remains. Then check whether any other unit depended on the closed one for the moved task's outcome, and repoint that dependency, or the split silently unblocks work that is still blocked.
 
 **Principle:** Identifiers carry status, prose carries history. A task number in a completed unit is a machine-readable assertion of completion no amount of surrounding explanation overrides, so the number must follow the unfinished work while the narrative of what was already delivered stays behind.
+
+---
+
+### Observation 114: A second surface inherits the rule, not the mechanism — and the mechanism is where the rule breaks
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Building discovery (browse, search, honesty layer, consent) on a Next.js web surface, mirroring an existing Flutter implementation of the same feature.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Implementation — reproducing an existing feature on a different platform
+
+**Issue:** The rule "a user's search phrase is never recorded" was already implemented and well-tested on the first surface, where it meant "no log line, no cache keyed on the phrase, no analytics attribute". Ported literally to a web surface, every one of those checks would have passed while the phrase leaked through three mechanisms that do not exist on the first platform: a query string written into the server's request log, the browser's own history, and the `Referer` header sent to every third-party asset host on the page. A form control with a `name` attribute and no JavaScript would have produced all three silently. None of these are visible from reading the original implementation, because the original platform has no URLs.
+
+**Suggested improvement:** When porting a feature, enumerate the rule's *threat surface on the new platform* before reproducing the *code*. For each invariant the feature carries, ask "what are the ways this could be violated here that do not exist there" — and write the test against the new mechanisms, not against the old ones. The ported test suite should contain at least one assertion that would have been meaningless on the original platform.
+
+**Principle:** A ported invariant is only as strong as the threat model it was written against, and a threat model is platform-specific. Copying the guard without re-deriving what it guards against reproduces the letter of a rule onto a surface where the letter no longer covers the spirit.
+
+---
+
+### Observation 115: A conflation that was merely wrong becomes load-bearing when a second feature reads it
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Adding area-narrowing to a second surface, which required knowing which areas currently have inventory.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Implementation — building on existing read layers
+
+**Issue:** An existing read function returned an empty list both when the query succeeded with no rows and when it failed. The user-facing consequence at the time was one wrong sentence on one page, and a correctly-worded error string sat unused in the localization files because no caller could distinguish the two cases. The new feature then needed exactly that distinction: when a user's chosen area has nothing in it, the product must name the areas that *do* have something — and a failed read looks identical to "nowhere has anything", which turns a network error into a false claim about the whole marketplace at the precise moment the user is being offered alternatives.
+
+**Suggested improvement:** Before building on an existing read layer, check whether it collapses "empty" into "failed". If it does, fix the read layer rather than working around it in the new caller — and look for an unused error string or dead branch, which is often the fossil evidence that someone already knew the distinction was needed. Treat an unreferenced user-facing error message as a defect report, not as dead code to delete.
+
+**Principle:** Conflating absence with failure is a latent bug whose blast radius grows with each new reader. The second consumer of a lossy signal is where the loss stops being cosmetic, so the cost of the original shortcut is paid by whoever arrives next.
+
+---
+
+### Observation 116: Test-runner capability sets the shape of the code under test, and it is worth checking first
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Writing behavioural tests for a TypeScript module in a project whose existing tests only read source files as text.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Writing tests for compiled/transpiled languages
+
+**Issue:** The project's existing test file for this area read its subject as a string and asserted with regexes, with a comment explaining that the modules were TypeScript and therefore could not be imported. That constraint had quietly expired — the installed runtime strips types natively — but the workaround had already shaped the tests into structural assertions that could not verify behaviour. The requirement being tested explicitly demanded behavioural verification ("verified by watching what leaves rather than by reading the code that decides"), which regex-over-source cannot do. Separately, once real imports worked, one ordinary language feature in the module under test was unsupported by the stripper and had to be written out longhand — a one-line cost that bought executable tests.
+
+**Suggested improvement:** At the start of a testing task in a transpiled language, spend one command establishing what the runner can actually execute today, rather than inheriting the constraint encoded in the neighbouring test file. When a runtime limitation forces a small change to the code under test, make the change and record why in a comment at that spot — otherwise the next person "cleans it up" and silently breaks the ability to test.
+
+**Principle:** Workarounds outlive the limitations that caused them, and a test-shape adopted under an expired constraint keeps testing the wrong thing. Verify the tool's current capability before accepting the previous author's compromise as a fact about the world.
