@@ -1628,3 +1628,18 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a mutation survives, ask first whether the rule it touched exists in more than one place. If it does, collapse the copies into one named predicate and re-run the mutation — the fix is deduplication, not another assertion. Add the assertion too, but as a second layer. Record the surviving mutation next to the extracted predicate so a later author does not re-inline it for readability.
 
 **Principle:** A surviving mutation is evidence about the code's structure as often as about the test's coverage. Duplicated logic is partially mutable: a change can hit one copy and leave the other, so no test that compares outputs can see a difference. Deduplicating turns a class of undetectable mutations into detectable ones, which no amount of extra assertions on the duplicated form will do.
+
+### Observation 113: A task listed in a closed unit of work is a claim that it was delivered
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Closing a large work package whose acceptance criteria were all met, but whose task list included one task that was genuinely two halves — one delivered and merged, one that could not be done from the environment at all.
+**Skill:** ship-check
+**Type:** open-source
+**Phase/Area:** Closing a unit of work when part of it cannot be finished
+
+**Issue:** Three options presented themselves and two were wrong in ways that are easy to miss. Marking the package complete with the task still listed silently claims the undone half, because a task id inside a completed package is read as delivered by everyone downstream — including the tracker's own dependency graph. Holding the package open for the remaining half keeps an otherwise finished unit active, which in a system where active units block exclusive ones and carry an owner name means a dead worker appears to still be working. Duplicating the task id into a new package makes the same number mean "done" in one place and "not done" in another.
+
+**Suggested improvement:** When closing a unit of work that carries an unfinished task, MOVE the task id to the new unit rather than leaving or copying it, and write on both sides what was delivered under the old id. The delivered half stays recorded as history in the closed unit's notes; the id itself — the thing tools and dependency graphs read — travels with the work that remains. Then check whether any other unit depended on the closed one for the moved task's outcome, and repoint that dependency, or the split silently unblocks work that is still blocked.
+
+**Principle:** Identifiers carry status, prose carries history. A task number in a completed unit is a machine-readable assertion of completion no amount of surrounding explanation overrides, so the number must follow the unfinished work while the narrative of what was already delivered stays behind.
