@@ -1677,3 +1677,37 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Add a scale note: below roughly 30 tasks, create issues via individual tool calls as written; above that, generate a resumable script and state the three properties it must have — pacing with permanent slowdown on a secondary-limit 403, a state file written before the next call so a re-run resumes instead of duplicating, and a dry-run that prints the plan and counts before anything is created. Deduplication by issue title (already in step 6) is the fallback when no state file exists, not a substitute for one.
 
 **Principle:** Any workflow that repeats a write per item has a size at which per-item agent calls stop being the right mechanism, and the instruction should name that threshold rather than leave the agent to discover it by exhausting a rate limit. Partial completion of a bulk write is the expected case, so resumability belongs in the design, not in the recovery.
+
+---
+
+### Observation 116: a documented warning that an identifier is not unique needs a test, not a reader
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Backfilling 348 Kafoo tasks into GitHub issues. The run died partway with a 422 from the sub-issues API — "Sub issue may only have one parent" — because state was keyed on the bare `T###`.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, step 6 (deduplication) and step 7 (issue creation)
+
+**Issue:** The project's own instructions state plainly that task numbering restarts per epic, so the same `T045` names three different tasks in three different `tasks.md` files. That warning was read before the code was written and the code still keyed on the bare id, because the warning was absorbed as background rather than turned into a constraint. The skill encourages this directly: its deduplication step matches issue titles against `\bT\d{3}\b` and treats a hit as "this task already has an issue", which is only sound when ids are unique across everything being converted. The failure was loud and cheap here — GitHub refused the second parent and the run stopped with nothing corrupted — but the same key collision in a tool without a uniqueness constraint at the far end would have silently attached one epic's issue to another epic's parent.
+
+**Suggested improvement:** In step 6, qualify the identifier by its feature before matching, and state that a bare task id is only assumed unique within one `tasks.md`. Add an explicit precondition to the Outline: assert that ids are unique across the set being converted and stop with the collisions listed if not. Where a multi-feature conversion is in scope, the created issue title should carry the feature too, so a bare id never names two issues.
+
+**Principle:** A warning in prose that an identifier is not unique protects nobody, because reading it and encoding it are different acts. Convert the warning into an assertion the tool runs, and let it fail on the collision it predicts — otherwise the design proceeds on the assumption the document exists to deny.
+
+---
+
+### Observation 117: never derive a record's category from a map built by claim order
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Same task. Deriving which epic each work package belonged to from the task-to-package ownership map filed one package under a default epic.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Grouping / parent resolution
+
+**Issue:** Two units of work claimed the same task id, and a task can have only one parent, so the ownership map was built with first-claimant-wins. One package's entire task list was a single task already claimed by a lower-numbered package, so it contributed no entry to that map at all — and because the package's epic was being read back out of the same map, it fell through to a hardcoded default and was filed under the wrong epic. The visible symptom was a count being off by one in two places; the cause was a category derived from a side effect of contention rather than from the record itself. Nothing in the output looked wrong, which is why it took a count comparison against an earlier run to notice.
+
+**Suggested improvement:** Derive each grouping's parent from its own fields, in a separate pass, before any claim or deduplication runs — then let the claim pass consume that result. Never let a default silently absorb a record missing from a derived map: if a lookup misses, fail or log it rather than substituting a fallback value that will look plausible in the output.
+
+**Principle:** Deduplication is lossy by design, so anything read back out of a deduplicated map inherits the arbitrariness of who won. Compute a record's own attributes from the record, and keep that pass independent of, and earlier than, any pass that resolves contention between records.
