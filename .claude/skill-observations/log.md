@@ -1643,3 +1643,37 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When closing a unit of work that carries an unfinished task, MOVE the task id to the new unit rather than leaving or copying it, and write on both sides what was delivered under the old id. The delivered half stays recorded as history in the closed unit's notes; the id itself — the thing tools and dependency graphs read — travels with the work that remains. Then check whether any other unit depended on the closed one for the moved task's outcome, and repoint that dependency, or the split silently unblocks work that is still blocked.
 
 **Principle:** Identifiers carry status, prose carries history. A task number in a completed unit is a machine-readable assertion of completion no amount of surrounding explanation overrides, so the number must follow the unfinished work while the narrative of what was already delivered stays behind.
+
+---
+
+### Observation 114: speckit-taskstoissues has no concept of hierarchy, so it flattens the structure it is asked to mirror
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Founder asked for all four Kafoo epics and their 348 tasks in GitHub issues, with work packages as a second level wherever the project had started using them.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, steps 6–7 (issue creation)
+
+**Issue:** The skill creates exactly one flat issue per `T###` task in a single feature's `tasks.md` and stops there. It has no notion of a parent issue for the feature itself, no use of GitHub's sub-issues API, and no way to express an intermediate grouping — so the epic → task and epic → package → task shape the request was about could not be produced by following it. It also assumes a single feature directory (`check-prerequisites.sh` returns one `FEATURE_DIR`), so "all epics" is outside what it can express. The task's real structure had to be built in a purpose-written script instead, and the skill contributed only its title convention (`T001: <description>`) and its deduplication idea.
+
+**Suggested improvement:** Add an optional hierarchy mode: create a parent issue per feature from `spec.md`, link every task issue to it via `POST /repos/{owner}/{repo}/issues/{n}/sub_issues`, and allow one intermediate level supplied by the caller (a grouping file, a phase header, or a label). State the two GitHub limits that constrain the shape — 100 sub-issues per parent and 8 levels of nesting — because a per-epic task count above 100 silently changes the design. Note that a sub-issue takes exactly one parent, so a task claimed by two groups needs a declared tie-break rather than a second link.
+
+**Principle:** A converter that flattens is only correct when the source has no structure. When the source encodes a hierarchy — phases, epics, work packages — a tool that emits a flat list discards the most useful thing it was given, and the loss is invisible because every individual record looks right.
+
+---
+
+### Observation 115: a per-item API workflow needs a stated crossover point where it becomes a script
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Same task. 348 tasks plus 4 epics plus 20 work packages meant ~945 content-creating GitHub requests: 372 creates, 368 sub-issue links, 205 closes.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, step 7, and Pre-Execution as a whole
+
+**Issue:** The skill instructs the agent to create issues one at a time through MCP tool calls, and is careful about read-side pagination while saying nothing about the write side. At this repository's size that prescription is not merely slow, it does not fit: GitHub caps content-creating requests at roughly 500/hour and 80/minute and signals a breach with a 403 plus `Retry-After` rather than a 429, so the run must pace itself and survive multi-minute stalls. Several hundred sequential tool calls also consume the agent's context on tool results that carry no information the agent needs. Neither constraint is mentioned, so the default reading of the skill is a workflow that stalls partway with issues half-created and no record of where it stopped.
+
+**Suggested improvement:** Add a scale note: below roughly 30 tasks, create issues via individual tool calls as written; above that, generate a resumable script and state the three properties it must have — pacing with permanent slowdown on a secondary-limit 403, a state file written before the next call so a re-run resumes instead of duplicating, and a dry-run that prints the plan and counts before anything is created. Deduplication by issue title (already in step 6) is the fallback when no state file exists, not a substitute for one.
+
+**Principle:** Any workflow that repeats a write per item has a size at which per-item agent calls stop being the right mechanism, and the instruction should name that threshold rather than leave the agent to discover it by exhausting a rate limit. Partial completion of a bulk write is the expected case, so resumability belongs in the design, not in the recovery.
