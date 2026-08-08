@@ -193,6 +193,21 @@ and Kafoo must not tell a Customer that a Meal was withheld — or kept — on t
 is Principle II applied to a field nobody would think of as a write: the AI is proposing a fact
 about somebody else's food, and only the Cook can make it true.
 
+**PUBLISH IS BLOCKED UNTIL THE COOK CONFIRMS — founder's decision, 2026-08-08.** A Meal cannot go on
+offer carrying concepts nobody has checked. The alternative considered and rejected was letting such
+a Meal publish and fall to the string predicate, which is quieter and wrong: it puts food in front
+of Customers filtered by a mechanism this ADR exists to replace, with no one having looked.
+
+Two things follow, and both are real costs rather than details:
+
+- **A Cook must always be able to get through.** Correcting must be enough on its own — a Cook who
+  disagrees with every proposed concept, or whose Meal has none, still publishes. Blocking on
+  confirmation must never become blocking on agreement.
+- **A model that will not answer must not trap a Meal.** Measured 2026-08-08, 2 of 36 first replies
+  failed schema validation and both passed on a bare retry; `analyze-meal` already retries once. The
+  rate a Cook would meet is lower than that and is not zero, so the flow needs a route through when
+  the AI proposes nothing at all — see open question 7.
+
 ### Concepts decide; the string predicate catches the Meals that have none
 
 **A Meal with confirmed concepts is filtered on concepts alone. Its text is never matched again.**
@@ -231,11 +246,16 @@ one.
 These are deliberately unresolved. Each needs an answer before the part of the work it governs, and
 none of them blocks drafting the taxonomy.
 
-1. **What is the classifier's recall?** Unmeasured. How often does `analyze-meal` produce the right
-   concept for a dish whose ingredients plainly contain the food? **This gates everything else**, and
-   it needs no paid tier — the corpus and the pinned goldens are already here. If recall is poor,
-   the Cook's confirm step is not confirming, it is doing the extraction by hand, and that is a
-   different product from the one this ADR describes. Measure before building.
+1. ~~**What is the classifier's recall?**~~ **ANSWERED 2026-08-08: 100%, 75 of 75.** Every Meal in
+   the corpus whose own text states a food had that food named in `analyze-meal`'s extraction, across
+   twelve categories. `docs/ops/measuring-concept-recall.md` has the method and the limits, and the
+   two that matter are: it is an **upper bound**, because the corpus descriptions already read as
+   ingredient lists and real Cook speech names less; and **ten categories were never exercised** —
+   `PEANUT`, `SOY`, `MOLLUSC`, `MUSTARD`, `CELERY`, `LUPIN`, `SULPHITES`, `PORK`, `ALCOHOL` — so
+   nothing at all is known about recall on any of them.
+
+   The revisit trigger was 90%. It is not tripped, so the sequencing in this ADR stands: the AI
+   proposes and the Cook checks, rather than the Cook extracting with a model guessing beside them.
 2. **How do already-published Meals get concepts?** A backfill classification is AI-derived data
    written without a Cook approving it — the same shape as ADR-0011's exception and it needs the
    same explicit decision. The alternative is that concepts appear only as Cooks next edit a Meal,
@@ -254,10 +274,12 @@ none of them blocks drafting the taxonomy.
    running against a Meal the moment that Meal has confirmed concepts, so the question is only when
    the code itself goes: when no published Meal lacks them, and it stays that way through a full
    publish cycle.
-7. **What does the Cook see when they decline to confirm?** Correcting is one thing; refusing to
-   answer is another, and a Meal published with an unconfirmed concept is a Meal that filters on
-   nothing. Whether publish is blocked, or the Meal simply falls to the string path, is a product
-   decision nobody has taken.
+7. **How does a Cook get past a step that will not complete?** The blocking decision is taken —
+   publish waits for confirmation — so the remaining question is the way out. A Meal whose analysis
+   never validates, a Cook who rejects every proposed concept, a provider that is down: each is a
+   Cook who cannot sell their food today. Retrying is not an answer a person can act on. Whether
+   they may confirm an empty set, pick concepts by hand, or publish under an explicit "no allergen
+   information" state is undecided, and it is the difference between a safety step and a wall.
 8. **The five vocabulary calls still open from WP-017** — `مايونيز`, `تونة`, `جوز`,
    `كندوز`/`ضاني`/`مبحبش`, and the `مبكلش` marker — become concept-level entries under this model
    rather than surface forms. They are cheaper to decide here than there, and `جوز` in particular
@@ -283,10 +305,12 @@ between a classifier's silence and a Customer being served the food they refused
 after Meals are published against the model costs a backfill and a re-confirmation, which is exactly
 why `PORK` and `ALCOHOL` are in now.
 
-**Revisit trigger.** If the measured classifier recall on question 1 is below 90% on the corpus,
-this ADR is wrong in its sequencing. Concepts would then be something the Cook writes with the AI
-guessing beside them, rather than something the AI proposes and the Cook checks — and the fallback
-would be carrying the feature rather than backstopping it.
+**Revisit trigger — tested 2026-08-08 and not tripped.** The trigger was: recall below 90% means
+this ADR is wrong in its sequencing, because concepts would then be something the Cook writes with
+the AI guessing beside them rather than something the AI proposes and the Cook checks. Measured
+recall is 100% on 75 category instances. **The trigger stands for the next measurement rather than
+being retired** — the figure is an upper bound taken on descriptions that read like ingredient
+lists, and the number to re-test it against is recall on what Cooks actually say.
 
 ## Notes for Claude Code
 
