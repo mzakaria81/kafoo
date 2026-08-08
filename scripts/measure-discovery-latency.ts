@@ -64,23 +64,32 @@
 //   --report      Write docs/ops/measuring-discovery.md as well as printing.
 //   --dry-run     Validate credentials and print the plan. Spends nothing, writes nothing.
 
-// THE RUN THIS ONE IS COMPARED AGAINST, so a single report can show what corpus size does and what
-// it does not. Same script, same target, same day, 77× fewer Meals. Kept as a constant for the same
-// reason `measure-e2-performance.ts` keeps PRIOR_PUBLISH: the comparison is the finding, and a
-// finding that lives only in a pull request comment is one nobody reads again.
+// THE RUN THIS ONE IS COMPARED AGAINST. Kept as a constant for the same reason
+// `measure-e2-performance.ts` keeps PRIOR_PUBLISH: the comparison is the finding, and a finding
+// that lives only in a pull request comment is one nobody reads again.
 //
-// REPLACE THIS WHEN THE SHAPE CHANGES — a new provider, a new region, a change to what `discover`
-// returns — and say in the report that it was replaced. Do not leave a stale baseline making a
-// change look like an improvement it was not.
+// IT WAS A CORPUS COMPARISON UNTIL 2026-08-08 AND IS NOW A BEFORE-AND-AFTER, because the thing
+// worth comparing changed. The corpus question is settled and recorded below as a sentence: the
+// same script at 13 Meals and at 1,013 measured the scan at 164 ms and 166 ms, so 78× the corpus
+// moved it by about 2 ms. Leaving that as the headline table after the payload fix would have
+// compared a pre-fix small corpus against a post-fix large one and credited the corpus with an
+// improvement it had nothing to do with.
+//
+// This is now the last run BEFORE `20260808165000_stop_returning_meal_embeddings_from_search`,
+// same corpus, same target, same day.
+//
+// REPLACE IT AGAIN WHEN THE SHAPE CHANGES — a new provider, a new region, another change to what
+// `discover` returns — and say in the report that it was replaced. A stale baseline makes a change
+// look like an improvement it was not, which is the failure this comment exists to prevent.
 const PRIOR = {
-  when: "2026-08-08",
-  corpus: 13,
+  when: "2026-08-08, before the vector stopped being returned",
+  corpus: 1013,
   runs: 20,
-  e2eP50: 990,
-  e2eP95: 1199,
-  dbFullP50: 359,
-  dbLeanP50: 164,
-  medianResults: 13,
+  e2eP50: 1112,
+  e2eP95: 1438,
+  dbFullP50: 581,
+  dbLeanP50: 166,
+  medianResults: 50,
 } as const;
 
 const PRODUCTION_REF = "cshrkpvljknxsdzwhhle";
@@ -602,28 +611,35 @@ The scan is the only one of the three that grows with the marketplace. \`search_
 cost is linear in the corpus. See \`supabase/migrations/20260806231625_add_meal_embeddings.sql\`,
 which explains why the HNSW index exists and is deliberately not used.
 
-## What corpus size actually did
+## Against the previous measurement
 
-Same script, same target, ${PRIOR.when}, at **${PRIOR.corpus}** Meals against **${corpus}** here —
-${(corpus / PRIOR.corpus).toFixed(0)}× the corpus:
+Same script, same target, same corpus. Baseline: **${PRIOR.when}**, ${PRIOR.corpus} Meals.
 
-| | ${PRIOR.corpus} Meals | ${corpus} Meals | change |
+| | before | now | change |
 |---|---|---|---|
-| End-to-end p50 | ${fmt(PRIOR.e2eP50)} | ${fmt(e.p50)} | ${signed(e.p50 - PRIOR.e2eP50)} |
-| Database, full rows p50 | ${fmt(PRIOR.dbFullP50)} | ${fmt(d.p50)} | ${signed(d.p50 - PRIOR.dbFullP50)} |
-| **Database, ids only p50 — the scan** | **${fmt(PRIOR.dbLeanP50)}** | **${fmt(l.p50)}** | **${
+| End-to-end p50 — what a Customer waits | ${fmt(PRIOR.e2eP50)} | ${fmt(e.p50)} | ${
+    signed(e.p50 - PRIOR.e2eP50)
+  } |
+| End-to-end p95 | ${fmt(PRIOR.e2eP95)} | ${fmt(e.p95)} | ${signed(e.p95 - PRIOR.e2eP95)} |
+| Database, full rows p50 | ${fmt(PRIOR.dbFullP50)} | ${fmt(d.p50)} | ${
+    signed(d.p50 - PRIOR.dbFullP50)
+  } |
+| Database, ids only p50 — the scan | ${fmt(PRIOR.dbLeanP50)} | ${fmt(l.p50)} | ${
     signed(l.p50 - PRIOR.dbLeanP50)
-  }** |
-| Median results returned | ${PRIOR.medianResults} | ${results.p50} | |
+  } |
 
-**The scan did not move.** ${
-    (corpus / PRIOR.corpus).toFixed(0)
-  }× the Meals changed it by ${fmt(Math.abs(l.p50 - PRIOR.dbLeanP50))}, which is inside the noise
-between two runs. Everything that got worse got worse because more rows came back — the \`LIMIT 50\`
-in \`search_meals\` binds once the corpus passes fifty Meals, so the response grew and the wait grew
-with it.
+**The scan did not move, and it was never supposed to.** What moved is the gap between the two
+database rows — the cost of serialising vectors into the response — which has gone from
+${fmt(PRIOR.dbFullP50 - PRIOR.dbLeanP50)} to ${fmt(d.p50 - l.p50)}.
 
-So the thing to fix is not the corpus and not the ranking. It is what a search sends back.
+## Corpus size, settled
+
+Measured at **13 Meals and again at 1,013** on 2026-08-08: the scan ran at 164 ms and 166 ms. **78×
+the corpus moved it by about 2 ms**, inside the noise between two runs.
+
+Search latency is therefore not currently a scaling problem, and a bigger corpus is not the way to
+find the next one. Exact ranking is linear and reaches a second somewhere near 180,000 Meals; until
+then the wait is a vendor call and a round trip.
 
 ## Response size
 
@@ -640,12 +656,12 @@ Each search returns **${
 it is "shown to nobody" by the column's own comment, and \`CookMeal.fromRow\` does not mention it.
 
 \`20260808165000_stop_returning_meal_embeddings_from_search.sql\` gives the function a return type
-with no \`embedding\` in it. Measured on the same rows before deploying it: **497 KB → 29 KB** at
-the 50-result limit, a 94% cut in what a search sends back. Fixed in the database rather than in
-\`discover\`, so no future caller can select it back.
+with no \`embedding\` in it. Fixed in the database rather than in \`discover\`, so no future caller
+can select it back.
 
-**If the figures above still show a large gap between the two database rows, this report predates
-that migration reaching the target.** Re-run it after deploying to refresh them.
+**The figures above are from after that migration**, which is why the two database rows now agree.
+If a future run shows them diverging again, something has put a large column back into what search
+returns.
 
 **The two database rows above are the same scan.** The only difference is whether the vectors are
 serialised and sent, so the gap between them — ${fmt(d.p50 - l.p50)} at the median — is what the
