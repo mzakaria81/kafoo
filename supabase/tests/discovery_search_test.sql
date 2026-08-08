@@ -16,7 +16,7 @@
 -- default candidate list many times over while still building in a few seconds.
 
 BEGIN;
-SELECT plan(4);
+SELECT plan(6);
 
 SELECT tests.create_supabase_user('crowd@search.kafoo');
 SELECT tests.create_supabase_user('quiet@search.kafoo');
@@ -90,6 +90,42 @@ SELECT is(
   (SELECT count(*)::int FROM public.search_meals((SELECT v FROM search_probe), NULL, 'الزمالك')),
   0,
   'an area with nothing on offer returns nothing — narrowing that widens is not narrowing'
+);
+
+-- 5. THE VECTOR DOES NOT LEAVE THE DATABASE.
+--
+-- `search_meals` returned `SETOF public.meals` until 2026-08-08, so every result carried its
+-- 768-float `embedding` — a column whose own comment says it is shown to nobody. `discover` hands
+-- back what the database returned, so a full page of fifty results was about half a megabyte of
+-- vectors that no client reads, measured at 415 ms of a 1112 ms wait
+-- (docs/ops/measuring-discovery.md).
+--
+-- ASSERTED AS AN ABSENT COLUMN RATHER THAN A RESPONSE SIZE, because size is a consequence and this
+-- is the cause. A future caller cannot reintroduce it by selecting the wrong thing: there is
+-- nothing to select.
+SELECT throws_ok(
+  format(
+    $$ SELECT embedding FROM public.search_meals(%L::vector(768)) $$,
+    (SELECT v FROM search_probe)
+  ),
+  '42703',
+  NULL,
+  'search_meals exposes no embedding column — the vector is how ranking works, not something a '
+  'Customer downloads'
+);
+
+-- 6. And it still returns the columns a Meal is made of. The cheap way to pass assertion 5 is to
+--    return less than a screen needs, which would move the failure from a slow search to an empty
+--    one. These are exactly the columns `CookMeal.fromRow` reads.
+SELECT lives_ok(
+  format(
+    $$ SELECT id, cook_id, title, description, price, cuisine, category, status,
+              ingredients, calories, allergens, nutrition_source, photo_path,
+              created_at, updated_at, published_at
+       FROM public.search_meals(%L::vector(768)) $$,
+    (SELECT v FROM search_probe)
+  ),
+  'search_meals still returns every column a Meal is rendered from'
 );
 
 SELECT * FROM finish();
