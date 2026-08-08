@@ -253,6 +253,34 @@ run "demo seed drift" bash -c '
 
 run "exclusion vocabulary" python3 scripts/generate-exclusions.py --check
 
+# THE ARABIC FOLD EXISTS THREE TIMES AND MUST ANSWER TO ONE FILE.
+#
+# `foldArabic` in packages/domain, `foldArabic` in discover/parse.ts, and `public.fold_arabic` in
+# SQL. It has to exist three times — the Customer's word is recognised in Dart, parsed again in the
+# Edge Function, and matched against a Cook's ingredient inside a Postgres predicate. What must not
+# happen is the three disagreeing, and on 2026-08-07 they disagreed on seventeen whitespace
+# codepoints while every suite was green, because each side was checked against cases written for it
+# alone. A no-break space inside `عين الجمل` folded in two of them and not the third, so walnut
+# escaped a nut exclusion.
+#
+# packages/domain/test/goldens/arabic_folding.json is now the single expectation. Dart and
+# TypeScript read it directly; Postgres cannot, so its assertions are generated and this fails when
+# they go stale — otherwise the SQL third could be hand-edited while the other two moved, which is
+# the problem wearing a different hat.
+run "folding cases" python3 scripts/generate-folding-cases.py --check
+
+# SC-005 AS A CLAIM ABOUT THE SET RATHER THAN ABOUT THE ENTRIES SOMEBODY WROTE A CASE FOR.
+#
+# The criterion says an excluded food appears ZERO times across the exclusion test set.
+# discovery_exclusion_test covers HOW the predicate behaves on a seven-Meal fixture and exercises
+# four of the twelve exclusions; the sweep covers every entry, in every spelling class that has ever
+# broken. Every bug this feature has had lived in the entries nobody walked one by one — thirteen
+# spellings that reached nothing, and one tatweel that defeated all ninety-three forms.
+#
+# Generated from the vocabulary, so adding a food to packages/domain/lib/exclusion.dart without
+# re-running the generator fails here rather than quietly leaving the new food unswept.
+run "exclusion sweep" python3 scripts/generate-exclusion-sweep.py --check
+
 # Principle II, made mechanical rather than reviewed.
 #
 # A function that talks to a model must not also hold credentials that can write. delete-account

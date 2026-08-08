@@ -5,7 +5,7 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 
 import { DiscoverDeps, handleDiscover } from './index.ts';
-import { parsePhrase } from './parse.ts';
+import { foldArabic, parsePhrase } from './parse.ts';
 
 interface Recorder {
   embedded: string[];
@@ -174,6 +174,37 @@ Deno.test('a spelling nobody enumerated is still understood, on this side too', 
     const outcome = parsePhrase(phrase).exclusion;
     assertEquals(outcome.kind, 'found', phrase);
     assertEquals(outcome.kind === 'found' ? outcome.id : '', id, phrase);
+  }
+});
+
+
+Deno.test('THE FOLD AGREES WITH THE SHARED CASE FILE', () => {
+  // The TypeScript third of a three-way agreement. packages/domain holds Dart to this same file,
+  // and supabase/tests/arabic_folding_test.sql — generated from it — holds Postgres.
+  //
+  // The three disagreed on seventeen whitespace codepoints on 2026-08-07 and nothing noticed,
+  // because each side had cases somebody had written for it and each side passed its own. The
+  // failure that produces is silent: a Customer's word recognised here and matching no Meal in the
+  // database, or the reverse.
+  const file = new URL(
+    '../../../packages/domain/test/goldens/arabic_folding.json',
+    import.meta.url,
+  );
+  const cases = (JSON.parse(Deno.readTextFileSync(file)) as {
+    cases: { id: string; input: string; folded: string; why: string }[];
+  }).cases;
+
+  assertEquals(cases.length >= 25, true, 'the shared case file shrank');
+
+  for (const c of cases) {
+    assertEquals(
+      foldArabic(c.input),
+      c.folded,
+      `${c.id}: ${c.why} — TypeScript disagrees with the shared expectation. If the fold changed ` +
+        `on purpose, change the file and re-run scripts/generate-folding-cases.py.`,
+    );
+    // Idempotent, for the same reason the Dart suite checks it.
+    assertEquals(foldArabic(foldArabic(c.input)), foldArabic(c.input), c.id);
   }
 });
 

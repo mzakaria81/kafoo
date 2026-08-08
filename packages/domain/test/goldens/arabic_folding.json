@@ -1,0 +1,48 @@
+{
+  "purpose": "The one place the Arabic fold is specified. Three implementations must agree with it: ExclusionVocabulary.foldArabic in Dart, foldArabic in supabase/functions/discover/parse.ts, and public.fold_arabic in SQL. Each asserts against this file in its own suite; the SQL assertions are GENERATED from it by scripts/generate-folding-cases.py, so the third one cannot be updated by hand while the others move.",
+
+  "why": "On 2026-08-07 the three folds disagreed on seventeen whitespace codepoints, because Postgres' [[:space:]] under COLLATE \"C\" is ASCII-only while Dart's and JavaScript's are Unicode-aware. A no-break space inside عين الجمل folded in two of them and not the third, so walnut escaped a nut exclusion. Both reviewers found it by writing throwaway differential harnesses and then deleting them. This file is that harness, kept.",
+
+  "note": "`folded` is what all three must return. A case whose input is already folded is not filler — it pins that the fold does NOT change it, which is the half that stops somebody widening a rule until two different foods collapse into one.",
+
+  "cases": [
+    { "id": "identity", "input": "لحم", "folded": "لحم", "why": "already folded; must not move" },
+
+    { "id": "taa_marbuta_end", "input": "لحمة", "folded": "لحمه", "why": "ة is ه to a typist" },
+    { "id": "taa_marbuta_mid_word", "input": "لحمة مفرومة", "folded": "لحمه مفرومه", "why": "every ة, not only the last" },
+    { "id": "haa_unchanged", "input": "لحمه", "folded": "لحمه", "why": "the other spelling is the target" },
+
+    { "id": "alef_hamza_above", "input": "أسماك", "folded": "اسماك", "why": "أ folds to ا" },
+    { "id": "alef_hamza_below", "input": "إستاكوزا", "folded": "استاكوزا", "why": "إ folds to ا" },
+    { "id": "alef_madda", "input": "آيس", "folded": "ايس", "why": "آ folds to ا" },
+    { "id": "alef_wasla", "input": "ٱلحم", "folded": "الحم", "why": "ٱ folds to ا" },
+
+    { "id": "alef_maqsura", "input": "بلطى", "folded": "بلطي", "why": "ى folds to ي" },
+
+    { "id": "tatweel_middle", "input": "لحـمة", "folded": "لحمه", "why": "ONE STRETCHED LETTER DEFEATED ALL 93 FORMS before folding existed" },
+    { "id": "tatweel_many", "input": "لـحـ__م", "folded": "لح__م", "why": "every tatweel, anywhere" },
+    { "id": "fatha_damma", "input": "لَحْمَة", "folded": "لحمه", "why": "diacritics are typed rarely and omitted usually" },
+    { "id": "superscript_alef", "input": "لحمٰة", "folded": "لحمه", "why": "U+0670 sits outside the 064B-0652 range the first version covered" },
+
+    { "id": "zwnj", "input": "ل‌حم", "folded": "لحم", "why": "a zero-width non-joiner renders identically to nothing on every screen in the product" },
+    { "id": "zwj", "input": "ل‍حم", "folded": "لحم", "why": "same class as the ZWNJ" },
+    { "id": "rlm", "input": "لحم‏", "folded": "لحم", "why": "a directional mark is not a letter" },
+    { "id": "bom", "input": "﻿لحم", "folded": "لحم", "why": "U+FEFF is whitespace to Dart and JavaScript and is NOT whitespace to Postgres, which is why invisible marks are stripped BEFORE whitespace is collapsed" },
+
+    { "id": "nbsp", "input": "عين الجمل", "folded": "عين الجمل", "why": "a no-break space between the two words of walnut — the exact case that escaped a nut exclusion" },
+    { "id": "ideographic_space", "input": "لحم　مفروم", "folded": "لحم مفروم", "why": "U+3000, which [[:space:]] under COLLATE \"C\" does not match" },
+    { "id": "narrow_nbsp", "input": "لحم مفروم", "folded": "لحم مفروم", "why": "U+202F" },
+    { "id": "tab_leading", "input": "\tلحم", "folded": "لحم", "why": "btrim strips only U+0020, so trimming before collapsing left a leading space nothing removed" },
+    { "id": "newline_trailing", "input": "لحم\n", "folded": "لحم", "why": "same ordering bug, other end" },
+    { "id": "double_space", "input": "عين  جمل", "folded": "عين جمل", "why": "a run of spaces is one space" },
+    { "id": "surrounding_space", "input": "  لحم  ", "folded": "لحم", "why": "trimmed after collapsing" },
+
+    { "id": "latin_lowercase", "input": "BURGER", "folded": "burger", "why": "Latin is case-folded; a Cook may write a transliterated name either way" },
+
+    { "id": "meat_stays_meat", "input": "سمك", "folded": "سمك", "why": "SPELLING, NEVER MEANING — fish must not fold into anything else" },
+    { "id": "sweet_vs_feminine", "input": "حلوى", "folded": "حلوي", "why": "حلوى and حلوة are different words and stay apart: ى goes to ي and ة goes to ه" },
+    { "id": "sweet_feminine", "input": "حلوة", "folded": "حلوه", "why": "the other half of the pair above" },
+    { "id": "empty", "input": "", "folded": "", "why": "nothing in, nothing out" },
+    { "id": "only_space", "input": "   ", "folded": "", "why": "whitespace alone folds away entirely" }
+  ]
+}
