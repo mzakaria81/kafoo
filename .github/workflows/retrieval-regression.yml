@@ -1,0 +1,61 @@
+name: Retrieval regression
+
+# SC-002 and SC-003, by name, against docs/ops/discovery-corpus.json. T153.
+#
+# NIGHTLY AND NOT IN THE GATE, by the founder's decision on 2026-08-08. `./scripts/verify.sh` has
+# never depended on a vendor, and putting this there would mean a Google outage or an expired key
+# blocks every commit by every session. Retrieval quality drifts when the MODEL changes under us,
+# which happens over weeks — a nightly answer is soon enough, and it costs about $0.001 a run.
+#
+# WHAT A RED RUN MEANS: the embedding model Kafoo ships stopped satisfying a success criterion that
+# a Customer's search depends on. It is not a broken build and nothing needs reverting — the code
+# did not change. Read the run's summary, then decide whether to re-measure candidate models the way
+# docs/ops/spike-discovery-embeddings.md did.
+
+on:
+  schedule:
+    # 02:00 UTC, which is a quiet hour in Cairo. Nothing depends on the exact minute.
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: retrieval-regression
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  retrieval:
+    name: SC-002 and SC-003
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # The arithmetic first, with no key and no network. If the script's own maths is broken it
+      # says so here, before anything is spent and before a wrong number is believed.
+      - name: Self-check
+        run: python3 scripts/discovery-retrieval-regression.py --self-check
+
+      # No `if:` guard on the secret, for the reason authorization.yml already writes down: a job
+      # that skips itself when a credential is missing prints something easy to read as a pass. If
+      # GEMINI_API_KEY is absent this fails, loudly, every night, until somebody adds it.
+      - name: Measure retrieval against the corpus
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/discovery-retrieval-regression.py | tee "${RUNNER_TEMP}/retrieval.txt"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Retrieval regression"
+            echo ""
+            echo "SC-002 and SC-003 measured against \`docs/ops/discovery-corpus.json\` with the"
+            echo "embedding model the registry resolves. Ranking is an exact cosine scan, so this"
+            echo "measures the model rather than the deployed HNSW query — see the script's header."
+            echo ""
+            echo '```'
+            cat "${RUNNER_TEMP}/retrieval.txt" 2>/dev/null || echo "no output — the run failed before measuring"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
