@@ -433,12 +433,14 @@ class Gh:
             {"title": title, "body": body, "labels": labels},
         )
 
-    def close_issue(self, number: int) -> None:
-        self._request(
-            "PATCH",
-            f"/repos/{self.owner}/{self.repo}/issues/{number}",
-            {"state": "closed", "state_reason": "completed"},
-        )
+    def close_issue(self, number: int, body: str | None = None) -> None:
+        # The body carries "State in tasks.md", so a task that has since been ticked needs its
+        # body rewritten as well as its state changed. One PATCH does both — closing without
+        # refreshing leaves the issue asserting it is outstanding on the line above the closed badge.
+        payload = {"state": "closed", "state_reason": "completed"}
+        if body is not None:
+            payload["body"] = body
+        self._request("PATCH", f"/repos/{self.owner}/{self.repo}/issues/{number}", payload)
 
     def add_sub_issue(self, parent_number: int, child_id: int) -> None:
         self._request(
@@ -567,10 +569,10 @@ def main() -> int:
         links.add(pair)
         save_state({"issues": issues, "links": sorted(links), "closed": sorted(closed)})
 
-    def ensure_closed(key: str) -> None:
+    def ensure_closed(key: str, body: str | None = None) -> None:
         if key in closed:
             return
-        gh.close_issue(issues[key]["number"])
+        gh.close_issue(issues[key]["number"], body)
         closed.add(key)
         save_state({"issues": issues, "links": sorted(links), "closed": sorted(closed)})
 
@@ -609,15 +611,16 @@ def main() -> int:
         qual = qualify(t["epic"], t["id"])
         wp_id = PARSED_OWNER.get(qual)
         extra_wps = [w for w in claims.get(qual, []) if w != wp_id]
+        body = task_body(t, wp_id, extra_wps)
         ensure_issue(
             qual,
             title_for(f"{t['epic']} {t['id']}", t["description"]),
-            task_body(t, wp_id, extra_wps),
+            body,
             ["task", t["epic"]],
         )
         ensure_link(wp_id or t["epic"], qual)
         if t["done"]:
-            ensure_closed(qual)
+            ensure_closed(qual, body)
 
     log(f"done — {gh.writes} write requests, {len(issues)} issues, {len(links)} links")
     return 0
