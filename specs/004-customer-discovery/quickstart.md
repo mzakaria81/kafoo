@@ -72,14 +72,16 @@ What to actually check:
 1. **`discovery_search_test.sql` assertions 2–4 pass.** They are the behavioural statement of the
    above, and assertion 2 fails within seconds of the CTE being un-materialised.
 2. **The scan itself fits the budget.** Exact ranking is linear: measured at 27 ms for 5,001 Meals
-   in Postgres, so the *scan* reaches a one-second budget somewhere near 180,000 Meals.
+   in Postgres, so the *scan* reaches a one-second budget somewhere near 180,000 Meals — and the
+   scan is not what spends the budget, see below.
    **This is the number that will change**, and the day it stops fitting is the day the HNSW index
    earns its place back — with a design that filters before it ranks, not by reverting this.
 
    **That 27 ms is not SC-006 and must not be quoted as though it were.** It is `EXPLAIN ANALYZE`
    inside Postgres. SC-006 is what a Customer waits, which is a model provider's embedding call
-   plus a round trip plus the bytes coming back. Measured, that is **over the one-second budget**
-   — figures in `docs/ops/measuring-discovery.md`, procedure in §2a.
+   plus a round trip plus the bytes coming back — measured at 1112 ms median and 1438 ms at p95.
+   **SC-006's budget is 1.5 s, raised from 1 s by the founder on 2026-08-08 against exactly that
+   measurement.** Figures and method in `docs/ops/measuring-discovery.md`, procedure in §2a.
 
    And the scan is not what is spending it. Measured at 13 Meals and again at 1,013 on the same
    day, **78× the corpus moved the scan by about 2 ms.** What grew was the response: `search_meals`

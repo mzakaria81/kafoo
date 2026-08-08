@@ -85,7 +85,10 @@ const PRIOR = {
 
 const PRODUCTION_REF = "cshrkpvljknxsdzwhhle";
 const REPORT_PATH = "docs/ops/measuring-discovery.md";
-const BUDGET_MS = 1000;
+// 1.5 s, raised from 1 s by the founder on 2026-08-08 against the measurement this script took.
+// SC-006 and CLAUDE.md's performance budgets carry the reasoning. Changing this number is a
+// product decision and not a tuning knob — if a run comes back over, that is reported.
+const BUDGET_MS = 1500;
 const DEFAULT_RUNS = 20;
 const EMBEDDING_DIMENSIONS = 768;
 const WRITE_CONCURRENCY = 8;
@@ -534,7 +537,12 @@ function ordinal(n: number): string {
 }
 
 function verdict(p95: number): string {
-  return p95 <= BUDGET_MS ? "WITHIN the 1 s budget" : "**OVER the 1 s budget**";
+  // Derived from BUDGET_MS rather than written out, because the last time these were two separate
+  // facts the prose kept saying "1 s" after the number had moved.
+  const budget = `${(BUDGET_MS / 1000).toFixed(BUDGET_MS % 1000 === 0 ? 0 : 1)} s`;
+  return p95 <= BUDGET_MS
+    ? `WITHIN the ${budget} budget`
+    : `**OVER the ${budget} budget**`;
 }
 
 function report(
