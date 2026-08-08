@@ -31,7 +31,7 @@
     ]
   },
   "execution_mode": "PARALLEL",
-  "status": "IN_PROGRESS",
+  "status": "READY_FOR_REVIEW",
   "owner": "session_01EBVCe9B84RTrE36hvWZEc1",
   "priority": 4,
   "spend_envelope_usd": 1.0,
@@ -41,5 +41,5 @@
   "blocked_reason": null,
   "notes": "SHARES A BRANCH WITH WP-018 ON PURPOSE, and that is the exception rather than the pattern. Both edit apps/web/lib/discovery.ts and apps/web/app/, WP-018 is not merged, and two branches over the same unmerged files is a guaranteed conflict for no gain. The coordinator's call, recorded here so the next session does not read one branch carrying two packages as a mistake.\n\nWHAT THIS FOUND, and it is bigger than what it built: the anon insert policy on analytics_events allowed two E1 sign-in event names and nothing else, so every discovery event emitted by a signed-out Customer had been rejected with 42501 and swallowed since E3 shipped. Both surfaces, silently, with the gate green throughout — emitEvent catches everything by design, and analytics_events_rls_test case 3 asserted the old behaviour correctly. E3 recorded no searches at all for the case E3 was built for.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder. Written directly. Nothing was dispatched, so nothing was spent — the validator requires a positive envelope, so it carries the figure this work WOULD take if delegation resumes rather than a record of spend. suggested_model is the row it would go to — auth and a privacy boundary, which is the expensive row's actual purpose.",
   "created_at": "2026-08-08T20:00:00Z",
-  "updated_at": "2026-08-08T20:00:00Z"
+  "updated_at": "2026-08-08T21:30:00Z"
 }
