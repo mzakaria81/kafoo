@@ -621,6 +621,30 @@ run "review agent selection" bash -c '
   [ -f scripts/select-reviewers.sh ] || { echo "   no select-reviewers.sh — skipping"; exit 0; }
   ./scripts/select-reviewers.sh --self-test'
 
+# A FUNCTION DIRECTORY WITH NO CONFIG ENTRY IS A FUNCTION THAT NEVER DEPLOYS.
+#
+# Only functions declared in supabase/config.toml are deployed, and everything else about an
+# undeclared one looks healthy: it type-checks, its unit tests pass, its directory is in the diff.
+# It simply answers 404 in every environment. `delete-account` hit this in E1 and the rule was
+# written into config.toml's own header; E3 then added `discover`, `judge-results` and `embed-meal`
+# without entries, so search had never run anywhere — including production — until 2026-08-08.
+#
+# The rule is only enforceable from outside the file that states it, which is why it is here.
+run "edge functions are declared" bash -c '
+  [ -f supabase/config.toml ] || { echo "   no config.toml — skipping"; exit 0; }
+  status=0
+  for dir in supabase/functions/*/; do
+    name=$(basename "$dir")
+    case "$name" in _*) continue ;; esac
+    if ! grep -q "^\[functions\.${name}\]$" supabase/config.toml; then
+      echo "   FAIL: supabase/functions/${name} has no [functions.${name}] entry in config.toml."
+      echo "   Undeclared functions are not deployed. It will answer 404 everywhere while every"
+      echo "   test and type-check for it stays green."
+      status=1
+    fi
+  done
+  exit $status'
+
 # THE THINGS THAT ARE ONLY WRONG ON A REAL PHONE.
 #
 # Every other check in this file reads Dart, SQL or ARB. None of them opens the Android manifest or
