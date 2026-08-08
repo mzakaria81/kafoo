@@ -108,18 +108,80 @@ def parse_tasks(epic_key: str, spec_dir: str) -> list[dict]:
     return tasks
 
 
-def parse_packages() -> tuple[dict, dict]:
-    """Load every WP-###.json, and map each task id to its owning package."""
+def parse_packages() -> dict:
+    """Load every WP-###.json."""
     packages: dict[str, dict] = {}
-    owner: dict[str, str] = {}
     for p in sorted((REPO_ROOT / "coordination" / "packages").glob("WP-*.json")):
         wp = json.loads(p.read_text(encoding="utf-8"))
         packages[wp["id"]] = wp
-        for task_id in wp.get("tasks", []):
-            # A sub-issue has exactly one parent, so the first claimant wins and
-            # the later one is recorded in both bodies rather than dropped.
-            owner.setdefault(task_id, wp["id"])
-    return packages, owner
+    return packages
+
+
+def qualify(epic_key: str, task_id: str) -> str:
+    """A T### is only unique within its epic.
+
+    E0, E1 and E2 each restart their numbering at T001, so `T045` names an E0
+    task and an E1 task and an E2 task. Every key, title and parent lookup here
+    is epic-qualified for that reason: keying on the bare id makes E1's T001
+    resolve to E0's issue, and GitHub then rejects the second parent with a 422.
+    """
+    return f"{epic_key}/{task_id}"
+
+
+def resolve_wp_epics(packages: dict, tasks_by_epic: dict[str, set]) -> dict[str, str]:
+    """Which epic each package belongs to: the one holding most of its task ids.
+
+    Derived independently of who claims a task. A package whose every task was
+    already claimed by a lower-numbered package still belongs to its epic, and
+    inferring the epic from the claim map instead would file it under a default.
+    """
+    wp_epic: dict[str, str] = {}
+    for wp_id in sorted(packages):
+        ids = set(packages[wp_id].get("tasks", []))
+        if not ids:
+            continue
+        wp_epic[wp_id] = max(tasks_by_epic, key=lambda e: len(ids & tasks_by_epic[e]))
+    return wp_epic
+
+
+def resolve_owners(
+    packages: dict, tasks_by_epic: dict[str, set], wp_epic: dict[str, str]
+) -> dict[str, str]:
+    """Map an epic-qualified task id to the package that claims it."""
+    owner: dict[str, str] = {}
+    for wp_id in sorted(packages):
+        epic_key = wp_epic.get(wp_id)
+        if not epic_key:
+            continue
+        for task_id in packages[wp_id].get("tasks", []):
+            if task_id in tasks_by_epic[epic_key]:
+                # A sub-issue has exactly one parent, so the first claimant wins
+                # and any later one is recorded in both bodies rather than dropped.
+                owner.setdefault(qualify(epic_key, task_id), wp_id)
+    return owner
+
+
+def merge_duplicate_ids(tasks: list[dict]) -> tuple[list[dict], dict[str, int]]:
+    """Fold a task id recorded more than once in one tasks.md into one entry.
+
+    E2 records T094 and T095 twice — once in their phase and once in a trailing
+    section — with the same status and the same "folded into T088" text. They are
+    one task written down twice, so they become one issue carrying both blocks.
+    Two issues cannot share an id: the key would collide and the second link
+    would be refused as a second parent.
+    """
+    merged: dict[str, dict] = {}
+    counts: dict[str, int] = {}
+    for t in tasks:
+        counts[t["id"]] = counts.get(t["id"], 0) + 1
+        first = merged.get(t["id"])
+        if first is None:
+            merged[t["id"]] = t
+            continue
+        first["duplicates"] = first.get("duplicates", [])
+        first["duplicates"].append(t)
+        first["done"] = first["done"] or t["done"]
+    return list(merged.values()), {i: n for i, n in counts.items() if n > 1}
 
 
 # --------------------------------------------------------------------------- bodies
@@ -163,7 +225,7 @@ def epic_body(key: str, spec_dir: str, name: str, tasks: list[dict], wp_ids: lis
         ]
         out[-1] = ", ".join(f"`{w}`" for w in wp_ids)
         out.append("")
-    unpackaged = [t for t in tasks if t["id"] not in PARSED_OWNER]
+    unpackaged = [t for t in tasks if qualify(key, t["id"]) not in PARSED_OWNER]
     if unpackaged:
         out += [
             "## Tasks without a work package",
@@ -264,6 +326,20 @@ def task_body(t: dict, wp_id: str | None, extra_wps: list[str]) -> str:
 
     if t["extra"]:
         out += ["", "\n".join(t["extra"]).rstrip()]
+
+    for i, dup in enumerate(t.get("duplicates", []), start=1):
+        out += [
+            "",
+            f"> **This task id is recorded {i + 1} times in `tasks.md`.** The other entry is "
+            f"reproduced below rather than given its own issue, since two issues cannot share "
+            f"one id. Reconciling the file is a planning edit and is not done here.",
+            "",
+            f"**Also recorded under** _{dup.get('phase') or 'no phase'}_:",
+            "",
+            f"{dup['id']} {dup['description']}",
+        ]
+        if dup["extra"]:
+            out += ["", "\n".join(dup["extra"]).rstrip()]
 
     if extra_wps:
         out += [
@@ -407,29 +483,33 @@ def main() -> int:
         ap.error("pass --apply or --dry-run")
 
     global PARSED_OWNER
-    packages, PARSED_OWNER = parse_packages()
+    packages = parse_packages()
+
+    epics: list[dict] = []
+    for key, spec_dir, name in EPICS:
+        epics.append(
+            {"key": key, "spec_dir": spec_dir, "name": name, "tasks": parse_tasks(key, spec_dir)}
+        )
+
+    duplicates: dict[str, dict[str, int]] = {}
+    all_tasks = []
+    for e in epics:
+        e["tasks"], dups = merge_duplicate_ids(e["tasks"])
+        if dups:
+            duplicates[e["key"]] = dups
+        all_tasks.extend(e["tasks"])
+
+    tasks_by_epic = {e["key"]: {t["id"] for t in e["tasks"]} for e in epics}
+    wp_epic = resolve_wp_epics(packages, tasks_by_epic)
+    PARSED_OWNER = resolve_owners(packages, tasks_by_epic, wp_epic)
 
     # Which package claims a task more than once — recorded, never dropped.
     claims: dict[str, list[str]] = {}
-    for wp_id, wp in packages.items():
-        for task_id in wp.get("tasks", []):
-            claims.setdefault(task_id, []).append(wp_id)
-
-    epics: list[dict] = []
-    all_tasks: list[dict] = []
-    for key, spec_dir, name in EPICS:
-        tasks = parse_tasks(key, spec_dir)
-        # Re-walk to attach phase/section, which parse_tasks tracked positionally.
-        epics.append({"key": key, "spec_dir": spec_dir, "name": name, "tasks": tasks})
-        all_tasks.extend(tasks)
-
-    task_by_id = {t["id"]: t for t in all_tasks}
-    wp_epic: dict[str, str] = {}
-    for wp_id, wp in packages.items():
-        for task_id in wp.get("tasks", []):
-            if task_id in task_by_id:
-                wp_epic[wp_id] = task_by_id[task_id]["epic"]
-                break
+    for wp_id in sorted(packages):
+        epic_key = wp_epic.get(wp_id)
+        for task_id in packages[wp_id].get("tasks", []):
+            if epic_key and task_id in tasks_by_epic[epic_key]:
+                claims.setdefault(qualify(epic_key, task_id), []).append(wp_id)
 
     epic_wps: dict[str, list[str]] = {e["key"]: [] for e in epics}
     for wp_id in sorted(packages):
@@ -443,7 +523,7 @@ def main() -> int:
         f"= {n_issues} issues, {n_links} sub-issue links, {n_close} to close"
     )
     for e in epics:
-        unp = [t for t in e["tasks"] if t["id"] not in PARSED_OWNER]
+        unp = [t for t in e["tasks"] if qualify(e["key"], t["id"]) not in PARSED_OWNER]
         log(
             f"  {e['key']}: {len(e['tasks'])} tasks "
             f"({sum(1 for t in e['tasks'] if t['done'])} done), "
@@ -452,6 +532,8 @@ def main() -> int:
     dupes = {t: w for t, w in claims.items() if len(w) > 1}
     if dupes:
         log(f"  tasks claimed by more than one package: {dupes}")
+    for epic_key, dups in duplicates.items():
+        log(f"  {epic_key}: task id recorded more than once in tasks.md, merged into one issue: {dups}")
 
     if args.dry_run:
         log("dry run — nothing created")
@@ -509,7 +591,11 @@ def main() -> int:
     for wp_id in sorted(packages):
         wp = packages[wp_id]
         epic_key = wp_epic.get(wp_id, "E3")
-        extra = [t for t in wp.get("tasks", []) if len(claims.get(t, [])) > 1]
+        extra = [
+            t
+            for t in wp.get("tasks", [])
+            if len(claims.get(qualify(epic_key, t), [])) > 1
+        ]
         ensure_issue(
             wp_id,
             title_for(wp_id, wp["title"]),
@@ -520,17 +606,18 @@ def main() -> int:
 
     log("tasks")
     for t in all_tasks:
-        wp_id = PARSED_OWNER.get(t["id"])
-        extra_wps = [w for w in claims.get(t["id"], []) if w != wp_id]
+        qual = qualify(t["epic"], t["id"])
+        wp_id = PARSED_OWNER.get(qual)
+        extra_wps = [w for w in claims.get(qual, []) if w != wp_id]
         ensure_issue(
-            t["id"],
-            title_for(t["id"], t["description"]),
+            qual,
+            title_for(f"{t['epic']} {t['id']}", t["description"]),
             task_body(t, wp_id, extra_wps),
             ["task", t["epic"]],
         )
-        ensure_link(wp_id or t["epic"], t["id"])
+        ensure_link(wp_id or t["epic"], qual)
         if t["done"]:
-            ensure_closed(t["id"])
+            ensure_closed(qual)
 
     log(f"done — {gh.writes} write requests, {len(issues)} issues, {len(links)} links")
     return 0
