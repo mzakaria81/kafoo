@@ -1,0 +1,48 @@
+{
+  "note": "Recorded by scripts/discovery-retrieval-regression.py --record. Rank movement against this file is reported, never failed on; only the SC-002 and SC-003 thresholds fail a run.",
+  "model": "gemini-embedding-2",
+  "dimensions": 768,
+  "criteria": {
+    "SC-002": {
+      "statement": "A request phrased in a different language or script from a Meal's description returns that Meal in the top five results in at least 95% of tested cases.",
+      "cases": 4,
+      "hits": 4,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "queries": {
+        "q_burger_latin": 1,
+        "q_pizza_latin": 1,
+        "q_grilled_chicken_en": 1,
+        "q_spicy_en": 1
+      }
+    },
+    "SC-003": {
+      "statement": "For requests that something on offer genuinely answers, a relevant Meal appears in the top five in at least 80% of tested cases.",
+      "cases": 19,
+      "hits": 18,
+      "rate": 0.9473684210526315,
+      "threshold": 0.8,
+      "queries": {
+        "q_light": 2,
+        "q_mums_cooking": 1,
+        "q_burger_ar": 1,
+        "q_burger_latin": 1,
+        "q_pizza_latin": 1,
+        "q_grilled_chicken_en": 1,
+        "q_sweet": 1,
+        "q_traditional": 1,
+        "q_cheap_filling": 2,
+        "q_no_meat": 6,
+        "q_warming": 1,
+        "q_breakfast": 1,
+        "q_seafood": 1,
+        "q_hosting": 4,
+        "q_healthy": 2,
+        "q_ramadan_sweets": 1,
+        "q_spicy_en": 1,
+        "q_chicken": 1,
+        "q_kids": 1
+      }
+    }
+  }
+}

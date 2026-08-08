@@ -35,6 +35,16 @@ __pycache__/
 .idea/
 *.iml
 
-# A review agent's scratch harness, written into the working tree while it runs.
-# Never a deliverable: unreviewed, and named for what it is.
-apps/mobile/test/zz_probe_test.dart
+# A REVIEW AGENT'S SCRATCH HARNESS, and the pattern is the point rather than the path.
+#
+# Review agents run the code they are reviewing, which means writing probes into the working tree
+# while the main session is also working in it. `git add -A` then sweeps them into a commit — it
+# happened twice on 2026-08-07, and the first fix was to ignore the one filename that had bitten,
+# which is the same enumeration mistake the exclusion vocabulary made: it covered the case somebody
+# had seen and left the class open. The second agent's probe had a different name and went straight
+# through.
+#
+# So: anything named `zz_*` anywhere is scratch, ignored, and never a deliverable. Every agent brief
+# in .claude/agents/ tells its agent to use that prefix or the session scratchpad. `zz` sorts last
+# and collides with nothing.
+zz_*

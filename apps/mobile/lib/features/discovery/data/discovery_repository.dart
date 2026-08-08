@@ -130,6 +130,17 @@ class SupabaseDiscoveryRepository implements DiscoveryRepository {
   ///
   /// It is also the safer default in general: `*` widens with the table, so the first genuinely
   /// private column added to `meals` would start arriving here on the day it is created.
+  ///
+  /// **This list covered browsing and not searching, and search paid for it for two days.** Search
+  /// goes through the `discover` Edge Function, which returns what `search_meals` gave it — and
+  /// that returned `SETOF meals`, vectors included, whatever this constant said. Measured at 497 KB
+  /// a search and 415 ms of a 1112 ms wait (`docs/ops/measuring-discovery.md`).
+  ///
+  /// Fixed in the database rather than here, so it cannot come back through a caller that forgets:
+  /// `20260808165000_stop_returning_meal_embeddings_from_search.sql` gives `search_meals` a return
+  /// type with no `embedding` in it. **These columns and that function's return type are one list
+  /// in two places** — a column added to `meals` that a screen needs has to reach both, and
+  /// `discovery_search_test.sql` assertion 6 is the SQL-side statement of it.
   static const String _mealColumns =
       'id, cook_id, title, description, price, cuisine, category, status, '
       'ingredients, calories, allergens, nutrition_source, photo_path, '

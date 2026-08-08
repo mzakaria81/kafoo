@@ -1568,3 +1568,78 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a static check collides with code whose purpose is to describe what the check forbids, prefer bending the describing code over widening the check — build the forbidden literal from parts, or name a single exempt file rather than a pattern. Record the reason at the point of the awkwardness, because otherwise it reads as obfuscation and the next author "cleans it up". Never exempt a category (tests, fixtures, examples): the exemption becomes the place the forbidden thing lives.
 
 **Principle:** A check that forbids a token cannot distinguish mentioning from using, and the fix belongs on the mentioning side. Exemptions should be one named file with a stated reason, never a class of files — a categorical exemption is a permanent hole whose shape exactly matches what a motivated author would need.
+
+### Observation 109: A status field only a dead actor may set is never set
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Closing out two coordination work packages whose code had merged to main a day earlier while both records still read READY_FOR_REVIEW with `pr: null`.
+**Skill:** Project documentation — `coordination/README.md` lifecycle
+**Type:** open-source
+**Phase/Area:** Work-package lifecycle, the `pr` field
+
+**Issue:** The lifecycle assigns `READY_FOR_REVIEW` to the worker and `COMPLETED` to the coordinator, and the `pr` field is described as "so the coordinator can see state without asking". But nothing writes `pr` at the moment the PR is opened. Both packages carried `pr: null` through open, review and merge, so the one field that would have let anyone check the merge from the record was the field the record never had. The workers were not negligent: containers are destroyed on inactivity, so by the time the number mattered the only session that knew it was gone. The record then looked identical to unfinished work, which is the exact failure the directory exists to prevent.
+
+**Suggested improvement:** Require `pr` to be written in the same edit that moves a package to `READY_FOR_REVIEW` — the transition that means "my PR is open and green" is the moment the number exists and the worker is still alive. Where a validator exists, make `READY_FOR_REVIEW` with `pr: null` an error, the same way `BLOCKED` with no `blocked_reason` already is.
+
+**Principle:** When a field's only writer is an actor that predictably disappears before the field matters, the field will be empty exactly when it is needed. Bind writing it to the last transition that actor is guaranteed to be present for, and let the schema check refuse the transition without it.
+
+### Observation 110: A criterion that names an identifier is checkable by searching for the identifier
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Walking eleven acceptance criteria against merged code to decide whether a package was genuinely done.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Verifying acceptance criteria against a codebase
+
+**Issue:** One criterion read "SC-002 and SC-003 verified by name". The feature it describes worked, was well tested, and had shipped — so reading the code invited the conclusion that the criterion held. It did not: neither identifier appeared in any test in the repository, and the only hits for that string belonged to a different, earlier specification that happened to reuse the number. The cheap check found in seconds what a careful read of the feature would have talked itself out of.
+
+**Suggested improvement:** When a criterion names a stable identifier — a requirement id, a ticket number, an error code, a metric name — check it by searching the repository for that identifier before reading any implementation, and treat zero hits as unmet regardless of how good the feature looks. Then check the hits actually belong to the right document, because identifier schemes are reused across specifications.
+
+**Principle:** An identifier named in a criterion is a grep-able assertion, and grep does not rationalise. Run the mechanical check first; reading the implementation first primes you to accept an outcome that resembles the requirement instead of the one that satisfies it.
+
+### Observation 111: A landmark that exists before the thing you are timing measures nothing
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Measuring that an optional AI response never delays the results a user sees — timing from "request finished" to "results visible" under two conditions and asserting the two are equal.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Writing a measurement, as opposed to an assertion
+
+**Issue:** The measurement loop waited for a piece of content to appear on screen and counted iterations. The content chosen was already on screen — it belonged to the underlying list the feature renders over, not to the results being timed. So the loop exited on the first iteration under both conditions, reported two equal numbers, and passed. It would have reported the same two equal numbers against an implementation that never rendered a result at all. A second, subtler form appeared immediately after the fix: both runs shared one element tree, so the second run began timing with the first run's output still displayed, and the loop again exited immediately. Neither was visible from reading the test; both surfaced only when the implementation was deliberately broken.
+
+**Suggested improvement:** Any test that waits for a condition and counts must first assert the condition is FALSE before the timed action begins. One line, and it converts a silently vacuous measurement into a loud one. When several timed runs share a test body, give each its own distinct landmark rather than assuming teardown between them — UI frameworks that reuse a widget or element tree will carry the previous run's state into the next.
+
+**Principle:** A measurement is only valid if its start condition was verified to be unmet at the start. Timing to "X appears" when X was already there is not a slow measurement or an inaccurate one — it is no measurement, and it produces the exact numbers a passing result would.
+
+### Observation 112: Two expressions of one rule are a rule that can half-change
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Mutation-testing a script that computes two acceptance thresholds from the same underlying predicate.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Mutation testing, and what to do when a mutation survives
+
+**Issue:** The rule "the target appears within the top five" was written twice — once in the expression counting hits, once in the expression computing the rate. Four deliberate mutations turned the self-check red as intended. A fifth, narrowing "top five" to "top one", SURVIVED: it edited one of the two copies, so the rate moved while the count did not, and no assertion compared them. The tempting response is to add an assertion covering the second copy. That leaves the duplication, so the next mutation in the other direction survives instead.
+
+**Suggested improvement:** When a mutation survives, ask first whether the rule it touched exists in more than one place. If it does, collapse the copies into one named predicate and re-run the mutation — the fix is deduplication, not another assertion. Add the assertion too, but as a second layer. Record the surviving mutation next to the extracted predicate so a later author does not re-inline it for readability.
+
+**Principle:** A surviving mutation is evidence about the code's structure as often as about the test's coverage. Duplicated logic is partially mutable: a change can hit one copy and leave the other, so no test that compares outputs can see a difference. Deduplicating turns a class of undetectable mutations into detectable ones, which no amount of extra assertions on the duplicated form will do.
+
+### Observation 113: A task listed in a closed unit of work is a claim that it was delivered
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Closing a large work package whose acceptance criteria were all met, but whose task list included one task that was genuinely two halves — one delivered and merged, one that could not be done from the environment at all.
+**Skill:** ship-check
+**Type:** open-source
+**Phase/Area:** Closing a unit of work when part of it cannot be finished
+
+**Issue:** Three options presented themselves and two were wrong in ways that are easy to miss. Marking the package complete with the task still listed silently claims the undone half, because a task id inside a completed package is read as delivered by everyone downstream — including the tracker's own dependency graph. Holding the package open for the remaining half keeps an otherwise finished unit active, which in a system where active units block exclusive ones and carry an owner name means a dead worker appears to still be working. Duplicating the task id into a new package makes the same number mean "done" in one place and "not done" in another.
+
+**Suggested improvement:** When closing a unit of work that carries an unfinished task, MOVE the task id to the new unit rather than leaving or copying it, and write on both sides what was delivered under the old id. The delivered half stays recorded as history in the closed unit's notes; the id itself — the thing tools and dependency graphs read — travels with the work that remains. Then check whether any other unit depended on the closed one for the moved task's outcome, and repoint that dependency, or the split silently unblocks work that is still blocked.
+
+**Principle:** Identifiers carry status, prose carries history. A task number in a completed unit is a machine-readable assertion of completion no amount of surrounding explanation overrides, so the number must follow the unfinished work while the narrative of what was already delivered stays behind.

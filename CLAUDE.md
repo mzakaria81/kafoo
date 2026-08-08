@@ -215,8 +215,25 @@ Development speed is last. Do not trade trust or simplicity for it.
 
 ## Performance budgets
 
-App launch <2s · voice response <2s · meal publish <3s · cached search <1s.
+App launch <2s · voice response <2s · meal publish <3s · search <1.5s.
 If a change pushes past a budget, say so in the PR rather than shipping it silently.
+
+**Search was <1s until 2026-08-08, and it was raised by the founder rather than missed quietly.**
+Measured end to end for the first time that day — the figure it replaced had never been taken —
+discovery runs at 1112 ms median and 1438 ms at p95 against a corpus of 1,013 Meals.
+`docs/ops/measuring-discovery.md` has the breakdown. Raising a budget so a measurement passes is
+normally the move this repository refuses; it is allowed here because the founder owns this number,
+took the decision knowing what it was measured at, and it is written down as a decision with its
+evidence rather than adjusted to fit. **Nobody else raises one of these.**
+
+Two things that decision does not cover, and both are in the report: the measurement runs from a
+cloud container in the database's own region, so an Egyptian mobile network adds to every figure and
+1438 ms is a floor rather than what a phone sees. And 415 ms of that median is the `embedding`
+column being serialised into a response no client reads — a fixable cost, not a fact about search.
+
+The old wording read "cached search <1s" and described something that cannot exist: `discover`
+must not cache on a Customer's phrase, because a cache keyed on what somebody said is a recording
+of what they said (FR-029, SC-011).
 
 ## Skill activation
 
@@ -284,6 +301,16 @@ packages, but nothing can retroactively fix a task number two people have alread
 user-facing change touches both ARB files, and two workers adding pgTAP cases both edit the same
 `plan(N)` line. `scope.shared_files` is where that is admitted so the coordinator can serialise it.
 A package claiming to touch nothing shared is usually a package nobody checked.
+
+**Never `git add -A` while a review agent is running.** They run the code they review, which means
+writing probe files into the same working tree you are about to stage. Stage named paths, or
+`git add -u` plus the files you actually created. Both agents dispatched on 2026-08-07 left a probe
+behind and one reached a commit; `zz_*` is now git-ignored so the class cannot recur silently, but a
+blanket add in a shared tree is still a commit nobody reviewed.
+
+The same applies to the gate. `./scripts/verify.sh` grades the WORKING TREE, so a run started while
+an agent is mid-edit is grading a mixture — rls-reviewer said so explicitly rather than reporting a
+result it could not attribute. If the tree is not yours alone, say what you measured.
 
 **A worker still stops and asks.** The stop-and-ask triggers below — a new screen, money, a new
 category of personal data, AI acting without approval — route to the founder. Owning a package end

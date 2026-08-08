@@ -394,7 +394,19 @@ nothing. Everything visible must obey the same rules as inside Kafoo.
   results as answers in **100%** of tested cases. This criterion does not degrade with corpus size.
 - **SC-005**: An excluded food appears in results **zero** times across the exclusion test set. Any
   occurrence is a failure of the feature, not a ranking miss.
-- **SC-006**: Results appear within one second of a Customer finishing their request.
+- **SC-006**: Results appear within **1.5 seconds** of a Customer finishing their request.
+
+  **This said one second until 2026-08-08 and was raised by the founder, not relaxed to fit.**
+  The criterion had never been measured — the one-second figure was an estimate, and the 27 ms
+  quoted elsewhere for ranking is `EXPLAIN ANALYZE` inside Postgres rather than a Customer's wait.
+  Measured end to end for the first time that day: 1112 ms median, 1438 ms at p95, at a corpus of
+  1,013 Meals. `docs/ops/measuring-discovery.md` carries the figures, the method, and what it does
+  not cover.
+
+  **Corpus size is not what spends it.** The same measurement at 13 Meals and at 1,013 moved the
+  ranking scan by about 2 ms. What grows is the response: 415 ms of the median wait is the
+  `embedding` column being serialised into a payload no client reads. That is a fixable cost and
+  is not absorbed by this criterion.
 - **SC-007**: The AI Assistant's judgement never delays results appearing. Measured as the time
   between a request finishing and results being visible, which must be unaffected by whether the AI
   Assistant has responded.
