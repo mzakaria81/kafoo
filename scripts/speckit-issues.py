@@ -598,13 +598,21 @@ def main() -> int:
             for t in wp.get("tasks", [])
             if len(claims.get(qualify(epic_key, t), [])) > 1
         ]
+        body = package_body(wp, epic_key, extra)
         ensure_issue(
             wp_id,
             title_for(wp_id, wp["title"]),
-            package_body(wp, epic_key, extra),
+            body,
             ["work-package", epic_key],
         )
         ensure_link(epic_key, wp_id)
+        # An epic's sub-issues are its packages, so the epic's progress is the count of
+        # CLOSED package issues — not of finished tasks inside them. COMPLETED is the
+        # coordinator's verdict after the merge, so it is the only status that closes one:
+        # a package with every task done but still IN_PROGRESS or READY_FOR_REVIEW is
+        # deliberately not finished, and closing it here would overrule the coordinator.
+        if wp["status"] == "COMPLETED":
+            ensure_closed(wp_id, body)
 
     log("tasks")
     for t in all_tasks:

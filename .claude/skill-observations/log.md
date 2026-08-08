@@ -1728,3 +1728,20 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Add a validation pass before creation that reports, without fixing: ids duplicated within a file, ids referenced by a grouping that do not exist in any task file, and checkbox state contradicting any status the project tracks separately. Report and stop, or report and continue behind a flag — but never silently normalise, because reconciling a plan file is a planning decision belonging to whoever owns it. Where the converter must handle a defect to proceed at all, it should say so in the created record rather than absorb it.
 
 **Principle:** Any tool that reads every record in a source mechanically is a free consistency check on that source, and the findings belong upstream where the source can be fixed — not silently accommodated so the conversion can finish. Accommodating a defect quietly is worse than failing on it: it creates a second system that agrees with the first, and agreement between two copies of one mistake reads as corroboration.
+
+---
+
+### Observation 119: a rollup counts the children it has, not the ones you were thinking of
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** After reconciling 113 of 126 tasks in an epic to done and closing every one of their issues, the epic's own progress indicator still read 0%.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Hierarchy / parent-child modelling
+
+**Issue:** Where an intermediate grouping level exists, the top-level parent's children are the groupings — not the leaf items. Closing 113 leaf issues moved every grouping to 100% and left the top level at 0%, because nothing had closed the grouping issues themselves. The number was not wrong; it was answering a different question from the one being read off it, and it looked like a bug in the closing pass. The fix was to close a grouping when the project's own status field says the grouping is finished — deliberately not when its children all happen to be closed, because a grouping can have every item delivered and still be open on decisions its owner has not taken, which was true of one grouping here.
+
+**Suggested improvement:** When a hierarchy has three levels, state which level each parent's indicator counts, and close intermediate nodes from the source's own completion field rather than inferring completion from the children. Inferring it would silently overrule whoever owns that field. Verify the top-level indicator explicitly after any bulk close — a parent reading 0% while all its grandchildren are closed is the signature of this mistake.
+
+**Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.
