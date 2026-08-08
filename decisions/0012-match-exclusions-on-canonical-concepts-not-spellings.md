@@ -1,8 +1,14 @@
 # ADR-0012 — Match exclusions on canonical concepts, not on spellings
 
-**Status:** Proposed
-**Date:** 2026-08-07
+**Status:** Accepted
+**Date:** 2026-08-07 · **Accepted:** 2026-08-08
 **Decider:** Founder
+
+Accepted on the measurement it was waiting for. Open question 1 — the classifier's recall — was
+answered at 100% on 75 category instances, against a 90% revisit trigger. The remaining open
+questions do not block acceptance; each names the part of the work it governs, and question 7 (how a
+Cook gets past a confirmation step that will not complete) has to be answered before the publish
+flow is built.
 
 ## Context
 
