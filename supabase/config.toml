@@ -95,3 +95,38 @@ verify_jwt = true
 [functions.analyze-meal]
 enabled = true
 verify_jwt = true
+
+# THE THREE BELOW WERE MISSING UNTIL 2026-08-08, so E3's search had never been deployed anywhere —
+# not to a preview branch, not to the demo database, NOT TO PRODUCTION. `discover` returned 404 on
+# every environment while its unit tests, its type-check and the whole gate stayed green, because
+# nothing in the gate asks whether a function that exists is a function that runs.
+#
+# This is the exact failure the header above describes, recorded when `delete-account` hit it, and
+# repeated because the rule lives here and the person adding a function is reading the function.
+#
+# `verify_jwt = true` ON A SURFACE THAT WORKS WITHOUT AN ACCOUNT, which reads like a contradiction
+# and is not. Measured on 2026-08-08 against the deployed `analyze-meal`: a request carrying only
+# the publishable key PASSES the platform gate and reaches the function, while a request with no
+# Authorization header at all is refused by the platform with UNAUTHORIZED_NO_AUTH_HEADER. So a
+# signed-out Customer holding the app's own key gets through and the open internet does not.
+#
+# That distinction is worth having rather than reaching for `verify_jwt = false`. `discover` calls a
+# paid embedding provider on every request, so an endpoint reachable with no credential at all is a
+# metered endpoint anyone can run up. Signed-out is not the same as unauthenticated, and only one of
+# the two needs to work.
+#
+# `discover` and `judge-results` do NOT read identity from the token — they pass the caller's own
+# Authorization header to the database and let RLS answer, which is what makes discovery work
+# without an account. `embed-meal` does hold a service-role key and its authorization is its own,
+# narrowed by `20260807064927` to a single column.
+[functions.discover]
+enabled = true
+verify_jwt = true
+
+[functions.judge-results]
+enabled = true
+verify_jwt = true
+
+[functions.embed-meal]
+enabled = true
+verify_jwt = true

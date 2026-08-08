@@ -65,28 +65,47 @@ is copied in, ever.
 
 The point is to stop schema and configuration changes reaching the real database untried.
 
-**Cost.** Branches bill only while they exist, so cost tracks how many pull requests are open rather
-than a monthly subscription. An idle repository costs nothing. Compare a persistent staging
-database, which is about $10/month whether or not anyone uses it.
+**Cost.** An ephemeral branch bills only while its pull request is open, so that part of the bill
+tracks how many pull requests are open rather than a subscription. The permanent demo database below
+is the standing cost — roughly $10/month, whether or not anyone opens it.
 
-## Why ephemeral rather than persistent, for now
+## There is now a permanent branch as well, and it is the demo database
 
-Kafoo has no users. The live database holds nothing a mistake could damage, so it is already serving
-as its own staging environment. Buying a permanent second database to protect an empty one is paying
-for a rehearsal room with no performance to rehearse.
+**Founder's decision, 2026-08-07.** Kafoo keeps ephemeral branches for pull requests AND runs one
+permanent branch called `demo/environment`. They are not alternatives; they answer different
+questions. An ephemeral branch asks *does this change break the schema*. The permanent one asks
+*what is Kafoo like to use*, and that question cannot be answered by a database that is deleted when
+a pull request closes.
 
-Revisit when either happens, whichever comes first:
+This section previously argued the opposite — that a permanent branch was "paying for a rehearsal
+room with no performance to rehearse", and that the moment to buy one was when a real Cook signed up
+or a build went to someone outside the team. **That reasoning was about protecting the production
+database, and it was answering the wrong question.** The demo database does not exist to protect
+anything. It exists so there is a Kafoo with food in it that somebody can hold, and the founder
+needed that before either of those triggers, not after.
 
-- the first real Cook signs up, or
-- a test build goes to someone outside the team and needs a fixed address to talk to
+The ephemeral argument also had a practical cost nobody had priced: a demo environment on a pull
+request cannot be merged without destroying itself, which put a pull request titled DO NOT MERGE at
+the top of the repository and made every GitHub notification about it read as a warning.
 
-At that point add a persistent branch *as well*. These are not alternatives; the second becomes
-worth its cost later.
+**What the permanent branch changes:**
 
-**When that day comes, do not copy real Customer data into staging.** It will be suggested as "more
-realistic testing". Allergy and dietary information is health-adjacent and is stored only with
-consent for a named purpose (`.claude/rules/business-rules.md`); "we copied it to a test database"
-is not that purpose. Realistic *shapes* of data, yes. Real people's records, no.
+- Its API URL and publishable key are FIXED. They are stored as the repository variables
+  `DEMO_SUPABASE_URL` and `DEMO_SUPABASE_PUBLISHABLE_KEY`, which is what makes building the demo APK
+  a single click rather than a copy-and-paste.
+- It survives its pull request being merged or closed, and it survives the git branch being deleted.
+- **`seed.sql` still runs only at creation.** So changing `supabase/demo-data.json` no longer
+  reaches it by closing and reopening a pull request — reset the branch instead, which reapplies
+  migrations and the seed. That throws away anything created by hand, which on a permanent database
+  is a real loss rather than a formality.
+- It costs money every day nobody uses it. Deleting it is one click and the cost stops; the demo APK
+  then points at nothing until a new address is stored.
+
+**Do not copy real Customer data into it.** This will be suggested as "more realistic testing".
+Allergy and dietary information is health-adjacent and is stored only with consent for a named
+purpose (`.claude/rules/business-rules.md`); "we copied it to a test database" is not that purpose.
+Realistic *shapes* of data, yes — that is what `supabase/demo-data.json` is. Real people's records,
+no.
 
 ## What it caught immediately
 

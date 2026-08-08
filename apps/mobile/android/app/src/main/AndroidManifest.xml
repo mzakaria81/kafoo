@@ -1,4 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- THE RELEASE BUILD HAD NO NETWORK AT ALL UNTIL 2026-08-07, and nothing said so.
+
+         Flutter's template declares INTERNET in src/debug and src/profile and NOT here, so the
+         permission is present in every build a developer runs and absent from the one that reaches
+         a phone. The first demo APK could not reach Supabase: browsing answered "we cannot show the
+         food right now", and search would have answered the same, from a database that was serving
+         those exact rows over HTTP at the time.
+
+         It reads as a network fault rather than a missing permission, which is why it survives —
+         and the two manifests that DO declare it make a grep for INTERNET look reassuring. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Voice is the default input, not an accessory (Principle IV), so this is not optional.
+         Without it speech_to_text reports itself unavailable and the Customer is told to type. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <application
         android:label="kafoo_mobile"
         android:name="${applicationName}"
@@ -40,6 +56,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11 hides other packages unless they are named here, and the speech recogniser
+             is another package. RECORD_AUDIO alone is not enough: the permission lets Kafoo hear,
+             this lets it find the thing that listens. Missing, speech_to_text initialises to
+             "unavailable" on a phone that has a perfectly good recogniser installed. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

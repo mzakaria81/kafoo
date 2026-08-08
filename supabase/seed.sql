@@ -1,4 +1,18 @@
--- Local test harness. Runs on `supabase db reset`; never on `supabase db push`.
+-- Local test harness, plus the demo data a preview branch starts with.
+-- Runs on `supabase db reset`; never on `supabase db push`.
+--
+-- WHICH FILES EARN A PREVIEW BRANCH, measured 2026-08-07 rather than read. Supabase Branching
+-- watches a SHORT LIST of paths — this file, supabase/migrations/, supabase/config.toml,
+-- supabase/functions/ — and not the whole `supabase/` directory. A pull request that changed only
+-- supabase/demo-data.json got `Supabase Preview: skipped` and a bot comment saying "no changes
+-- detected in supabase directory", which reads as though the directory had not been touched. It
+-- had. Closing and reopening the pull request did not help, because the verdict is about the diff.
+--
+-- THIS ALSO RUNS ONCE PER BRANCH, AT CREATION, AND THAT MATTERS MORE NOW THAT THE DEMO DATABASE IS
+-- PERMANENT. Editing the demo data and pushing does not reach it. Reaching it means RESETTING the
+-- branch, which reapplies the migrations and this file and discards everything created by hand
+-- since — a formality on a throwaway branch and a real loss on one that has been in use.
+-- docs/ops/demo-environment.md is the runbook.
 --
 -- E1's authorization tests call pgTAP (`plan`, `is`, `throws_ok`, `finish`) and four helpers in a
 -- `tests` schema. Neither existed anywhere in this repository, so `supabase test db` failed at the
