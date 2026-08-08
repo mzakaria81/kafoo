@@ -1,0 +1,45 @@
+{
+  "id": "WP-021",
+  "title": "Collect the analytics that cannot be recovered later",
+  "objective": "Write down the questions the business needs answered, decide which of them are unanswerable if nobody records now, and record exactly those. Founder's instruction, 2026-08-08, in place of an analytics epic.",
+  "tasks": [],
+  "acceptance_criteria": [
+    "docs/product/business-questions.md exists and states, per question, whether it is answerable and from what",
+    "the discovery events reach analytics_events for a signed-out Customer — proven by a pgTAP case seen to fail first",
+    "SearchPerformed carries what Kafoo chose (top_cuisine, top_category, area_narrowed) and never a word a Customer said",
+    "MealOpened exists on both surfaces, emitted from the shared card, carrying source, cuisine and category",
+    "no event carries the phrase, the area, a Meal id, or an exclusion — asserted by test on both surfaces",
+    "event-model.md registry updated in the same change",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-018"
+  ],
+  "scope": {
+    "files": [
+      "docs/product/business-questions.md",
+      "supabase/migrations/20260808194534_widen_anonymous_analytics_to_discovery.sql",
+      "supabase/tests/analytics_events_rls_test.sql",
+      "apps/mobile/lib/features/analytics/",
+      "apps/mobile/lib/features/discovery/"
+    ],
+    "shared_files": [
+      "docs/product/event-model.md",
+      "apps/web/lib/discovery.ts",
+      "apps/web/app/",
+      ".claude/skill-observations/log.md"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "IN_PROGRESS",
+  "owner": "session_01EBVCe9B84RTrE36hvWZEc1",
+  "priority": 4,
+  "spend_envelope_usd": 1.0,
+  "suggested_model": "opencode-go/grok-4.5",
+  "branch": "claude/wp18-start-1l9vci",
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "SHARES A BRANCH WITH WP-018 ON PURPOSE, and that is the exception rather than the pattern. Both edit apps/web/lib/discovery.ts and apps/web/app/, WP-018 is not merged, and two branches over the same unmerged files is a guaranteed conflict for no gain. The coordinator's call, recorded here so the next session does not read one branch carrying two packages as a mistake.\n\nWHAT THIS FOUND, and it is bigger than what it built: the anon insert policy on analytics_events allowed two E1 sign-in event names and nothing else, so every discovery event emitted by a signed-out Customer had been rejected with 42501 and swallowed since E3 shipped. Both surfaces, silently, with the gate green throughout — emitEvent catches everything by design, and analytics_events_rls_test case 3 asserted the old behaviour correctly. E3 recorded no searches at all for the case E3 was built for.\n\nDELEGATION SUSPENDED 2026-08-06 by the founder. Written directly. Nothing was dispatched, so nothing was spent — the validator requires a positive envelope, so it carries the figure this work WOULD take if delegation resumes rather than a record of spend. suggested_model is the row it would go to — auth and a privacy boundary, which is the expensive row's actual purpose.",
+  "created_at": "2026-08-08T20:00:00Z",
+  "updated_at": "2026-08-08T20:00:00Z"
+}

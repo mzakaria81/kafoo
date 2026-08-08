@@ -1711,3 +1711,20 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Treat "check the acceptance criteria by name" as a distinct verification step with its own output, performed after the automated gate rather than assumed to be covered by it. For each criterion, state what was actually done to check it and what the result was — and when a criterion asks for a comparison against something outside the change, go and read that other thing rather than reasoning about it. A criterion that can only be satisfied by inspection is the one most likely to be marked done by assertion.
 
 **Principle:** Automated gates verify the change; acceptance criteria verify the outcome, and the gap between them is where pre-existing defects in scope of the criterion survive indefinitely. A criterion phrased as a comparison is an instruction to look at both sides, not a claim to endorse.
+
+---
+
+### Observation 118: A closed-list authorization rule ages into a silent outage, and the swallow that makes it safe is what hides it
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Deciding which analytics could not be recovered later; discovered that an entire feature's measurement had never been recorded.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Authorization rules that outlive the world they were written for
+
+**Issue:** An authorization policy enumerated the two operations an unauthenticated caller could perform, and was exactly right when written. A later feature was built on the premise of working without authentication, and emitted three operations that policy did not name. Every one was rejected by the database and discarded by the client's own error handling — which is correct on its own terms, because that subsystem must never interrupt the user. The result: the feature worked, every test passed, the full gate stayed green, and the authorization test suite continued asserting the *old* behaviour truthfully, while the feature recorded nothing at all for its primary case. It went unnoticed for the entire epic and was found only by someone asking a question about the data rather than about the code.
+
+**Suggested improvement:** Two habits, both cheap. (1) When a feature's premise is "works without X", enumerate every subsystem that gates on X and check each one explicitly — the gate list is short and the failure is otherwise invisible. (2) When writing an authorization rule as a closed list, write the test as a statement of the *principle* the list encodes ("an anonymous caller may record what an anonymous caller can cause"), not of the list's current contents. A test that restates the enumeration cannot distinguish a correct list from a stale one.
+
+**Principle:** An enumerated permission is a snapshot of what the system could do on the day it was written, and it silently narrows as the system grows. Where the consumer of that permission is also designed to fail silently — as measurement, logging and telemetry almost always are — the two correct decisions compose into an outage with no symptom. Look for that pairing deliberately: a closed list plus a swallowed error is a blind spot by construction, not by accident.
