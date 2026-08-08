@@ -456,6 +456,87 @@ void main() {
       expect(repo.judged, ['كشري']);
     });
 
+    testWidgets('SC-007: results appear at the same moment either way',
+        (tester) async {
+      // T154's second half, and the half a latency number cannot answer.
+      // SC-007 is not "results are fast" — it is that the time from the request
+      // finishing to results being visible is UNAFFECTED by whether the AI
+      // Assistant has responded. One number cannot show that; two, measured
+      // under the two conditions and compared, can.
+      //
+      // Measured in FRAMES rather than milliseconds on purpose. Widget tests run
+      // on fake time, so a Stopwatch here would report how long the host CPU
+      // took to pump — a number that changes with the machine and says nothing
+      // about the Customer. Frames are what the Customer actually waits: the
+      // question "did the judgement add a frame before results rendered" is
+      // exactly SC-007, and it answers the same on every machine.
+      //
+      // The test above proves results arrive with the judgement never arriving.
+      // This proves they arrive NO LATER, which is the part a screen could fail
+      // while still passing that one — an await that resolves quickly in the
+      // responding case would show up here as a difference and nowhere else.
+      // THE LANDMARK MUST BE ABSENT BEFORE THE SEARCH, AND DIFFERENT EACH RUN.
+      // Both traps were hit here in turn, and each made the test report two
+      // equal numbers while measuring nothing:
+      //
+      //   1. It first looked for كشري, which is also in `_onOffer` and so was
+      //      already on screen from browse. The loop exited at frame 1 in both
+      //      conditions — and would have against a screen that never rendered a
+      //      result at all.
+      //   2. Both runs share one `testWidgets`, and a second `pumpWidget` of the
+      //      same widget type reuses the element tree, so the first run's
+      //      results were still up when the second started timing.
+      //
+      // Only the mutation found either: with results made to wait for the
+      // judgement, the test kept passing. Hence the guard below, which is the
+      // assertion that makes the number mean something.
+      Future<int> framesToResults({
+        required bool holdJudgement,
+        required String landmark,
+      }) async {
+        final repo = FakeDiscoveryRepository(onOffer: _onOffer)
+          ..searchOutcome = _outcome(
+            items: [
+              DiscoveredMeal(
+                  meal: _mealNamed('m9', landmark), kitchen: _kitchen),
+            ],
+          )
+          ..holdJudgement = holdJudgement
+          ..judgement = null;
+        final consent = FakeSearchConsentStore(SearchConsent.granted);
+        await tester.pumpWidget(_app(repo, consent));
+        await tester.pumpAndSettle();
+
+        expect(find.text(landmark), findsNothing,
+            reason: 'the landmark must not be on screen before the search');
+
+        await tester.enterText(find.byType(TextField), 'كشري');
+        await tester.tap(find.byIcon(Icons.search));
+
+        var frames = 0;
+        while (find.text(landmark).evaluate().isEmpty) {
+          await tester.pump(const Duration(milliseconds: 1));
+          frames++;
+          if (frames > 120) {
+            fail('results never appeared with holdJudgement=$holdJudgement');
+          }
+        }
+        return frames;
+      }
+
+      final responding =
+          await framesToResults(holdJudgement: false, landmark: 'مسقعة');
+      final hanging =
+          await framesToResults(holdJudgement: true, landmark: 'صيادية');
+
+      expect(
+        responding,
+        hanging,
+        reason: 'the judgement moved when results appear: $responding frames '
+            'when it answers, $hanging when it never does',
+      );
+    });
+
     testWidgets('nothing matched falls back to what is on offer',
         (tester) async {
       // FR-012: the zero state of search is browse, and so is this.
