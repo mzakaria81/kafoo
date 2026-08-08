@@ -1,0 +1,42 @@
+{
+  "id": "WP-020",
+  "title": "Measure search latency against a corpus that actually has Meals in it",
+  "objective": "Close SC-006 — 'results within 1 second' — by measuring a real search against a real deployment holding embedded Meals, and reporting the number against the budget instead of asserting it.",
+  "tasks": [
+    "T154"
+  ],
+  "acceptance_criteria": [
+    "search latency is MEASURED against a deployed discover and a real vector query, the way E2 measured its budgets in scripts/measure-e2-performance.ts and docs/ops/measuring-e2.md — reported against the 1s budget, never asserted in a test",
+    "the measurement runs against the DEMO database and never against production: publishing Meals no Cook cooks onto a live marketplace is product-fatal under .claude/rules/business-rules.md, and that is the only way production could be made measurable",
+    "the demo Meals carry embeddings before anything is timed — scripts/backfill-meal-embeddings.ts run against that database — because a search over an unembedded corpus times a network round trip and not the vector query, which is the half that scales",
+    "the reported number states the corpus size it was measured at and the percentile it is, since a latency figure without an n and a percentile is not a budget check",
+    "a measurement over the 1s budget is REPORTED as over, in the PR, rather than tuned or re-run until it passes (CLAUDE.md performance budgets)",
+    "no Meal, Cook or Kitchen Profile is created in production by this package, and nothing it adds can be pointed at production by default",
+    "./scripts/verify.sh passes"
+  ],
+  "dependencies": [
+    "WP-015"
+  ],
+  "scope": {
+    "files": [
+      "scripts/measure-discovery-latency.ts",
+      "docs/ops/measuring-discovery.md"
+    ],
+    "shared_files": [
+      "specs/004-customer-discovery/quickstart.md",
+      ".claude/skill-observations/log.md"
+    ]
+  },
+  "execution_mode": "PARALLEL",
+  "status": "NOT_STARTED",
+  "owner": null,
+  "priority": 5,
+  "spend_envelope_usd": 1.5,
+  "suggested_model": "opencode-go/qwen3.6-plus",
+  "branch": null,
+  "pr": null,
+  "blocked_reason": null,
+  "notes": "CARVED OUT OF WP-015 on 2026-08-08, on the founder's instruction, so that a finished package could be closed without claiming an unfinished task. WP-015 delivered the OTHER half of T154 — SC-007, the frames from a request finishing to results being visible with the judgement responding and with it hanging, asserted equal, in apps/mobile/test/search_screen_test.dart. That half is merged and is not to be rebuilt. This package is the latency half only.\n\nWHY IT COULD NOT BE DONE INSIDE WP-015, and it was never a money problem. The configured production project holds ZERO published Meals — checked read-only on 2026-08-08, the REST count came back `content-range: */0`. A search timed there measures a network round trip against an empty table and says nothing about the vector scan, which is the part that grows with the marketplace. The only way to make production measurable is to publish Meals that no Cook cooks onto a live marketplace, and business-rules.md calls synthetic Meals in production product-fatal. So production is not the target and no amount of budget changes that.\n\nTHE DEMO DATABASE IS THE HONEST TARGET. Its Meals are declared fixtures, it is not production, and nobody is misled by timing a search against it. Two things stand in the way, and BOTH must be settled before this package starts:\n\n1. THE FOUNDER MUST SUPPLY THE ADDRESS. The demo project's URL and publishable key live in GitHub repository VARIABLES (DEMO_SUPABASE_URL, DEMO_SUPABASE_PUBLISHABLE_KEY), which a session cannot read. Either the founder pastes them into the session, or this work runs as a workflow that already has them. Do not guess, and do not fall back to the production credentials that ARE in the environment — that is exactly the mistake this package exists to avoid.\n\n2. THE DEMO MEALS HAVE NO EMBEDDINGS. scripts/generate-demo-seed.py says so in terms: the seed inserts Meals and scripts/backfill-meal-embeddings.ts has to be run against that database afterwards. Until it has been, a search there returns nothing and a latency number over it is meaningless. The backfill costs a small embedding spend, which is what the envelope is for.\n\nWHAT 'MEASURED' MEANS HERE, because the wrong reading of T154 is a unit test with a stopwatch in it. E2's precedent is a script that talks to a deployment and writes a document: scripts/measure-e2-performance.ts and docs/ops/measuring-e2.md. Follow it. A widget test cannot measure this — widget tests run on fake time, which is why SC-007 was counted in frames rather than milliseconds.\n\nAND THE RESULT IS A REPORT, NOT A GATE. Nothing here goes into ./scripts/verify.sh: the gate has never depended on a deployment, and the founder's 2026-08-08 decision on the retrieval regression — nightly rather than the gate, so a vendor outage never blocks a commit — applies with more force to something that needs a live database. If the number comes back over 1s, say so in the PR. CLAUDE.md's performance budgets ask for exactly that and not for a green tick.\n\nDELEGATION IS STILL SUSPENDED as of 2026-08-06 — write this directly. suggested_model and spend_envelope_usd are the plan for when it resumes, not permission to dispatch today. The envelope DOES cover the embedding backfill, which is a vendor call and not a delegation.\n\nWP-019 DEPENDS ON THIS ONE. Its acceptance criteria include verifying SC-001 to SC-013 by name, and SC-006 is the 1s budget — so E3 cannot be closed out honestly until this package has produced a number.",
+  "created_at": "2026-08-08T11:00:00Z",
+  "updated_at": "2026-08-08T11:00:00Z"
+}
