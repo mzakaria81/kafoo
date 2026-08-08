@@ -1711,3 +1711,20 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Derive each grouping's parent from its own fields, in a separate pass, before any claim or deduplication runs — then let the claim pass consume that result. Never let a default silently absorb a record missing from a derived map: if a lookup misses, fail or log it rather than substituting a fallback value that will look plausible in the output.
 
 **Principle:** Deduplication is lossy by design, so anything read back out of a deduplicated map inherits the arbitrariness of who won. Compute a record's own attributes from the record, and keep that pass independent of, and earlier than, any pass that resolves contention between records.
+
+---
+
+### Observation 118: a converter is a reader of last resort, and what it trips over belongs back in the source
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Converting 348 spec-kit tasks into GitHub issues surfaced two defects in the source files that had passed every review and every gate run: a task id recorded twice in one `tasks.md`, and a plan file whose checkboxes contradicted the status of the work packages delivering them.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline — a validation pass before any issue is created
+
+**Issue:** The skill converts and creates, and never inspects what it is reading. Both defects it walked into were invisible to human review precisely because nothing contradicted anything — the duplicated id was `[x]` in both copies with the same explanatory text, so no reader had a reason to look twice, and the miscount it caused had been quoted onward. A converter is the first thing to read every record in a file mechanically and compare them, so it is the cheapest place these defects will ever be found; discarding that signal and creating issues anyway propagates the defect into a second system, where it is then harder to see because two systems now agree.
+
+**Suggested improvement:** Add a validation pass before creation that reports, without fixing: ids duplicated within a file, ids referenced by a grouping that do not exist in any task file, and checkbox state contradicting any status the project tracks separately. Report and stop, or report and continue behind a flag — but never silently normalise, because reconciling a plan file is a planning decision belonging to whoever owns it. Where the converter must handle a defect to proceed at all, it should say so in the created record rather than absorb it.
+
+**Principle:** Any tool that reads every record in a source mechanically is a free consistency check on that source, and the findings belong upstream where the source can be fixed — not silently accommodated so the conversion can finish. Accommodating a defect quietly is worse than failing on it: it creates a second system that agrees with the first, and agreement between two copies of one mistake reads as corroboration.
