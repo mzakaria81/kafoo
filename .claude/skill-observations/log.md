@@ -1598,3 +1598,33 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a criterion names a stable identifier — a requirement id, a ticket number, an error code, a metric name — check it by searching the repository for that identifier before reading any implementation, and treat zero hits as unmet regardless of how good the feature looks. Then check the hits actually belong to the right document, because identifier schemes are reused across specifications.
 
 **Principle:** An identifier named in a criterion is a grep-able assertion, and grep does not rationalise. Run the mechanical check first; reading the implementation first primes you to accept an outcome that resembles the requirement instead of the one that satisfies it.
+
+### Observation 111: A landmark that exists before the thing you are timing measures nothing
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Measuring that an optional AI response never delays the results a user sees — timing from "request finished" to "results visible" under two conditions and asserting the two are equal.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Writing a measurement, as opposed to an assertion
+
+**Issue:** The measurement loop waited for a piece of content to appear on screen and counted iterations. The content chosen was already on screen — it belonged to the underlying list the feature renders over, not to the results being timed. So the loop exited on the first iteration under both conditions, reported two equal numbers, and passed. It would have reported the same two equal numbers against an implementation that never rendered a result at all. A second, subtler form appeared immediately after the fix: both runs shared one element tree, so the second run began timing with the first run's output still displayed, and the loop again exited immediately. Neither was visible from reading the test; both surfaced only when the implementation was deliberately broken.
+
+**Suggested improvement:** Any test that waits for a condition and counts must first assert the condition is FALSE before the timed action begins. One line, and it converts a silently vacuous measurement into a loud one. When several timed runs share a test body, give each its own distinct landmark rather than assuming teardown between them — UI frameworks that reuse a widget or element tree will carry the previous run's state into the next.
+
+**Principle:** A measurement is only valid if its start condition was verified to be unmet at the start. Timing to "X appears" when X was already there is not a slow measurement or an inaccurate one — it is no measurement, and it produces the exact numbers a passing result would.
+
+### Observation 112: Two expressions of one rule are a rule that can half-change
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Mutation-testing a script that computes two acceptance thresholds from the same underlying predicate.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Mutation testing, and what to do when a mutation survives
+
+**Issue:** The rule "the target appears within the top five" was written twice — once in the expression counting hits, once in the expression computing the rate. Four deliberate mutations turned the self-check red as intended. A fifth, narrowing "top five" to "top one", SURVIVED: it edited one of the two copies, so the rate moved while the count did not, and no assertion compared them. The tempting response is to add an assertion covering the second copy. That leaves the duplication, so the next mutation in the other direction survives instead.
+
+**Suggested improvement:** When a mutation survives, ask first whether the rule it touched exists in more than one place. If it does, collapse the copies into one named predicate and re-run the mutation — the fix is deduplication, not another assertion. Add the assertion too, but as a second layer. Record the surviving mutation next to the extracted predicate so a later author does not re-inline it for readability.
+
+**Principle:** A surviving mutation is evidence about the code's structure as often as about the test's coverage. Duplicated logic is partially mutable: a change can hit one copy and leave the other, so no test that compares outputs can see a difference. Deduplicating turns a class of undetectable mutations into detectable ones, which no amount of extra assertions on the duplicated form will do.
