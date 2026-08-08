@@ -2,6 +2,7 @@
   "purpose": "Measure whether embedding retrieval finds the right Meal from an Egyptian Arabic phrasing. Meals are written in a Cook's voice; queries are written in a Customer's voice and deliberately avoid reusing the Meals' words except where the overlap flag says otherwise.",
   "written": "2026-08-06",
   "note": "Synthetic by necessity and by design — these are measurement fixtures, never seed data, never shown to anyone, and must not reach a migration or an Edge Function. Kafoo's trust rules forbid synthetic Meals in production, not in a test corpus.",
+  "cross_script_note": "A query carries \"cross_script\": true when its text is in a different language or script from the Arabic the Meals are written in. SC-002 is measured over exactly that subset, so adding a Latin-script or English query without the flag silently shrinks the criterion's evidence rather than growing it. \"overlap\": \"none\" is a different thing and does not imply it — most of these queries share no words with their targets while still being Egyptian Arabic.",
 
   "meals": [
     { "id": "koshari",        "name": "كشري",                  "description": "عدس ومكرونة وأرز وحمص وصلصة وشطة وتقلية بصل" },
@@ -73,6 +74,7 @@
       "text": "burger",
       "gloss": "burger in Latin script — THE cross-language case the rules name. No character is shared with any Meal.",
       "overlap": "none",
+      "cross_script": true,
       "relevant": ["burger"]
     },
     {
@@ -80,6 +82,7 @@
       "text": "pizza",
       "gloss": "pizza in Latin script — second cross-script case",
       "overlap": "none",
+      "cross_script": true,
       "relevant": ["pizza"]
     },
     {
@@ -87,6 +90,7 @@
       "text": "grilled chicken",
       "gloss": "an English phrase against Arabic Meals — cross-language, not merely cross-script",
       "overlap": "none",
+      "cross_script": true,
       "relevant": ["firakh_mashwia", "sadr_firakh"]
     },
     {
@@ -164,6 +168,7 @@
       "text": "something spicy",
       "gloss": "English, and requires knowing شطة means chilli",
       "overlap": "none",
+      "cross_script": true,
       "relevant": ["kebda", "koshari"]
     },
     {
