@@ -2,29 +2,45 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 
+import type { Judgement, SearchOutcome } from './discovery.ts';
 import { Discovery } from './discovery.ts';
+import type { SearchConsent } from './consent.ts';
 import { CONSENT_KEY, readConsent, writeConsent } from './consent.ts';
+import type { KitchenRow, MealRow } from './supabase.ts';
 
-// The modules are IMPORTED and RUN here, not read as text. `lib/preview.test.mjs`
+// The modules are IMPORTED and RUN here, not read as text. `lib/preview_test.ts`
 // reads its sources because its assertions are about what the source contains;
 // these are about what actually leaves the browser, and SC-014 says so in terms:
 // "verified by watching what leaves rather than by reading the code that
-// decides". Node strips the types on the way in.
+// decides". Node strips the types on the way in, and `tsc --noEmit` checks them
+// — this file was `.mjs` until 2026-08-08 and therefore outside `tsconfig`'s
+// `include`, so nothing checked that a test still matched the API it tested.
 
 const PHRASE = 'عايز حاجة سخنة من غير لحمة في المهندسين';
 
 /** A browser store, with the same three states and the same key. */
-function fakeStorage(initial) {
-  const map = new Map(initial ? [[CONSENT_KEY, initial]] : []);
+function fakeStorage(initial?: string): Storage {
+  const map = new Map<string, string>(initial ? [[CONSENT_KEY, initial]] : []);
   return {
-    getItem: (k) => (map.has(k) ? map.get(k) : null),
-    setItem: (k, v) => map.set(k, String(v)),
-    removeItem: (k) => map.delete(k),
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, String(v)),
+    removeItem: (k: string) => void map.delete(k),
     clear: () => map.clear(),
     key: () => null,
     length: 0,
   };
 }
+
+/** One request that left: where it went and what it carried. */
+type SentRequest = { url: string; init: RequestInit };
+
+type Responder = (url: string, init: RequestInit) => Promise<Response>;
+
+/** A `fetch` that records, plus the two readers the assertions use. */
+type WatchedFetch = typeof globalThis.fetch & {
+  sent: SentRequest[];
+  everythingSent: () => string;
+};
 
 /**
  * A `fetch` that answers whatever it is told to and RECORDS EVERYTHING.
@@ -32,12 +48,12 @@ function fakeStorage(initial) {
  * `sent` is the evidence: every URL and every body that left. A test asserts
  * against it rather than against the branch that was supposed to prevent it.
  */
-function watchedFetch(responder) {
-  const sent = [];
-  const fn = async (url, init) => {
+function watchedFetch(responder: Responder): WatchedFetch {
+  const sent: SentRequest[] = [];
+  const fn = (async (url: RequestInfo | URL, init?: RequestInit) => {
     sent.push({ url: String(url), init: init ?? {} });
     return responder(String(url), init ?? {});
-  };
+  }) as WatchedFetch;
   fn.sent = sent;
   /** Everything that left, as one string, for "does the phrase appear anywhere". */
   fn.everythingSent = () =>
@@ -45,19 +61,26 @@ function watchedFetch(responder) {
   return fn;
 }
 
-const ok = (body) => ({
-  ok: true,
-  status: 200,
-  json: async () => body,
-});
+// `as unknown as Response` and nowhere else. `Discovery` reads exactly `ok` and
+// `json()`, and a full `Response` here would be forty fields of ceremony for a
+// two-field contract. Named once, so the cast is a decision rather than a habit.
+const ok = (body: unknown) =>
+  ({ ok: true, status: 200, json: async () => body }) as unknown as Response;
 
-const failed = (status) => ({
-  ok: false,
-  status,
-  json: async () => ({ error: 'search is unavailable' }),
-});
+const failed = (status: number) =>
+  ({
+    ok: false,
+    status,
+    json: async () => ({ error: 'search is unavailable' }),
+  }) as unknown as Response;
 
-function discovery({ consent, respond }) {
+function discovery({
+  consent,
+  respond,
+}: {
+  consent?: SearchConsent;
+  respond?: Responder;
+}) {
   const fetch = watchedFetch(respond ?? (async () => ok({ meals: [] })));
   const instance = new Discovery({
     backend: { url: 'https://example.supabase.co', publishableKey: 'sb_publishable_x' },
@@ -67,7 +90,7 @@ function discovery({ consent, respond }) {
   return { instance, fetch };
 }
 
-const MEAL = {
+const MEAL: MealRow = {
   id: 'm1',
   cook_id: 'c1',
   title: 'كشري',
@@ -78,7 +101,7 @@ const MEAL = {
   status: 'published',
   photo_path: null,
 };
-const KITCHEN = {
+const KITCHEN: KitchenRow = {
   id: 'k1',
   cook_id: 'c1',
   display_name: 'مطبخ أم أحمد',
@@ -89,7 +112,7 @@ const KITCHEN = {
 };
 
 /** discover → meals, then the kitchens read. */
-function respondWithOneMeal(extra = {}) {
+function respondWithOneMeal(extra: Record<string, unknown> = {}): Responder {
   return async (url) => {
     if (url.includes('/functions/v1/discover')) {
       return ok({ meals: [MEAL], excluded: null, notUnderstood: false, area: null, ...extra });
@@ -97,6 +120,28 @@ function respondWithOneMeal(extra = {}) {
     if (url.includes('/rest/v1/kitchen_profiles')) return ok([KITCHEN]);
     return failed(500);
   };
+}
+
+/**
+ * Narrows a search response to its results, failing the test if it is not one.
+ *
+ * The union exists so a caller cannot read `outcome` off a refusal, and before
+ * this file was type-checked the tests did exactly that — reaching through a
+ * `SearchResponse` without asking which arm it was. It passed because the fake
+ * always returned results; it would have thrown on the day one did not, blaming
+ * the assertion rather than the change.
+ */
+function resultsOf(response: { kind: string } & Partial<{ outcome: SearchOutcome }>) {
+  assert.equal(response.kind, 'results', `expected results, got ${response.kind}`);
+  assert.ok(response.outcome, 'a results response with no outcome');
+  return response.outcome!;
+}
+
+/** Narrows a judgement to the "nothing answers" arm. */
+function nothingAnswers(judgement: Judgement | null) {
+  assert.ok(judgement, 'expected a judgement, got none');
+  assert.equal(judgement.answers, false, 'expected "nothing answers"');
+  return judgement as Extract<Judgement, { answers: false }>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,15 +189,14 @@ test('SC-011: the phrase leaves in a POST body and never in a URL', async () => 
   }
   const discover = fetch.sent.find((r) => r.url.includes('/functions/v1/discover'));
   assert.ok(discover, 'discover was not called');
-  assert.equal(JSON.parse(discover.init.body).phrase, PHRASE);
+  assert.equal(JSON.parse(bodyOf(discover)).phrase, PHRASE);
 });
 
 test('the web calls the same discover function — no endpoint of its own', async () => {
   const { instance, fetch } = discovery({ consent: 'granted', respond: respondWithOneMeal() });
-  const response = await instance.search(PHRASE, null);
-  assert.equal(response.kind, 'results');
-  assert.equal(response.outcome.results.length, 1);
-  assert.equal(response.outcome.results[0].kitchen.display_name, KITCHEN.display_name);
+  const outcome = resultsOf(await instance.search(PHRASE, null));
+  assert.equal(outcome.results.length, 1);
+  assert.equal(outcome.results[0].kitchen.display_name, KITCHEN.display_name);
   assert.ok(
     fetch.sent[0].url.endsWith('/functions/v1/discover'),
     `first call went to ${fetch.sent[0].url}`,
@@ -164,7 +208,7 @@ test('an area a Customer chose is sent, and wins over the sentence', async () =>
   // offer act-on-able rather than decorative.
   const { instance, fetch } = discovery({ consent: 'granted', respond: respondWithOneMeal() });
   await instance.search(PHRASE, 'الدقي');
-  const body = JSON.parse(fetch.sent[0].init.body);
+  const body = JSON.parse(bodyOf(fetch.sent[0]));
   assert.equal(body.area, 'الدقي');
   assert.equal(body.phrase, PHRASE);
 });
@@ -197,8 +241,8 @@ test('a recognised negation with an unrecognised food reaches the surface as a f
     consent: 'granted',
     respond: async () => ok({ meals: [], excluded: null, notUnderstood: true, area: null }),
   });
-  const response = await instance.search(PHRASE, null);
-  assert.equal(response.outcome.notUnderstood, true);
+  const outcome = resultsOf(await instance.search(PHRASE, null));
+  assert.equal(outcome.notUnderstood, true);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,8 +259,8 @@ test('the judgement is asked for, with ids and the phrase and nothing else', asy
 
   const call = fetch.sent.find((r) => r.url.includes('/functions/v1/judge-results'));
   assert.ok(call, 'judge-results was not called — the surface would ship results with nothing checking them');
-  assert.deepEqual(Object.keys(JSON.parse(call.init.body)).sort(), ['mealIds', 'phrase']);
-  assert.deepEqual(JSON.parse(call.init.body).mealIds, ['m1']);
+  assert.deepEqual(Object.keys(JSON.parse(bodyOf(call))).sort(), ['mealIds', 'phrase']);
+  assert.deepEqual(JSON.parse(bodyOf(call)).mealIds, ['m1']);
 });
 
 test('a Meal the AI Assistant invented is dropped, not looked up', async () => {
@@ -227,8 +271,9 @@ test('a Meal the AI Assistant invented is dropped, not looked up', async () => {
     consent: 'granted',
     respond: async () => ok({ answers: false, alternatives: ['m1', 'nonexistent'] }),
   });
-  const judgement = await instance.judge(PHRASE, [{ meal: MEAL, kitchen: KITCHEN }]);
-  assert.equal(judgement.answers, false);
+  const judgement = nothingAnswers(
+    await instance.judge(PHRASE, [{ meal: MEAL, kitchen: KITCHEN }]),
+  );
   assert.deepEqual(judgement.alternatives.map((m) => m.id), ['m1']);
 });
 
@@ -249,9 +294,20 @@ test('a 200 whose `answers` is not a boolean says nothing at all', async () => {
 test('every judgement failure is "nothing to say" — the Customer keeps their results', async () => {
   for (const respond of [
     async () => failed(503),
-    async () => { throw new Error('network'); },
-    async () => ({ ok: true, status: 200, json: async () => { throw new Error('not json'); } }),
-  ]) {
+    async () => {
+      throw new Error('network');
+    },
+    // A 200 whose body is not JSON. Cast because the point is a response that
+    // does NOT honour the contract.
+    async () =>
+      ({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new Error('not json');
+        },
+      }) as unknown as Response,
+  ] satisfies Responder[]) {
     const { instance } = discovery({ consent: 'granted', respond });
     assert.equal(await instance.judge(PHRASE, [{ meal: MEAL, kitchen: KITCHEN }]), null);
   }
@@ -267,11 +323,24 @@ test('no results means no judgement call — there is nothing to judge', async (
 // FR-029, FR-030 — what is recorded, and what is never recorded.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The body of a request that left, as the string it always is.
+ *
+ * `RequestInit.body` is a `BodyInit` union covering streams and blobs. Nothing
+ * in `Discovery` sends anything but `JSON.stringify`, so this asserts that
+ * rather than casting past it — if a future caller sends a stream, the test says
+ * so instead of parsing `undefined`.
+ */
+function bodyOf(request: SentRequest): string {
+  assert.equal(typeof request.init.body, 'string', `${request.url} sent a non-string body`);
+  return request.init.body as string;
+}
+
 /** Every analytics row that left, parsed. */
-const eventsIn = (fetch) =>
+const eventsIn = (fetch: WatchedFetch) =>
   fetch.sent
     .filter((r) => r.url.includes('/rest/v1/analytics_events'))
-    .map((r) => JSON.parse(r.init.body));
+    .map((r) => JSON.parse(bodyOf(r)) as { name: string; attributes: Record<string, unknown> });
 
 test('SearchPerformed carries what Kafoo chose, never what was said', async () => {
   // Asserted on the attribute SET rather than on the values: a test that checks
@@ -355,7 +424,7 @@ test('MealOpened is emitted whether or not a search ran', async () => {
 test('a search that never ran emits nothing at all', async () => {
   // Not an event with a count of zero. Kafoo records searches, and what did not
   // happen is not one.
-  for (const consent of ['refused', undefined]) {
+  for (const consent of ['refused', undefined] satisfies (SearchConsent | undefined)[]) {
     const { instance, fetch } = discovery({ consent });
     await instance.search(PHRASE, null);
     assert.deepEqual(eventsIn(fetch), []);
@@ -520,10 +589,18 @@ test('the answer survives in both directions — FR-029c', () => {
 });
 
 test('storage that throws reads as unanswered rather than as permission', () => {
+  // A browser with storage disabled, or a page in a partitioned third-party
+  // context. Only the two methods `readConsent` and `writeConsent` touch are
+  // defined — a full `Storage` here would be four more members of ceremony to
+  // say "this one throws".
   const hostile = {
-    getItem() { throw new Error('storage disabled'); },
-    setItem() { throw new Error('storage disabled'); },
-  };
+    getItem() {
+      throw new Error('storage disabled');
+    },
+    setItem() {
+      throw new Error('storage disabled');
+    },
+  } as unknown as Storage;
   assert.equal(readConsent(hostile), 'unanswered');
   writeConsent(hostile, 'granted'); // must not throw
 });
