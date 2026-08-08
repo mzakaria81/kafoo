@@ -24,6 +24,25 @@ no letters.
 white pepper, white rice, white sauce, white bread, white onion and white cheese. `ملبن` (Turkish
 delight) reads as dairy; `خبز لبناني` (Lebanese bread) reads as dairy.
 
+**Measured properly on 2026-08-08, and it changed which option is worth taking.** Against 70 pieces
+of Cook-side text — what `analyze-meal` extracted in every pinned golden, what `seed.sql` holds, and
+the multi-word entries a Cook produces by editing the model's list — the vocabulary matches 44
+times, of which **7 are wrong**. All seven are `أبيض` or `ملبن`.
+
+Two things fell out of that measurement, both in `exclusion_over_exclusion_test.dart`:
+
+- **Matching at a word boundary on BOTH sides would break the feature.** It removes 14 more matches
+  and 11 of them are correct — `جبنة`, `سمنة`, `لبنة`, `لحمة`, `كبدة`, `بيضة مسلوقة`. Arabic glues
+  its feminine and plural endings onto the back of a noun, so a right-hand boundary is silent
+  under-exclusion dressed as precision.
+- **A LEFT-hand boundary does not fix the case that motivated any of this.** `جبنة بيضاء` — white
+  cheese — *begins* the word `بيضاء` with `بيض`, so it survives. So does `خبز لبناني`. The masculine
+  adjective `أبيض` is reachable by a letter rule; the feminine `بيضاء` and the nisba `لبناني` are
+  not.
+
+So the string path cannot be repaired by looking harder at letters, which is the argument this ADR
+was already making from a different direction.
+
 **And the meaning is already computed on both sides, then discarded.** This is the finding that
 makes the change small rather than speculative:
 
@@ -48,7 +67,7 @@ moves it.
 
 | Option | Cost | Risk | Reversibility |
 |---|---|---|---|
-| **A. Keep strings, add prefix-aware matching** | Small — one predicate change plus its measurement | Fixes over-exclusion and nothing else. `سمنة` vs `لبن` stays unreachable, and every synonym is a manual list entry forever | Easy |
+| **A. Keep strings, add prefix-aware matching** | Small — one predicate change plus its measurement | **Measured 2026-08-08: fixes 7 of the 44 matches and misses `جبنة بيضاء`, the case it was proposed for.** Buys that with a closed list of Arabic clitics, where anything unlisted is silent under-exclusion. `سمنة` vs `لبن` stays unreachable, and every synonym is a manual list entry forever | Easy |
 | **B. Replace strings with concepts** | Medium — taxonomy, schema, classifier, backfill | **A missed concept is silent under-exclusion.** The classifier does not tag a dish, the filter passes it, and someone with a nut allergy sees it with nothing to warn anyone | Hard once Meals are published against it |
 | **C. Concepts UNION strings** (chosen) | Medium — as B, plus keeping the string path alive | Strictly more exclusion than today. Costs some over-exclusion until the string floor can be narrowed | Moderate — either half can be removed later on evidence |
 | **D. Ask a model at search time** | Low to build | Rejected on measurement, not taste: precision@5 of 0.00, plus a model on the critical path FR-011 forbids and a per-search cost | n/a |
