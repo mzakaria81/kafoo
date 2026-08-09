@@ -264,10 +264,27 @@ jobs:
             echo "### Review inconclusive — no execution output" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+          # `if !` rather than a bare assignment, because a command substitution that
+          # fails does NOT end the script — `set -e` explicitly exempts it. Without
+          # this branch, malformed or unexpectedly-shaped JSON makes python raise,
+          # stdout comes back empty, `${DENIALS:-0}` reads as zero, and the step
+          # reports "no denials" on a file it could not parse. That is the precise
+          # silent-success this step exists to prevent, reproduced inside the check
+          # itself. Raised by release-engineer.
+          #
           # One line on purpose: a `run:` block is a YAML literal scalar, and an
           # embedded script whose lines start at column 0 ends the block early. That
           # is how this step was written the first time, and the file stopped parsing.
-          DENIALS=$(python3 -c "import json;d=json.load(open('$OUT'));r=d if isinstance(d,list) else [d];print(max([x.get('permission_denials_count',0) for x in r if isinstance(x,dict)] or [0]))")
+          if ! DENIALS=$(python3 -c "import json;d=json.load(open('$OUT'));r=d if isinstance(d,list) else [d];print(max([x.get('permission_denials_count',0) for x in r if isinstance(x,dict)] or [0]))"); then
+            {
+              echo "### Review not trustworthy — could not read the run's own output"
+              echo ""
+              echo "\`$OUT\` exists but did not parse, so whether a reviewer was blocked"
+              echo "is unknown. Unknown is not the same as fine."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Could not parse $OUT — cannot confirm the review ran unblocked." >&2
+            exit 1
+          fi
           if [ "${DENIALS:-0}" != "0" ]; then
             {
               echo "### Review not trustworthy — ${DENIALS} tool call(s) denied"
@@ -325,7 +342,18 @@ jobs:
             echo "No review comment found on PR #$PR." >&2
             exit 1
           fi
-          if printf '%s' "$BODY" | grep -q -- '- \[ \]'; then
+          # SCOPED TO THE PROGRESS CHECKLIST, not to every checkbox in the comment.
+          # A bare `- [ ]` match reads the reviewers' own findings too, and
+          # release-engineer's brief carries a pre-submission checklist it quotes back
+          # — so a completed review would have failed this step for containing the
+          # word it was asked to report on. False alarms are what taught everyone to
+          # ignore the last automation; a guard against silent failure is not worth
+          # having if it invents loud ones.
+          #
+          # Matched instead: an unticked box whose text is one of track_progress's own
+          # steps, at the start of a line so a quoted or nested checklist elsewhere in
+          # the body does not count.
+          if printf '%s' "$BODY" | grep -qE '^- \[ \] (Read the diff|Determine reviewer|Dispatch|Consolidat)'; then
             {
               echo "### Review incomplete — the agent stopped before writing its findings"
               echo ""

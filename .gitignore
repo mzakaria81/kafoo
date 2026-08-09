@@ -12,7 +12,25 @@
 build/
 *.g.dart
 *.freezed.dart
-pubspec.lock
+
+# pubspec.lock IS COMMITTED, and it sat in the block above until 2026-08-09.
+#
+# Everything above this line is generated and genuinely disposable. A lockfile is
+# also generated, which is how it got swept in, but it is the one generated file an
+# APPLICATION is supposed to keep. Dart draws the line there deliberately: a library
+# must work across a range of versions so it does not commit one, an application
+# needs to be reproducible so it does.
+#
+# apps/mobile is the only app, and pubspec.yaml pins by range — `^3.3.2` means
+# anything up to 4.0. Twelve or so packages are named directly; 158 end up in the
+# build, 155 of them transitive. Unlocked, every build re-picks the newest match for
+# all of them, so the same commit produces a different app on a different day. Two
+# costs, and the second is the one that bites: a build breaks with no commit from
+# anybody and the search starts in the wrong place, and — once there are Cooks — the
+# app on a phone cannot be rebuilt to look at.
+#
+# apps/web/package-lock.json was already committed. This only ever made the Flutter
+# half inconsistent with the web half.
 
 # Web surface (apps/web) — Next.js on Cloudflare, ADR-0008 Amendment 1
 node_modules/

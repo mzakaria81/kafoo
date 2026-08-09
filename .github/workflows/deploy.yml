@@ -421,9 +421,26 @@ jobs:
       # human reading a checklist, and an artifact does not carry its provenance on
       # its face. Raised by release-engineer on the run that introduced it.
       #
-      # Signing is deliberately NOT gated, only archiving. A signed build that is
-      # never archived cannot leave the runner, so the artifact is the boundary that
-      # matters and one condition in one place is easier to keep true than two.
+      # Signing is deliberately NOT gated, only archiving — and this guard stops an
+      # honest mistake, not a determined one. State the limit rather than the comfort:
+      #
+      # `workflow_dispatch` runs the workflow file ON THE REF IT IS DISPATCHED
+      # AGAINST, not the one on main. So anyone with write access can push a branch
+      # that deletes this very condition, dispatch it, and GitHub will run their
+      # version with full access to the signing secrets. An `if:` inside the file
+      # cannot defend the file. An earlier version of this comment claimed a signed
+      # build could not leave the runner unless archived; that was wrong and
+      # release-engineer said so.
+      #
+      # It does not WIDEN anything, which is the only reason it is acceptable as it
+      # stands: `main` has no branch protection, so the same person can push a
+      # modified deploy.yml straight to main and have it run on push. The exposure is
+      # the unprotected branch, not this trigger.
+      #
+      # The control that would actually hold is a GitHub Environment with required
+      # reviewers on the signing steps, because that is enforced outside the workflow
+      # file and survives someone editing it. That is a repository setting, not a
+      # change anyone can make from here, and it is the founder's to make.
       #
       # These are two different jobs wearing one name. The `flutter build` above is
       # the ONLY thing in the whole pipeline that compiles the Android app — CI runs
@@ -445,6 +462,30 @@ jobs:
         with:
           name: kafoo-android-${{ github.run_number }}
           path: apps/mobile/build/app/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 90
+
+      # R8's deobfuscation map, and it gets its OWN step rather than another path on
+      # the symbols upload. `if-no-files-found` is evaluated across the whole step, so
+      # a second path added there would go missing without complaint as long as the
+      # symbols themselves turned up — losing the map silently, which is the failure
+      # this repository keeps paying for.
+      #
+      # `isMinifyEnabled = true` and `isShrinkResources = true` on the release build
+      # type mean R8 renames every Java and Kotlin symbol: `PaymentProcessor` ships as
+      # `a.b.c`, and a Play Console crash report is unreadable without this file. It
+      # is generated per build and cannot be regenerated afterwards — rebuilding the
+      # same commit can produce a different mapping — so the file is the only copy
+      # there will ever be of how to read that binary's crashes.
+      #
+      # The Dart half of the app is covered by --split-debug-info below. This is the
+      # Android layer underneath: plugins, platform channels, the framework glue.
+      - name: Archive the R8 deobfuscation map
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-android-mapping-${{ github.run_number }}
+          path: apps/mobile/build/app/outputs/mapping/release/mapping.txt
           if-no-files-found: error
           retention-days: 90
 
@@ -626,6 +667,30 @@ jobs:
             apps/mobile/build/ios/archive/*.xcarchive/dSYMs
           if-no-files-found: warn
           retention-days: 90
+
+      # Mirrors the Android job's notice. The comment on the Android archive rule
+      # calls a per-platform difference a trap for whoever configures the iOS signing
+      # secrets later, and then this job did not have the notice — so the trap was
+      # laid in the same change that named it. Raised by release-engineer.
+      - name: No candidate archived on this run
+        if: steps.detect.outputs.buildable == 'true' && !(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        run: |
+          {
+            echo "### iOS: built, not archived"
+            echo ""
+            echo "The archive compiled — that is this job's real purpose, and a failure"
+            echo "here would have meant the iOS build is broken."
+            echo ""
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "It was NOT kept because this run is on \`${{ github.ref_name }}\`, not"
+              echo "\`main\`. A release candidate is only archived from \`main\`, so that"
+              echo "every candidate has been through pull request review by construction."
+              echo "Merge first, then run this from \`main\`."
+            else
+              echo "It was not kept, because archives are kept only on a manual run from"
+              echo "\`main\`. To get one: Actions → Deploy → Run workflow."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # The keychain dies with the runner, but deleting it explicitly means a
       # later step in this job cannot reach the signing identity.
