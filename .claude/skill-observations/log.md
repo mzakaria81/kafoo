@@ -1828,3 +1828,36 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a hierarchy has three levels, state which level each parent's indicator counts, and close intermediate nodes from the source's own completion field rather than inferring completion from the children. Inferring it would silently overrule whoever owns that field. Verify the top-level indicator explicitly after any bulk close — a parent reading 0% while all its grandchildren are closed is the signature of this mistake.
 
 **Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.
+
+### Observation 125: Evaluating an external coordination tool — the decisive question is where durable state lives, not feature overlap
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Founder asked whether ruflo (formerly claude-flow) would help Kafoo's work-package coordination workflow. Answer was no, and the reasoning generalised.
+**Skill:** New skill candidate: evaluating-a-tool-against-an-existing-workflow
+**Type:** open-source
+**Phase/Area:** Evaluation of third-party tooling proposed for an existing process
+
+**Issue:** The obvious way to evaluate a proposed tool is feature-by-feature against the current
+system — both do "agent coordination", so the comparison looks like a matrix. That comparison is
+almost always uninformative, because two systems can share every noun and still operate at
+different layers. What actually decided it here was one structural question: *where does durable
+state live, and does the candidate's substrate survive what destroys the incumbent's?* Kafoo's
+coordination state lives in git because sessions run in ephemeral containers with no shared
+filesystem; the candidate's lives in a local database, with cross-machine coordination available
+only via an always-on server. That single fact settled the evaluation before any feature was
+compared, and no amount of feature overlap could have changed it.
+
+**Suggested improvement:** Before comparing features, establish for both the incumbent and the
+candidate: (1) what the durable substrate is, (2) what event destroys non-durable state, (3) who
+or what is the only continuous participant. If the candidate's substrate does not survive (2), the
+evaluation is over — say so first, then optionally note what the candidate would be good for in a
+different environment. Also check what the installer writes: a tool that rewrites the files
+encoding your non-negotiables (CLAUDE.md, hooks, agent definitions) is a merge conflict with your
+own rules, independent of whether its features are good.
+
+**Principle:** When evaluating a tool against an existing workflow, compare substrates before
+features. A tool whose state cannot survive the environment's teardown event cannot replace a
+process built around that teardown, however closely its feature list matches. And read the
+installer's write-list as carefully as the feature list — what a tool overwrites in your
+repository is part of its cost.
