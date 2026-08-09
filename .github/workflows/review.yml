@@ -169,8 +169,17 @@ jobs:
           prompt: |
             Review the diff of this pull request against Kafoo's review briefs.
 
-            The diff is `git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}`.
+            The diff is `git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}`.
             Read it first, in full, before dispatching anything.
+
+            Three dots, for the reason the selector step above uses them: `base.sha` is
+            the base branch tip when the event fired, not the merge base, so a two-dot
+            diff shows every file main changed since the fork as though this pull
+            request changed it — reversed, because that is the direction turning base
+            into head. This prompt said two dots for two runs after the selector was
+            fixed. Both times the reviewer noticed the base was stale and worked
+            around it, which is luck rather than design: the next one might report the
+            phantom deletions as findings instead.
 
             Then dispatch EXACTLY these subagents, in this order, using the Task tool,
             one Task call each, all in a single message so they run concurrently:

@@ -105,7 +105,13 @@ jobs:
   # No artifact is uploaded on purpose. This is a check, not a deliverable; a debug
   # APK from a pull request is of no use to anyone.
   android-build:
-    name: android compiles
+    # THE NAME CARRIES THE CAVEAT, because the name is the only part of this most
+    # people ever see. A green check reading "android compiles" claims more than a
+    # debug build delivers — R8 shrinking and obfuscation are release-only, so a
+    # failure that only appears under minification passes here. The comment below
+    # explains that; a comment inside a YAML file is invisible on the checks page,
+    # which is where the claim is actually read. Raised by release-engineer.
+    name: android compiles (debug — no R8/shrink coverage)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
