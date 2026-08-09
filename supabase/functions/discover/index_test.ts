@@ -251,6 +251,12 @@ Deno.test('THE SHARED CORPUS: this side answers exactly what the Dart side answe
     // `\u062A\u0648\u0646\u0629` is the tin and `\u062A\u0648\u0646\u0627` is the menu board. Shipping only the first meant a Customer
     // excluding fish was TOLD the fish was removed and then served a tuna salad.
     ['\u0645\u0646 \u063A\u064A\u0631 \u062A\u0648\u0646\u0627', 'fish'],
+    // `\u0628\u0633` means "but", and what follows it is the food the Customer DOES want. Without it in
+    // CONJUNCTIONS this answered `chicken`: the meat stayed on screen under a label naming chicken.
+    ['\u0645\u0628\u0643\u0644\u0634 \u0644\u062D\u0645\u0629 \u0628\u0633 \u0628\u062D\u0628 \u0627\u0644\u0641\u0631\u0627\u062E', 'meat'],
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0644\u062D\u0645\u0629 \u0628\u0633 \u0628\u062D\u0628 \u0627\u0644\u0641\u0631\u0627\u062E', 'meat'],
+    // Whole words only \u2014 \u0628\u0633\u0637\u0631\u0645\u0629 is meat and must not be cut in half by the \u0628\u0633 entry.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0628\u0633\u0637\u0631\u0645\u0629', 'meat'],
   ];
   for (const [phrase, id] of cases) {
     const outcome = parsePhrase(phrase).exclusion;

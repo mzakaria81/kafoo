@@ -500,12 +500,28 @@ abstract final class ExclusionVocabulary {
       for (final form in exclusion.surfaceForms) (exclusion, foldArabic(form)),
   ];
 
-  /// Words that join two foods in one breath — `من غير لبن ولا بيض`.
+  /// Words that end the food and begin something else — `من غير لبن ولا بيض`,
+  /// `مبكلش لحمة بس بحب الفراخ`.
   ///
   /// Matched as whole words. A bare `و` is also a prefix (`وبصل`), so splitting
   /// on the character rather than the word would cut ordinary food names in
-  /// half.
-  static const Set<String> _conjunctions = {'ولا', 'و', 'أو', 'او'};
+  /// half — and `بس` is the front of `بسطرمة`, which is meat.
+  ///
+  /// **`بس` IS NOT A CONJUNCTION AND IT BELONGS HERE ANYWAY.** It means "but",
+  /// and what follows it is the opposite of an exclusion: the food the Customer
+  /// says they DO want. Added 2026-08-10 after trust-reviewer measured what its
+  /// absence did — `مبكلش لحمة بس بحب الفراخ`, "I don't eat meat but I like
+  /// chicken", took the whole tail as the food, let the longest match win, and
+  /// excluded the CHICKEN. The meat stayed on the screen and Kafoo told the
+  /// Customer it had removed chicken.
+  ///
+  /// That is under-exclusion of the food they named wearing a label naming a
+  /// food they did not — the one combination this file promises not to produce.
+  /// It is also the ordinary shape of a habitual negation, so it arrived on the
+  /// phrasing most likely to carry a religious or medical rule. Pre-existing:
+  /// `من غير لحمة بس بحب الفراخ` did the same before the habitual markers
+  /// existed.
+  static const Set<String> _conjunctions = {'ولا', 'و', 'أو', 'او', 'بس'};
 
   /// One shape for a word Arabic writes several ways.
   ///

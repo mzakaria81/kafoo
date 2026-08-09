@@ -469,6 +469,35 @@ void main() {
       }
     });
 
+    test('بس ends the exclusion — what follows is a liking, not the food', () {
+      // THE SENTENCE THAT PRODUCED A CONFIDENT FALSE STATEMENT.
+      // "I don't eat meat BUT I like chicken" is the ordinary shape of a
+      // habitual negation, and `بس` was not a conjunction — so the whole tail
+      // became the food, the longest match won, and it was the food they said
+      // they LIKED. Kafoo excluded the chicken, left the meat on the screen,
+      // and told the Customer it had removed chicken.
+      for (final (phrase, id) in const [
+        ('مبكلش لحمة بس بحب الفراخ', 'meat'),
+        ('مباكلش لحمة بس عايز فراخ', 'meat'),
+        ('مبكلش سمك بس بحب الجمبري', 'fish'),
+        // Pre-existing on the old markers too — this was never only about the
+        // habitual ones.
+        ('من غير لحمة بس بحب الفراخ', 'meat'),
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(), reason: phrase);
+        expect((outcome as ExclusionFound).exclusion.id, id, reason: phrase);
+      }
+    });
+
+    test('بس does not cut a food whose name merely begins with it', () {
+      // `بسطرمة` is meat. Conjunctions match as WHOLE WORDS, so this must be
+      // untouched — splitting on the characters would halve an ordinary food.
+      final outcome = ExclusionVocabulary.parse('من غير بسطرمة');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'meat');
+    });
+
     test('the olive that was already bought is the only one, still', () {
       // تونا must not widen the trade. `زيتون` and `زيت زيتون` are what an
       // ingredient list normally carries and neither may start colliding.
