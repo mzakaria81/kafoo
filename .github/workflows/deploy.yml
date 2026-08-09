@@ -188,6 +188,21 @@ jobs:
       # The build above deliberately still runs on a branch dispatch. Building and
       # checking the bundle for a service-role key is useful; publishing it is not.
       # Caught by release-engineer on the run after the trigger was added.
+      #
+      # AND THE SAME LIMIT APPLIES HERE AS TO THE SIGNING STEPS BELOW, which is worth
+      # saying twice rather than leaving one reader of one section to assume
+      # otherwise. `workflow_dispatch` runs the copy of this file on the ref it is
+      # dispatched against, so somebody who can push a branch can push one where this
+      # condition is deleted, dispatch it, and publish. A condition inside a file
+      # cannot defend the file.
+      #
+      # It is worse here than there, and the recommendation below should be read as
+      # covering this step first. A leaked mobile bundle still needs a human to submit
+      # it to a store; this publishes to Customers with nothing further required. The
+      # control that would hold is the same — a GitHub Environment with required
+      # reviewers, enforced by GitHub outside the workflow file — and it is the
+      # founder's to configure. Raised by release-engineer, which noticed the warning
+      # existed for the less sensitive of the two steps and not this one.
       - name: deploy
         if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != '' && github.ref == 'refs/heads/main'
         id: deploy
