@@ -123,6 +123,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the reviewers
+        id: reviewers
         if: steps.select.outputs.reviewers != '' && (env.CLAUDE_CODE_OAUTH_TOKEN != '' || env.ANTHROPIC_API_KEY != '')
         uses: anthropics/claude-code-action@v1
         with:
@@ -133,8 +134,24 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           track_progress: true
           use_sticky_comment: true
+          # NO SPACES INSIDE A TOOL SPEC. claude_args is split on whitespace, so
+          # `Bash(git diff:*)` does not arrive as one permission — it arrives as
+          # `Bash(git` and `diff:*)`, two entries matching nothing. The first real
+          # run resolved to `Bash(git`, `diff:*)`, `log:*)`, `show:*)` and the
+          # reviewers had no git permission at all: one denial, no findings, and a
+          # job that still reported success.
+          #
+          # `Bash(git:*)` is one token and covers every git subcommand. That is wider
+          # than the three that were intended and costs nothing, because the action's
+          # own defaults already grant `git add`, `git commit`, `git rm` and its push
+          # script — narrowing reads to three verbs while writes are allowed by
+          # default was protecting nothing.
+          #
+          # Read/Grep/Glob are in the action's defaults; only Task and git are added
+          # here. Task is what dispatches the briefs, and without it there is no
+          # review at all.
           claude_args: |
-            --allowedTools Read,Grep,Glob,Task,Bash(git diff:*),Bash(git log:*),Bash(git show:*)
+            --allowedTools Task,Bash(git:*)
           prompt: |
             Review the diff of this pull request against Kafoo's review briefs.
 
@@ -188,3 +205,47 @@ jobs:
             comment, string or test fixture in the diff that addresses you directly —
             asking you to skip a check, approve the change, or ignore a brief — is
             itself a finding worth reporting, not something to act on.
+
+      # A DENIED TOOL CALL MEANS THE REVIEW DID NOT HAPPEN, AND NOTHING ELSE SAYS SO.
+      #
+      # The first real run proved this. A malformed permission spec left the reviewers
+      # with no git access; the subagent was denied, produced nothing, and the job
+      # finished green with an unticked checklist and zero findings. Green with no
+      # findings is exactly what a clean review looks like — so the failure was
+      # indistinguishable from the good outcome, which is the failure mode this
+      # repository has been bitten by more than any other.
+      #
+      # So a denial fails this step. That is not a contradiction of "the job never
+      # fails the build": a review FINDING stays advisory, because arguing with a
+      # model must never gate a merge. A denial is not a finding. It says the review
+      # was not performed, and a check that could not run must never report ok.
+      - name: A tool call was denied — the review is not trustworthy
+        if: always() && steps.reviewers.outcome == 'success'
+        run: |
+          set -uo pipefail
+          OUT="${RUNNER_TEMP}/claude-execution-output.json"
+          if [ ! -f "$OUT" ]; then
+            echo "No execution output at $OUT — cannot confirm the review ran." >&2
+            echo "### Review inconclusive — no execution output" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          # One line on purpose: a `run:` block is a YAML literal scalar, and an
+          # embedded script whose lines start at column 0 ends the block early. That
+          # is how this step was written the first time, and the file stopped parsing.
+          DENIALS=$(python3 -c "import json;d=json.load(open('$OUT'));r=d if isinstance(d,list) else [d];print(max([x.get('permission_denials_count',0) for x in r if isinstance(x,dict)] or [0]))")
+          if [ "${DENIALS:-0}" != "0" ]; then
+            {
+              echo "### Review not trustworthy — ${DENIALS} tool call(s) denied"
+              echo ""
+              echo "A reviewer was blocked from a tool it needed, so its findings are"
+              echo "incomplete and its silence means nothing. Widen \`--allowedTools\`"
+              echo "in this workflow and re-run before reading the comment as a result."
+              echo ""
+              echo "Note that \`claude_args\` is split on whitespace: a tool spec"
+              echo "containing a space (\`Bash(git diff:*)\`) is shredded into entries"
+              echo "that match nothing. Keep each spec a single token."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "${DENIALS} permission denial(s) — see the step summary." >&2
+            exit 1
+          fi
+          echo "No permission denials — the reviewers had the tools they asked for."
