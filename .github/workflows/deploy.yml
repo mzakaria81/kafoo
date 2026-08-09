@@ -123,6 +123,42 @@ jobs:
 
       # Deploy only when Cloudflare credentials exist, and say so out loud when they do not.
       # A skipped deploy that looks like a successful one is what this whole comment block is about.
+      # NAME THE MISSING SECRET, RATHER THAN PUBLISHING A SITE THAT CANNOT
+      # RENDER AND LETTING THE SMOKE CHECK REPORT THE SYMPTOM.
+      #
+      # `SUPABASE_URL` was never set as a repository secret. An unset secret
+      # expands to an empty string in the shell, so `--var "SUPABASE_URL:"` bound
+      # a variable wrangler then listed in its binding table like any other —
+      # `env.SUPABASE_URL ("(hidden)")`, indistinguishable from a healthy one.
+      # `publicBackend()` rejects an empty string exactly as it rejects an
+      # undefined one, so every content page returned 500 and the only signal was
+      # a Worker that published perfectly.
+      #
+      # Conditioned on the Cloudflare token for the same reason the deploy is: a
+      # checkout with no way to publish is not made worse by absent Supabase
+      # values, and failing there would break every fork.
+      - name: refuse to deploy without the values the site needs
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          missing=""
+          [ -n "${SUPABASE_URL}" ] || missing="${missing} SUPABASE_URL"
+          [ -n "${SUPABASE_PUBLISHABLE_KEY}" ] || missing="${missing} SUPABASE_PUBLISHABLE_KEY"
+          if [ -n "${missing}" ]; then
+            echo "::error::Empty repository secret(s):${missing}. Every page that reads data will"\
+                 "return 500. Set them under Settings → Secrets and variables → Actions."\
+                 "SUPABASE_PUBLISHABLE_KEY is the sb_publishable_ key — NEVER the service-role key."
+            exit 1
+          fi
+          # The value, never printed. A wrong-project URL is the other half of
+          # this failure — docs/HANDOFF.md records SUPABASE_PROJECT_REF once
+          # pointing at an unrelated application — so the host is echoed to make
+          # a mismatch visible without disclosing anything.
+          echo "publishing against $(echo "${SUPABASE_URL}" | sed -E 's#(https://[a-z0-9]{6})[a-z0-9]*#\1…#')"
+
       # `--var` sets the Worker's RUNTIME environment, which is a different thing
       # from the build environment above and is why every content page returned
       # 500 from 2026-08-07 to 2026-08-09. Each page is `force-dynamic` and reads
