@@ -188,7 +188,19 @@ jobs:
             checklist and apply it to this diff only. Each brief already defines its
             own output format; do not override it.
 
-            Then write ONE consolidated comment:
+            Then write ONE consolidated comment, and write it by CALLING THE COMMENT
+            TOOL — `mcp__github_comment__update_claude_comment`. This is the only
+            channel that reaches a human. Findings you put in your final reply instead
+            of that tool call are discarded when the job ends: the reviewers still ran,
+            still cost money, and produced nothing anybody can read. That has happened
+            here — two reviewers were dispatched, their findings were never written,
+            and the run reported success with a half-ticked checklist.
+
+            So the LAST thing you do is call that tool with the finished comment and
+            every checklist box ticked. Not a summary of what you would write, not a
+            promise to write it — the comment itself, posted, before you stop.
+
+            The comment:
 
             - Group findings by reviewer, in the order above.
             - Within a group, keep the brief's own severity ordering.
@@ -263,3 +275,59 @@ jobs:
             exit 1
           fi
           echo "No permission denials — the reviewers had the tools they asked for."
+
+      # DISPATCHED, PAID FOR, AND NEVER WRITTEN DOWN.
+      #
+      # The other way this job can report success having produced nothing. On the run
+      # that prompted this step the agent read the diff, dispatched both reviewers,
+      # ticked their boxes, and then ended its turn without calling the comment tool:
+      # 12 turns, $0.89, no denials, conclusion success, and a checklist frozen at
+      # "Consolidate findings" with no findings under it. The reviewers had genuinely
+      # run — the cost proves it — and their output was thrown away.
+      #
+      # Same shape as the denial case and the same reason it needs a guard: a review
+      # that did not finish is indistinguishable from one that found nothing, and the
+      # comfortable reading is the wrong one. So check the artifact a human actually
+      # reads, not the model's self-report of it.
+      #
+      # An unticked checkbox in the posted comment is the signal, because track_progress
+      # writes that checklist and the agent ticks each box as it completes the step.
+      # Boxes left unticked after the job means it stopped early.
+      - name: The reviewers ran but their findings were never posted
+        if: always() && steps.reviewers.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          API="https://api.github.com/repos/$REPO/issues/$PR/comments?per_page=100"
+          # Newest bot comment is the sticky one this job just wrote. One line, because
+          # a `run:` block is a YAML literal scalar and an embedded script starting at
+          # column 0 ends it early.
+          BODY=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" "$API" | python3 -c "import json,sys;c=[x for x in json.load(sys.stdin) if x['user']['login']=='github-actions[bot]'];print(c[-1]['body'] if c else '')")
+          if [ -z "$BODY" ]; then
+            {
+              echo "### Review incomplete — no comment was posted"
+              echo ""
+              echo "The reviewers ran but wrote nothing a human can read. Re-run before"
+              echo "treating this pull request as reviewed."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "No review comment found on PR #$PR." >&2
+            exit 1
+          fi
+          if printf '%s' "$BODY" | grep -q -- '- \[ \]'; then
+            {
+              echo "### Review incomplete — the agent stopped before writing its findings"
+              echo ""
+              echo "The posted comment still has unticked checklist boxes, so the"
+              echo "reviewers were dispatched but their findings were never consolidated."
+              echo "Whatever they found is lost; the run cost real money and produced"
+              echo "nothing readable."
+              echo ""
+              echo "This is NOT a clean review. Re-run the job."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Review comment has unticked checklist boxes — findings were never written." >&2
+            exit 1
+          fi
+          echo "Review comment posted and complete."
