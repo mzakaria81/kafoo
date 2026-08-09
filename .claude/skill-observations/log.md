@@ -1893,3 +1893,20 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 **Principle:** A deduplication check is only as good as its enumeration of where the thing being deduplicated can live. When a host resolves a resource from several locations by design, a check that names one of them will pass while missing most of the population — and because the symptom is a redundant recommendation rather than an error, nothing surfaces the gap. Derive the search set from the host's actual resolution order, not from the one canonical path that is easiest to name.
 
+
+---
+
+### Observation 129: In a shared working tree, "I did not commit" is not evidence that your work is uncommitted
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Fixing CLAUDE.md's repo map and the CI web-surface check in Kafoo, with a second Claude session live in the same working tree.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** Working alongside another session / pre-flight state check
+
+**Issue:** I edited four files, told the founder they were uncommitted and at risk of being lost at container teardown, and offered to commit them. The founder asked whether the work was already pushed. It was already committed — a parallel session had committed my working-tree edits minutes earlier, with authored messages I had not written. My statement was built on the absence of my own `git commit` call, which in a shared tree proves nothing: another writer can commit your changes, and the only way to know is to read git, not memory. The same session had already told me, via an Edit-tool warning, that the observation log had changed underneath it — evidence of the parallel writer that I registered and did not generalise. Separately, I began editing without checking `origin/main` at all; had the fix been merged upstream, the whole change would have been redundant.
+
+**Suggested improvement:** Two additions to the shared-tree guidance. First, a pre-flight step before any substantive edit: fetch the remote and confirm the target change is not already present upstream — the cost is one command and the failure it prevents is a whole task's redundant work. Second, a rule that any claim about repository state (committed, uncommitted, pushed, clean) must be read from git immediately before it is stated, never inferred from what this session did or did not do. Treat a concurrent-modification warning from any tool as a signal that both rules are now load-bearing for the rest of the session.
+
+**Principle:** In an environment with concurrent writers, an agent's own action history is not a valid model of shared state. The absence of an action you would have had to take proves only that you did not take it — not that nobody did. Any assertion about shared state must be re-read from the authoritative source at the moment of asserting it, because the window between observation and claim is exactly where another writer acts. A tool reporting "this changed underneath you" is a statement about the whole environment, not about one file.
