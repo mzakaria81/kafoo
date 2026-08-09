@@ -107,6 +107,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/communication-contract.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/caveman-mode-tracker.js\"",
             "timeout": 10,
             "statusMessage": "Tracking caveman mode..."
@@ -116,6 +121,17 @@
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/ponytail-mode-tracker.js\"",
             "timeout": 5,
             "statusMessage": "Tracking ponytail mode..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/check-reply-shape.py\"",
+            "timeout": 5
           }
         ]
       }
