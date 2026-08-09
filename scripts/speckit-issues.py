@@ -21,6 +21,7 @@ import argparse
 import json
 import os
 import pathlib
+import hashlib
 import re
 import sys
 import time
@@ -134,13 +135,33 @@ def resolve_wp_epics(packages: dict, tasks_by_epic: dict[str, set]) -> dict[str,
     Derived independently of who claims a task. A package whose every task was
     already claimed by a lower-numbered package still belongs to its epic, and
     inferring the epic from the claim map instead would file it under a default.
+
+    A package can also have NO tasks — WP-021 was created in place of an analytics
+    epic and carries acceptance criteria only. Its epic comes from what it depends
+    on, which is a stated fact about the package rather than a guess. If that
+    cannot be resolved either, it is left absent and the caller reports it: a
+    default here would file a real package under whichever epic was hardcoded and
+    look entirely plausible doing it.
     """
     wp_epic: dict[str, str] = {}
     for wp_id in sorted(packages):
         ids = set(packages[wp_id].get("tasks", []))
-        if not ids:
-            continue
-        wp_epic[wp_id] = max(tasks_by_epic, key=lambda e: len(ids & tasks_by_epic[e]))
+        if ids:
+            wp_epic[wp_id] = max(tasks_by_epic, key=lambda e: len(ids & tasks_by_epic[e]))
+
+    # Second pass, so a task-less package can inherit from a dependency resolved above.
+    for _ in range(len(packages)):
+        changed = False
+        for wp_id in sorted(packages):
+            if wp_id in wp_epic:
+                continue
+            for dep in packages[wp_id].get("dependencies") or []:
+                if dep in wp_epic:
+                    wp_epic[wp_id] = wp_epic[dep]
+                    changed = True
+                    break
+        if not changed:
+            break
     return wp_epic
 
 
@@ -263,8 +284,9 @@ def package_body(wp: dict, epic_key: str, also_claims: list[str]) -> str:
     out.append(f"**Owner**: {'`' + owner + '`' if owner else '_unowned_'}")
     if wp.get("branch"):
         out.append(f"**Branch**: `{wp['branch']}`")
-    if wp.get("pr"):
-        out.append(f"**PR**: #{wp['pr']}")
+    pr = wp.get("pr")
+    if pr:
+        out.append(f"**PR**: {pr}" if str(pr).startswith("http") else f"**PR**: #{pr}")
     if wp.get("blocked_reason"):
         out.append(f"**Blocked**: {wp['blocked_reason']}")
     out.append(
@@ -433,6 +455,9 @@ class Gh:
             {"title": title, "body": body, "labels": labels},
         )
 
+    def patch(self, number: int, payload: dict) -> None:
+        self._request("PATCH", f"/repos/{self.owner}/{self.repo}/issues/{number}", payload)
+
     def close_issue(self, number: int, body: str | None = None) -> None:
         # The body carries "State in tasks.md", so a task that has since been ticked needs its
         # body rewritten as well as its state changed. One PATCH does both — closing without
@@ -455,8 +480,10 @@ class Gh:
 
 def load_state() -> dict:
     if STATE_PATH.exists():
-        return json.loads(STATE_PATH.read_text(encoding="utf-8"))
-    return {"issues": {}, "links": [], "closed": []}
+        state = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        state.setdefault("bodies", {})
+        return state
+    return {"issues": {}, "links": [], "closed": [], "bodies": {}}
 
 
 def save_state(state: dict) -> None:
@@ -514,8 +541,10 @@ def main() -> int:
                 claims.setdefault(qualify(epic_key, task_id), []).append(wp_id)
 
     epic_wps: dict[str, list[str]] = {e["key"]: [] for e in epics}
+    unplaced = [w for w in sorted(packages) if w not in wp_epic]
     for wp_id in sorted(packages):
-        epic_wps.setdefault(wp_epic.get(wp_id, "E3"), []).append(wp_id)
+        if wp_id in wp_epic:
+            epic_wps[wp_epic[wp_id]].append(wp_id)
 
     n_close = sum(1 for t in all_tasks if t["done"])
     n_issues = len(epics) + len(packages) + len(all_tasks)
@@ -534,6 +563,8 @@ def main() -> int:
     dupes = {t: w for t, w in claims.items() if len(w) > 1}
     if dupes:
         log(f"  tasks claimed by more than one package: {dupes}")
+    if unplaced:
+        log(f"  SKIPPED — no tasks and no resolvable dependency, so no epic: {unplaced}")
     for epic_key, dups in duplicates.items():
         log(f"  {epic_key}: task id recorded more than once in tasks.md, merged into one issue: {dups}")
 
@@ -551,13 +582,37 @@ def main() -> int:
     issues = state["issues"]
     links = set(tuple(x) for x in state["links"])
     closed = set(state["closed"])
+    bodies = state["bodies"]
+
+    def snapshot() -> dict:
+        return {
+            "issues": issues,
+            "links": sorted(links),
+            "closed": sorted(closed),
+            "bodies": bodies,
+        }
+
+    def digest(title: str, body: str) -> str:
+        return hashlib.sha256((title + "\x00" + body).encode()).hexdigest()
 
     def ensure_issue(key: str, title: str, body: str, labels: list[str]) -> dict:
+        # An epic body carries "39 of 48 complete" and a package body mirrors a
+        # status, so both go stale the moment a box is ticked. Creating and never
+        # updating leaves an issue asserting a count that is no longer true, which
+        # is worse than having no count. The hash is what keeps a no-op run free:
+        # only a body that actually changed is written back.
+        want = digest(title, body)
         if key in issues:
+            if bodies.get(key) != want:
+                gh.patch(issues[key]["number"], {"title": title, "body": body})
+                bodies[key] = want
+                save_state(snapshot())
+                log(f"  refreshed #{issues[key]['number']}  {key}")
             return issues[key]
         made = gh.create_issue(title, body, labels)
         issues[key] = {"number": made["number"], "id": made["id"]}
-        save_state({"issues": issues, "links": sorted(links), "closed": sorted(closed)})
+        bodies[key] = want
+        save_state(snapshot())
         log(f"  created #{made['number']}  {key}")
         return issues[key]
 
@@ -567,14 +622,14 @@ def main() -> int:
             return
         gh.add_sub_issue(issues[parent_key]["number"], issues[child_key]["id"])
         links.add(pair)
-        save_state({"issues": issues, "links": sorted(links), "closed": sorted(closed)})
+        save_state(snapshot())
 
     def ensure_closed(key: str, body: str | None = None) -> None:
         if key in closed:
             return
         gh.close_issue(issues[key]["number"], body)
         closed.add(key)
-        save_state({"issues": issues, "links": sorted(links), "closed": sorted(closed)})
+        save_state(snapshot())
 
     log("labels")
     for name, (color, desc) in LABELS.items():
@@ -591,8 +646,10 @@ def main() -> int:
 
     log("work packages")
     for wp_id in sorted(packages):
+        if wp_id not in wp_epic:
+            continue
         wp = packages[wp_id]
-        epic_key = wp_epic.get(wp_id, "E3")
+        epic_key = wp_epic[wp_id]
         extra = [
             t
             for t in wp.get("tasks", [])
