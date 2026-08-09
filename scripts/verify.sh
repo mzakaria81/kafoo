@@ -643,6 +643,33 @@ run "work packages" bash -c '
   [ -d coordination/packages ] || { echo "   no coordination/packages — skipping"; exit 0; }
   python3 scripts/validate-coordination.py'
 
+# A task id must name exactly one task in its file. E0, E1 and E2 each restart numbering at T001, so
+# an id is only ever unique WITHIN one tasks.md — which is why this compares per file and not across
+# the repository, and why anything that reads these files across epics has to qualify the id.
+#
+# specs/003 recorded T094 and T095 twice each until 2026-08-08: once in their phase and once in a
+# trailing section, both `[x]`, both saying "folded into T088". Nothing contradicted anything, which
+# is precisely why it survived every review and every run of this gate. The file reported 101 task
+# lines against 99 tasks and every count taken from it was two high.
+#
+# The cost is not the miscount. A duplicated id has no single state — tick one copy and the same task
+# is both done and not done — and any tool keying on it silently maps two records onto one.
+run "task ids are unique" bash -c '
+  ls specs/*/tasks.md >/dev/null 2>&1 || { echo "   no specs/*/tasks.md — skipping"; exit 0; }
+  status=0
+  total=0
+  for f in specs/*/tasks.md; do
+    ids=$(grep -oE "^- \[[ x]\] T[0-9]{3}" "$f" | grep -oE "T[0-9]{3}")
+    total=$((total + $(printf "%s\n" "$ids" | grep -c .)))
+    dupes=$(printf "%s\n" "$ids" | sort | uniq -d | tr "\n" " ")
+    if [ -n "$dupes" ]; then
+      echo "   $f: ${dupes}recorded more than once — one id, one task"
+      status=1
+    fi
+  done
+  [ "$status" -eq 0 ] && echo "   $total task ids across $(ls specs/*/tasks.md | wc -l | tr -d " ") files, none repeated within a file"
+  exit "$status"'
+
 # Which review agent reads which diff is decided by a path map in
 # scripts/select-reviewers.sh, and the failure mode is the quiet one: rename a brief
 # or move a directory, and the map stops matching. CI then dispatches nothing for

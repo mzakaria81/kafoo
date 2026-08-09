@@ -1728,3 +1728,103 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** Two habits, both cheap. (1) When a feature's premise is "works without X", enumerate every subsystem that gates on X and check each one explicitly — the gate list is short and the failure is otherwise invisible. (2) When writing an authorization rule as a closed list, write the test as a statement of the *principle* the list encodes ("an anonymous caller may record what an anonymous caller can cause"), not of the list's current contents. A test that restates the enumeration cannot distinguish a correct list from a stale one.
 
 **Principle:** An enumerated permission is a snapshot of what the system could do on the day it was written, and it silently narrows as the system grows. Where the consumer of that permission is also designed to fail silently — as measurement, logging and telemetry almost always are — the two correct decisions compose into an outage with no symptom. Look for that pairing deliberately: a closed list plus a swallowed error is a blind spot by construction, not by accident.
+
+### Observation 119: speckit-taskstoissues has no concept of hierarchy, so it flattens the structure it is asked to mirror
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Founder asked for all four Kafoo epics and their 348 tasks in GitHub issues, with work packages as a second level wherever the project had started using them.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, steps 6–7 (issue creation)
+
+**Issue:** The skill creates exactly one flat issue per `T###` task in a single feature's `tasks.md` and stops there. It has no notion of a parent issue for the feature itself, no use of GitHub's sub-issues API, and no way to express an intermediate grouping — so the epic → task and epic → package → task shape the request was about could not be produced by following it. It also assumes a single feature directory (`check-prerequisites.sh` returns one `FEATURE_DIR`), so "all epics" is outside what it can express. The task's real structure had to be built in a purpose-written script instead, and the skill contributed only its title convention (`T001: <description>`) and its deduplication idea.
+
+**Suggested improvement:** Add an optional hierarchy mode: create a parent issue per feature from `spec.md`, link every task issue to it via `POST /repos/{owner}/{repo}/issues/{n}/sub_issues`, and allow one intermediate level supplied by the caller (a grouping file, a phase header, or a label). State the two GitHub limits that constrain the shape — 100 sub-issues per parent and 8 levels of nesting — because a per-epic task count above 100 silently changes the design. Note that a sub-issue takes exactly one parent, so a task claimed by two groups needs a declared tie-break rather than a second link.
+
+**Principle:** A converter that flattens is only correct when the source has no structure. When the source encodes a hierarchy — phases, epics, work packages — a tool that emits a flat list discards the most useful thing it was given, and the loss is invisible because every individual record looks right.
+
+---
+
+### Observation 120: a per-item API workflow needs a stated crossover point where it becomes a script
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Same task. 348 tasks plus 4 epics plus 20 work packages meant ~945 content-creating GitHub requests: 372 creates, 368 sub-issue links, 205 closes.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, step 7, and Pre-Execution as a whole
+
+**Issue:** The skill instructs the agent to create issues one at a time through MCP tool calls, and is careful about read-side pagination while saying nothing about the write side. At this repository's size that prescription is not merely slow, it does not fit: GitHub caps content-creating requests at roughly 500/hour and 80/minute and signals a breach with a 403 plus `Retry-After` rather than a 429, so the run must pace itself and survive multi-minute stalls. Several hundred sequential tool calls also consume the agent's context on tool results that carry no information the agent needs. Neither constraint is mentioned, so the default reading of the skill is a workflow that stalls partway with issues half-created and no record of where it stopped.
+
+**Suggested improvement:** Add a scale note: below roughly 30 tasks, create issues via individual tool calls as written; above that, generate a resumable script and state the three properties it must have — pacing with permanent slowdown on a secondary-limit 403, a state file written before the next call so a re-run resumes instead of duplicating, and a dry-run that prints the plan and counts before anything is created. Deduplication by issue title (already in step 6) is the fallback when no state file exists, not a substitute for one.
+
+**Principle:** Any workflow that repeats a write per item has a size at which per-item agent calls stop being the right mechanism, and the instruction should name that threshold rather than leave the agent to discover it by exhausting a rate limit. Partial completion of a bulk write is the expected case, so resumability belongs in the design, not in the recovery.
+
+---
+
+### Observation 121: a documented warning that an identifier is not unique needs a test, not a reader
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Backfilling 348 Kafoo tasks into GitHub issues. The run died partway with a 422 from the sub-issues API — "Sub issue may only have one parent" — because state was keyed on the bare `T###`.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, step 6 (deduplication) and step 7 (issue creation)
+
+**Issue:** The project's own instructions state plainly that task numbering restarts per epic, so the same `T045` names three different tasks in three different `tasks.md` files. That warning was read before the code was written and the code still keyed on the bare id, because the warning was absorbed as background rather than turned into a constraint. The skill encourages this directly: its deduplication step matches issue titles against `\bT\d{3}\b` and treats a hit as "this task already has an issue", which is only sound when ids are unique across everything being converted. The failure was loud and cheap here — GitHub refused the second parent and the run stopped with nothing corrupted — but the same key collision in a tool without a uniqueness constraint at the far end would have silently attached one epic's issue to another epic's parent.
+
+**Suggested improvement:** In step 6, qualify the identifier by its feature before matching, and state that a bare task id is only assumed unique within one `tasks.md`. Add an explicit precondition to the Outline: assert that ids are unique across the set being converted and stop with the collisions listed if not. Where a multi-feature conversion is in scope, the created issue title should carry the feature too, so a bare id never names two issues.
+
+**Principle:** A warning in prose that an identifier is not unique protects nobody, because reading it and encoding it are different acts. Convert the warning into an assertion the tool runs, and let it fail on the collision it predicts — otherwise the design proceeds on the assumption the document exists to deny.
+
+---
+
+### Observation 122: never derive a record's category from a map built by claim order
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Same task. Deriving which epic each work package belonged to from the task-to-package ownership map filed one package under a default epic.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Grouping / parent resolution
+
+**Issue:** Two units of work claimed the same task id, and a task can have only one parent, so the ownership map was built with first-claimant-wins. One package's entire task list was a single task already claimed by a lower-numbered package, so it contributed no entry to that map at all — and because the package's epic was being read back out of the same map, it fell through to a hardcoded default and was filed under the wrong epic. The visible symptom was a count being off by one in two places; the cause was a category derived from a side effect of contention rather than from the record itself. Nothing in the output looked wrong, which is why it took a count comparison against an earlier run to notice.
+
+**Suggested improvement:** Derive each grouping's parent from its own fields, in a separate pass, before any claim or deduplication runs — then let the claim pass consume that result. Never let a default silently absorb a record missing from a derived map: if a lookup misses, fail or log it rather than substituting a fallback value that will look plausible in the output.
+
+**Principle:** Deduplication is lossy by design, so anything read back out of a deduplicated map inherits the arbitrariness of who won. Compute a record's own attributes from the record, and keep that pass independent of, and earlier than, any pass that resolves contention between records.
+
+---
+
+### Observation 123: a converter is a reader of last resort, and what it trips over belongs back in the source
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Converting 348 spec-kit tasks into GitHub issues surfaced two defects in the source files that had passed every review and every gate run: a task id recorded twice in one `tasks.md`, and a plan file whose checkboxes contradicted the status of the work packages delivering them.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline — a validation pass before any issue is created
+
+**Issue:** The skill converts and creates, and never inspects what it is reading. Both defects it walked into were invisible to human review precisely because nothing contradicted anything — the duplicated id was `[x]` in both copies with the same explanatory text, so no reader had a reason to look twice, and the miscount it caused had been quoted onward. A converter is the first thing to read every record in a file mechanically and compare them, so it is the cheapest place these defects will ever be found; discarding that signal and creating issues anyway propagates the defect into a second system, where it is then harder to see because two systems now agree.
+
+**Suggested improvement:** Add a validation pass before creation that reports, without fixing: ids duplicated within a file, ids referenced by a grouping that do not exist in any task file, and checkbox state contradicting any status the project tracks separately. Report and stop, or report and continue behind a flag — but never silently normalise, because reconciling a plan file is a planning decision belonging to whoever owns it. Where the converter must handle a defect to proceed at all, it should say so in the created record rather than absorb it.
+
+**Principle:** Any tool that reads every record in a source mechanically is a free consistency check on that source, and the findings belong upstream where the source can be fixed — not silently accommodated so the conversion can finish. Accommodating a defect quietly is worse than failing on it: it creates a second system that agrees with the first, and agreement between two copies of one mistake reads as corroboration.
+
+---
+
+### Observation 124: a rollup counts the children it has, not the ones you were thinking of
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** After reconciling 113 of 126 tasks in an epic to done and closing every one of their issues, the epic's own progress indicator still read 0%.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Hierarchy / parent-child modelling
+
+**Issue:** Where an intermediate grouping level exists, the top-level parent's children are the groupings — not the leaf items. Closing 113 leaf issues moved every grouping to 100% and left the top level at 0%, because nothing had closed the grouping issues themselves. The number was not wrong; it was answering a different question from the one being read off it, and it looked like a bug in the closing pass. The fix was to close a grouping when the project's own status field says the grouping is finished — deliberately not when its children all happen to be closed, because a grouping can have every item delivered and still be open on decisions its owner has not taken, which was true of one grouping here.
+
+**Suggested improvement:** When a hierarchy has three levels, state which level each parent's indicator counts, and close intermediate nodes from the source's own completion field rather than inferring completion from the children. Inferring it would silently overrule whoever owns that field. Verify the top-level indicator explicitly after any bulk close — a parent reading 0% while all its grandchildren are closed is the signature of this mistake.
+
+**Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.

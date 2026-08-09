@@ -879,5 +879,8 @@ converting along with them — accepted, not overlooked.
   assertion is to move the test to a fixture where the named policy is the only guard, **never** to
   change the policy. WP-008
 
-- [x] T094 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.
-- [x] T095 **DONE 2026-08-05** — folded into T088 and replayed with it. Written up there.
+**T094 and T095 are recorded in Phase 10 and are not repeated here.** They were also written out at
+the bottom of this file until 2026-08-08, which made them the only task ids in Kafoo appearing twice
+in one `tasks.md` — so this file reported 101 task lines against 99 tasks, and every count taken
+from it was two high. Both copies said `[x]` and both said "folded into T088", so nothing
+contradicted anything and no reader had a reason to look. The gate now refuses a repeated id.
