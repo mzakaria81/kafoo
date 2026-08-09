@@ -13,12 +13,20 @@
 -- ة written ه, with a stretched letter inside, and with a no-break space where the form has a space.
 -- Every one is invisible or near-invisible on screen, which is why they are written as escapes here.
 --
+-- WHAT THIS SUITE CANNOT DO, SO NOBODY LEANS ON IT FOR THAT. It generates its fixtures from the
+-- same vocabulary it asserts against, so DELETING a surface form deletes that form's Meals too and
+-- the suite simply tests less while staying green. Measured 2026-08-10: removing مايونيز left every
+-- assertion here passing and only changed 'four spelling(s)' to 'two'. Catching a form that
+-- disappears is the job of the pinned decisions in packages/domain/test/exclusion_vocabulary_test —
+-- the same mutation turns two of those red. This suite's job is the other half: proving the
+-- PREDICATE honours every form that IS listed.
+--
 -- PAIRED WITH A CONTROL, always. A predicate that excluded everything would satisfy every
 -- "did not appear" assertion in this file, so each exclusion also asserts that a Meal made of rice
 -- and water survives it.
 
 BEGIN;
-SELECT plan(26);
+SELECT plan(38);
 
 SELECT tests.create_supabase_user('cook@sweep.kafoo');
 
@@ -27,8 +35,23 @@ INSERT INTO public.kitchen_profiles (cook_id, display_name, story, area, deliver
 VALUES (tests.user_id('cook@sweep.kafoo'), 'مطبخ المسح', 'بطبخ من زمان', 'المهندسين', 'توصيل قريب');
 SELECT tests.clear_authentication();
 
+-- ONE PROBE PER EXCLUSION, BECAUSE search_meals ENDS IN LIMIT 50.
+--
+-- Every Meal here used to carry the identical flat embedding, so every distance tied and Postgres
+-- returned the first 50 rows in physical order. Measured 2026-08-09: ids past 049 were never
+-- returned by any query, so 104 of 153 planted spellings were asserted against Meals the search
+-- could not produce and 8 of the 12 SC-005 assertions could not fail. Deleting a whole surface form
+-- from the vocabulary left this suite green.
+--
+-- Each exclusion now gets a probe that spikes its own dimension, and its Meals carry that same
+-- vector — so its group sorts first and sits inside the window whatever else is planted. The
+-- control keeps the flat vector, which is nearer to any spike than another spike is, so it lands
+-- immediately after the group being tested.
 CREATE TEMP TABLE probe AS
-SELECT (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)) AS v;
+SELECT g AS grp,
+       (SELECT array_agg(CASE WHEN d = g THEN 1.0 ELSE 0.1 END)::vector(768)
+        FROM generate_series(1, 768) AS d) AS v
+FROM generate_series(1, 12) AS g;
 GRANT SELECT ON probe TO anon, authenticated;
 
 -- One Meal per spelling of every form, plus one control that contains no excluded food at all.
@@ -36,348 +59,468 @@ INSERT INTO public.meals (id, cook_id, title, description, price, cuisine, categ
                           ingredients, allergens, embedding, published_at)
 VALUES
   ('dddddddd-0000-4000-8000-000000000000', tests.user_id('cook@sweep.kafoo'), 'أرز سادة', 'وصف', 25, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0623\u0631\u0632'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000001', tests.user_id('cook@sweep.kafoo'), 'أكلة 1', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u062D\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000002', tests.user_id('cook@sweep.kafoo'), 'أكلة 2', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0640\u062D\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000003', tests.user_id('cook@sweep.kafoo'), 'أكلة 3', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u062D\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000004', tests.user_id('cook@sweep.kafoo'), 'أكلة 4', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u062D\u0640\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000005', tests.user_id('cook@sweep.kafoo'), 'أكلة 5', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0628\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000006', tests.user_id('cook@sweep.kafoo'), 'أكلة 6', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0640\u0628\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000007', tests.user_id('cook@sweep.kafoo'), 'أكلة 7', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u062C\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000008', tests.user_id('cook@sweep.kafoo'), 'أكلة 8', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0640\u062C\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000009', tests.user_id('cook@sweep.kafoo'), 'أكلة 9', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0633\u0637\u0631\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000010', tests.user_id('cook@sweep.kafoo'), 'أكلة 10', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0633\u0637\u0631\u0645\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000011', tests.user_id('cook@sweep.kafoo'), 'أكلة 11', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0633\u0637\u0640\u0631\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000012', tests.user_id('cook@sweep.kafoo'), 'أكلة 12', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0627\u0646\u0634\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000013', tests.user_id('cook@sweep.kafoo'), 'أكلة 13', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0627\u0646\u0640\u0634\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000014', tests.user_id('cook@sweep.kafoo'), 'أكلة 14', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u0627\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000015', tests.user_id('cook@sweep.kafoo'), 'أكلة 15', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u0640\u0627\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000016', tests.user_id('cook@sweep.kafoo'), 'أكلة 16', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000017', tests.user_id('cook@sweep.kafoo'), 'أكلة 17', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0640\u0631\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000018', tests.user_id('cook@sweep.kafoo'), 'أكلة 18', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u062C\u0627\u062C\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000019', tests.user_id('cook@sweep.kafoo'), 'أكلة 19', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u062C\u0640\u0627\u062C\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000020', tests.user_id('cook@sweep.kafoo'), 'أكلة 20', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0627\u0646\u064A\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000021', tests.user_id('cook@sweep.kafoo'), 'أكلة 21', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0627\u0640\u0646\u064A\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000022', tests.user_id('cook@sweep.kafoo'), 'أكلة 22', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000023', tests.user_id('cook@sweep.kafoo'), 'أكلة 23', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0640\u0645\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000024', tests.user_id('cook@sweep.kafoo'), 'أكلة 24', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0623\u0633\u0645\u0627\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000025', tests.user_id('cook@sweep.kafoo'), 'أكلة 25', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0623\u0633\u0640\u0645\u0627\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000026', tests.user_id('cook@sweep.kafoo'), 'أكلة 26', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0644\u0645\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000027', tests.user_id('cook@sweep.kafoo'), 'أكلة 27', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0644\u0640\u0645\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000028', tests.user_id('cook@sweep.kafoo'), 'أكلة 28', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0646\u062C\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000029', tests.user_id('cook@sweep.kafoo'), 'أكلة 29', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0646\u062C\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000030', tests.user_id('cook@sweep.kafoo'), 'أكلة 30', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0646\u0640\u062C\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000031', tests.user_id('cook@sweep.kafoo'), 'أكلة 31', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u064A\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000032', tests.user_id('cook@sweep.kafoo'), 'أكلة 32', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u0640\u064A\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000033', tests.user_id('cook@sweep.kafoo'), 'أكلة 33', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0644\u0637\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000034', tests.user_id('cook@sweep.kafoo'), 'أكلة 34', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0644\u0640\u0637\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000035', tests.user_id('cook@sweep.kafoo'), 'أكلة 35', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0648\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000036', tests.user_id('cook@sweep.kafoo'), 'أكلة 36', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0648\u0640\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000037', tests.user_id('cook@sweep.kafoo'), 'أكلة 37', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0631\u062F\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000038', tests.user_id('cook@sweep.kafoo'), 'أكلة 38', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0631\u0640\u062F\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000039', tests.user_id('cook@sweep.kafoo'), 'أكلة 39', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000040', tests.user_id('cook@sweep.kafoo'), 'أكلة 40', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000041', tests.user_id('cook@sweep.kafoo'), 'أكلة 41', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0640\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000042', tests.user_id('cook@sweep.kafoo'), 'أكلة 42', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0646\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000043', tests.user_id('cook@sweep.kafoo'), 'أكلة 43', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0640\u0646\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000044', tests.user_id('cook@sweep.kafoo'), 'أكلة 44', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0645\u0628\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000045', tests.user_id('cook@sweep.kafoo'), 'أكلة 45', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0645\u0640\u0628\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000046', tests.user_id('cook@sweep.kafoo'), 'أكلة 46', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000047', tests.user_id('cook@sweep.kafoo'), 'أكلة 47', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0627\u0633\u062A\u0627\u0640\u0643\u0648\u0632\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000048', tests.user_id('cook@sweep.kafoo'), 'أكلة 48', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000049', tests.user_id('cook@sweep.kafoo'), 'أكلة 49', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0628\u0640\u0648\u0631\u064A\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000050', tests.user_id('cook@sweep.kafoo'), 'أكلة 50', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u062D\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000051', tests.user_id('cook@sweep.kafoo'), 'أكلة 51', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u062D\u0640\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000052', tests.user_id('cook@sweep.kafoo'), 'أكلة 52', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0628\u064A\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000053', tests.user_id('cook@sweep.kafoo'), 'أكلة 53', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0628\u0640\u064A\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000054', tests.user_id('cook@sweep.kafoo'), 'أكلة 54', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000055', tests.user_id('cook@sweep.kafoo'), 'أكلة 55', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0644\u064A\u0640\u0645\u0627\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000056', tests.user_id('cook@sweep.kafoo'), 'أكلة 56', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u064A\u062F\u0633\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000057', tests.user_id('cook@sweep.kafoo'), 'أكلة 57', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u0640\u064A\u062F\u0633\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000058', tests.user_id('cook@sweep.kafoo'), 'أكلة 58', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0628\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000059', tests.user_id('cook@sweep.kafoo'), 'أكلة 59', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0628\u0640\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000060', tests.user_id('cook@sweep.kafoo'), 'أكلة 60', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000061', tests.user_id('cook@sweep.kafoo'), 'أكلة 61', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0646\u062F\u0640\u0648\u0641\u0644\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000062', tests.user_id('cook@sweep.kafoo'), 'أكلة 62', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u064A\u0636\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000063', tests.user_id('cook@sweep.kafoo'), 'أكلة 63', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0640\u064A\u0636\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000064', tests.user_id('cook@sweep.kafoo'), 'أكلة 64', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000065', tests.user_id('cook@sweep.kafoo'), 'أكلة 65', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0627\u064A\u0640\u0648\u0646\u064A\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000066', tests.user_id('cook@sweep.kafoo'), 'أكلة 66', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000067', tests.user_id('cook@sweep.kafoo'), 'أكلة 67', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0640\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000068', tests.user_id('cook@sweep.kafoo'), 'أكلة 68', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0644\u064A\u0628\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000069', tests.user_id('cook@sweep.kafoo'), 'أكلة 69', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0644\u0640\u064A\u0628\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000070', tests.user_id('cook@sweep.kafoo'), 'أكلة 70', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000071', tests.user_id('cook@sweep.kafoo'), 'أكلة 71', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0640\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000072', tests.user_id('cook@sweep.kafoo'), 'أكلة 72', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u0627\u062F\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000073', tests.user_id('cook@sweep.kafoo'), 'أكلة 73', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u0640\u0627\u062F\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000074', tests.user_id('cook@sweep.kafoo'), 'أكلة 74', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0637\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000075', tests.user_id('cook@sweep.kafoo'), 'أكلة 75', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0637\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000076', tests.user_id('cook@sweep.kafoo'), 'أكلة 76', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0640\u0637\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000077', tests.user_id('cook@sweep.kafoo'), 'أكلة 77', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000078', tests.user_id('cook@sweep.kafoo'), 'أكلة 78', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u062F\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000079', tests.user_id('cook@sweep.kafoo'), 'أكلة 79', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0640\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000080', tests.user_id('cook@sweep.kafoo'), 'أكلة 80', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000081', tests.user_id('cook@sweep.kafoo'), 'أكلة 81', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u062F\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000082', tests.user_id('cook@sweep.kafoo'), 'أكلة 82', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u0640\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000083', tests.user_id('cook@sweep.kafoo'), 'أكلة 83', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000084', tests.user_id('cook@sweep.kafoo'), 'أكلة 84', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0640\u0645\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000085', tests.user_id('cook@sweep.kafoo'), 'أكلة 85', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0631\u064A\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000086', tests.user_id('cook@sweep.kafoo'), 'أكلة 86', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0631\u064A\u0645\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000087', tests.user_id('cook@sweep.kafoo'), 'أكلة 87', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0631\u0640\u064A\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000088', tests.user_id('cook@sweep.kafoo'), 'أكلة 88', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000089', tests.user_id('cook@sweep.kafoo'), 'أكلة 89', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u0640\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000090', tests.user_id('cook@sweep.kafoo'), 'أكلة 90', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0648\u062F\u0627\u0646\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000091', tests.user_id('cook@sweep.kafoo'), 'أكلة 91', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0648\u062F\u0640\u0627\u0646\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000092', tests.user_id('cook@sweep.kafoo'), 'أكلة 92', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0633\u0631\u0627\u062A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000093', tests.user_id('cook@sweep.kafoo'), 'أكلة 93', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0633\u0640\u0631\u0627\u062A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000094', tests.user_id('cook@sweep.kafoo'), 'أكلة 94', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0648\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000095', tests.user_id('cook@sweep.kafoo'), 'أكلة 95', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0640\u0648\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000096', tests.user_id('cook@sweep.kafoo'), 'أكلة 96', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000097', tests.user_id('cook@sweep.kafoo'), 'أكلة 97', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0640\u0020\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000098', tests.user_id('cook@sweep.kafoo'), 'أكلة 98', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u00A0\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000099', tests.user_id('cook@sweep.kafoo'), 'أكلة 99', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000100', tests.user_id('cook@sweep.kafoo'), 'أكلة 100', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0020\u0640\u0627\u0644\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000101', tests.user_id('cook@sweep.kafoo'), 'أكلة 101', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u00A0\u0627\u0644\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000102', tests.user_id('cook@sweep.kafoo'), 'أكلة 102', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0646\u062F\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000103', tests.user_id('cook@sweep.kafoo'), 'أكلة 103', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0646\u0640\u062F\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000104', tests.user_id('cook@sweep.kafoo'), 'أكلة 104', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u062A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000105', tests.user_id('cook@sweep.kafoo'), 'أكلة 105', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u0640\u062A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000106', tests.user_id('cook@sweep.kafoo'), 'أكلة 106', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u062C\u0648\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000107', tests.user_id('cook@sweep.kafoo'), 'أكلة 107', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0640\u062C\u0648\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000108', tests.user_id('cook@sweep.kafoo'), 'أكلة 108', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0635\u0646\u0648\u0628\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000109', tests.user_id('cook@sweep.kafoo'), 'أكلة 109', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0635\u0646\u0640\u0648\u0628\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000110', tests.user_id('cook@sweep.kafoo'), 'أكلة 110', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u064A\u0643\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000111', tests.user_id('cook@sweep.kafoo'), 'أكلة 111', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u064A\u0640\u0643\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000112', tests.user_id('cook@sweep.kafoo'), 'أكلة 112', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0633\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000113', tests.user_id('cook@sweep.kafoo'), 'أكلة 113', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0640\u0633\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000114', tests.user_id('cook@sweep.kafoo'), 'أكلة 114', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0637\u062D\u064A\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000115', tests.user_id('cook@sweep.kafoo'), 'أكلة 115', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0637\u062D\u064A\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000116', tests.user_id('cook@sweep.kafoo'), 'أكلة 116', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0637\u062D\u0640\u064A\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000117', tests.user_id('cook@sweep.kafoo'), 'أكلة 117', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0645\u062D\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000118', tests.user_id('cook@sweep.kafoo'), 'أكلة 118', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0640\u0645\u062D\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000119', tests.user_id('cook@sweep.kafoo'), 'أكلة 119', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u0642\u064A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000120', tests.user_id('cook@sweep.kafoo'), 'أكلة 120', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u0642\u0640\u064A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000121', tests.user_id('cook@sweep.kafoo'), 'أكلة 121', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0644\u0648\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000122', tests.user_id('cook@sweep.kafoo'), 'أكلة 122', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0644\u0648\u0640\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000123', tests.user_id('cook@sweep.kafoo'), 'أكلة 123', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u063A\u0644\u0648\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000124', tests.user_id('cook@sweep.kafoo'), 'أكلة 124', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u063A\u0644\u0648\u0640\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000125', tests.user_id('cook@sweep.kafoo'), 'أكلة 125', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u064A\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000126', tests.user_id('cook@sweep.kafoo'), 'أكلة 126', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0640\u064A\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000127', tests.user_id('cook@sweep.kafoo'), 'أكلة 127', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0642\u0633\u0645\u0627\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000128', tests.user_id('cook@sweep.kafoo'), 'أكلة 128', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0642\u0633\u0640\u0645\u0627\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000129', tests.user_id('cook@sweep.kafoo'), 'أكلة 129', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0631\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000130', tests.user_id('cook@sweep.kafoo'), 'أكلة 130', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0631\u0648\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000131', tests.user_id('cook@sweep.kafoo'), 'أكلة 131', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0631\u0640\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000132', tests.user_id('cook@sweep.kafoo'), 'أكلة 132', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000133', tests.user_id('cook@sweep.kafoo'), 'أكلة 133', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0639\u0643\u0631\u0648\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000134', tests.user_id('cook@sweep.kafoo'), 'أكلة 134', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0639\u0643\u0640\u0631\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000135', tests.user_id('cook@sweep.kafoo'), 'أكلة 135', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000136', tests.user_id('cook@sweep.kafoo'), 'أكلة 136', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u0640\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000137', tests.user_id('cook@sweep.kafoo'), 'أكلة 137', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062E\u0628\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000138', tests.user_id('cook@sweep.kafoo'), 'أكلة 138', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062E\u0640\u0628\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000139', tests.user_id('cook@sweep.kafoo'), 'أكلة 139', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0642\u0627\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000140', tests.user_id('cook@sweep.kafoo'), 'أكلة 140', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0642\u0640\u0627\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000141', tests.user_id('cook@sweep.kafoo'), 'أكلة 141', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u064A\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000142', tests.user_id('cook@sweep.kafoo'), 'أكلة 142', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u0640\u064A\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000143', tests.user_id('cook@sweep.kafoo'), 'أكلة 143', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0639\u0631\u064A\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000144', tests.user_id('cook@sweep.kafoo'), 'أكلة 144', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0639\u0631\u064A\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000145', tests.user_id('cook@sweep.kafoo'), 'أكلة 145', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0639\u0640\u0631\u064A\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000146', tests.user_id('cook@sweep.kafoo'), 'أكلة 146', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u062C\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000147', tests.user_id('cook@sweep.kafoo'), 'أكلة 147', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u062C\u0640\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000148', tests.user_id('cook@sweep.kafoo'), 'أكلة 148', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0648\u0641\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000149', tests.user_id('cook@sweep.kafoo'), 'أكلة 149', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0648\u0640\u0641\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000150', tests.user_id('cook@sweep.kafoo'), 'أكلة 150', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0635\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000151', tests.user_id('cook@sweep.kafoo'), 'أكلة 151', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0640\u0635\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000152', tests.user_id('cook@sweep.kafoo'), 'أكلة 152', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000153', tests.user_id('cook@sweep.kafoo'), 'أكلة 153', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0640\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000154', tests.user_id('cook@sweep.kafoo'), 'أكلة 154', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062B\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now()),
-  ('dddddddd-0000-4000-8000-000000000155', tests.user_id('cook@sweep.kafoo'), 'أكلة 155', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062B\u0640\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now());
+  ('dddddddd-0000-4000-8000-000000000001', tests.user_id('cook@sweep.kafoo'), 'أكلة 1', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u062D\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000002', tests.user_id('cook@sweep.kafoo'), 'أكلة 2', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0640\u062D\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000003', tests.user_id('cook@sweep.kafoo'), 'أكلة 3', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u062D\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000004', tests.user_id('cook@sweep.kafoo'), 'أكلة 4', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u062D\u0640\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000005', tests.user_id('cook@sweep.kafoo'), 'أكلة 5', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0628\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000006', tests.user_id('cook@sweep.kafoo'), 'أكلة 6', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0640\u0628\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000007', tests.user_id('cook@sweep.kafoo'), 'أكلة 7', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u062C\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000008', tests.user_id('cook@sweep.kafoo'), 'أكلة 8', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0640\u062C\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000009', tests.user_id('cook@sweep.kafoo'), 'أكلة 9', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0633\u0637\u0631\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000010', tests.user_id('cook@sweep.kafoo'), 'أكلة 10', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0633\u0637\u0631\u0645\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000011', tests.user_id('cook@sweep.kafoo'), 'أكلة 11', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0633\u0637\u0640\u0631\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000012', tests.user_id('cook@sweep.kafoo'), 'أكلة 12', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0627\u0646\u0634\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000013', tests.user_id('cook@sweep.kafoo'), 'أكلة 13', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0627\u0646\u0640\u0634\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 1), now()),
+  ('dddddddd-0000-4000-8000-000000000014', tests.user_id('cook@sweep.kafoo'), 'أكلة 14', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u0627\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000015', tests.user_id('cook@sweep.kafoo'), 'أكلة 15', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u0640\u0627\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000016', tests.user_id('cook@sweep.kafoo'), 'أكلة 16', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000017', tests.user_id('cook@sweep.kafoo'), 'أكلة 17', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0640\u0631\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000018', tests.user_id('cook@sweep.kafoo'), 'أكلة 18', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u062C\u0627\u062C\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000019', tests.user_id('cook@sweep.kafoo'), 'أكلة 19', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u062C\u0640\u0627\u062C\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000020', tests.user_id('cook@sweep.kafoo'), 'أكلة 20', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0627\u0646\u064A\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000021', tests.user_id('cook@sweep.kafoo'), 'أكلة 21', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0627\u0640\u0646\u064A\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 2), now()),
+  ('dddddddd-0000-4000-8000-000000000022', tests.user_id('cook@sweep.kafoo'), 'أكلة 22', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000023', tests.user_id('cook@sweep.kafoo'), 'أكلة 23', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0640\u0645\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000024', tests.user_id('cook@sweep.kafoo'), 'أكلة 24', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0623\u0633\u0645\u0627\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000025', tests.user_id('cook@sweep.kafoo'), 'أكلة 25', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0623\u0633\u0640\u0645\u0627\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000026', tests.user_id('cook@sweep.kafoo'), 'أكلة 26', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0644\u0645\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000027', tests.user_id('cook@sweep.kafoo'), 'أكلة 27', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0644\u0640\u0645\u0648\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000028', tests.user_id('cook@sweep.kafoo'), 'أكلة 28', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0646\u062C\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000029', tests.user_id('cook@sweep.kafoo'), 'أكلة 29', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0646\u062C\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000030', tests.user_id('cook@sweep.kafoo'), 'أكلة 30', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0646\u0640\u062C\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000031', tests.user_id('cook@sweep.kafoo'), 'أكلة 31', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u064A\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000032', tests.user_id('cook@sweep.kafoo'), 'أكلة 32', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u0640\u064A\u062E\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000033', tests.user_id('cook@sweep.kafoo'), 'أكلة 33', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0644\u0637\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000034', tests.user_id('cook@sweep.kafoo'), 'أكلة 34', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0644\u0640\u0637\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000035', tests.user_id('cook@sweep.kafoo'), 'أكلة 35', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0648\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000036', tests.user_id('cook@sweep.kafoo'), 'أكلة 36', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0648\u0640\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000037', tests.user_id('cook@sweep.kafoo'), 'أكلة 37', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0631\u062F\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000038', tests.user_id('cook@sweep.kafoo'), 'أكلة 38', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0631\u0640\u062F\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000039', tests.user_id('cook@sweep.kafoo'), 'أكلة 39', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000040', tests.user_id('cook@sweep.kafoo'), 'أكلة 40', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000041', tests.user_id('cook@sweep.kafoo'), 'أكلة 41', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0640\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000042', tests.user_id('cook@sweep.kafoo'), 'أكلة 42', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0646\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000043', tests.user_id('cook@sweep.kafoo'), 'أكلة 43', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0640\u0646\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 3), now()),
+  ('dddddddd-0000-4000-8000-000000000044', tests.user_id('cook@sweep.kafoo'), 'أكلة 44', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0645\u0628\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000045', tests.user_id('cook@sweep.kafoo'), 'أكلة 45', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0645\u0640\u0628\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000046', tests.user_id('cook@sweep.kafoo'), 'أكلة 46', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000047', tests.user_id('cook@sweep.kafoo'), 'أكلة 47', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0627\u0633\u062A\u0627\u0640\u0643\u0648\u0632\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000048', tests.user_id('cook@sweep.kafoo'), 'أكلة 48', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000049', tests.user_id('cook@sweep.kafoo'), 'أكلة 49', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0628\u0640\u0648\u0631\u064A\u0627\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000050', tests.user_id('cook@sweep.kafoo'), 'أكلة 50', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u062D\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000051', tests.user_id('cook@sweep.kafoo'), 'أكلة 51', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u062D\u0640\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000052', tests.user_id('cook@sweep.kafoo'), 'أكلة 52', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0628\u064A\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000053', tests.user_id('cook@sweep.kafoo'), 'أكلة 53', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0628\u0640\u064A\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000054', tests.user_id('cook@sweep.kafoo'), 'أكلة 54', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000055', tests.user_id('cook@sweep.kafoo'), 'أكلة 55', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0644\u064A\u0640\u0645\u0627\u0631\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000056', tests.user_id('cook@sweep.kafoo'), 'أكلة 56', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u064A\u062F\u0633\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000057', tests.user_id('cook@sweep.kafoo'), 'أكلة 57', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u0640\u064A\u062F\u0633\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000058', tests.user_id('cook@sweep.kafoo'), 'أكلة 58', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0628\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000059', tests.user_id('cook@sweep.kafoo'), 'أكلة 59', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0628\u0640\u0627\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000060', tests.user_id('cook@sweep.kafoo'), 'أكلة 60', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000061', tests.user_id('cook@sweep.kafoo'), 'أكلة 61', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0646\u062F\u0640\u0648\u0641\u0644\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 4), now()),
+  ('dddddddd-0000-4000-8000-000000000062', tests.user_id('cook@sweep.kafoo'), 'أكلة 62', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u064A\u0636\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 5), now()),
+  ('dddddddd-0000-4000-8000-000000000063', tests.user_id('cook@sweep.kafoo'), 'أكلة 63', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0640\u064A\u0636\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 5), now()),
+  ('dddddddd-0000-4000-8000-000000000064', tests.user_id('cook@sweep.kafoo'), 'أكلة 64', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 5), now()),
+  ('dddddddd-0000-4000-8000-000000000065', tests.user_id('cook@sweep.kafoo'), 'أكلة 65', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0627\u064A\u0640\u0648\u0646\u064A\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 5), now()),
+  ('dddddddd-0000-4000-8000-000000000066', tests.user_id('cook@sweep.kafoo'), 'أكلة 66', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000067', tests.user_id('cook@sweep.kafoo'), 'أكلة 67', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0640\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000068', tests.user_id('cook@sweep.kafoo'), 'أكلة 68', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0644\u064A\u0628\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000069', tests.user_id('cook@sweep.kafoo'), 'أكلة 69', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062D\u0644\u0640\u064A\u0628\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000070', tests.user_id('cook@sweep.kafoo'), 'أكلة 70', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000071', tests.user_id('cook@sweep.kafoo'), 'أكلة 71', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0640\u0628\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000072', tests.user_id('cook@sweep.kafoo'), 'أكلة 72', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u0627\u062F\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000073', tests.user_id('cook@sweep.kafoo'), 'أكلة 73', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u0640\u0627\u062F\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000074', tests.user_id('cook@sweep.kafoo'), 'أكلة 74', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0637\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000075', tests.user_id('cook@sweep.kafoo'), 'أكلة 75', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0637\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000076', tests.user_id('cook@sweep.kafoo'), 'أكلة 76', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0640\u0637\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000077', tests.user_id('cook@sweep.kafoo'), 'أكلة 77', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000078', tests.user_id('cook@sweep.kafoo'), 'أكلة 78', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u062F\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000079', tests.user_id('cook@sweep.kafoo'), 'أكلة 79', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0634\u0640\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000080', tests.user_id('cook@sweep.kafoo'), 'أكلة 80', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000081', tests.user_id('cook@sweep.kafoo'), 'أكلة 81', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u062F\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000082', tests.user_id('cook@sweep.kafoo'), 'أكلة 82', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0632\u0628\u0640\u062F\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000083', tests.user_id('cook@sweep.kafoo'), 'أكلة 83', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000084', tests.user_id('cook@sweep.kafoo'), 'أكلة 84', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0640\u0645\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000085', tests.user_id('cook@sweep.kafoo'), 'أكلة 85', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0631\u064A\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000086', tests.user_id('cook@sweep.kafoo'), 'أكلة 86', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0631\u064A\u0645\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000087', tests.user_id('cook@sweep.kafoo'), 'أكلة 87', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0631\u0640\u064A\u0645\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000088', tests.user_id('cook@sweep.kafoo'), 'أكلة 88', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000089', tests.user_id('cook@sweep.kafoo'), 'أكلة 89', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0631\u0640\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 6), now()),
+  ('dddddddd-0000-4000-8000-000000000090', tests.user_id('cook@sweep.kafoo'), 'أكلة 90', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0648\u062F\u0627\u0646\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 7), now()),
+  ('dddddddd-0000-4000-8000-000000000091', tests.user_id('cook@sweep.kafoo'), 'أكلة 91', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0648\u062F\u0640\u0627\u0646\u064A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 7), now()),
+  ('dddddddd-0000-4000-8000-000000000092', tests.user_id('cook@sweep.kafoo'), 'أكلة 92', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0633\u0631\u0627\u062A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000093', tests.user_id('cook@sweep.kafoo'), 'أكلة 93', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0633\u0640\u0631\u0627\u062A\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000094', tests.user_id('cook@sweep.kafoo'), 'أكلة 94', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0648\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000095', tests.user_id('cook@sweep.kafoo'), 'أكلة 95', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0644\u0640\u0648\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000096', tests.user_id('cook@sweep.kafoo'), 'أكلة 96', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000097', tests.user_id('cook@sweep.kafoo'), 'أكلة 97', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0640\u0020\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000098', tests.user_id('cook@sweep.kafoo'), 'أكلة 98', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u00A0\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000099', tests.user_id('cook@sweep.kafoo'), 'أكلة 99', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000100', tests.user_id('cook@sweep.kafoo'), 'أكلة 100', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u0020\u0640\u0627\u0644\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000101', tests.user_id('cook@sweep.kafoo'), 'أكلة 101', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0646\u00A0\u0627\u0644\u062C\u0645\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000102', tests.user_id('cook@sweep.kafoo'), 'أكلة 102', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0646\u062F\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000103', tests.user_id('cook@sweep.kafoo'), 'أكلة 103', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0646\u0640\u062F\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000104', tests.user_id('cook@sweep.kafoo'), 'أكلة 104', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u062A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000105', tests.user_id('cook@sweep.kafoo'), 'أكلة 105', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0633\u0640\u062A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000106', tests.user_id('cook@sweep.kafoo'), 'أكلة 106', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u062C\u0648\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000107', tests.user_id('cook@sweep.kafoo'), 'أكلة 107', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0643\u0627\u0640\u062C\u0648\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000108', tests.user_id('cook@sweep.kafoo'), 'أكلة 108', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0635\u0646\u0648\u0628\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000109', tests.user_id('cook@sweep.kafoo'), 'أكلة 109', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0635\u0646\u0640\u0648\u0628\u0631\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000110', tests.user_id('cook@sweep.kafoo'), 'أكلة 110', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u064A\u0643\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000111', tests.user_id('cook@sweep.kafoo'), 'أكلة 111', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u064A\u0640\u0643\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 8), now()),
+  ('dddddddd-0000-4000-8000-000000000112', tests.user_id('cook@sweep.kafoo'), 'أكلة 112', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0633\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 9), now()),
+  ('dddddddd-0000-4000-8000-000000000113', tests.user_id('cook@sweep.kafoo'), 'أكلة 113', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0640\u0633\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 9), now()),
+  ('dddddddd-0000-4000-8000-000000000114', tests.user_id('cook@sweep.kafoo'), 'أكلة 114', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0637\u062D\u064A\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 9), now()),
+  ('dddddddd-0000-4000-8000-000000000115', tests.user_id('cook@sweep.kafoo'), 'أكلة 115', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0637\u062D\u064A\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 9), now()),
+  ('dddddddd-0000-4000-8000-000000000116', tests.user_id('cook@sweep.kafoo'), 'أكلة 116', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0637\u062D\u0640\u064A\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 9), now()),
+  ('dddddddd-0000-4000-8000-000000000117', tests.user_id('cook@sweep.kafoo'), 'أكلة 117', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0645\u062D\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000118', tests.user_id('cook@sweep.kafoo'), 'أكلة 118', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0642\u0640\u0645\u062D\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000119', tests.user_id('cook@sweep.kafoo'), 'أكلة 119', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u0642\u064A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000120', tests.user_id('cook@sweep.kafoo'), 'أكلة 120', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062F\u0642\u0640\u064A\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000121', tests.user_id('cook@sweep.kafoo'), 'أكلة 121', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0644\u0648\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000122', tests.user_id('cook@sweep.kafoo'), 'أكلة 122', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062C\u0644\u0648\u0640\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000123', tests.user_id('cook@sweep.kafoo'), 'أكلة 123', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u063A\u0644\u0648\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000124', tests.user_id('cook@sweep.kafoo'), 'أكلة 124', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u063A\u0644\u0648\u0640\u062A\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000125', tests.user_id('cook@sweep.kafoo'), 'أكلة 125', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u064A\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000126', tests.user_id('cook@sweep.kafoo'), 'أكلة 126', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0633\u0645\u0640\u064A\u062F\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000127', tests.user_id('cook@sweep.kafoo'), 'أكلة 127', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0642\u0633\u0645\u0627\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000128', tests.user_id('cook@sweep.kafoo'), 'أكلة 128', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0642\u0633\u0640\u0645\u0627\u0637\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000129', tests.user_id('cook@sweep.kafoo'), 'أكلة 129', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0631\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000130', tests.user_id('cook@sweep.kafoo'), 'أكلة 130', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0631\u0648\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000131', tests.user_id('cook@sweep.kafoo'), 'أكلة 131', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0643\u0631\u0640\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000132', tests.user_id('cook@sweep.kafoo'), 'أكلة 132', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000133', tests.user_id('cook@sweep.kafoo'), 'أكلة 133', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0639\u0643\u0631\u0648\u0646\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000134', tests.user_id('cook@sweep.kafoo'), 'أكلة 134', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0645\u0639\u0643\u0640\u0631\u0648\u0646\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000135', tests.user_id('cook@sweep.kafoo'), 'أكلة 135', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000136', tests.user_id('cook@sweep.kafoo'), 'أكلة 136', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u0640\u064A\u0634\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000137', tests.user_id('cook@sweep.kafoo'), 'أكلة 137', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062E\u0628\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000138', tests.user_id('cook@sweep.kafoo'), 'أكلة 138', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062E\u0640\u0628\u0632\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000139', tests.user_id('cook@sweep.kafoo'), 'أكلة 139', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0642\u0627\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000140', tests.user_id('cook@sweep.kafoo'), 'أكلة 140', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0631\u0642\u0640\u0627\u0642\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000141', tests.user_id('cook@sweep.kafoo'), 'أكلة 141', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u064A\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000142', tests.user_id('cook@sweep.kafoo'), 'أكلة 142', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0641\u0631\u0640\u064A\u0643\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000143', tests.user_id('cook@sweep.kafoo'), 'أكلة 143', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0639\u0631\u064A\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000144', tests.user_id('cook@sweep.kafoo'), 'أكلة 144', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0639\u0631\u064A\u0647\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000145', tests.user_id('cook@sweep.kafoo'), 'أكلة 145', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0639\u0640\u0631\u064A\u0629\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000146', tests.user_id('cook@sweep.kafoo'), 'أكلة 146', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u062C\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000147', tests.user_id('cook@sweep.kafoo'), 'أكلة 147', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0639\u062C\u0640\u064A\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000148', tests.user_id('cook@sweep.kafoo'), 'أكلة 148', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0648\u0641\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000149', tests.user_id('cook@sweep.kafoo'), 'أكلة 149', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0634\u0648\u0640\u0641\u0627\u0646\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 10), now()),
+  ('dddddddd-0000-4000-8000-000000000150', tests.user_id('cook@sweep.kafoo'), 'أكلة 150', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0635\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 11), now()),
+  ('dddddddd-0000-4000-8000-000000000151', tests.user_id('cook@sweep.kafoo'), 'أكلة 151', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u0628\u0640\u0635\u0644\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 11), now()),
+  ('dddddddd-0000-4000-8000-000000000152', tests.user_id('cook@sweep.kafoo'), 'أكلة 152', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 12), now()),
+  ('dddddddd-0000-4000-8000-000000000153', tests.user_id('cook@sweep.kafoo'), 'أكلة 153', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062A\u0640\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 12), now()),
+  ('dddddddd-0000-4000-8000-000000000154', tests.user_id('cook@sweep.kafoo'), 'أكلة 154', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062B\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 12), now()),
+  ('dddddddd-0000-4000-8000-000000000155', tests.user_id('cook@sweep.kafoo'), 'أكلة 155', 'وصف', 50, 'مصري', 'رئيسي', 'published', ARRAY[E'\u062B\u0640\u0648\u0645\u0020\u0637\u0627\u0632\u0629'], ARRAY[]::text[], (SELECT v FROM probe WHERE grp = 12), now());
 
 SELECT tests.authenticate_as_anon();
 
 -- The control is reachable before anything is excluded, so every assertion below is about
 -- the exclusion rather than about a Meal that was never visible.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), NULL, NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), NULL, NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'the control Meal is on offer — the baseline the rest of this sweep rests on'
 );
 
 -- meat: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0644\u062D\u0645', E'\u0644\u062D\u0648\u0645', E'\u0643\u0628\u062F', E'\u0633\u062C\u0642', E'\u0628\u0633\u0637\u0631\u0645\u0629', E'\u0644\u0627\u0646\u0634\u0648\u0646'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000002', 'dddddddd-0000-4000-8000-000000000003', 'dddddddd-0000-4000-8000-000000000004', 'dddddddd-0000-4000-8000-000000000005', 'dddddddd-0000-4000-8000-000000000006', 'dddddddd-0000-4000-8000-000000000007', 'dddddddd-0000-4000-8000-000000000008', 'dddddddd-0000-4000-8000-000000000009', 'dddddddd-0000-4000-8000-000000000010', 'dddddddd-0000-4000-8000-000000000011', 'dddddddd-0000-4000-8000-000000000012', 'dddddddd-0000-4000-8000-000000000013')),
+  13,
+  'baseline: all 13 spelling(s) of meat are on offer before meat is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), ARRAY[E'\u0644\u062D\u0645', E'\u0644\u062D\u0648\u0645', E'\u0643\u0628\u062F', E'\u0633\u062C\u0642', E'\u0628\u0633\u0637\u0631\u0645\u0629', E'\u0644\u0627\u0646\u0634\u0648\u0646'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000002', 'dddddddd-0000-4000-8000-000000000003', 'dddddddd-0000-4000-8000-000000000004', 'dddddddd-0000-4000-8000-000000000005', 'dddddddd-0000-4000-8000-000000000006', 'dddddddd-0000-4000-8000-000000000007', 'dddddddd-0000-4000-8000-000000000008', 'dddddddd-0000-4000-8000-000000000009', 'dddddddd-0000-4000-8000-000000000010', 'dddddddd-0000-4000-8000-000000000011', 'dddddddd-0000-4000-8000-000000000012', 'dddddddd-0000-4000-8000-000000000013')),
   0,
   'SC-005: no Meal containing meat appears when meat is excluded — 13 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0644\u062D\u0645', E'\u0644\u062D\u0648\u0645', E'\u0643\u0628\u062F', E'\u0633\u062C\u0642', E'\u0628\u0633\u0637\u0631\u0645\u0629', E'\u0644\u0627\u0646\u0634\u0648\u0646'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), ARRAY[E'\u0644\u062D\u0645', E'\u0644\u062D\u0648\u0645', E'\u0643\u0628\u062F', E'\u0633\u062C\u0642', E'\u0628\u0633\u0637\u0631\u0645\u0629', E'\u0644\u0627\u0646\u0634\u0648\u0646'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding meat does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- chicken: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0641\u0631\u0627\u062E', E'\u0641\u0631\u062E', E'\u062F\u062C\u0627\u062C', E'\u0628\u0627\u0646\u064A\u0647'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 2), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000014', 'dddddddd-0000-4000-8000-000000000015', 'dddddddd-0000-4000-8000-000000000016', 'dddddddd-0000-4000-8000-000000000017', 'dddddddd-0000-4000-8000-000000000018', 'dddddddd-0000-4000-8000-000000000019', 'dddddddd-0000-4000-8000-000000000020', 'dddddddd-0000-4000-8000-000000000021')),
+  8,
+  'baseline: all 8 spelling(s) of chicken are on offer before chicken is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 2), ARRAY[E'\u0641\u0631\u0627\u062E', E'\u0641\u0631\u062E', E'\u062F\u062C\u0627\u062C', E'\u0628\u0627\u0646\u064A\u0647'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000014', 'dddddddd-0000-4000-8000-000000000015', 'dddddddd-0000-4000-8000-000000000016', 'dddddddd-0000-4000-8000-000000000017', 'dddddddd-0000-4000-8000-000000000018', 'dddddddd-0000-4000-8000-000000000019', 'dddddddd-0000-4000-8000-000000000020', 'dddddddd-0000-4000-8000-000000000021')),
   0,
   'SC-005: no Meal containing chicken appears when chicken is excluded — 8 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0641\u0631\u0627\u062E', E'\u0641\u0631\u062E', E'\u062F\u062C\u0627\u062C', E'\u0628\u0627\u0646\u064A\u0647'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 2), ARRAY[E'\u0641\u0631\u0627\u062E', E'\u0641\u0631\u062E', E'\u062F\u062C\u0627\u062C', E'\u0628\u0627\u0646\u064A\u0647'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding chicken does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- fish: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0633\u0645\u0643', E'\u0623\u0633\u0645\u0627\u0643', E'\u0633\u0644\u0645\u0648\u0646', E'\u0631\u0646\u062C\u0629', E'\u0641\u0633\u064A\u062E', E'\u0628\u0644\u0637\u064A', E'\u0628\u0648\u0631\u064A', E'\u0633\u0631\u062F\u064A\u0646', E'\u062A\u0648\u0646\u0629', E'\u062A\u0648\u0646\u0627'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 3), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000022', 'dddddddd-0000-4000-8000-000000000023', 'dddddddd-0000-4000-8000-000000000024', 'dddddddd-0000-4000-8000-000000000025', 'dddddddd-0000-4000-8000-000000000026', 'dddddddd-0000-4000-8000-000000000027', 'dddddddd-0000-4000-8000-000000000028', 'dddddddd-0000-4000-8000-000000000029', 'dddddddd-0000-4000-8000-000000000030', 'dddddddd-0000-4000-8000-000000000031', 'dddddddd-0000-4000-8000-000000000032', 'dddddddd-0000-4000-8000-000000000033', 'dddddddd-0000-4000-8000-000000000034', 'dddddddd-0000-4000-8000-000000000035', 'dddddddd-0000-4000-8000-000000000036', 'dddddddd-0000-4000-8000-000000000037', 'dddddddd-0000-4000-8000-000000000038', 'dddddddd-0000-4000-8000-000000000039', 'dddddddd-0000-4000-8000-000000000040', 'dddddddd-0000-4000-8000-000000000041', 'dddddddd-0000-4000-8000-000000000042', 'dddddddd-0000-4000-8000-000000000043')),
+  22,
+  'baseline: all 22 spelling(s) of fish are on offer before fish is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 3), ARRAY[E'\u0633\u0645\u0643', E'\u0623\u0633\u0645\u0627\u0643', E'\u0633\u0644\u0645\u0648\u0646', E'\u0631\u0646\u062C\u0629', E'\u0641\u0633\u064A\u062E', E'\u0628\u0644\u0637\u064A', E'\u0628\u0648\u0631\u064A', E'\u0633\u0631\u062F\u064A\u0646', E'\u062A\u0648\u0646\u0629', E'\u062A\u0648\u0646\u0627'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000022', 'dddddddd-0000-4000-8000-000000000023', 'dddddddd-0000-4000-8000-000000000024', 'dddddddd-0000-4000-8000-000000000025', 'dddddddd-0000-4000-8000-000000000026', 'dddddddd-0000-4000-8000-000000000027', 'dddddddd-0000-4000-8000-000000000028', 'dddddddd-0000-4000-8000-000000000029', 'dddddddd-0000-4000-8000-000000000030', 'dddddddd-0000-4000-8000-000000000031', 'dddddddd-0000-4000-8000-000000000032', 'dddddddd-0000-4000-8000-000000000033', 'dddddddd-0000-4000-8000-000000000034', 'dddddddd-0000-4000-8000-000000000035', 'dddddddd-0000-4000-8000-000000000036', 'dddddddd-0000-4000-8000-000000000037', 'dddddddd-0000-4000-8000-000000000038', 'dddddddd-0000-4000-8000-000000000039', 'dddddddd-0000-4000-8000-000000000040', 'dddddddd-0000-4000-8000-000000000041', 'dddddddd-0000-4000-8000-000000000042', 'dddddddd-0000-4000-8000-000000000043')),
   0,
   'SC-005: no Meal containing fish appears when fish is excluded — 22 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0633\u0645\u0643', E'\u0623\u0633\u0645\u0627\u0643', E'\u0633\u0644\u0645\u0648\u0646', E'\u0631\u0646\u062C\u0629', E'\u0641\u0633\u064A\u062E', E'\u0628\u0644\u0637\u064A', E'\u0628\u0648\u0631\u064A', E'\u0633\u0631\u062F\u064A\u0646', E'\u062A\u0648\u0646\u0629', E'\u062A\u0648\u0646\u0627'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 3), ARRAY[E'\u0633\u0645\u0643', E'\u0623\u0633\u0645\u0627\u0643', E'\u0633\u0644\u0645\u0648\u0646', E'\u0631\u0646\u062C\u0629', E'\u0641\u0633\u064A\u062E', E'\u0628\u0644\u0637\u064A', E'\u0628\u0648\u0631\u064A', E'\u0633\u0631\u062F\u064A\u0646', E'\u062A\u0648\u0646\u0629', E'\u062A\u0648\u0646\u0627'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding fish does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- shellfish: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u062C\u0645\u0628\u0631\u064A', E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627', E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627', E'\u0645\u062D\u0627\u0631', E'\u0633\u0628\u064A\u0637', E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A', E'\u0642\u0631\u064A\u062F\u0633', E'\u062D\u0628\u0627\u0631', E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 4), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000044', 'dddddddd-0000-4000-8000-000000000045', 'dddddddd-0000-4000-8000-000000000046', 'dddddddd-0000-4000-8000-000000000047', 'dddddddd-0000-4000-8000-000000000048', 'dddddddd-0000-4000-8000-000000000049', 'dddddddd-0000-4000-8000-000000000050', 'dddddddd-0000-4000-8000-000000000051', 'dddddddd-0000-4000-8000-000000000052', 'dddddddd-0000-4000-8000-000000000053', 'dddddddd-0000-4000-8000-000000000054', 'dddddddd-0000-4000-8000-000000000055', 'dddddddd-0000-4000-8000-000000000056', 'dddddddd-0000-4000-8000-000000000057', 'dddddddd-0000-4000-8000-000000000058', 'dddddddd-0000-4000-8000-000000000059', 'dddddddd-0000-4000-8000-000000000060', 'dddddddd-0000-4000-8000-000000000061')),
+  18,
+  'baseline: all 18 spelling(s) of shellfish are on offer before shellfish is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 4), ARRAY[E'\u062C\u0645\u0628\u0631\u064A', E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627', E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627', E'\u0645\u062D\u0627\u0631', E'\u0633\u0628\u064A\u0637', E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A', E'\u0642\u0631\u064A\u062F\u0633', E'\u062D\u0628\u0627\u0631', E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000044', 'dddddddd-0000-4000-8000-000000000045', 'dddddddd-0000-4000-8000-000000000046', 'dddddddd-0000-4000-8000-000000000047', 'dddddddd-0000-4000-8000-000000000048', 'dddddddd-0000-4000-8000-000000000049', 'dddddddd-0000-4000-8000-000000000050', 'dddddddd-0000-4000-8000-000000000051', 'dddddddd-0000-4000-8000-000000000052', 'dddddddd-0000-4000-8000-000000000053', 'dddddddd-0000-4000-8000-000000000054', 'dddddddd-0000-4000-8000-000000000055', 'dddddddd-0000-4000-8000-000000000056', 'dddddddd-0000-4000-8000-000000000057', 'dddddddd-0000-4000-8000-000000000058', 'dddddddd-0000-4000-8000-000000000059', 'dddddddd-0000-4000-8000-000000000060', 'dddddddd-0000-4000-8000-000000000061')),
   0,
   'SC-005: no Meal containing shellfish appears when shellfish is excluded — 18 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u062C\u0645\u0628\u0631\u064A', E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627', E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627', E'\u0645\u062D\u0627\u0631', E'\u0633\u0628\u064A\u0637', E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A', E'\u0642\u0631\u064A\u062F\u0633', E'\u062D\u0628\u0627\u0631', E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 4), ARRAY[E'\u062C\u0645\u0628\u0631\u064A', E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627', E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627', E'\u0645\u062D\u0627\u0631', E'\u0633\u0628\u064A\u0637', E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A', E'\u0642\u0631\u064A\u062F\u0633', E'\u062D\u0628\u0627\u0631', E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding shellfish does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- egg: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0628\u064A\u0636', E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 5), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000062', 'dddddddd-0000-4000-8000-000000000063', 'dddddddd-0000-4000-8000-000000000064', 'dddddddd-0000-4000-8000-000000000065')),
+  4,
+  'baseline: all 4 spelling(s) of egg are on offer before egg is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 5), ARRAY[E'\u0628\u064A\u0636', E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000062', 'dddddddd-0000-4000-8000-000000000063', 'dddddddd-0000-4000-8000-000000000064', 'dddddddd-0000-4000-8000-000000000065')),
   0,
   'SC-005: no Meal containing egg appears when egg is excluded — 4 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0628\u064A\u0636', E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 5), ARRAY[E'\u0628\u064A\u0636', E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding egg does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- dairy: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0644\u0628\u0646', E'\u062D\u0644\u064A\u0628', E'\u062C\u0628\u0646', E'\u0632\u0628\u0627\u062F\u064A', E'\u0642\u0634\u0637\u0629', E'\u0642\u0634\u062F\u0629', E'\u0632\u0628\u062F\u0629', E'\u0633\u0645\u0646', E'\u0643\u0631\u064A\u0645\u0629', E'\u0642\u0631\u064A\u0634'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 6), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000066', 'dddddddd-0000-4000-8000-000000000067', 'dddddddd-0000-4000-8000-000000000068', 'dddddddd-0000-4000-8000-000000000069', 'dddddddd-0000-4000-8000-000000000070', 'dddddddd-0000-4000-8000-000000000071', 'dddddddd-0000-4000-8000-000000000072', 'dddddddd-0000-4000-8000-000000000073', 'dddddddd-0000-4000-8000-000000000074', 'dddddddd-0000-4000-8000-000000000075', 'dddddddd-0000-4000-8000-000000000076', 'dddddddd-0000-4000-8000-000000000077', 'dddddddd-0000-4000-8000-000000000078', 'dddddddd-0000-4000-8000-000000000079', 'dddddddd-0000-4000-8000-000000000080', 'dddddddd-0000-4000-8000-000000000081', 'dddddddd-0000-4000-8000-000000000082', 'dddddddd-0000-4000-8000-000000000083', 'dddddddd-0000-4000-8000-000000000084', 'dddddddd-0000-4000-8000-000000000085', 'dddddddd-0000-4000-8000-000000000086', 'dddddddd-0000-4000-8000-000000000087', 'dddddddd-0000-4000-8000-000000000088', 'dddddddd-0000-4000-8000-000000000089')),
+  24,
+  'baseline: all 24 spelling(s) of dairy are on offer before dairy is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 6), ARRAY[E'\u0644\u0628\u0646', E'\u062D\u0644\u064A\u0628', E'\u062C\u0628\u0646', E'\u0632\u0628\u0627\u062F\u064A', E'\u0642\u0634\u0637\u0629', E'\u0642\u0634\u062F\u0629', E'\u0632\u0628\u062F\u0629', E'\u0633\u0645\u0646', E'\u0643\u0631\u064A\u0645\u0629', E'\u0642\u0631\u064A\u0634'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000066', 'dddddddd-0000-4000-8000-000000000067', 'dddddddd-0000-4000-8000-000000000068', 'dddddddd-0000-4000-8000-000000000069', 'dddddddd-0000-4000-8000-000000000070', 'dddddddd-0000-4000-8000-000000000071', 'dddddddd-0000-4000-8000-000000000072', 'dddddddd-0000-4000-8000-000000000073', 'dddddddd-0000-4000-8000-000000000074', 'dddddddd-0000-4000-8000-000000000075', 'dddddddd-0000-4000-8000-000000000076', 'dddddddd-0000-4000-8000-000000000077', 'dddddddd-0000-4000-8000-000000000078', 'dddddddd-0000-4000-8000-000000000079', 'dddddddd-0000-4000-8000-000000000080', 'dddddddd-0000-4000-8000-000000000081', 'dddddddd-0000-4000-8000-000000000082', 'dddddddd-0000-4000-8000-000000000083', 'dddddddd-0000-4000-8000-000000000084', 'dddddddd-0000-4000-8000-000000000085', 'dddddddd-0000-4000-8000-000000000086', 'dddddddd-0000-4000-8000-000000000087', 'dddddddd-0000-4000-8000-000000000088', 'dddddddd-0000-4000-8000-000000000089')),
   0,
   'SC-005: no Meal containing dairy appears when dairy is excluded — 24 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0644\u0628\u0646', E'\u062D\u0644\u064A\u0628', E'\u062C\u0628\u0646', E'\u0632\u0628\u0627\u062F\u064A', E'\u0642\u0634\u0637\u0629', E'\u0642\u0634\u062F\u0629', E'\u0632\u0628\u062F\u0629', E'\u0633\u0645\u0646', E'\u0643\u0631\u064A\u0645\u0629', E'\u0642\u0631\u064A\u0634'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 6), ARRAY[E'\u0644\u0628\u0646', E'\u062D\u0644\u064A\u0628', E'\u062C\u0628\u0646', E'\u0632\u0628\u0627\u062F\u064A', E'\u0642\u0634\u0637\u0629', E'\u0642\u0634\u062F\u0629', E'\u0632\u0628\u062F\u0629', E'\u0633\u0645\u0646', E'\u0643\u0631\u064A\u0645\u0629', E'\u0642\u0631\u064A\u0634'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding dairy does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- peanut: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0633\u0648\u062F\u0627\u0646\u064A'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 7), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000090', 'dddddddd-0000-4000-8000-000000000091')),
+  2,
+  'baseline: all 2 spelling(s) of peanut are on offer before peanut is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 7), ARRAY[E'\u0633\u0648\u062F\u0627\u0646\u064A'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000090', 'dddddddd-0000-4000-8000-000000000091')),
   0,
   'SC-005: no Meal containing peanut appears when peanut is excluded — 2 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0633\u0648\u062F\u0627\u0646\u064A'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 7), ARRAY[E'\u0633\u0648\u062F\u0627\u0646\u064A'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding peanut does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- nuts: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0645\u0643\u0633\u0631\u0627\u062A', E'\u0644\u0648\u0632', E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644', E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644', E'\u0628\u0646\u062F\u0642', E'\u0641\u0633\u062A\u0642', E'\u0643\u0627\u062C\u0648', E'\u0635\u0646\u0648\u0628\u0631', E'\u0628\u064A\u0643\u0627\u0646'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 8), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000092', 'dddddddd-0000-4000-8000-000000000093', 'dddddddd-0000-4000-8000-000000000094', 'dddddddd-0000-4000-8000-000000000095', 'dddddddd-0000-4000-8000-000000000096', 'dddddddd-0000-4000-8000-000000000097', 'dddddddd-0000-4000-8000-000000000098', 'dddddddd-0000-4000-8000-000000000099', 'dddddddd-0000-4000-8000-000000000100', 'dddddddd-0000-4000-8000-000000000101', 'dddddddd-0000-4000-8000-000000000102', 'dddddddd-0000-4000-8000-000000000103', 'dddddddd-0000-4000-8000-000000000104', 'dddddddd-0000-4000-8000-000000000105', 'dddddddd-0000-4000-8000-000000000106', 'dddddddd-0000-4000-8000-000000000107', 'dddddddd-0000-4000-8000-000000000108', 'dddddddd-0000-4000-8000-000000000109', 'dddddddd-0000-4000-8000-000000000110', 'dddddddd-0000-4000-8000-000000000111')),
+  20,
+  'baseline: all 20 spelling(s) of nuts are on offer before nuts is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 8), ARRAY[E'\u0645\u0643\u0633\u0631\u0627\u062A', E'\u0644\u0648\u0632', E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644', E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644', E'\u0628\u0646\u062F\u0642', E'\u0641\u0633\u062A\u0642', E'\u0643\u0627\u062C\u0648', E'\u0635\u0646\u0648\u0628\u0631', E'\u0628\u064A\u0643\u0627\u0646'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000092', 'dddddddd-0000-4000-8000-000000000093', 'dddddddd-0000-4000-8000-000000000094', 'dddddddd-0000-4000-8000-000000000095', 'dddddddd-0000-4000-8000-000000000096', 'dddddddd-0000-4000-8000-000000000097', 'dddddddd-0000-4000-8000-000000000098', 'dddddddd-0000-4000-8000-000000000099', 'dddddddd-0000-4000-8000-000000000100', 'dddddddd-0000-4000-8000-000000000101', 'dddddddd-0000-4000-8000-000000000102', 'dddddddd-0000-4000-8000-000000000103', 'dddddddd-0000-4000-8000-000000000104', 'dddddddd-0000-4000-8000-000000000105', 'dddddddd-0000-4000-8000-000000000106', 'dddddddd-0000-4000-8000-000000000107', 'dddddddd-0000-4000-8000-000000000108', 'dddddddd-0000-4000-8000-000000000109', 'dddddddd-0000-4000-8000-000000000110', 'dddddddd-0000-4000-8000-000000000111')),
   0,
   'SC-005: no Meal containing nuts appears when nuts is excluded — 20 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0645\u0643\u0633\u0631\u0627\u062A', E'\u0644\u0648\u0632', E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644', E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644', E'\u0628\u0646\u062F\u0642', E'\u0641\u0633\u062A\u0642', E'\u0643\u0627\u062C\u0648', E'\u0635\u0646\u0648\u0628\u0631', E'\u0628\u064A\u0643\u0627\u0646'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 8), ARRAY[E'\u0645\u0643\u0633\u0631\u0627\u062A', E'\u0644\u0648\u0632', E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644', E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644', E'\u0628\u0646\u062F\u0642', E'\u0641\u0633\u062A\u0642', E'\u0643\u0627\u062C\u0648', E'\u0635\u0646\u0648\u0628\u0631', E'\u0628\u064A\u0643\u0627\u0646'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding nuts does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- sesame: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0633\u0645\u0633\u0645', E'\u0637\u062D\u064A\u0646\u0629'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 9), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000112', 'dddddddd-0000-4000-8000-000000000113', 'dddddddd-0000-4000-8000-000000000114', 'dddddddd-0000-4000-8000-000000000115', 'dddddddd-0000-4000-8000-000000000116')),
+  5,
+  'baseline: all 5 spelling(s) of sesame are on offer before sesame is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 9), ARRAY[E'\u0633\u0645\u0633\u0645', E'\u0637\u062D\u064A\u0646\u0629'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000112', 'dddddddd-0000-4000-8000-000000000113', 'dddddddd-0000-4000-8000-000000000114', 'dddddddd-0000-4000-8000-000000000115', 'dddddddd-0000-4000-8000-000000000116')),
   0,
   'SC-005: no Meal containing sesame appears when sesame is excluded — 5 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0633\u0645\u0633\u0645', E'\u0637\u062D\u064A\u0646\u0629'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 9), ARRAY[E'\u0633\u0645\u0633\u0645', E'\u0637\u062D\u064A\u0646\u0629'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding sesame does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- gluten: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0642\u0645\u062D', E'\u062F\u0642\u064A\u0642', E'\u062C\u0644\u0648\u062A\u064A\u0646', E'\u063A\u0644\u0648\u062A\u064A\u0646', E'\u0633\u0645\u064A\u062F', E'\u0628\u0642\u0633\u0645\u0627\u0637', E'\u0645\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629', E'\u0639\u064A\u0634', E'\u062E\u0628\u0632', E'\u0631\u0642\u0627\u0642', E'\u0641\u0631\u064A\u0643', E'\u0634\u0639\u0631\u064A\u0629', E'\u0639\u062C\u064A\u0646', E'\u0634\u0648\u0641\u0627\u0646'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 10), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000117', 'dddddddd-0000-4000-8000-000000000118', 'dddddddd-0000-4000-8000-000000000119', 'dddddddd-0000-4000-8000-000000000120', 'dddddddd-0000-4000-8000-000000000121', 'dddddddd-0000-4000-8000-000000000122', 'dddddddd-0000-4000-8000-000000000123', 'dddddddd-0000-4000-8000-000000000124', 'dddddddd-0000-4000-8000-000000000125', 'dddddddd-0000-4000-8000-000000000126', 'dddddddd-0000-4000-8000-000000000127', 'dddddddd-0000-4000-8000-000000000128', 'dddddddd-0000-4000-8000-000000000129', 'dddddddd-0000-4000-8000-000000000130', 'dddddddd-0000-4000-8000-000000000131', 'dddddddd-0000-4000-8000-000000000132', 'dddddddd-0000-4000-8000-000000000133', 'dddddddd-0000-4000-8000-000000000134', 'dddddddd-0000-4000-8000-000000000135', 'dddddddd-0000-4000-8000-000000000136', 'dddddddd-0000-4000-8000-000000000137', 'dddddddd-0000-4000-8000-000000000138', 'dddddddd-0000-4000-8000-000000000139', 'dddddddd-0000-4000-8000-000000000140', 'dddddddd-0000-4000-8000-000000000141', 'dddddddd-0000-4000-8000-000000000142', 'dddddddd-0000-4000-8000-000000000143', 'dddddddd-0000-4000-8000-000000000144', 'dddddddd-0000-4000-8000-000000000145', 'dddddddd-0000-4000-8000-000000000146', 'dddddddd-0000-4000-8000-000000000147', 'dddddddd-0000-4000-8000-000000000148', 'dddddddd-0000-4000-8000-000000000149')),
+  33,
+  'baseline: all 33 spelling(s) of gluten are on offer before gluten is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 10), ARRAY[E'\u0642\u0645\u062D', E'\u062F\u0642\u064A\u0642', E'\u062C\u0644\u0648\u062A\u064A\u0646', E'\u063A\u0644\u0648\u062A\u064A\u0646', E'\u0633\u0645\u064A\u062F', E'\u0628\u0642\u0633\u0645\u0627\u0637', E'\u0645\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629', E'\u0639\u064A\u0634', E'\u062E\u0628\u0632', E'\u0631\u0642\u0627\u0642', E'\u0641\u0631\u064A\u0643', E'\u0634\u0639\u0631\u064A\u0629', E'\u0639\u062C\u064A\u0646', E'\u0634\u0648\u0641\u0627\u0646'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000117', 'dddddddd-0000-4000-8000-000000000118', 'dddddddd-0000-4000-8000-000000000119', 'dddddddd-0000-4000-8000-000000000120', 'dddddddd-0000-4000-8000-000000000121', 'dddddddd-0000-4000-8000-000000000122', 'dddddddd-0000-4000-8000-000000000123', 'dddddddd-0000-4000-8000-000000000124', 'dddddddd-0000-4000-8000-000000000125', 'dddddddd-0000-4000-8000-000000000126', 'dddddddd-0000-4000-8000-000000000127', 'dddddddd-0000-4000-8000-000000000128', 'dddddddd-0000-4000-8000-000000000129', 'dddddddd-0000-4000-8000-000000000130', 'dddddddd-0000-4000-8000-000000000131', 'dddddddd-0000-4000-8000-000000000132', 'dddddddd-0000-4000-8000-000000000133', 'dddddddd-0000-4000-8000-000000000134', 'dddddddd-0000-4000-8000-000000000135', 'dddddddd-0000-4000-8000-000000000136', 'dddddddd-0000-4000-8000-000000000137', 'dddddddd-0000-4000-8000-000000000138', 'dddddddd-0000-4000-8000-000000000139', 'dddddddd-0000-4000-8000-000000000140', 'dddddddd-0000-4000-8000-000000000141', 'dddddddd-0000-4000-8000-000000000142', 'dddddddd-0000-4000-8000-000000000143', 'dddddddd-0000-4000-8000-000000000144', 'dddddddd-0000-4000-8000-000000000145', 'dddddddd-0000-4000-8000-000000000146', 'dddddddd-0000-4000-8000-000000000147', 'dddddddd-0000-4000-8000-000000000148', 'dddddddd-0000-4000-8000-000000000149')),
   0,
   'SC-005: no Meal containing gluten appears when gluten is excluded — 33 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0642\u0645\u062D', E'\u062F\u0642\u064A\u0642', E'\u062C\u0644\u0648\u062A\u064A\u0646', E'\u063A\u0644\u0648\u062A\u064A\u0646', E'\u0633\u0645\u064A\u062F', E'\u0628\u0642\u0633\u0645\u0627\u0637', E'\u0645\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629', E'\u0639\u064A\u0634', E'\u062E\u0628\u0632', E'\u0631\u0642\u0627\u0642', E'\u0641\u0631\u064A\u0643', E'\u0634\u0639\u0631\u064A\u0629', E'\u0639\u062C\u064A\u0646', E'\u0634\u0648\u0641\u0627\u0646'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 10), ARRAY[E'\u0642\u0645\u062D', E'\u062F\u0642\u064A\u0642', E'\u062C\u0644\u0648\u062A\u064A\u0646', E'\u063A\u0644\u0648\u062A\u064A\u0646', E'\u0633\u0645\u064A\u062F', E'\u0628\u0642\u0633\u0645\u0627\u0637', E'\u0645\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629', E'\u0639\u064A\u0634', E'\u062E\u0628\u0632', E'\u0631\u0642\u0627\u0642', E'\u0641\u0631\u064A\u0643', E'\u0634\u0639\u0631\u064A\u0629', E'\u0639\u062C\u064A\u0646', E'\u0634\u0648\u0641\u0627\u0646'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding gluten does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- onion: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0628\u0635\u0644'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 11), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000150', 'dddddddd-0000-4000-8000-000000000151')),
+  2,
+  'baseline: all 2 spelling(s) of onion are on offer before onion is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 11), ARRAY[E'\u0628\u0635\u0644'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000150', 'dddddddd-0000-4000-8000-000000000151')),
   0,
   'SC-005: no Meal containing onion appears when onion is excluded — 2 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0628\u0635\u0644'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 11), ARRAY[E'\u0628\u0635\u0644'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding onion does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
 );
 
 -- garlic: every spelling of every form, excluded.
+--
+-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search
+-- could never return, and the exclusion assertion below passes while checking nothing.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u062A\u0648\u0645', E'\u062B\u0648\u0645'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 12), NULL, NULL)
+   WHERE id IN ('dddddddd-0000-4000-8000-000000000152', 'dddddddd-0000-4000-8000-000000000153', 'dddddddd-0000-4000-8000-000000000154', 'dddddddd-0000-4000-8000-000000000155')),
+  4,
+  'baseline: all 4 spelling(s) of garlic are on offer before garlic is excluded'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 12), ARRAY[E'\u062A\u0648\u0645', E'\u062B\u0648\u0645'], NULL)
    WHERE id IN ('dddddddd-0000-4000-8000-000000000152', 'dddddddd-0000-4000-8000-000000000153', 'dddddddd-0000-4000-8000-000000000154', 'dddddddd-0000-4000-8000-000000000155')),
   0,
   'SC-005: no Meal containing garlic appears when garlic is excluded — 4 spelling(s) checked'
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u062A\u0648\u0645', E'\u062B\u0648\u0645'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 12), ARRAY[E'\u062A\u0648\u0645', E'\u062B\u0648\u0645'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'excluding garlic does not remove a Meal that has none of it — an exclusion is not a licence to show nothing'
@@ -387,7 +530,7 @@ SELECT is(
 -- ever added that reaches rice, every control assertion above would fail together and the
 -- cause would not be obvious from any of them.
 SELECT is(
-  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), ARRAY[E'\u0623\u0633\u0645\u0627\u0643', E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627', E'\u0628\u0627\u0646\u064A\u0647', E'\u0628\u0633\u0637\u0631\u0645\u0629', E'\u0628\u0635\u0644', E'\u0628\u0642\u0633\u0645\u0627\u0637', E'\u0628\u0644\u0637\u064A', E'\u0628\u0646\u062F\u0642', E'\u0628\u0648\u0631\u064A', E'\u0628\u064A\u0636', E'\u0628\u064A\u0643\u0627\u0646', E'\u062A\u0648\u0645', E'\u062A\u0648\u0646\u0627', E'\u062A\u0648\u0646\u0629', E'\u062B\u0648\u0645', E'\u062C\u0628\u0646', E'\u062C\u0644\u0648\u062A\u064A\u0646', E'\u062C\u0645\u0628\u0631\u064A', E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A', E'\u062D\u0628\u0627\u0631', E'\u062D\u0644\u064A\u0628', E'\u062E\u0628\u0632', E'\u062F\u062C\u0627\u062C', E'\u062F\u0642\u064A\u0642', E'\u0631\u0642\u0627\u0642', E'\u0631\u0646\u062C\u0629', E'\u0632\u0628\u0627\u062F\u064A', E'\u0632\u0628\u062F\u0629', E'\u0633\u0628\u064A\u0637', E'\u0633\u062C\u0642', E'\u0633\u0631\u062F\u064A\u0646', E'\u0633\u0644\u0645\u0648\u0646', E'\u0633\u0645\u0633\u0645', E'\u0633\u0645\u0643', E'\u0633\u0645\u0646', E'\u0633\u0645\u064A\u062F', E'\u0633\u0648\u062F\u0627\u0646\u064A', E'\u0634\u0639\u0631\u064A\u0629', E'\u0634\u0648\u0641\u0627\u0646', E'\u0635\u0646\u0648\u0628\u0631', E'\u0637\u062D\u064A\u0646\u0629', E'\u0639\u062C\u064A\u0646', E'\u0639\u064A\u0634', E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644', E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644', E'\u063A\u0644\u0648\u062A\u064A\u0646', E'\u0641\u0631\u0627\u062E', E'\u0641\u0631\u062E', E'\u0641\u0631\u064A\u0643', E'\u0641\u0633\u062A\u0642', E'\u0641\u0633\u064A\u062E', E'\u0642\u0631\u064A\u062F\u0633', E'\u0642\u0631\u064A\u0634', E'\u0642\u0634\u062F\u0629', E'\u0642\u0634\u0637\u0629', E'\u0642\u0645\u062D', E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627', E'\u0643\u0627\u062C\u0648', E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A', E'\u0643\u0628\u062F', E'\u0643\u0631\u064A\u0645\u0629', E'\u0644\u0627\u0646\u0634\u0648\u0646', E'\u0644\u0628\u0646', E'\u0644\u062D\u0645', E'\u0644\u062D\u0648\u0645', E'\u0644\u0648\u0632', E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632', E'\u0645\u062D\u0627\u0631', E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0643\u0633\u0631\u0627\u062A'], NULL)
+  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), ARRAY[E'\u0623\u0633\u0645\u0627\u0643', E'\u0627\u0633\u062A\u0627\u0643\u0648\u0632\u0627', E'\u0628\u0627\u0646\u064A\u0647', E'\u0628\u0633\u0637\u0631\u0645\u0629', E'\u0628\u0635\u0644', E'\u0628\u0642\u0633\u0645\u0627\u0637', E'\u0628\u0644\u0637\u064A', E'\u0628\u0646\u062F\u0642', E'\u0628\u0648\u0631\u064A', E'\u0628\u064A\u0636', E'\u0628\u064A\u0643\u0627\u0646', E'\u062A\u0648\u0645', E'\u062A\u0648\u0646\u0627', E'\u062A\u0648\u0646\u0629', E'\u062B\u0648\u0645', E'\u062C\u0628\u0646', E'\u062C\u0644\u0648\u062A\u064A\u0646', E'\u062C\u0645\u0628\u0631\u064A', E'\u062C\u0646\u062F\u0648\u0641\u0644\u064A', E'\u062D\u0628\u0627\u0631', E'\u062D\u0644\u064A\u0628', E'\u062E\u0628\u0632', E'\u062F\u062C\u0627\u062C', E'\u062F\u0642\u064A\u0642', E'\u0631\u0642\u0627\u0642', E'\u0631\u0646\u062C\u0629', E'\u0632\u0628\u0627\u062F\u064A', E'\u0632\u0628\u062F\u0629', E'\u0633\u0628\u064A\u0637', E'\u0633\u062C\u0642', E'\u0633\u0631\u062F\u064A\u0646', E'\u0633\u0644\u0645\u0648\u0646', E'\u0633\u0645\u0633\u0645', E'\u0633\u0645\u0643', E'\u0633\u0645\u0646', E'\u0633\u0645\u064A\u062F', E'\u0633\u0648\u062F\u0627\u0646\u064A', E'\u0634\u0639\u0631\u064A\u0629', E'\u0634\u0648\u0641\u0627\u0646', E'\u0635\u0646\u0648\u0628\u0631', E'\u0637\u062D\u064A\u0646\u0629', E'\u0639\u062C\u064A\u0646', E'\u0639\u064A\u0634', E'\u0639\u064A\u0646\u0020\u0627\u0644\u062C\u0645\u0644', E'\u0639\u064A\u0646\u0020\u062C\u0645\u0644', E'\u063A\u0644\u0648\u062A\u064A\u0646', E'\u0641\u0631\u0627\u062E', E'\u0641\u0631\u062E', E'\u0641\u0631\u064A\u0643', E'\u0641\u0633\u062A\u0642', E'\u0641\u0633\u064A\u062E', E'\u0642\u0631\u064A\u062F\u0633', E'\u0642\u0631\u064A\u0634', E'\u0642\u0634\u062F\u0629', E'\u0642\u0634\u0637\u0629', E'\u0642\u0645\u062D', E'\u0643\u0627\u0628\u0648\u0631\u064A\u0627', E'\u0643\u0627\u062C\u0648', E'\u0643\u0627\u0644\u064A\u0645\u0627\u0631\u064A', E'\u0643\u0628\u062F', E'\u0643\u0631\u064A\u0645\u0629', E'\u0644\u0627\u0646\u0634\u0648\u0646', E'\u0644\u0628\u0646', E'\u0644\u062D\u0645', E'\u0644\u062D\u0648\u0645', E'\u0644\u0648\u0632', E'\u0645\u0627\u064A\u0648\u0646\u064A\u0632', E'\u0645\u062D\u0627\u0631', E'\u0645\u0639\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0643\u0631\u0648\u0646\u0629', E'\u0645\u0643\u0633\u0631\u0627\u062A'], NULL)
    WHERE id = 'dddddddd-0000-4000-8000-000000000000'),
   1,
   'the control survives EVERY form in the vocabulary at once'
