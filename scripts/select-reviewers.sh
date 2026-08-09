@@ -44,8 +44,20 @@ match_ai_boundary() {
 # the paths that carry them are not confined to one directory — a hidden fee is as
 # likely to appear in a Dart widget as in a migration. Matching on vocabulary as
 # well as location is how a pricing change in an unexpected place still gets read.
+#
+# CI configuration is excluded from the vocabulary half, because there the words are
+# about the pipeline rather than the product. `.github/workflows/review.yml` matched
+# on "review" and summoned trust-reviewer to read a workflow file containing no
+# Review, no price and no personal data — observed on the first real run. Left alone
+# it teaches the reviewer's output to be ignored, which is the expensive failure: a
+# net that cries wolf is one nobody reads on the day it is right.
+#
+# The exclusion is by location and applies only to the vocabulary net. A workflow
+# that genuinely touches release or deploy still reaches release-engineer through
+# its own path row, which matches on location and is unaffected.
 match_trust() {
-  grep -qiE '^supabase/(migrations|seed)|review|rating|price|pricing|fee|payment|payout|refund|cancel|seed|demo|allergy|allergen|dietary|consent|personal'
+  grep -v '^\.github/' \
+    | grep -qiE '^supabase/(migrations|seed)|review|rating|price|pricing|fee|payment|payout|refund|cancel|seed|demo|allergy|allergen|dietary|consent|personal'
 }
 
 match_localization() {
@@ -156,6 +168,24 @@ self_test() {
   check "uncovered" \
     "README.md" \
     ""
+
+  # The vocabulary net does not read CI configuration. This workflow file contains
+  # the word "review" and nothing a trust reviewer exists to catch.
+  check "workflow filename does not summon trust" \
+    ".github/workflows/review.yml" \
+    ""
+
+  # ...but a workflow that is genuinely about releasing still reaches the release
+  # reviewer, because that row matches on location rather than vocabulary.
+  check "deploy workflow still reaches release" \
+    ".github/workflows/deploy.yml" \
+    "release-engineer"
+
+  # The exclusion is scoped to .github/. A pricing change anywhere else is still
+  # caught by the same word.
+  check "pricing outside .github still caught" \
+    "packages/domain/lib/price.dart" \
+    "trust-reviewer"
 
   # A realistic multi-file feature diff: every reviewer that should see it does.
   check "feature diff" \
