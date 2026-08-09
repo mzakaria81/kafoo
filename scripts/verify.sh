@@ -551,12 +551,18 @@ run "localization parity" bash -c '
 # The web surface's own checks — its type-check and its preview-cap assertions. Skipped with a
 # LOUD notice when node_modules is absent rather than silently, because a check that reports
 # success on having inspected nothing is the failure this gate keeps meeting.
+# This check printed "NOT CHECKED" and then exited 0, so the gate reported ok. Nothing in ci.yml
+# installed apps/web's dependencies — only deploy.yml did, and that runs after the merge — so on
+# every clean CI checkout node_modules was absent and the Customer web surface was type-checked
+# nowhere but a developer's laptop, on every pull request from the day this was written.
+#
+# That is the same failure as the three Deno checks described at the top of this file, and
+# `skip_or_fail` is the thing built to prevent it. It was sitting forty lines above, unused here.
 run "web surface" bash -c '
-  [ -f apps/web/package.json ] || { echo "   apps/web not present yet — skipping"; exit 0; }
-  if [ ! -d apps/web/node_modules ]; then
-    echo "   apps/web/node_modules absent — NOT CHECKED. Run: (cd apps/web && npm ci)"
-    exit 0
-  fi
+  [ -f apps/web/package.json ] || {
+    skip_or_fail "apps/web not present"; exit $?; }
+  [ -d apps/web/node_modules ] || {
+    skip_or_fail "apps/web/node_modules absent (run: cd apps/web && npm ci)"; exit $?; }
   cd apps/web && npx tsc --noEmit && node --test lib/*_test.ts > /dev/null'
 
 # The Customer web surface carries its own ar/en messages rather than the app's ARB files, so the

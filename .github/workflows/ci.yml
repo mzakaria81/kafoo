@@ -73,6 +73,22 @@ jobs:
           sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
                                       "postgresql-${PG_MAJOR}-pgvector"
 
+      # The Customer web surface is TypeScript and needs its dependencies resolved before the gate
+      # can type-check it. Without these two steps the "web surface" check found no node_modules,
+      # printed NOT CHECKED and reported ok — on every pull request since it was written. Only
+      # deploy.yml installed them, and that runs after the merge, which is the wrong side of the
+      # gate to discover a type error.
+      #
+      # verify.sh now fails rather than skips when CI is set, so these steps going missing is loud
+      # instead of silent. Node version pinned to match deploy.yml — one definition of the runtime.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install web surface dependencies
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+
       # jq is preinstalled on ubuntu-latest runners; verify.sh needs it.
       #
       # Not run under sudo. The gate only needs root for the database step, and it acquires that

@@ -124,7 +124,9 @@ through the provider abstraction in `packages/ai/`. Swapping OpenAI → Anthropi
 config change, not a refactor. (ADR-0005)
 
 **NEVER** hardcode user-facing strings. Every string goes through ARB files with an Egyptian Arabic
-entry. `ar` is the default locale, not the fallback.
+entry. `ar` is the default locale, not the fallback. **In `apps/web/` the same rule points at a
+different file** — `apps/web/messages/ar.json` and `en.json`, because a TypeScript surface cannot
+read Flutter's ARB. Two locale files, one rule: no string outside them, `ar` written first.
 
 **NEVER** build a form where a conversation would work. If you find yourself adding a fourth input
 field, stop and propose a conversational flow instead.
@@ -160,7 +162,8 @@ not copy event lists into other documents.
 ## Repo map
 
 ```
-apps/mobile/         Flutter app (Customer + Cook, one binary). The only app that exists.
+apps/mobile/         Flutter app (Customer + Cook, one binary). Android and iOS (ADR-0006).
+apps/web/            Customer web surface. Next.js + TypeScript on Cloudflare Workers (ADR-0008).
 packages/ui/         Shared widgets, design system
 packages/domain/     Entities + business logic. No Supabase imports here.
 packages/ai/         Provider abstraction, prompts, conversation engine
@@ -180,11 +183,31 @@ administrative surface until one is needed. This map listed it as though it exis
 2026-08-03, which is worse than omitting it: a map is read as a description of what is there, and a
 deferred decision written in the present tense reads as a directory somebody forgot to commit.
 
-**There is no Customer web surface yet either.** ADR-0008 commits to one and deliberately leaves the
-rendering technology open until E2 lands and there is a Meal to show. `apps/mobile/web/` is a
-development and demonstration target, measured at 42 MB on a canvas that cannot produce a
-previewable link — read ADR-0008 before treating it as the Customer surface, because it says in
-terms not to.
+**`apps/web/` is the Customer web surface and it is real.** ADR-0008 Amendment 1 chose Next.js and
+TypeScript on Cloudflare Workers on 2026-08-06, once E2 landed and there was a Meal to render. Three
+things bind it, and none of them are optional:
+
+- **Customer flows only.** No Cook portal, no administrative surface, without a new decision.
+- **The database is the arbiter, both front-ends are presentation.** `packages/domain/` is Dart and
+  TypeScript cannot import it, so any rule restated in TypeScript is a convenience that may be wrong
+  without being dangerous. A rule added to a client with no RLS policy or constraint behind it is a
+  regression against Amendment 1, not a shortcut.
+- **Its strings live in `apps/web/messages/{ar,en}.json`, not in the ARB files.** `ar` is the source
+  there too, and the gate checks both locales for key and placeholder parity separately from the
+  app's. See the exception under "Non-negotiables".
+
+**This map said there was no Customer web surface until 2026-08-09**, three days after the surface
+was chosen and built and while the gate was already running two checks against it. That is the same
+failure as the `apps/admin/` line above, pointing the other way: the first described a directory
+that was never there, this one denied a directory that was. Both mislead in the direction that costs
+most — an agent trusts the map instead of the disk, because reading the map is what the map is for.
+
+**`apps/mobile/web/` is not it, and never will be.** That is the Flutter web build: 42 MB to a
+canvas with no link preview, no indexing and no text selection. ADR-0008 recorded that as evidence
+in July and Amendment 1 made it the verdict. Do not point a Customer at it.
+
+**There is still no `apps/admin/`.** Choosing a framework capable of carrying an administrative
+surface was not approval to build one.
 
 ## Building a feature
 
