@@ -343,6 +343,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             discoveredMealCard(
               l10n: l10n,
               item: result.item,
+              source: MealOpenSource.search,
               onOpen: _openFrom(outcome, result),
             ),
         ],

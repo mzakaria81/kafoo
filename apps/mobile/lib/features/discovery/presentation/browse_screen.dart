@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../analytics/emit_event.dart';
+import '../../analytics/event_names.dart';
 import '../application/browse_controller.dart';
 
 /// What a Customer sees having said nothing.
@@ -133,7 +137,12 @@ class BrowseBody extends ConsumerWidget {
   }
 
   Widget _card(AppLocalizations l10n, DiscoveredMeal item) =>
-      discoveredMealCard(l10n: l10n, item: item, onOpen: onOpen);
+      discoveredMealCard(
+        l10n: l10n,
+        item: item,
+        source: MealOpenSource.browse,
+        onOpen: onOpen,
+      );
 
   /// Scrollable so pull-to-refresh still works on a screen with nothing on it —
   /// which is exactly the screen a Customer most wants to retry.
@@ -156,14 +165,30 @@ class BrowseBody extends ConsumerWidget {
       );
 }
 
+/// Where a Customer was when they opened a Meal. The `source` of `MealOpened`.
+///
+/// Two values and no third without a decision: this is an analytics vocabulary,
+/// and a vocabulary that grows quietly is a funnel that stops adding up.
+abstract final class MealOpenSource {
+  /// From what is on offer.
+  static const String browse = 'browse';
+
+  /// From the results of a search.
+  static const String search = 'search';
+}
+
 /// One Meal card, built the same way wherever it is shown.
 ///
 /// Browse and search render the same thing: a result is a Meal on offer with the
 /// kitchen behind it, and a second card would be a second place for the price to
 /// lose its currency — which it did once already.
+///
+/// **It is also the one place a Meal is opened from**, which is why `MealOpened`
+/// is emitted here rather than at the call sites.
 Widget discoveredMealCard({
   required AppLocalizations l10n,
   required DiscoveredMeal item,
+  required String source,
   void Function(DiscoveredMeal item)? onOpen,
 }) {
   final kitchenLabel = l10n.browseKitchenLabel(item.kitchen.displayName);
@@ -185,7 +210,31 @@ Widget discoveredMealCard({
       kitchenLabel,
       price,
     ),
-    onTap: onOpen == null ? null : () => onOpen(item),
+    // MealOpened IS EMITTED HERE AND NOT AT THE CALL SITES, for the same reason
+    // the consent gate sits on the funnel rather than on the entrances: call
+    // sites keep being added, and the one that forgets is invisible — a number
+    // that is quietly low rather than a screen that is quietly broken.
+    //
+    // `source` is required above so a new caller has to say where it is, rather
+    // than defaulting to whichever value happened to be written first.
+    onTap: onOpen == null
+        ? null
+        : () {
+            unawaited(
+              emitEvent(
+                EventNames.mealOpened,
+                attributes: {
+                  'source': source,
+                  // The domain enums, never the Cook's own words. The title and
+                  // the description are what a Cook typed; these are chosen
+                  // from a list and are keys rather than copy.
+                  'cuisine': item.meal.cuisine.wireName,
+                  'category': item.meal.category.wireName,
+                },
+              ),
+            );
+            onOpen(item);
+          },
   );
 }
 

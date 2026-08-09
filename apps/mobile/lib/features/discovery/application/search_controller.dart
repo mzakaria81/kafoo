@@ -237,16 +237,30 @@ class SearchController extends _$SearchController {
       case Success(value: final outcome):
         state = state.copyWith(outcome: outcome, error: null, searching: false);
 
-        // SearchPerformed carries a COUNT AND NOTHING ELSE. FR-029 and SC-011:
-        // what a Customer searched for is not recorded, and the most natural
-        // shape for this event — `{phrase: ..., result_count: ...}` — is the
-        // violation. `search_performed_test` asserts the attribute set rather
-        // than the count, because a phrase added later would still pass a test
-        // that only checked the number.
+        // SearchPerformed carries WHAT KAFOO CHOSE, NEVER WHAT THE CUSTOMER
+        // SAID. FR-029 and SC-011: the most natural shape for this event —
+        // `{phrase: ..., result_count: ...}` — is the violation.
+        // `search_performed_test` asserts the attribute SET rather than the
+        // count, because a phrase added later would still pass a test that only
+        // checked the number.
+        //
+        // Every value below comes from a fixed vocabulary or is a boolean. The
+        // cuisine and category are the domain enums, off the first result —
+        // what Kafoo SERVED, which is not the same as what was asked for, and
+        // is honest only when read beside SearchFailed. `none` when nothing came
+        // back, so the attribute set is the same shape on every search.
+        //
+        // `area_narrowed` is a BOOLEAN AND NEVER THE AREA. The area is a phrase
+        // the Customer said, pulled out of their own sentence.
         unawaited(
           emitEvent(
             EventNames.searchPerformed,
-            attributes: {'result_count': outcome.results.results.length},
+            attributes: {
+              'result_count': outcome.results.results.length,
+              'top_cuisine': _topCuisine(outcome),
+              'top_category': _topCategory(outcome),
+              'area_narrowed': outcome.area != null,
+            },
           ),
         );
 
@@ -263,6 +277,24 @@ class SearchController extends _$SearchController {
         state = state.copyWith(error: err, searching: false, outcome: null);
     }
   }
+
+  /// The vocabulary word for a search with nothing in it.
+  ///
+  /// A literal rather than an omitted key, so every `SearchPerformed` carries
+  /// the same four attributes and a query never has to ask whether a field is
+  /// missing or absent. It cannot collide with a real value — the enums have an
+  /// `other`, and neither has a `none`.
+  static const String _nothingServed = 'none';
+
+  static String _topCuisine(SearchOutcome outcome) =>
+      outcome.results.results.isEmpty
+          ? _nothingServed
+          : outcome.results.results.first.item.meal.cuisine.wireName;
+
+  static String _topCategory(SearchOutcome outcome) =>
+      outcome.results.results.isEmpty
+          ? _nothingServed
+          : outcome.results.results.first.item.meal.category.wireName;
 
   Future<void> _judge(String phrase, SearchOutcome outcome) async {
     if (outcome.results.results.isEmpty) return;

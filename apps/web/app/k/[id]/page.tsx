@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { fill, messages } from '@/lib/messages';
+import { fill, messages, priceLabel } from '@/lib/messages';
 import { kitchenPreview } from '@/lib/preview';
 import { kitchenOnOffer, photoUrl } from '@/lib/supabase';
 
@@ -72,7 +72,7 @@ export default async function KitchenPage({ params }: Params) {
             {photo ? <img src={photo} alt="" /> : null}
             <div>
               <h2>{meal.title}</h2>
-              <p className="price">{meal.price}</p>
+              <p className="price">{priceLabel(meal.price)}</p>
             </div>
           </Link>
         );

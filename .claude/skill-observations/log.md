@@ -1646,7 +1646,90 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 ---
 
-### Observation 114: speckit-taskstoissues has no concept of hierarchy, so it flattens the structure it is asked to mirror
+### Observation 114: A second surface inherits the rule, not the mechanism — and the mechanism is where the rule breaks
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Building discovery (browse, search, honesty layer, consent) on a Next.js web surface, mirroring an existing Flutter implementation of the same feature.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Implementation — reproducing an existing feature on a different platform
+
+**Issue:** The rule "a user's search phrase is never recorded" was already implemented and well-tested on the first surface, where it meant "no log line, no cache keyed on the phrase, no analytics attribute". Ported literally to a web surface, every one of those checks would have passed while the phrase leaked through three mechanisms that do not exist on the first platform: a query string written into the server's request log, the browser's own history, and the `Referer` header sent to every third-party asset host on the page. A form control with a `name` attribute and no JavaScript would have produced all three silently. None of these are visible from reading the original implementation, because the original platform has no URLs.
+
+**Suggested improvement:** When porting a feature, enumerate the rule's *threat surface on the new platform* before reproducing the *code*. For each invariant the feature carries, ask "what are the ways this could be violated here that do not exist there" — and write the test against the new mechanisms, not against the old ones. The ported test suite should contain at least one assertion that would have been meaningless on the original platform.
+
+**Principle:** A ported invariant is only as strong as the threat model it was written against, and a threat model is platform-specific. Copying the guard without re-deriving what it guards against reproduces the letter of a rule onto a surface where the letter no longer covers the spirit.
+
+---
+
+### Observation 115: A conflation that was merely wrong becomes load-bearing when a second feature reads it
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Adding area-narrowing to a second surface, which required knowing which areas currently have inventory.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Implementation — building on existing read layers
+
+**Issue:** An existing read function returned an empty list both when the query succeeded with no rows and when it failed. The user-facing consequence at the time was one wrong sentence on one page, and a correctly-worded error string sat unused in the localization files because no caller could distinguish the two cases. The new feature then needed exactly that distinction: when a user's chosen area has nothing in it, the product must name the areas that *do* have something — and a failed read looks identical to "nowhere has anything", which turns a network error into a false claim about the whole marketplace at the precise moment the user is being offered alternatives.
+
+**Suggested improvement:** Before building on an existing read layer, check whether it collapses "empty" into "failed". If it does, fix the read layer rather than working around it in the new caller — and look for an unused error string or dead branch, which is often the fossil evidence that someone already knew the distinction was needed. Treat an unreferenced user-facing error message as a defect report, not as dead code to delete.
+
+**Principle:** Conflating absence with failure is a latent bug whose blast radius grows with each new reader. The second consumer of a lossy signal is where the loss stops being cosmetic, so the cost of the original shortcut is paid by whoever arrives next.
+
+---
+
+### Observation 116: Test-runner capability sets the shape of the code under test, and it is worth checking first
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Writing behavioural tests for a TypeScript module in a project whose existing tests only read source files as text.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Writing tests for compiled/transpiled languages
+
+**Issue:** The project's existing test file for this area read its subject as a string and asserted with regexes, with a comment explaining that the modules were TypeScript and therefore could not be imported. That constraint had quietly expired — the installed runtime strips types natively — but the workaround had already shaped the tests into structural assertions that could not verify behaviour. The requirement being tested explicitly demanded behavioural verification ("verified by watching what leaves rather than by reading the code that decides"), which regex-over-source cannot do. Separately, once real imports worked, one ordinary language feature in the module under test was unsupported by the stripper and had to be written out longhand — a one-line cost that bought executable tests.
+
+**Suggested improvement:** At the start of a testing task in a transpiled language, spend one command establishing what the runner can actually execute today, rather than inheriting the constraint encoded in the neighbouring test file. When a runtime limitation forces a small change to the code under test, make the change and record why in a comment at that spot — otherwise the next person "cleans it up" and silently breaks the ability to test.
+
+**Principle:** Workarounds outlive the limitations that caused them, and a test-shape adopted under an expired constraint keeps testing the wrong thing. Verify the tool's current capability before accepting the previous author's compromise as a fact about the world.
+
+---
+
+### Observation 117: Verifying an acceptance criterion "by name" is a different act from reviewing the diff, and finds different things
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Completing a unit of work whose acceptance criteria included "verified field by field: what is visible on surface B is identical to what is visible on surface A".
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Final verification, before declaring work done
+
+**Issue:** The full automated gate passed, types checked, the build succeeded, and every test written for the change was green. Walking the acceptance criteria one at a time afterwards — specifically the one demanding a field-by-field comparison against the other surface — surfaced a real user-facing defect that none of that had touched, and that was not in the diff at all: a value rendered on three pre-existing pages was missing a unit that the reference surface displays. It had been wrong since that surface shipped. A diff review cannot find it, because the defect is in code the change does not modify; a test suite cannot find it, because no test knew to compare the two surfaces; and the criterion names it exactly.
+
+**Suggested improvement:** Treat "check the acceptance criteria by name" as a distinct verification step with its own output, performed after the automated gate rather than assumed to be covered by it. For each criterion, state what was actually done to check it and what the result was — and when a criterion asks for a comparison against something outside the change, go and read that other thing rather than reasoning about it. A criterion that can only be satisfied by inspection is the one most likely to be marked done by assertion.
+
+**Principle:** Automated gates verify the change; acceptance criteria verify the outcome, and the gap between them is where pre-existing defects in scope of the criterion survive indefinitely. A criterion phrased as a comparison is an instruction to look at both sides, not a claim to endorse.
+
+---
+
+### Observation 118: A closed-list authorization rule ages into a silent outage, and the swallow that makes it safe is what hides it
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Deciding which analytics could not be recovered later; discovered that an entire feature's measurement had never been recorded.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Authorization rules that outlive the world they were written for
+
+**Issue:** An authorization policy enumerated the two operations an unauthenticated caller could perform, and was exactly right when written. A later feature was built on the premise of working without authentication, and emitted three operations that policy did not name. Every one was rejected by the database and discarded by the client's own error handling — which is correct on its own terms, because that subsystem must never interrupt the user. The result: the feature worked, every test passed, the full gate stayed green, and the authorization test suite continued asserting the *old* behaviour truthfully, while the feature recorded nothing at all for its primary case. It went unnoticed for the entire epic and was found only by someone asking a question about the data rather than about the code.
+
+**Suggested improvement:** Two habits, both cheap. (1) When a feature's premise is "works without X", enumerate every subsystem that gates on X and check each one explicitly — the gate list is short and the failure is otherwise invisible. (2) When writing an authorization rule as a closed list, write the test as a statement of the *principle* the list encodes ("an anonymous caller may record what an anonymous caller can cause"), not of the list's current contents. A test that restates the enumeration cannot distinguish a correct list from a stale one.
+
+**Principle:** An enumerated permission is a snapshot of what the system could do on the day it was written, and it silently narrows as the system grows. Where the consumer of that permission is also designed to fail silently — as measurement, logging and telemetry almost always are — the two correct decisions compose into an outage with no symptom. Look for that pairing deliberately: a closed list plus a swallowed error is a blind spot by construction, not by accident.
+
+### Observation 119: speckit-taskstoissues has no concept of hierarchy, so it flattens the structure it is asked to mirror
 
 **Status:** OPEN
 **Date:** 2026-08-08
@@ -1663,7 +1746,7 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 ---
 
-### Observation 115: a per-item API workflow needs a stated crossover point where it becomes a script
+### Observation 120: a per-item API workflow needs a stated crossover point where it becomes a script
 
 **Status:** OPEN
 **Date:** 2026-08-08
@@ -1680,7 +1763,7 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 ---
 
-### Observation 116: a documented warning that an identifier is not unique needs a test, not a reader
+### Observation 121: a documented warning that an identifier is not unique needs a test, not a reader
 
 **Status:** OPEN
 **Date:** 2026-08-08
@@ -1697,7 +1780,7 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 ---
 
-### Observation 117: never derive a record's category from a map built by claim order
+### Observation 122: never derive a record's category from a map built by claim order
 
 **Status:** OPEN
 **Date:** 2026-08-08
@@ -1714,7 +1797,7 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 ---
 
-### Observation 118: a converter is a reader of last resort, and what it trips over belongs back in the source
+### Observation 123: a converter is a reader of last resort, and what it trips over belongs back in the source
 
 **Status:** OPEN
 **Date:** 2026-08-08
@@ -1731,7 +1814,7 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 ---
 
-### Observation 119: a rollup counts the children it has, not the ones you were thinking of
+### Observation 124: a rollup counts the children it has, not the ones you were thinking of
 
 **Status:** OPEN
 **Date:** 2026-08-08

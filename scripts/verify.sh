@@ -166,6 +166,12 @@ run "edge functions" bash -c '
 #   *_test.ts   unit. No network, no database, no local stack. Runs in this gate on every commit.
 #   *.test.ts   integration. Needs `supabase start`. Runs by hand, and never here.
 #
+# The convention is the REPOSITORY'S, not Deno's, so `apps/web` follows it too — its suites are
+# `lib/*_test.ts` and run in the "web surface" check below. They arrived as `.test.mjs`, which was
+# wrong twice over: a `.mjs` file is outside `tsconfig`'s `include`, so nothing type-checked a test
+# against the API it tested, and the dotted name is the one that means "does not run here". Renamed
+# 2026-08-08 rather than left as a second convention beside this one.
+#
 # delete-account/index.test.ts is the second kind — it creates real auth users against a local
 # stack and cannot pass without Docker. Sweeping both kinds into the gate makes it fail on every
 # machine that has no Docker, which is every CI runner we use and the session container too.
@@ -551,7 +557,7 @@ run "web surface" bash -c '
     echo "   apps/web/node_modules absent — NOT CHECKED. Run: (cd apps/web && npm ci)"
     exit 0
   fi
-  cd apps/web && npx tsc --noEmit && node --test lib/*.test.mjs > /dev/null'
+  cd apps/web && npx tsc --noEmit && node --test lib/*_test.ts > /dev/null'
 
 # The Customer web surface carries its own ar/en messages rather than the app's ARB files, so the
 # parity check above does not see them. Two locales that drift are how a Customer meets an English

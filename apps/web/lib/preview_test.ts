@@ -16,7 +16,7 @@ const supabase = readFileSync('lib/supabase.ts', 'utf8');
  * though it were code. A comment naming what is forbidden is exactly what
  * should be kept; it is the rendered output that must not carry it.
  */
-const code = (src) =>
+const code = (src: string) =>
   src
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
@@ -25,8 +25,22 @@ const code = (src) =>
 const kitchenPage = code(readFileSync('app/k/[id]/page.tsx', 'utf8'));
 const mealPage = code(readFileSync('app/m/[id]/page.tsx', 'utf8'));
 
+/**
+ * The one capture group of a pattern that must match, or a named failure.
+ *
+ * `preview.match(...)[1]` crashes with a TypeError when the pattern stops
+ * matching — which is exactly what happens when somebody renames the thing being
+ * asserted about. The test then blames itself rather than saying the cap it
+ * guards has moved. Caught by the compiler once this file became `.ts`.
+ */
+function captured(source: string, pattern: RegExp, what: string): string {
+  const match = source.match(pattern);
+  assert.ok(match, `${what} not found — has it been renamed? ${pattern}`);
+  return match[1];
+}
+
 test('a kitchen preview reveals exactly three things (FR-027a, SC-012)', () => {
-  const type = preview.match(/export type KitchenPreview = \{([^}]*)\}/)[1];
+  const type = captured(preview, /export type KitchenPreview = \{([^}]*)\}/, 'KitchenPreview');
   const fields = type.split('\n').map((l) => l.trim()).filter(Boolean);
   assert.equal(fields.length, 3, `KitchenPreview has ${fields.length} fields: ${fields}`);
   assert.ok(type.includes('title'));
@@ -45,7 +59,7 @@ test('the preview is built field by field, never spread from a row', () => {
 });
 
 test('a Kitchen Profile has exactly five public details', () => {
-  const list = preview.match(/PUBLIC_KITCHEN_FIELDS = \[([^\]]*)\]/)[1];
+  const list = captured(preview, /PUBLIC_KITCHEN_FIELDS = \[([^\]]*)\]/, 'PUBLIC_KITCHEN_FIELDS');
   const count = list.split(',').filter((s) => s.trim()).length;
   assert.equal(count, 5, `expected 5 public details, found ${count}`);
 });
