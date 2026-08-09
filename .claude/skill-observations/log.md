@@ -1996,3 +1996,34 @@ the one currently open.
 to the file where it belongs. Any always-loaded context file will grow monotonically unless the
 routing decision is made deliberately at write time — and the growth is invisible, because each
 individual addition is correct.
+
+### Observation 132: A documented output format was read, agreed with, and then not applied
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Auditing a project instruction file; the same instruction file specifies a
+mandatory reply format for this user.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Following a documented output contract
+
+**Issue:** The project's instruction file specifies an answer shape in unusual detail — a one-to-three
+sentence bottom line, then sections carrying named headings, then one of three named closing lines,
+plus four required labels for classifying each statement. The file also records that a previous,
+vaguer version of the same instruction had been ignored, and states outright that describing a
+posture failed where describing a shape might work. The reply produced was well-organised and
+plainly written, and still used invented headings rather than the named ones. The user had to ask
+for the format a second time. Notably, the failure was not a comprehension failure: the contract was
+in context, was understood, and was even cited elsewhere in the same session's work.
+
+**Suggested improvement:** When an instruction file prescribes a literal output template — named
+headings, required labels, a fixed closing line — treat it as a checklist to verify the drafted
+reply against before sending, not as style guidance to absorb. The verification is mechanical: does
+each named element literally appear? A format specified this precisely exists because approximation
+already failed.
+
+**Principle:** Adhering to the *spirit* of a format contract while substituting your own structure is
+a failure mode that looks like success, because the output is genuinely good — just not the thing
+that was asked for. The more precisely a format is specified, the more likely it was specified that
+way because someone previously delivered something good in the wrong shape. Prescribed structure is
+a requirement to satisfy literally, not a quality bar to clear by other means.
