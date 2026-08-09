@@ -45,18 +45,30 @@ match_ai_boundary() {
 # likely to appear in a Dart widget as in a migration. Matching on vocabulary as
 # well as location is how a pricing change in an unexpected place still gets read.
 #
-# CI configuration is excluded from the vocabulary half, because there the words are
-# about the pipeline rather than the product. `.github/workflows/review.yml` matched
-# on "review" and summoned trust-reviewer to read a workflow file containing no
-# Review, no price and no personal data — observed on the first real run. Left alone
-# it teaches the reviewer's output to be ignored, which is the expensive failure: a
-# net that cries wolf is one nobody reads on the day it is right.
+# ONE FILE IS EXCLUDED FROM THE VOCABULARY HALF, AND IT IS NAMED IN FULL ON PURPOSE.
+# `.github/workflows/review.yml` matched on "review" and summoned trust-reviewer to
+# read a workflow containing no Review, no price and no personal data — observed on
+# the first real run. Left alone it teaches the reviewer's output to be ignored,
+# which is the expensive failure: a net that cries wolf is one nobody reads on the
+# day it is right.
 #
-# The exclusion is by location and applies only to the vocabulary net. A workflow
-# that genuinely touches release or deploy still reaches release-engineer through
-# its own path row, which matches on location and is unaffected.
+# THE FIRST ATTEMPT AT THIS EXCLUDED ALL OF `.github/`, AND THAT WAS A HOLE.
+# `.github/workflows/demo-apk.yml` builds an APK carrying synthetic Cooks and Meals
+# and its whole safety property is one check refusing the production ref. It reached
+# trust-reviewer on the word "demo"; a directory-wide exclusion sent it to nobody,
+# and `match_release` does not catch it either — that row matches the literal
+# `deploy.yml` path. So an edit weakening that refusal would have merged unreviewed,
+# against a rule the business rules call product-fatal.
+#
+# Widening an exclusion to cover a class is how a targeted fix becomes a gap. The
+# noisy match was one file; the exclusion is that one file. Found by trust-reviewer
+# on the first run where the reviewers could actually see, which is the argument for
+# this whole job in one sentence.
+#
+# The exclusion applies only to the vocabulary net. A workflow that genuinely touches
+# release or deploy still reaches release-engineer through its own location row.
 match_trust() {
-  grep -v '^\.github/' \
+  grep -v '^\.github/workflows/review\.yml$' \
     | grep -qiE '^supabase/(migrations|seed)|review|rating|price|pricing|fee|payment|payout|refund|cancel|seed|demo|allergy|allergen|dietary|consent|personal'
 }
 
@@ -181,8 +193,18 @@ self_test() {
     ".github/workflows/deploy.yml" \
     "release-engineer"
 
-  # The exclusion is scoped to .github/. A pricing change anywhere else is still
-  # caught by the same word.
+  # THE BOUNDARY CASE, AND THE REASON THE EXCLUSION NAMES ONE FILE RATHER THAN A
+  # DIRECTORY. demo-apk.yml builds an APK carrying synthetic Cooks and Meals, and its
+  # safety property is a single check refusing the production ref — squarely a
+  # product-fatal trust rule. An exclusion covering all of `.github/` sent it to
+  # nobody. Absent this case the hole is invisible, because every other test here
+  # passes with the wrong exclusion too.
+  check "another workflow still reaches trust" \
+    ".github/workflows/demo-apk.yml" \
+    "trust-reviewer"
+
+  # The exclusion is one file. A pricing change anywhere else is still caught by the
+  # same word.
   check "pricing outside .github still caught" \
     "packages/domain/lib/price.dart" \
     "trust-reviewer"

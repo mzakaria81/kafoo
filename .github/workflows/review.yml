@@ -73,7 +73,21 @@ jobs:
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
 
-          git diff --name-only "$BASE" "$HEAD" > changed-files.txt
+          # THREE DOTS, NOT TWO. `base.sha` is the base branch tip when the event
+          # fired, which is not the merge base once main moves ahead — and it moves
+          # ahead constantly. Two-dot `$BASE $HEAD` then reports every file main
+          # changed since the fork as though this PR changed it, with main's edits
+          # shown REVERSED, because that is the direction that turns base into head.
+          #
+          # Both halves of that are bad. The selector summons reviewers for files the
+          # PR never touched, and the reviewer reads a diff in which main's additions
+          # look like this PR's deletions — so it can report a deletion that does not
+          # exist. A false finding costs more than a missed one: it is the thing that
+          # teaches people to stop reading the output.
+          #
+          # `$BASE...$HEAD` is changes since the merge base, i.e. what this PR did.
+          # Caught by trust-reviewer on the first run where the reviewers could see.
+          git diff --name-only "$BASE...$HEAD" > changed-files.txt
           echo "Changed files:"
           sed 's/^/  /' changed-files.txt
 
