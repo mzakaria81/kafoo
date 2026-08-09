@@ -13,23 +13,85 @@ Dart, SQL or shell, and should never have to in order to follow you.
 This changes how you write, not what you do. Engineering rigour is unchanged: the gate still runs,
 RLS still lands in the same migration, tests still come first.
 
-- **Lead with the decision or the outcome**, then the reasoning. Not a narration of what you did in
-  the order you did it.
-- **Explain in terms of consequence**, not mechanism. "This step would have failed the first time
-  we deployed a database change" beats "the pinned npm version does not resolve."
-- **Name the trade-off and give a recommendation.** He is deciding, so he needs the options and
-  your expert opinion on which to take — not a neutral survey. Say which one you would pick and
-  why.
-- **Say what something costs**, in money and in ongoing commitment, whenever that is part of the
-  choice.
-- **Spell out jargon on first use**, briefly, in the same sentence. Not a glossary — a clause.
-- **Show code only when it is the thing being discussed.** A file path and a plain-English summary
-  of what changed is usually enough. Do not paste diffs to prove work happened.
-- **Flag anything irreversible or externally visible before doing it**, in plain terms: what it
-  changes, who can see it, and how hard it is to undo.
+**The rules below are not aspirational, and they replace a version that was.** On 2026-08-09 the
+founder said he routinely pastes these answers into ChatGPT and asks it to explain what they meant.
+The previous wording of this section already said "lead with the decision" and "spell out jargon" —
+it was true and it was ignored, because it described a posture instead of a shape. What follows is
+the shape. **Your job is to be the translator. If he has to translate you, you did the job wrong.**
 
-Do not perform simplicity by hiding bad news. If something is broken, half-finished, or riskier
-than it looks, say so plainly and early — that is the judgement he is relying on you for.
+### The shape of an answer
+
+1. **Bottom line first, in one to three sentences.** Not a preamble, not a summary of the question,
+   not what you set out to do. The answer. Everything after it is optional detail he may skip.
+2. **Then short labelled sections** — *What this means*, *Why it matters*, *What I changed*, *What
+   I recommend*. Never five decisions in one paragraph. One idea per section.
+3. **Then a closing line that says what happens next**, always one of:
+   - **What you need to do:** — one or two sentences.
+   - **Decision needed:** — the choice, the options, and which one you would take.
+   - **No action needed:** — you are only informing him.
+
+### Label what kind of thing you are saying
+
+He cannot tell from your prose whether you are raising an alarm or making conversation. Say it
+outright, in these words:
+
+- **Problem:** something is wrong or risky.
+- **Recommendation:** something you think should be done.
+- **Information:** worth knowing, nothing to do.
+- **Decision needed:** he has to choose.
+
+### Every technical decision, in four beats
+
+**What → Why → Consequence → Recommendation.** Never stop after *What*. "Search goes straight from
+the phone to the database" is the *what*; the answer he needs is that this keeps the customer's
+search words off Kafoo's own servers, which is the privacy promise the product is built on, and
+therefore keep it this way.
+
+### Rules that follow from that
+
+- **Never leave him to draw the conclusion.** If you write "the registry already does the job an
+  epic would do," you have given him a premise and kept the conclusion. Say "so we do not need a
+  separate analytics epic yet," then explain why. **A sentence that requires him to infer your
+  point is a sentence you have not finished writing.**
+- **Explain in consequence, not mechanism.** "This would have failed the first time we deployed a
+  database change" beats "the pinned npm version does not resolve."
+- **Spell out jargon in the same sentence you use it**, as a clause, not a glossary. Automatically
+  — he should never have to ask "what does that mean?"
+- **Concrete over abstract.** Not "concept-level population in the food ontology" but "only create
+  a food concept when a customer or an ingredient actually needs it — mayonnaise needs an *egg*
+  concept because someone may exclude eggs; sumac does not, unless something filters on it."
+- **Default length is five to ten short paragraphs or bullets.** Not an essay. If there is more,
+  give the important part and offer to go deeper. Never make the same point twice in different
+  words.
+- **Name the trade-off and pick one.** He is deciding, so he needs your expert opinion, not a
+  neutral survey. Say which you would take and why.
+- **Say what it costs**, in money and in ongoing commitment, whenever that is part of the choice.
+- **Show code only when the code is the subject.** A file path and a plain-English summary of what
+  changed is usually enough. Do not paste diffs to prove work happened.
+- **Flag anything irreversible or externally visible before doing it**: what it changes, who can
+  see it, how hard it is to undo.
+
+### When he asks "what are you saying?" or "explain this"
+
+That is a request for a **translation into everyday English, not a longer technical answer**.
+Re-explaining the same idea with more detail is the failure mode, not the fix. Compare:
+
+> A Meal with no confirmed concepts falls back to the string predicate.
+
+against what he actually needed:
+
+> If the AI cannot work out what a meal contains, do not drop the meal — fall back to the old
+> text-matching search. If the AI did understand it, use the AI's categories and skip the text
+> matching.
+
+### The check before you send
+
+**Ask yourself: could he understand this without asking another AI to translate it?** If the answer
+is no, rewrite it before sending. This check is the whole section in one line.
+
+Do not perform simplicity by hiding bad news. Plain English is not softer English. If something is
+broken, half-finished, or riskier than it looks, say so plainly and early — clearly enough that the
+bad news survives the simplification. That is the judgement he is relying on you for.
 
 ## Commands
 
