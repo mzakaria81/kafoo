@@ -1858,3 +1858,38 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When authoring a guard over command text, add prose cases to the allow half of the self-test from the start — a commit message naming the blocked command, an echo, a heredoc — not only the dangerous spellings. Strip heredoc bodies and quoted strings before matching. Where a guard's coverage is genuinely partial after that, record the residual gap next to the rule instead of implying the block is total.
 
 **Principle:** A pattern that matches an action will also match a description of that action, and self-tests written by the guard's author cover the action only. Test the descriptions too. More generally: any filter over a representation, rather than over the thing represented, inherits every ambiguity of that representation — so decide explicitly which regions of the input can name a real target, and match only there.
+
+---
+
+### Observation 127: Repo-profiling skills should diff observed structure against the project's own documented structure
+
+**Status:** PARTIALLY ACTIONED (2026-08-09) — the project half is done: `CLAUDE.md`'s repo map now lists `apps/web/`, states the ADR-0008 Amendment 1 constraints, and records that it denied the surface until today; the ARB non-negotiable now names `apps/web/messages/` as the same rule's second home. The skill half remains OPEN — `find-skills` Phase 2 still has no step instructing it to diff observed structure against the project's own documented structure, so the next repository gets no such check.
+**Date:** 2026-08-09
+**Session context:** Running `/find-skills` over the Kafoo repository to recommend Claude Code skills from known marketplaces.
+**Skill:** find-skills
+**Type:** open-source
+**Phase/Area:** Phase 2 — Understand the Repository
+
+**Issue:** Phase 2 builds a repo profile by direct inspection (languages, frameworks, CI, docs, purpose) and then uses it only to score skill relevance. In this run the inspection surfaced a live Next.js application at `apps/web/` deployed to Cloudflare Workers via OpenNext — while the project's own agent-facing map in `CLAUDE.md` still stated there was no Customer web surface and listed only `apps/mobile/`. The skill had every fact needed to notice the contradiction and had no instruction to look for it, so the drift would have gone unreported. The cost is asymmetric: the observed structure is read once by this skill, but the documented structure is read by every future agent session as ground truth.
+
+**Suggested improvement:** Add a step at the end of Phase 2: after building the profile, read the project's own structural documentation (`CLAUDE.md`, `AGENTS.md`, README repo map, `docs/` architecture pages) and diff the documented structure against what was observed — top-level applications and packages present but undocumented, documented but absent, or described in a tense that contradicts what is on disk. Report any drift as a short note in the Phase 6 report, separate from the skill recommendations, since it is a finding about the repository rather than about skills.
+
+**Principle:** A skill that profiles an artefact to make a decision has already paid the cost of observing ground truth; when the artefact also carries a self-description, comparing the two is nearly free and catches drift that no dedicated process is watching for. Documentation that describes structure is read far more often than the structure is inspected, so a stale map costs more than a stale observation — surface the diff as a by-product rather than discarding it.
+
+---
+
+### Observation 128: An "already installed" check must enumerate every location the host actually loads from
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Running `/find-skills` over the Kafoo repository to recommend Claude Code skills from known marketplaces.
+**Skill:** find-skills
+**Type:** open-source
+**Phase/Area:** Phase 5 — Match Skills to the Project (irrelevance signals)
+
+**Issue:** Phase 5's first irrelevance signal is "Skill already installed (found in `~/.claude/plugins`)", and Phase 2's discovery step likewise greps `~/.claude/settings.json` for plugins. Claude Code also loads skills from a repository's own `.claude/skills/` directory, and this repository vendors 46 of them there — including direct namesakes of marketplace candidates (`security-review`, `brainstorming`, and `find-skills` itself). Following the phases literally, every one of those would have been scored as a fresh candidate and recommended back to a user who already has it, because the single directory the skill was told to check was the one they were not in. The failure is silent and reads as thoroughness: the report is longer, not visibly wrong.
+
+**Suggested improvement:** Change the Phase 5 signal and the Phase 2 discovery command to enumerate all load locations before scoring — the user-level plugin directory, the user and project `settings.json` plugin entries, and the project-level `.claude/skills/` (plus `.claude/plugins/` where present) — and match on skill name across the union. Where a namesake exists locally but differs from the marketplace version, say so rather than suppressing it silently, since a vendored fork and an upstream skill are not the same artefact.
+
+**Principle:** A deduplication check is only as good as its enumeration of where the thing being deduplicated can live. When a host resolves a resource from several locations by design, a check that names one of them will pass while missing most of the population — and because the symptom is a redundant recommendation rather than an error, nothing surfaces the gap. Derive the search set from the host's actual resolution order, not from the one canonical path that is easiest to name.
+
