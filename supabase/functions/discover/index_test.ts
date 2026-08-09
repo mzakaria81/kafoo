@@ -233,6 +233,15 @@ Deno.test('THE SHARED CORPUS: this side answers exactly what the Dart side answe
     // An invisible character changes nothing: zero-width non-joiner, then a no-break space.
     ['\u0645\u0646 \u063A\u064A\u0631 \u0644\u200C\u062D\u0645\u0629', 'meat'],
     ['\u0645\u0646 \u063A\u064A\u0631\u00A0\u0644\u062D\u0645\u0629', 'meat'],
+    // The founder's vocabulary decisions of 2026-08-10. Here as well as in Dart because this is
+    // the corpus that proves the two parsers agree, and a decision honoured on one surface only is
+    // the failure this test exists for. Mayonnaise is egg; tuna is fish.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u0645\u0627\u064A\u0648\u0646\u064A\u0632', 'egg'],
+    ['\u0645\u0646 \u063A\u064A\u0631 \u062A\u0648\u0646\u0629', 'fish'],
+    // "I don't eat X" is a negation. Both returned NOTHING before this \u2014 no marker matched, so the
+    // phrase read as an ordinary request and the food came back with nothing said.
+    ['\u0645\u0628\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
+    ['\u0645\u0628\u0627\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
   ];
   for (const [phrase, id] of cases) {
     const outcome = parsePhrase(phrase).exclusion;

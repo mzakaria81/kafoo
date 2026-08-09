@@ -346,4 +346,81 @@ void main() {
       }
     });
   });
+
+  // THE FOUR CALLS THE FOUNDER TOOK ON 2026-08-10, AND THE ONE HE DID NOT.
+  //
+  // WP-017 reached all seven of its acceptance criteria and then stopped, on
+  // five questions no session should answer alone: each is a judgement about
+  // Egyptian Arabic where being wrong serves somebody the food they said they
+  // cannot eat. Four were decided. `كندوز` / `ضاني` / `مبحبش` stay out, because
+  // the open question there is whether Cooks TYPE those words or only say them,
+  // and nobody has asked a Cook yet.
+  //
+  // These are pinned as tests rather than left in a note because a note does not
+  // fail. Anyone reversing one of these decisions has to delete an assertion
+  // that names the reasoning, which is the only kind of record that survives a
+  // stranger in a hurry.
+  group('the vocabulary decisions of 2026-08-10', () {
+    test('mayonnaise is egg', () {
+      final outcome = ExclusionVocabulary.parse('من غير مايونيز');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'egg');
+    });
+
+    test('excluding mayonnaise excludes every egg, and that is the decision',
+        () {
+      // ONE FORM SET SERVES BOTH DIRECTIONS, so this cannot be scoped to the
+      // sauce. The same list matches what the Customer said and what the Cook
+      // wrote, so `مايونيز` under `egg` means a Customer who asked to lose
+      // mayonnaise also loses omelettes. That is over-exclusion, which is the
+      // direction this feature is allowed to be wrong in — and the reverse,
+      // someone avoiding eggs being handed mayonnaise, is the failure the
+      // package exists to prevent.
+      final byMayonnaise = ExclusionVocabulary.parse('من غير مايونيز');
+      final byEgg = ExclusionVocabulary.parse('من غير بيض');
+      expect((byMayonnaise as ExclusionFound).exclusion.id,
+          (byEgg as ExclusionFound).exclusion.id);
+    });
+
+    test('tuna is fish', () {
+      final outcome = ExclusionVocabulary.parse('من غير تونة');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'fish');
+    });
+
+    test('walnut is deliberately absent, and this is the record of that', () {
+      // NOT AN OVERSIGHT — do not "fix" this by adding `جوز`.
+      //
+      // localization-reviewer argued it unprompted and the founder agreed:
+      // `جوز` on its own means a HUSBAND, and `جوز حمام` is a PAIR of pigeons.
+      // Adding it would label a pigeon Meal as containing walnuts, and an
+      // exclusion pointing at the wrong food is worse than one that misses —
+      // the same reasoning that keeps `طحين` out of `sesame` twelve lines above.
+      //
+      // Walnut itself is still reachable: `عين جمل` and `عين الجمل` are both
+      // listed under `nuts`, which is what an Egyptian ingredient list carries.
+      for (final exclusion in ExclusionVocabulary.all) {
+        expect(exclusion.surfaceForms, isNot(contains('جوز')),
+            reason: '${exclusion.id} lists جوز — see the comment above this '
+                'test before restoring it');
+      }
+      expect(ExclusionVocabulary.lookUp('جوز'), isA<ExclusionNotUnderstood>());
+    });
+
+    test('مبكلش is a negation — the Customer said they do not eat it', () {
+      // `مبكلش لحمة` excluded NOTHING before this. Not not-understood: the
+      // phrase carried no recognised marker at all, so it read as an ordinary
+      // request and the meat came back — the exact shape of the allergy bug
+      // closed on 2026-08-07, arriving through a marker nobody had listed.
+      final outcome = ExclusionVocabulary.parse('مبكلش لحمة');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'meat');
+    });
+
+    test('مباكلش is the same word, and Egyptians type both', () {
+      final outcome = ExclusionVocabulary.parse('مباكلش لحمة');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'meat');
+    });
+  });
 }

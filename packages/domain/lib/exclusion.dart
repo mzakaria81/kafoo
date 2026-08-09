@@ -130,6 +130,25 @@ abstract final class ExclusionVocabulary {
     'من غير',
     'بدون',
     'بلاش',
+    // "I DON'T EAT" IS A NEGATION, AND IT WAS RETURNING NOTHING AT ALL.
+    //
+    // Added 2026-08-10 on the founder's call. Measured before it went in:
+    // `مبكلش لحمة` produced [NoExclusion] — not not-understood, NOTHING. No
+    // marker in the list matched, so the phrase read as an ordinary request and
+    // the meat came back with the screen saying nothing was dropped.
+    //
+    // That is the same failure as `عندي حساسية من` on 2026-08-07, for the same
+    // structural reason: the marker list is a closed set, and a way of saying
+    // "without" that nobody wrote down is silent rather than loud. Habitual
+    // negation — "I don't eat X" — is how a preference gets stated when it is
+    // long-standing, which is exactly when it is religious or medical.
+    //
+    // Longer first: `مباكلش` does not contain `مبكلش` (the ا sits between the
+    // ب and the ك and folding does not remove it), so order is not load-bearing
+    // between these two. Written longest-first anyway, because the next word
+    // added here may not be so lucky.
+    'مباكلش',
+    'مبكلش',
   ];
 
   /// Words that can sit between the marker and the food without being part of
@@ -192,6 +211,22 @@ abstract final class ExclusionVocabulary {
         'سمك', 'أسماك',
         // Named fish. Excluding سمك and being served رنجة is the failure.
         'سلمون', 'رنجة', 'فسيخ', 'بلطي', 'بوري', 'سردين',
+        // `تونة` SITS INSIDE `زيتونة`, AND IT GOES IN ANYWAY.
+        //
+        // Founder's call, 2026-08-10. Tuna is the fish most likely to reach a
+        // Customer without the word `سمك` anywhere near it — it arrives in a
+        // sandwich, a salad or a filling, and somebody avoiding fish for an
+        // allergy is exactly who meets it that way.
+        //
+        // The cost is olives: a Cook writing `زيتونة` loses that Meal to a fish
+        // exclusion, because the predicate matches at a word start and `زيتونة`
+        // does not begin with `تونة` — but `الزيتونة` article-stripped does not
+        // help it either, so the collision is real and measured rather than
+        // theoretical. Over-exclusion is the direction this feature is allowed
+        // to be wrong in: an olive nobody wanted removed is an annoyance, and a
+        // tuna sandwich served to a fish allergy is the thing SC-005 forbids.
+        // The size of it is pinned in exclusion_over_exclusion_test.dart.
+        'تونة',
       },
     ),
     // Crustaceans and molluscs are distinct allergies and are grouped here.
@@ -213,7 +248,17 @@ abstract final class ExclusionVocabulary {
     ),
     // `بيض` alone: `بيضة` and `بيضه` both contain it, so naming them added
     // nothing even before folding.
-    Exclusion(id: 'egg', surfaceForms: {'بيض'}),
+    // `مايونيز` IS HERE, AND IT EXCLUDES EVERY EGG RATHER THAN JUST THE SAUCE.
+    //
+    // Founder's call, 2026-08-10. One form set serves both directions — the
+    // same list reads what the Customer said and matches what the Cook wrote —
+    // so there is no way to say "lose the mayonnaise, keep the omelette". A
+    // Customer naming mayonnaise loses eggs entirely.
+    //
+    // Taken knowing that, because the reverse is worse by a wide margin:
+    // mayonnaise is egg that does not look like egg, and somebody avoiding eggs
+    // reads an ingredient list, sees no `بيض`, and eats it.
+    Exclusion(id: 'egg', surfaceForms: {'بيض', 'مايونيز'}),
     // Butter and ghee before cream: anyone avoiding dairy means سمنة and زبدة
     // long before they mean قشطة, and Egyptian cooking uses both constantly.
     // لبنة and لبن رايب need no entry — لبن reaches them as a substring.
@@ -245,6 +290,20 @@ abstract final class ExclusionVocabulary {
         'مكسرات', 'لوز', 'عين جمل', 'عين الجمل', 'بندق', 'فستق', 'كاجو',
         // In every stuffed dish, and absent from every list that forgets it.
         'صنوبر', 'بيكان',
+        // `جوز` IS MISSING ON PURPOSE. THIS IS A DECISION, NOT A GAP.
+        //
+        // Founder's call, 2026-08-10, on localization-reviewer's unprompted
+        // recommendation. `جوز` on its own means a HUSBAND, and `جوز حمام` is a
+        // PAIR of pigeons — so adding it would tell a Customer avoiding nuts
+        // that a pigeon Meal contains walnuts. An exclusion pointing at the
+        // wrong food is worse than one that misses, which is the same reasoning
+        // that keeps `طحين` out of `sesame` a few lines below.
+        //
+        // Walnut is not lost: `عين جمل` and `عين الجمل` are what an Egyptian
+        // ingredient list actually carries, and both are above.
+        //
+        // Written down here AND pinned by a test, because the next author will
+        // otherwise read the absence as an oversight and close it.
       },
     ),
     // طحين is deliberately NOT here. In Modern Standard Arabic and the Levant it
