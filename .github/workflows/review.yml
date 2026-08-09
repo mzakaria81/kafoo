@@ -342,18 +342,32 @@ jobs:
             echo "No review comment found on PR #$PR." >&2
             exit 1
           fi
-          # SCOPED TO THE PROGRESS CHECKLIST, not to every checkbox in the comment.
+          # SCOPED BY POSITION, NOT BY WORDING.
+          #
           # A bare `- [ ]` match reads the reviewers' own findings too, and
           # release-engineer's brief carries a pre-submission checklist it quotes back
-          # — so a completed review would have failed this step for containing the
-          # word it was asked to report on. False alarms are what taught everyone to
-          # ignore the last automation; a guard against silent failure is not worth
-          # having if it invents loud ones.
+          # — so a completed review would have failed for containing the thing it was
+          # asked to report on. False alarms are what teach people to ignore an
+          # automation; a guard against silent failure is worth nothing if it invents
+          # loud ones.
           #
-          # Matched instead: an unticked box whose text is one of track_progress's own
-          # steps, at the start of a line so a quoted or nested checklist elsewhere in
-          # the body does not count.
-          if printf '%s' "$BODY" | grep -qE '^- \[ \] (Read the diff|Determine reviewer|Dispatch|Consolidat)'; then
+          # The first fix matched four literal English phrases from the checklist.
+          # That worked and was still wrong: the wording belongs to
+          # anthropics/claude-code-action, not to this repository, so a future version
+          # saying "Read pull request diff" would defeat the check silently — the
+          # original bug wearing new words. release-engineer said so on the run after.
+          #
+          # So use structure the prompt above actually controls: the progress checklist
+          # always precedes the per-reviewer sections, and this workflow decides what
+          # those reviewers are called. Cut at the first `### <reviewer>` heading and
+          # look for an unticked box only above it. No dependence on how the action
+          # phrases a step. If no reviewer heading exists at all the whole body is
+          # checked, which is right — a review with no reviewer sections did not
+          # follow the format either way.
+          REVIEWERS="${{ steps.select.outputs.reviewers }}"
+          if printf '%s' "$BODY" | REVIEWERS="$REVIEWERS" python3 -c "import sys,os;b=sys.stdin.read();rs=[r.strip() for r in os.environ.get('REVIEWERS','').split(',') if r.strip()];pos=[p for p in (b.find('### '+r) for r in rs) if p>=0];head=b[:min(pos)] if pos else b;sys.exit(1 if any(l.startswith('- [ ]') for l in head.splitlines()) else 0)"; then
+            :
+          else
             {
               echo "### Review incomplete — the agent stopped before writing its findings"
               echo ""

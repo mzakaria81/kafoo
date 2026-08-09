@@ -174,8 +174,22 @@ jobs:
       #
       # Same secrets as the build step deliberately: one definition of which
       # Supabase project this surface talks to.
+      # `main` ONLY, AND THIS IS THE STEP THAT PUBLISHES TO REAL CUSTOMERS.
+      #
+      # It used to be safe by accident. The workflow's only trigger was
+      # `push: branches: [main]`, so this job could not run against anything else and
+      # nobody had to say so. Adding `workflow_dispatch` for the mobile candidates
+      # removed that accident from EVERY job in the file, including this one, which
+      # the change never touched — anyone with write access could dispatch from a
+      # branch and this step would publish that branch straight to the live Customer
+      # site. Worse than the mobile case it was written to guard: a leaked bundle
+      # still needs a human to submit it, this needs nobody.
+      #
+      # The build above deliberately still runs on a branch dispatch. Building and
+      # checking the bundle for a service-role key is useful; publishing it is not.
+      # Caught by release-engineer on the run after the trigger was added.
       - name: deploy
-        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != '' && github.ref == 'refs/heads/main'
         id: deploy
         working-directory: apps/web
         env:
@@ -220,6 +234,24 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: echo "::warning::CLOUDFLARE_API_TOKEN is unset — the surface was built and verified but NOT published."
+
+      # The other reason a run can build the site and not publish it. Said out loud
+      # for the same reason the mobile jobs say theirs: an absence with no
+      # explanation reads as a failure nobody noticed.
+      - name: say when the deploy was withheld from a branch
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != '' && github.ref != 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          {
+            echo "### Customer surface: built, not published"
+            echo ""
+            echo "This run is on \`${{ github.ref_name }}\`, not \`main\`. The site was"
+            echo "built and checked for a service-role key, which is the useful half"
+            echo "of running this on a branch — publishing it is not, because this"
+            echo "step deploys to the live Customer site."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::Built on ${{ github.ref_name }} — NOT published. Only main publishes."
 
   # macOS runners cost roughly ten times an Ubuntu minute, so the iOS job must
   # not start at all without signing material. `secrets` is not available in a
