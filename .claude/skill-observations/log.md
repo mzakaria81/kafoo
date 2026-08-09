@@ -1828,3 +1828,37 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a hierarchy has three levels, state which level each parent's indicator counts, and close intermediate nodes from the source's own completion field rather than inferring completion from the children. Inferring it would silently overrule whoever owns that field. Verify the top-level indicator explicitly after any bulk close — a parent reading 0% while all its grandchildren are closed is the signature of this mistake.
 
 **Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.
+
+---
+
+### Observation 125: An absent secret is indistinguishable from a present one, all the way down the pipeline
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** A deployed web surface returned 500 on every page that reads data, for two days, behind fifteen consecutive green deploy runs.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Deployment configuration and its failure signals
+
+**Issue:** One of two required secrets had never been set. In a shell, an unset CI secret expands to an empty string rather than erroring, so the deploy command bound an empty variable; the deploy tool then listed it in its binding table identically to a healthy one, with the value redacted. The application's own configuration check rejected the empty string exactly as it rejects an undefined one, producing a generic server error with no message. Every layer reported success: the build, the deploy, the binding table, and the workflow's exit status. The single page that did not read configuration kept working, which made the surface look partly alive rather than misconfigured. Diagnosis took an hour and ended by asking a human to open a settings page — the one check no automation in the pipeline could perform.
+
+**Suggested improvement:** For every externally-supplied value a deployment requires, assert non-emptiness explicitly and fail naming the specific variable, before the step that publishes. Treat "the tool listed the binding" as evidence the binding exists, never as evidence it has content — redaction makes those indistinguishable by design. And where a wrong-but-present value fails the same way as an absent one, echo a deliberately truncated form of it, because otherwise a misdirected deployment is invisible until something renders.
+
+**Principle:** Empty-string coercion turns a missing input into a valid-looking one at the first boundary it crosses, and every boundary after that faithfully propagates the disguise. A pipeline can only report the difference if some step is written to ask specifically whether the value has content.
+
+---
+
+### Observation 126: The first cause found is reported as the cause, and the fix that follows is announced as a fix
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Diagnosing a production outage with two independent causes, either of which alone was sufficient to keep the system down.
+**Skill:** systematic-debugging
+**Type:** open-source
+**Phase/Area:** Diagnosis, and how a partial diagnosis is communicated
+
+**Issue:** Investigation found a genuine defect in how configuration reached the runtime, and it was real — the fix for it was necessary and correct. It was reported to the user as *the* cause, a fix was written, reviewed, merged and deployed, and the system was still broken, because a second independent cause was also present. The failure was not the missing diagnosis; it was stating a sufficient-sounding explanation as a complete one without having checked whether anything else could produce the same symptom. The tell was available and ignored: the symptom pre-dated the code that supposedly caused it. Compounding it, the outcome was reported before the deployment had finished propagating, so a transient state was described as final — twice in the same session.
+
+**Suggested improvement:** When a plausible cause is found for an outage, before reporting it, ask two questions explicitly. *Does the timeline fit?* — a symptom older than the suspected cause means there is at least one more. *Is this sufficient or merely necessary?* — and say which, in those words, when reporting. Reserve "this was the cause" for a diagnosis that has been shown to reproduce the failure and whose removal has been shown to end it. Until then it is "one cause, and I have not ruled out others". Never report an outcome from a state still in flight; ask the deployed system directly, more than once, spaced.
+
+**Principle:** A sufficient-sounding explanation is the strongest incentive to stop looking, and it arrives with all the emotional weight of a solved problem. Multi-cause failures are indistinguishable from single-cause ones from inside the first fix — the only defence is to check the timeline against the suspect and to name explicitly whether the cause found is sufficient or only necessary.
