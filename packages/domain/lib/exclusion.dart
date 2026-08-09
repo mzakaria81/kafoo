@@ -143,10 +143,28 @@ abstract final class ExclusionVocabulary {
     // negation — "I don't eat X" — is how a preference gets stated when it is
     // long-standing, which is exactly when it is religious or medical.
     //
-    // Longer first: `مباكلش` does not contain `مبكلش` (the ا sits between the
-    // ب and the ك and folding does not remove it), so order is not load-bearing
-    // between these two. Written longest-first anyway, because the next word
-    // added here may not be so lucky.
+    // Longer first WITHIN this pair: `مباكلش` does not contain `مبكلش` (the ا
+    // sits between the ب and the ك and folding does not remove it), so order is
+    // not load-bearing between these two. Written longest-first anyway, because
+    // the next word added here may not be so lucky.
+    //
+    // **THE LIST AS A WHOLE IS NO LONGER LONGEST-FIRST, AND THE RULE THAT
+    // MATTERS IS CONTAINMENT, NOT LENGTH.** These two are six and five
+    // characters and sit below `بدون` and `بلاش` at four. That is safe here
+    // because no marker in this list contains either of them — but the header
+    // comment above still says "longest first", which was true when it was
+    // written and is now only true within each family. What must never break is
+    // that a marker containing another sits ABOVE the one it contains, which is
+    // why `من غير ما يكون فيه` precedes `من غير`.
+    //
+    // Position in this list is not merely cosmetic: `parse` picks the marker by
+    // LIST INDEX rather than by where it appears in the sentence, so a marker
+    // lower down loses a compound sentence to one above it. Measured 2026-08-10:
+    // `مبكلش لحمة وبدون بصل` answers `onion`, honouring the taste preference
+    // stated second over the habitual negation stated first. That behaviour
+    // predates these two entries — `بدون بصل ومن غير لحمة` answers `meat` on the
+    // old markers alone — so it is recorded here rather than fixed under a
+    // vocabulary change, and it is the founder's call.
     'مباكلش',
     'مبكلش',
   ];
@@ -218,11 +236,16 @@ abstract final class ExclusionVocabulary {
         // sandwich, a salad or a filling, and somebody avoiding fish for an
         // allergy is exactly who meets it that way.
         //
-        // The cost is olives: a Cook writing `زيتونة` loses that Meal to a fish
-        // exclusion, because the predicate matches at a word start and `زيتونة`
-        // does not begin with `تونة` — but `الزيتونة` article-stripped does not
-        // help it either, so the collision is real and measured rather than
-        // theoretical. Over-exclusion is the direction this feature is allowed
+        // The cost is ONE olive form, and the mechanism is the Cook side rather
+        // than the Customer side. `search_meals` matches
+        // `fold_arabic(item) ILIKE '%' || fold_arabic(term) || '%'` — ANYWHERE
+        // in the string, not at a word start — so a Cook who wrote `زيتونة`
+        // loses that Meal to a fish exclusion. Measured 2026-08-10: `زيتون`,
+        // `زيت زيتون` and `زيتون أسود` are all untouched, so the mass noun an
+        // ingredient list normally carries does not collide. Only the feminine
+        // singular does. The Customer side is unaffected — `من غير زيتونة`
+        // correctly returns not-understood and never answers `fish`.
+        // Over-exclusion is the direction this feature is allowed
         // to be wrong in: an olive nobody wanted removed is an annoyance, and a
         // tuna sandwich served to a fish allergy is the thing SC-005 forbids.
         // The size of it is pinned in exclusion_over_exclusion_test.dart.
@@ -299,8 +322,22 @@ abstract final class ExclusionVocabulary {
         // wrong food is worse than one that misses, which is the same reasoning
         // that keeps `طحين` out of `sesame` a few lines below.
         //
-        // Walnut is not lost: `عين جمل` and `عين الجمل` are what an Egyptian
-        // ingredient list actually carries, and both are above.
+        // WALNUT IS REACHABLE ON THE CUSTOMER'S SIDE AND NOT ON THE COOK'S, and
+        // an earlier draft of this comment said only the first half. `عين جمل`
+        // and `عين الجمل` are what an Egyptian ingredient list usually carries
+        // and both are above, so a Cook who writes either is correctly withheld.
+        // But ONE FORM SET SERVES BOTH DIRECTIONS, so leaving `جوز` out to
+        // protect the Customer side leaves the Cook side open: measured
+        // 2026-08-10, a Cook writing `جوز` or `جوز مطحون` is reached by NOTHING,
+        // and a Customer who said `عندي حساسية من المكسرات` is shown that Meal.
+        // Silent under-exclusion on a nut allergy — the direction SC-005 forbids.
+        //
+        // That gap cannot be closed by editing this list. It needs the Customer
+        // and Cook form sets split, or the extraction prompt pinned to emit
+        // `عين جمل` for walnut. Both are open decisions recorded in WP-017 and
+        // neither is taken here. `meals.ingredients` is AI-extracted and models
+        // drift to Modern Standard Arabic, where walnut IS `جوز` — so this is a
+        // live risk, not a hypothetical one.
         //
         // Written down here AND pinned by a test, because the next author will
         // otherwise read the absence as an oversight and close it.

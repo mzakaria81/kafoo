@@ -395,7 +395,7 @@ void main() {
       // `جوز` on its own means a HUSBAND, and `جوز حمام` is a PAIR of pigeons.
       // Adding it would label a pigeon Meal as containing walnuts, and an
       // exclusion pointing at the wrong food is worse than one that misses —
-      // the same reasoning that keeps `طحين` out of `sesame` twelve lines above.
+      // the same reasoning that keeps `طحين` out of `sesame` in exclusion.dart.
       //
       // Walnut itself is still reachable: `عين جمل` and `عين الجمل` are both
       // listed under `nuts`, which is what an Egyptian ingredient list carries.

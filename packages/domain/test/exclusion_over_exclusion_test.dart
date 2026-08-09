@@ -237,10 +237,17 @@ const List<String> _cookText = [
 /// the pigeon Meals it would have hit are absent from this list by decision
 /// rather than by luck.
 ///
-/// The olives are the price of a tuna sandwich never reaching a fish allergy.
-/// Anyone proposing to buy them back should read the left-boundary measurement
-/// above first: it does not fix this one either, because `زيتونة` begins with
-/// `ز` and the collision is interior, exactly like `أبيض`.
+/// The olive is the price of a tuna sandwich never reaching a fish allergy, and
+/// it is ONE form: measured 2026-08-10, `زيتون`, `زيت زيتون` and `زيتون أسود`
+/// are all untouched. Only the feminine singular `زيتونة` collides.
+///
+/// **A left-hand boundary WOULD recover it**, and an earlier draft of this note
+/// claimed the opposite by mixing it up with `بيضاء`. `تونة` sits interior to
+/// `زيتونة`, which is exactly the shape a left boundary removes — the same shape
+/// as `أبيض`, listed above as one of the seven it fixes. The case a left
+/// boundary genuinely cannot fix is the feminine adjective `بيضاء`, because
+/// `بيضاء` BEGINS with `بيض`. The reason the boundary is still rejected is the
+/// closed clitic list in the section above, not this collision.
 const Set<String> _knownOverExclusion = {
   'dairy: لبن in ملبن',
   'egg: بيض in فلفل أبيض',
