@@ -1426,7 +1426,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchExclusionNotUnderstood =>
-      'فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.';
+      'فهمنا إن في حاجة المفروض تتشال من الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. نجرب اسم الأكلة لوحده.';
 
   @override
   String searchFilteredOn(String food) {

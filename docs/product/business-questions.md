@@ -225,9 +225,24 @@ to matter.
 
 ### Who is this individual Customer and what do they like?
 
-Never. Events do not rank, target or personalise anything anybody sees — Privacy rule 4 — and
-discovery deliberately works without an account, so there is usually no person to attach anything to.
-This is not a gap.
+Never, and **it is enforced rather than incidental** — `emit_event.dart` writes `person_id: null` for
+`SearchPerformed`, `SearchFailed`, `RecommendationAccepted` and `MealOpened`, whoever is signed in.
+Events do not rank, target or personalise anything anybody sees (Privacy rule 4).
+
+**This paragraph said "there is *usually* no person to attach anything to" until 2026-08-09, and the
+word "usually" was the whole defect.** It was true of the web surface, which holds no session, and
+false of the app, which is the binary that ships and stamps every event with the signed-in id. So
+the day the discovery events gained `top_cuisine`, `top_category` and `MealOpened`, this document
+promised something the app had stopped doing — an ordered per-person record of what a Customer looks
+for and what they open. Found by trust-reviewer, one day later.
+
+Not one question in the Demand table needs the join. Every one of them is aggregate. The Cook's
+events stay attributed, deliberately: "do Cooks who publish once publish again?" cannot be answered
+without it.
+
+A hedge in a privacy promise is where the promise fails. If a sentence here needs "usually",
+"generally" or "in most cases" to stay true, it is describing two behaviours and only one of them
+has been checked.
 
 ---
 

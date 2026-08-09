@@ -1280,7 +1280,7 @@
   "@searchFoundNothing": {
     "description": "FR-012: the fallback when nothing matched is browse. Says what happened and hands over to what is on offer underneath. 'بالوصف ده' was a calque of 'matching that description'. First-person plural, ungendered per ADR-0010."
   },
-  "searchExclusionNotUnderstood": "فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.",
+  "searchExclusionNotUnderstood": "فهمنا إن في حاجة المفروض تتشال من الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. نجرب اسم الأكلة لوحده.",
   "@searchExclusionNotUnderstood": {
     "description": "THE SENTENCE THE WHOLE EXCLUSION DESIGN EXISTS FOR. A negation Kafoo recognised without recognising the food must reach the Customer as words: without this the results look exactly like results for a request with no exclusion in it, and the Customer is served the thing they asked to avoid. Never says a Meal is safe. IT DOES NOT QUOTE THE WORD BACK, and that is a trade taken deliberately on 2026-08-07: the value `discover` carried was not a word but the whole remainder of the sentence after the negation marker, which crossed the network and landed in error bodies for a screen that only read whether it was set. Trust outranks actionability in the priority order, so the sentence earns its actionability from the closing clause instead. Ungendered per ADR-0010."
   },
