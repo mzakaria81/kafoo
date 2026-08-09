@@ -610,3 +610,122 @@ test('the key is the one the browser already holds', () => {
   // already answered.
   assert.equal(CONSENT_KEY, 'kafoo.search_consent');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The accessibility and RTL fixes, asserted on the source.
+//
+// These are markup and CSS properties, not behaviour, so a source assertion is
+// the honest tool — the same one `preview_test.ts` uses for the preview cap.
+// It is NOT as good as rendering: every defect below was found by building the
+// real component and measuring it in a browser, which nothing in this repository
+// can currently do. A DOM harness is the real fix and is not in this change.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Comments stripped, for the same reason `preview_test.ts` strips them: a
+ *  comment naming what it enforces is exactly what should be kept, and it must
+ *  not be counted as markup. Counting `role="alert"` without this found three
+ *  occurrences for two elements. */
+const withoutComments = (src: string) =>
+  src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '');
+
+const panel = withoutComments(readFileSync('app/search-panel.tsx', 'utf8'));
+const css = readFileSync('app/globals.css', 'utf8');
+
+test('the status region exists before its text, and there is exactly one', () => {
+  // A live region inserted in the same mutation as its content is not reliably
+  // announced — VoiceOver and JAWS frequently miss it. All three original
+  // regions were created already populated, and six of nine sentences had no
+  // region at all.
+  const polite = panel.match(/aria-live="polite"/g) ?? [];
+  assert.equal(polite.length, 1, `expected one polite live region, found ${polite.length}`);
+  assert.match(panel, /role="status" aria-live="polite">\s*\n\s*\{statusLine\(/,
+    'the status region must be rendered unconditionally with its text as a child');
+});
+
+test('every search outcome has something to announce', () => {
+  const body = panel.slice(panel.indexOf('function statusLine'));
+  for (const key of [
+    'searchIsOff', 'searchRunning', 'searchUnavailable',
+    'searchAreaEmpty', 'searchFoundNothing', 'searchResultCount',
+  ]) {
+    assert.ok(body.includes(key), `statusLine says nothing for ${key}`);
+  }
+});
+
+test('the exclusion sentence interrupts rather than waits', () => {
+  // The allergy-adjacent one: Kafoo could not identify what to leave out, so a
+  // list that honoured nothing sounds exactly like a list that honoured it.
+  const alerts = panel.match(/role="alert"/g) ?? [];
+  assert.equal(alerts.length, 2, 'both branches that render it need role="alert"');
+  for (const match of panel.matchAll(/role="alert">\s*\n\s*\{([\w.]+)\}/g)) {
+    assert.equal(match[1], 't.searchExclusionNotUnderstood');
+  }
+});
+
+test('the search row cannot push its button off the screen', () => {
+  // Measured at 200% text on a 412px viewport: left:-77 right:-29, entirely
+  // outside the viewport. `min-inline-size` defaults to `auto` on a flex item,
+  // which for an <input> is its intrinsic 20-character width.
+  const rule = css.slice(css.indexOf('.search input {'), css.indexOf('.search button'));
+  assert.ok(rule.includes('min-inline-size: 0'), '.search input needs min-inline-size: 0');
+  assert.match(css, /\.search-row \{[^}]*flex-wrap: wrap/, '.search-row needs to wrap at 320px');
+});
+
+test('every tap target reaches the token', () => {
+  for (const selector of ['.bar a {', '.switch {', '.search input {', '.choice {']) {
+    const rule = css.slice(css.indexOf(selector));
+    const block = rule.slice(0, rule.indexOf('}'));
+    assert.ok(
+      block.includes('--kafoo-tap-target'),
+      `${selector} does not reach the 48px tap target`,
+    );
+  }
+  // The checkbox must not shrink as the Customer scales text UP.
+  assert.match(css, /\.switch input \{[^}]*flex: none/);
+});
+
+test('a control boundary is visible, not a hairline', () => {
+  // WCAG 1.4.11 wants 3:1 for the visual boundary of a control. The literal it
+  // replaced measured 2.10:1 and was the only thing marking the search box.
+  assert.ok(!css.includes('rgba(0, 0, 0, 0.3)'), 'the 2.10:1 border is back');
+  assert.match(css, /--kafoo-border:/);
+  assert.match(css, /\.search input \{[^}]*border: 1px solid var\(--kafoo-border\)/);
+});
+
+test('focus is moved rather than destroyed', () => {
+  // Measured `activeElement === BODY` at both consent transitions: the form
+  // holding the focused button unmounts and the Customer lands at the top of
+  // the document.
+  assert.match(panel, /consentRef\.current\?\.focus\(\)|innerRef\.current\?\.focus\(\)/);
+  assert.match(panel, /resultsRef\.current\?\.focus\(\)/);
+  assert.match(css, /:focus-visible \{/, 'a moved focus must be visible to a sighted user');
+});
+
+test("every element holding a Cook's own words carries dir=auto", () => {
+  // The page is dir="rtl", so a Latin-script title inherits an RTL paragraph
+  // direction and its trailing punctuation is thrown to the far left.
+  for (const [file, fields] of [
+    ['app/meal-card.tsx', ['item.meal.title']],
+    ['app/m/[id]/page.tsx', ['item.meal.title', 'item.meal.description']],
+    ['app/k/[id]/page.tsx', ['kitchen.display_name', 'kitchen.story', 'kitchen.area', 'kitchen.delivery_terms', 'meal.title']],
+  ] as const) {
+    const source = readFileSync(file, 'utf8');
+    for (const field of fields) {
+      const rendered = new RegExp(`dir="auto"[^>]*>\\{${field.replace(/\./g, '\\.')}\\}`);
+      assert.match(source, rendered, `${file}: {${field}} renders without dir="auto"`);
+    }
+  }
+  // The kitchen name sits at the END of an Arabic sentence, so it is isolated
+  // rather than given a paragraph direction.
+  assert.match(readFileSync('app/meal-card.tsx', 'utf8'), /kitchen: `⁨\$\{item\.kitchen\.display_name\}⁩`/);
+});
+
+test('the Settings control explains itself', () => {
+  const settings = readFileSync('app/settings/page.tsx', 'utf8');
+  assert.match(settings, /aria-describedby=/, 'the toggle must point at its explanation');
+  assert.ok(settings.includes('id="explanation"') && settings.includes('id="storage"'));
+  assert.match(settings, /role="status"/, 'a disabled control must say why it is disabled');
+});

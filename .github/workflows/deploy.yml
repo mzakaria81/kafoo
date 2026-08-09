@@ -123,13 +123,55 @@ jobs:
 
       # Deploy only when Cloudflare credentials exist, and say so out loud when they do not.
       # A skipped deploy that looks like a successful one is what this whole comment block is about.
+      # `--var` sets the Worker's RUNTIME environment, which is a different thing
+      # from the build environment above and is why every content page returned
+      # 500 from 2026-08-07 to 2026-08-09. Each page is `force-dynamic` and reads
+      # `process.env` when the request arrives; on a Worker that comes from the
+      # Worker's vars, and there were none. The build had the values and the
+      # running code never saw them.
+      #
+      # Same secrets as the build step deliberately: one definition of which
+      # Supabase project this surface talks to.
       - name: deploy
         if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        id: deploy
         working-directory: apps/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx opennextjs-cloudflare deploy
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -o pipefail
+          npx opennextjs-cloudflare deploy -- \
+            --var "SUPABASE_URL:${SUPABASE_URL}" \
+            --var "SUPABASE_PUBLISHABLE_KEY:${SUPABASE_PUBLISHABLE_KEY}" \
+            | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "deployed to ${url}"
+
+      # ASK THE PUBLISHED SITE WHETHER IT WORKS, because "the deploy succeeded"
+      # and "the site renders" turned out to be different facts for two days and
+      # fifteen green runs. `/` is the browse page: it reads Supabase, so it is
+      # the page that fails when the runtime environment is wrong, and a 200 from
+      # it is the shortest honest proof that this deploy is serving food.
+      #
+      # Fails the job rather than warning. A deploy that published a broken site
+      # is not a successful deploy, and reporting it as one is the whole defect
+      # this step exists to end.
+      - name: smoke check the published site
+        if: steps.deploy.outputs.url != ''
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${url}/" || echo 000)
+            [ "${code}" = "200" ] && { echo "${url}/ → 200"; exit 0; }
+            echo "attempt ${attempt}: ${url}/ → ${code}"
+            sleep 6
+          done
+          echo "::error::${url}/ returned ${code}. The Worker published but the site does not render."
+          exit 1
 
       - name: say when the deploy was skipped
         if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN == ''

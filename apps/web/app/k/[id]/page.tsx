@@ -55,13 +55,14 @@ export default async function KitchenPage({ params }: Params) {
           area, delivery terms, photo. No rating, no review count, no order
           count, no Meal count — none of those exist, and a placeholder for one
           is a fabricated measurement rather than an empty field (FR-027c). */}
-      <h1>{kitchen.display_name}</h1>
-      <p>{kitchen.story}</p>
+      {/* Cook-authored — see the note in app/meal-card.tsx. */}
+      <h1 dir="auto">{kitchen.display_name}</h1>
+      <p dir="auto">{kitchen.story}</p>
       <p>
-        {t.kitchenArea}: {kitchen.area}
+        {t.kitchenArea}: <span dir="auto">{kitchen.area}</span>
       </p>
       <p>
-        {t.kitchenDeliveryTerms}: {kitchen.delivery_terms}
+        {t.kitchenDeliveryTerms}: <span dir="auto">{kitchen.delivery_terms}</span>
       </p>
 
       <h2>{t.kitchenMealsTitle}</h2>
@@ -71,7 +72,7 @@ export default async function KitchenPage({ params }: Params) {
           <Link key={meal.id} href={`/m/${meal.id}`} className="card">
             {photo ? <img src={photo} alt="" /> : null}
             <div>
-              <h2>{meal.title}</h2>
+              <h2 dir="auto">{meal.title}</h2>
               <p className="price">{priceLabel(meal.price)}</p>
             </div>
           </Link>

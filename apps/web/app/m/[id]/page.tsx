@@ -48,12 +48,15 @@ export default async function MealPage({ params }: Params) {
   return (
     <main>
       {src ? <img src={src} alt="" style={{ maxInlineSize: '100%' }} /> : null}
-      <h1>{item.meal.title}</h1>
+      {/* Cook-authored — see the note in app/meal-card.tsx. */}
+      <h1 dir="auto">{item.meal.title}</h1>
       <p className="price">{priceLabel(item.meal.price)}</p>
-      <p>{item.meal.description}</p>
+      <p dir="auto">{item.meal.description}</p>
       <p>
         <Link href={`/k/${item.kitchen.id}`}>
-          {fill(t.browseKitchenLabel, { kitchen: item.kitchen.display_name })}
+          {fill(t.browseKitchenLabel, {
+            kitchen: `⁨${item.kitchen.display_name}⁩`,
+          })}
         </Link>
       </p>
     </main>

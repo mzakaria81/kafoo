@@ -6,6 +6,12 @@
   --kafoo-surface: #fffbf7;
   --kafoo-on-surface: #1c1917;
   --kafoo-danger: #b91c1c;
+  /* The visible boundary of a control needs 3:1 against its background — WCAG
+     1.4.11. rgba(0,0,0,0.3) measured 2.10:1, which is the only thing marking
+     where the search box is, on a phone in sunlight. This measures 4.0:1.
+     A token rather than a literal so the app can adopt the same value; there is
+     no border colour in packages/ui/lib/theme/tokens.dart yet either. */
+  --kafoo-border: rgba(0, 0, 0, 0.55);
   --kafoo-space-xs: 4px;
   --kafoo-space-sm: 8px;
   --kafoo-space-md: 16px;
@@ -53,20 +59,39 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
   max-width: 720px;
   margin: 0 auto;
   padding: var(--kafoo-space-md) var(--kafoo-space-md) 0;
+  align-items: center;
 }
-.bar a { color: inherit; }
+/* 48px, like every other target. These were the text box itself — 24 x 26 for
+   the home link — and Settings is the ONLY route to changing the search consent
+   answer, which FR-029c requires to be reachable. */
+.bar a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--kafoo-tap-target);
+  color: inherit;
+}
 
 .search { margin-block-end: var(--kafoo-space-md); }
 .search label { display: block; margin-block-end: var(--kafoo-space-xs); }
-.search-row { display: flex; gap: var(--kafoo-space-sm); }
+/* `wrap` is what saves 320px: the button drops to its own line rather than off
+   the edge. See the note on `.search input`. */
+.search-row { display: flex; flex-wrap: wrap; gap: var(--kafoo-space-sm); }
 .search input {
   flex: 1;
+  /* MIN-INLINE-SIZE: 0 IS LOAD-BEARING AND ITS ABSENCE PUT THE SEARCH BUTTON
+     OFF THE SCREEN. A flex item's `min-inline-size` defaults to `auto`, which
+     for an <input> resolves to its intrinsic `size=20` width — 417px at 32px
+     root text. Measured at 200% text on a 412px viewport: the button's box was
+     left:-77 right:-29, entirely outside the viewport, reachable only by
+     horizontally scrolling a right-to-left page. 200% text is a setting older
+     Customers turn on, which is much of who this is for. WCAG 1.4.10. */
+  min-inline-size: 0;
   min-block-size: var(--kafoo-tap-target);
   padding: 0 var(--kafoo-space-sm);
   font: inherit;
   color: inherit;
   background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--kafoo-border);
   border-radius: var(--kafoo-space-sm);
 }
 .search button {
@@ -105,5 +130,12 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
 
 .consent, .empty-area { padding: var(--kafoo-space-md) 0; }
 
-.switch { display: flex; align-items: center; gap: var(--kafoo-space-sm); }
-.switch input { inline-size: 24px; block-size: 24px; }
+/* The one control on Settings. It was a 30px-tall target, and the checkbox glyph
+   SHRANK as the Customer scaled text up — `.switch` is a flex container and the
+   input inherited `flex-shrink: 1`. `flex: none` is what stops that. */
+.switch { display: flex; align-items: center; gap: var(--kafoo-space-sm); min-block-size: var(--kafoo-tap-target); }
+.switch input { flex: none; inline-size: 24px; block-size: 24px; }
+
+/* A programmatically focused element must be visible to a sighted keyboard user.
+   There was no focus style at all, so moving focus would have landed invisibly. */
+:focus-visible { outline: 2px solid var(--kafoo-primary); outline-offset: 2px; }

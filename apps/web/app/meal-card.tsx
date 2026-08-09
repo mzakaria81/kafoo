@@ -59,8 +59,24 @@ export function MealCard({
     <Link href={`/m/${item.meal.id}`} className="card" onClick={opened}>
       {src ? <img src={src} alt="" /> : null}
       <div>
-        <h2>{item.meal.title}</h2>
-        <p>{fill(t.browseKitchenLabel, { kitchen: item.kitchen.display_name })}</p>
+        {/* `dir="auto"` on everything a COOK wrote, and nothing else.
+            The page is `dir="rtl"`, so without this a Latin-script title gets an
+            RTL paragraph direction: `Mama's Kitchen (Maadi)` renders with its
+            closing parenthesis detached and thrown to the far left, and an
+            English description throws every sentence-final full stop the same
+            way. `auto` takes the direction from the first strong character,
+            which is the same rule the U+2068 isolates apply inline.
+            Kafoo's own copy stays undecorated — it is Arabic and the page
+            direction is already right for it. */}
+        <h2 dir="auto">{item.meal.title}</h2>
+        <p>
+          {/* The Cook's name sits at the END of an Arabic sentence, so it needs
+              isolating rather than a paragraph direction — the same fix, and the
+              same characters, as `namedAlternatives`. */}
+          {fill(t.browseKitchenLabel, {
+            kitchen: `⁨${item.kitchen.display_name}⁩`,
+          })}
+        </p>
         <p className="price">{priceLabel(item.meal.price)}</p>
       </div>
     </Link>

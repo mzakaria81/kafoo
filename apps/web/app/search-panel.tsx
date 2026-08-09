@@ -73,6 +73,11 @@ export function SearchPanel({
 
   const discovery = useRef<Discovery | null>(null);
 
+  /** Focus targets. Unmounting a focused element without moving focus loses the
+   *  Customer's place — measured three times in one interaction. */
+  const consentRef = useRef<HTMLElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     // `localStorage` does not exist while the page is server-rendered, so the
     // answer is read here rather than at module load. Until it arrives the input
@@ -85,6 +90,14 @@ export function SearchPanel({
       fetch: window.fetch.bind(window),
     });
   }, [backend]);
+
+  // When results replace the browse list, move focus to them. Answering the
+  // consent question unmounts the button that was focused, and without this the
+  // Customer lands at the top of the document while the results they asked for
+  // render silently below.
+  useEffect(() => {
+    if (outcome !== null && !searching) resultsRef.current?.focus();
+  }, [outcome, searching]);
 
   // SC-015: after ANY answer the question appears zero times. `asking` alone is
   // not enough — the note under the question tells the Customer they can change
@@ -216,11 +229,26 @@ export function SearchPanel({
         </form>
       ) : null}
 
-      {questionIsOwed ? <ConsentQuestion onAnswer={answer} /> : null}
+      {questionIsOwed ? (
+        <ConsentQuestion onAnswer={answer} innerRef={consentRef} />
+      ) : null}
 
-      {searchIsOff ? <p className="note">{t.searchIsOff}</p> : null}
-      {searching ? <p className="note">{t.searchRunning}</p> : null}
-      {failed ? <p className="note danger">{t.searchUnavailable}</p> : null}
+      {/* ONE STATUS REGION, ALWAYS IN THE DOM, TEXT SWAPPED IN AND OUT.
+          Both halves of that matter and both were wrong. It has to exist before
+          its text changes: a live region inserted in the same mutation as its
+          content is not reliably announced — Chromium with NVDA usually does,
+          VoiceOver and JAWS frequently do not — and all three regions here were
+          created already populated.
+          And it has to cover every outcome. Six of nine sentences had no live
+          region at all, so a Customer using a screen reader pressed Search after
+          a failure, an empty result or a refusal and heard nothing whatsoever.
+          The result count is here rather than only in the cards because when
+          results arrive the browse list is REMOVED from the page, and without a
+          number there is no way to tell the food under your cursor is the food
+          you asked for. */}
+      <div className="note" role="status" aria-live="polite">
+        {statusLine(t, { searchIsOff, searching, failed, outcome, judgement })}
+      </div>
 
       {/* FR-024 and FR-024a. An area with nothing in it is its own sentence, and
           widening it is the CUSTOMER'S action — so what is on offer elsewhere is
@@ -228,19 +256,20 @@ export function SearchPanel({
           showing their food is the whole distinction. */}
       {outcome && areaIsEmpty(outcome) ? (
         <EmptyArea
-          area={outcome.area!}
           areas={areas}
           browseFailed={browseFailed}
           browseIsEmpty={browseIsEmpty}
           onChoose={(area) => void submit(area)}
         />
       ) : (
+        <div ref={resultsRef} tabIndex={-1}>
         <Results
           outcome={outcome}
           judgement={judgement}
           backend={backend}
           onOpenAlternative={(rank) => discovery.current?.recommendationAccepted(rank)}
         />
+        </div>
       )}
 
       {/* Browse: the zero state and every fallback. Hidden only while results
@@ -249,6 +278,42 @@ export function SearchPanel({
       {showBrowse({ outcome, searching }) ? children : null}
     </>
   );
+}
+
+/**
+ * What the status region says, for every outcome, in one place.
+ *
+ * Returning `''` rather than rendering nothing is deliberate: the element stays
+ * in the DOM so a screen reader has already registered it as live before the
+ * text arrives.
+ */
+function statusLine(
+  t: ReturnType<typeof messages>,
+  state: {
+    searchIsOff: boolean;
+    searching: boolean;
+    failed: boolean;
+    outcome: SearchOutcome | null;
+    judgement: Judgement | null;
+  },
+): string {
+  if (state.searchIsOff) return t.searchIsOff;
+  if (state.searching) return t.searchRunning;
+  if (state.failed) return t.searchUnavailable;
+  const outcome = state.outcome;
+  if (outcome === null) return '';
+  if (areaIsEmpty(outcome)) return fill(t.searchAreaEmpty, { area: outcome.area! });
+  if (outcome.results.length === 0) return t.searchFoundNothing;
+  // The judgement arrives a round trip after the count, and replacing the count
+  // with it is the right announcement: "nothing here answers you" is what the
+  // Customer needs to hear about the list they are already looking at.
+  const judgement = state.judgement;
+  if (judgement !== null && judgement.answers === false) {
+    return judgement.alternatives.length === 0
+      ? t.searchJudgementNothingAnswers
+      : namedAlternatives(judgement.alternatives.map((meal) => meal.title));
+  }
+  return fill(t.searchResultCount, { count: String(outcome.results.length) });
 }
 
 function showBrowse({
@@ -279,10 +344,22 @@ function showBrowse({
  * FR-029a. Said before anything is sent, in plain terms, with refusing as an
  * answer of equal weight rather than a way out of a dialog.
  */
-function ConsentQuestion({ onAnswer }: { onAnswer: (given: SearchConsent) => void }) {
+function ConsentQuestion({
+  onAnswer,
+  innerRef,
+}: {
+  onAnswer: (given: SearchConsent) => void;
+  innerRef: React.RefObject<HTMLElement | null>;
+}) {
   const t = messages();
+  // A BLOCKING DECISION TAKES FOCUS; A LIVE REGION IS THE WRONG TOOL FOR IT.
+  // Pressing Search unmounts the form that held the focused button, so focus
+  // fell to the top of the document — measured `activeElement === BODY` — and
+  // the Customer had to Tab past the header to reach the question they had just
+  // triggered.
+  useEffect(() => innerRef.current?.focus(), [innerRef]);
   return (
-    <section className="consent" aria-live="polite">
+    <section className="consent" ref={innerRef} tabIndex={-1}>
       <p>{t.searchConsentQuestion}</p>
       {/* BOTH THE SAME BUTTON, AND THAT IS THE RULE RATHER THAN THE STYLE. The
           app shipped agreeing as a high-emphasis widget and refusing as a
@@ -314,15 +391,14 @@ function Results({
   const t = messages();
   if (outcome === null) return null;
 
+  // `searchFoundNothing` is not repeated here — the status region above says it,
+  // visibly and out loud. Printing it twice would show it twice.
   if (outcome.results.length === 0) {
-    return (
-      <>
-        <p className="note">{t.searchFoundNothing}</p>
-        {outcome.notUnderstood ? (
-          <p className="note danger">{t.searchExclusionNotUnderstood}</p>
-        ) : null}
-      </>
-    );
+    return outcome.notUnderstood ? (
+      <p className="note danger" role="alert">
+        {t.searchExclusionNotUnderstood}
+      </p>
+    ) : null;
   }
 
   const nothingAnswers = judgement !== null && judgement.answers === false;
@@ -345,8 +421,17 @@ function Results({
           nothing here is the failure the whole exclusion design exists to
           prevent: the results look exactly like results for a request with no
           exclusion in it. */}
+      {/* `role="alert"` and not the polite region above, deliberately: this one
+          should interrupt. It is the sentence saying Kafoo could not identify
+          what a Customer asked to leave out, and it rendered as a plain <p> — so
+          a Customer who asked for food without peanuts got a list that sounded
+          exactly like a list which had honoured the exclusion.
+          The red stays, and it is not the only carrier: the words say the whole
+          thing, so nothing here depends on seeing a colour. */}
       {outcome.notUnderstood ? (
-        <p className="note danger">{t.searchExclusionNotUnderstood}</p>
+        <p className="note danger" role="alert">
+          {t.searchExclusionNotUnderstood}
+        </p>
       ) : null}
 
       {outcome.area !== null ? (
@@ -365,13 +450,10 @@ function Results({
           the Meals that were actually on screen and drops anything else. The AI
           Assistant supplies no word of this sentence: the titles are the Cook's
           and the rest is Kafoo's own copy. */}
-      {nothingAnswers ? (
-        <p className="note" aria-live="polite">
-          {alternatives.length === 0
-            ? t.searchJudgementNothingAnswers
-            : namedAlternatives(alternatives.map((meal) => meal.title))}
-        </p>
-      ) : null}
+      {/* The sentence itself is in the status region above — one place, said
+          once. What stays here is the rule it enforces: the list below is
+          exactly what the database returned, in the order it returned it, and
+          the judgement may not reorder, filter, add to or remove a Meal. */}
 
       {outcome.results.map((item, index) => (
         <MealCard
@@ -404,13 +486,11 @@ function Results({
  * a radius.
  */
 function EmptyArea({
-  area,
   areas,
   browseFailed,
   browseIsEmpty,
   onChoose,
 }: {
-  area: string;
   areas: string[];
   browseFailed: boolean;
   browseIsEmpty: boolean;
@@ -435,8 +515,8 @@ function EmptyArea({
         : null;
 
   return (
-    <section className="empty-area" aria-live="polite">
-      <p>{fill(t.searchAreaEmpty, { area })}</p>
+    <section className="empty-area">
+      {/* `searchAreaEmpty` is in the status region above, said once. */}
       {insteadOfAreas !== null ? (
         <p>{insteadOfAreas}</p>
       ) : (

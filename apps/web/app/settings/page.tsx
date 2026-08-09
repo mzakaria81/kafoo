@@ -44,10 +44,32 @@ export default function SettingsPage() {
     <main>
       <h1>{t.settingsTitle}</h1>
 
+      {/* WHY THE CONTROL IS DISABLED, SAID OUT LOUD. A screen reader announced
+          "Search with the AI Assistant, checkbox, unavailable" and offered no
+          reason. The window is normally one frame — but Next server-renders this
+          client component, so the shipped HTML has it disabled, and on a slow
+          device or a failed hydration it stays that way. The Customer would be
+          looking at the one control that turns search back on, dead and
+          unexplained. */}
+      {consent === null ? (
+        <p className="fine" role="status" id="reading">
+          {t.settingsReadingAnswer}
+        </p>
+      ) : null}
+
       <p>
         <label className="switch">
           <input
             type="checkbox"
+            // The explanation IS the reason this control exists — turning it off
+            // stops search working. As an unassociated sibling paragraph, a
+            // screen reader user tabbing to the checkbox heard only its label
+            // and had to leave the control to find out what it does.
+            aria-describedby={
+              consent === null
+                ? 'reading explanation storage'
+                : 'explanation storage'
+            }
             // Unanswered reads as off, because nothing has been sent yet and
             // that is what the switch describes. Turning it on here IS an
             // answer — SC-015 then holds and the question never appears.
@@ -62,14 +84,14 @@ export default function SettingsPage() {
         </label>
       </p>
 
-      <p>{t.settingsSearchExplanation}</p>
+      <p id="explanation">{t.settingsSearchExplanation}</p>
 
       {/* Says where the answer is kept, because "we do not store this" is the
           part a Customer has no way to verify and every reason to want told.
           FR-029d. */}
-      <p className="fine">{t.settingsSearchStorageNote}</p>
+      <p className="fine" id="storage">{t.settingsSearchStorageNote}</p>
 
-      <p>
+      <p className="bar">
         <Link href="/">{t.settingsBack}</Link>
       </p>
     </main>

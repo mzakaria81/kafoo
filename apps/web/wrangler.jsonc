@@ -8,8 +8,34 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   }
-  // Secrets are NOT declared here. The publishable key is public by design and
-  // arrives as a build-time variable; the service-role key must never reach
-  // this surface at all — see scripts/check-no-service-role.mjs, which fails
-  // the build if it does.
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // SUPABASE_URL AND SUPABASE_PUBLISHABLE_KEY ARE WORKER VARS, SET AT DEPLOY
+  // TIME BY .github/workflows/deploy.yml — `--var NAME:value`, from the same
+  // GitHub secrets the build already reads.
+  //
+  // THIS FILE USED TO SAY THE KEY "ARRIVES AS A BUILD-TIME VARIABLE", AND THAT
+  // SENTENCE WAS THE BUG. It is true for anything Next inlines at build. It is
+  // false for every page here, because they are all `force-dynamic` and read
+  // `process.env` when a request arrives — and on a Worker, request-time
+  // `process.env` comes from the Worker's own vars, which this file declared
+  // none of.
+  //
+  // So `publicBackend()` threw on every request. Browse, kitchen and Meal pages
+  // returned 500 from the first deploy on 2026-08-07 until 2026-08-09, while the
+  // deploy workflow reported success fifteen consecutive times. Nothing was
+  // broken loudly enough to notice: the Worker publishes correctly, it simply
+  // cannot render. `/settings` was the only page that worked, because it reads
+  // the browser's own storage and never touches Supabase.
+  //
+  // WHY THEY ARE NOT LITERAL VALUES IN THIS FILE. Committing them would work and
+  // would be consistent with ADR-0008 — the publishable key is public by design.
+  // They are passed from the deploy instead so there is ONE definition of which
+  // Supabase project this surface talks to, shared with the build step, rather
+  // than a second copy here that can disagree with it silently.
+  //
+  // The service-role key must never reach this surface in any form — see
+  // scripts/check-no-service-role.mjs, which fails the build if it appears in
+  // the output.
+  // ────────────────────────────────────────────────────────────────────────────
 }

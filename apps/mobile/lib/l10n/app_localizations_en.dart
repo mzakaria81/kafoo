@@ -1476,7 +1476,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchExclusionNotUnderstood =>
-      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it. Try naming the food on its own.';
+      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it. Let\'s try the name of the food on its own.';
 
   @override
   String searchFilteredOn(String food) {
