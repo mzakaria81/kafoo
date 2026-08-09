@@ -1943,3 +1943,56 @@ features. A tool whose state cannot survive the environment's teardown event can
 process built around that teardown, however closely its feature list matches. And read the
 installer's write-list as carefully as the feature list — what a tool overwrites in your
 repository is part of its cost.
+### Observation 131: Search-result summaries fabricated an official Anthropic skill that does not exist
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Founder asked whether Anthropic publishes a skill for reviewing CLAUDE.md files, and what the current recommendations are.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Research and verification before reporting tool availability
+
+**Issue:** A web search for an Anthropic CLAUDE.md review skill returned a confident summary
+asserting that "there is an Anthropic official skill that audits and improves CLAUDE.md files"
+and describing its rubric in detail — commands, architecture clarity, conciseness, currency,
+actionability. Fetching the primary source (`anthropics/skills` README) showed no such skill
+exists; the official mechanisms are `/doctor`'s trim check and `/init`. The fabricated summary
+was specific enough to be indistinguishable from a real finding, and reporting it would have
+sent the user looking for something that does not exist.
+
+**Suggested improvement:** Add a rule to the research/verification guidance: an assertion that a
+tool, skill, plugin or API exists must be confirmed against the primary source (repository
+listing, official docs page, package registry) before it is reported to the user. A search-engine
+summary is evidence that people write about the topic, not that the artefact exists.
+
+**Principle:** Search summaries answer the question they were asked, which biases them toward
+confirming the existence of whatever was searched for. Existence claims require a primary-source
+check; the more specific and useful the summarised detail, the more it should raise suspicion
+rather than confidence.
+
+### Observation 132: Always-loaded instruction files absorb corrections that belong in on-demand skills
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Auditing a 631-line project CLAUDE.md against Anthropic's under-200-line guidance.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Where a correction gets written
+
+**Issue:** The file's largest section — 228 lines, 36% of the whole — documented a delegation
+workflow that was already covered by two existing on-demand skills, and was itself suspended at
+the time. Every incident over three weeks (a wrong provider prefix, a billing-model error, a
+spend-ledger drift measurement) had been written into the always-loaded file rather than into the
+skill that runs the workflow. Nothing chose that destination; it was the file being read when the
+incident happened. The result is that the cost of every past incident is paid at the start of
+every session, including sessions that will never delegate.
+
+**Suggested improvement:** When a correction is logged or applied, name the destination explicitly
+and justify it: always-loaded only if it is needed in *every* session. A correction to a procedure
+belongs in the procedure's skill or a path-scoped rule, even when the procedure's own file is not
+the one currently open.
+
+**Principle:** Documentation gravitates to whichever file is open when the lesson is learned, not
+to the file where it belongs. Any always-loaded context file will grow monotonically unless the
+routing decision is made deliberately at write time — and the growth is invisible, because each
+individual addition is correct.
