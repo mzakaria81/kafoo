@@ -423,4 +423,74 @@ void main() {
       expect((outcome as ExclusionFound).exclusion.id, 'meat');
     });
   });
+
+  // WHAT THE REVIEWERS FOUND WHEN THE FOUR DECISIONS ABOVE WERE ALREADY GREEN.
+  //
+  // Both of these are the same lesson: **adding one spelling of a word can be
+  // worse than adding none of it.** Before, Kafoo said nothing and a Customer
+  // read the ingredients themselves. After, Kafoo says confidently that it
+  // removed the food — and the spelling nobody listed walks straight past. The
+  // suites were green for the spellings somebody thought of, which is the exact
+  // shape of every defect this file records.
+  group('the spellings the first pass missed, 2026-08-10', () {
+    test('a Cook writing تونا is reached, not just تونة', () {
+      // THE FALSE-REASSURANCE CASE, and the reason this could not wait.
+      // `تونة` is the tin; `تونا` is the menu board and `سلطة تونا`. Folding
+      // does not join them — `تونة` folds to `تونه` and `تونا` stays `تونا`.
+      // Before this: a Customer says `من غير سمك`, Kafoo answers fish and says
+      // it removed سمك, and the tuna salad is still on the screen.
+      for (final item in ['تونا', 'سلطة تونا', 'ساندوتش تونا']) {
+        expect(_cookSideReach(item), 'fish',
+            reason: 'a Cook writing "$item" is invisible to a fish exclusion');
+      }
+    });
+
+    test('a Customer writing تونا is understood too', () {
+      final outcome = ExclusionVocabulary.parse('من غير تونا');
+      expect(outcome, isA<ExclusionFound>());
+      expect((outcome as ExclusionFound).exclusion.id, 'fish');
+    });
+
+    test('the ما particle is written apart as often as it is joined', () {
+      // The negation particle is ما, and detaching it is the MORE literate
+      // spelling — which is what somebody stating a religious rule tends to
+      // use. All four returned NoExclusion: not not-understood, nothing at all.
+      for (final phrase in [
+        'مابكلش لحمة',
+        'ماباكلش لحمة',
+        'ما بكلش لحمة',
+        'ما باكلش لحمة',
+      ]) {
+        final outcome = ExclusionVocabulary.parse(phrase);
+        expect(outcome, isA<ExclusionFound>(),
+            reason: '"$phrase" said nothing');
+        expect((outcome as ExclusionFound).exclusion.id, 'meat',
+            reason: phrase);
+      }
+    });
+
+    test('the olive that was already bought is the only one, still', () {
+      // تونا must not widen the trade. `زيتون` and `زيت زيتون` are what an
+      // ingredient list normally carries and neither may start colliding.
+      for (final safe in ['زيتون', 'زيت زيتون', 'زيتون أسود']) {
+        expect(_cookSideReach(safe), isNull,
+            reason: '"$safe" now collides with an exclusion');
+      }
+    });
+  });
+}
+
+/// What the COOK side reaches, simulating `search_meals`:
+/// `fold_arabic(item) ILIKE '%' || fold_arabic(term) || '%'` — anywhere in the
+/// string, which is the half that the Customer-side lookup does not model.
+String? _cookSideReach(String item) {
+  final haystack = ExclusionVocabulary.foldArabic(item);
+  for (final exclusion in ExclusionVocabulary.all) {
+    for (final form in exclusion.surfaceForms) {
+      if (haystack.contains(ExclusionVocabulary.foldArabic(form))) {
+        return exclusion.id;
+      }
+    }
+  }
+  return null;
 }

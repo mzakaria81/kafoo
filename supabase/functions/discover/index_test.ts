@@ -242,6 +242,15 @@ Deno.test('THE SHARED CORPUS: this side answers exactly what the Dart side answe
     // phrase read as an ordinary request and the food came back with nothing said.
     ['\u0645\u0628\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
     ['\u0645\u0628\u0627\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
+    // The spellings the first pass missed. The negation particle \u0645\u0627 is written apart as often as
+    // it is joined, and all four of these said NOTHING while the suite was green for the two above.
+    ['\u0645\u0627\u0628\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
+    ['\u0645\u0627\u0628\u0627\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
+    ['\u0645\u0627 \u0628\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
+    ['\u0645\u0627 \u0628\u0627\u0643\u0644\u0634 \u0644\u062D\u0645\u0629', 'meat'],
+    // `\u062A\u0648\u0646\u0629` is the tin and `\u062A\u0648\u0646\u0627` is the menu board. Shipping only the first meant a Customer
+    // excluding fish was TOLD the fish was removed and then served a tuna salad.
+    ['\u0645\u0646 \u063A\u064A\u0631 \u062A\u0648\u0646\u0627', 'fish'],
   ];
   for (const [phrase, id] of cases) {
     const outcome = parsePhrase(phrase).exclusion;

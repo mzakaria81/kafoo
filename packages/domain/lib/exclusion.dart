@@ -165,6 +165,21 @@ abstract final class ExclusionVocabulary {
     // predates these two entries — `بدون بصل ومن غير لحمة` answers `meat` on the
     // old markers alone — so it is recorded here rather than fixed under a
     // vocabulary change, and it is the founder's call.
+    // THE PARTICLE IS ما AND IT IS WRITTEN APART AS OFTEN AS IT IS JOINED.
+    // Added 2026-08-10 after the first two went in. All four of these returned
+    // NoExclusion — nothing excluded, nothing said — while the suite was green
+    // for `مبكلش` and `مباكلش`, because whoever wrote them (me) reasoned about
+    // the ا between ب and ك and never asked whether the negation particle can
+    // stand on its own. It can, and detaching it is the MORE literate spelling,
+    // which is what somebody stating a religious rule tends to reach for.
+    //
+    // Longest first, and none of the six contains another: folding preserves
+    // the space, so `ما بكلش` and `مابكلش` are genuinely two forms rather than
+    // one written twice.
+    'ما باكلش',
+    'ماباكلش',
+    'ما بكلش',
+    'مابكلش',
     'مباكلش',
     'مبكلش',
   ];
@@ -249,7 +264,15 @@ abstract final class ExclusionVocabulary {
         // to be wrong in: an olive nobody wanted removed is an annoyance, and a
         // tuna sandwich served to a fish allergy is the thing SC-005 forbids.
         // The size of it is pinned in exclusion_over_exclusion_test.dart.
-        'تونة',
+        // BOTH SPELLINGS, AND SHIPPING ONE WAS WORSE THAN SHIPPING NEITHER.
+        // `تونة` is the tin, `تونا` is the menu board — `سلطة تونا`,
+        // `ساندوتش تونا`. Folding does not join them: `تونة` folds to `تونه`
+        // and `تونا` keeps its alef. Found 2026-08-10 by localization-reviewer
+        // after `تونة` alone had gone in and every suite was green. With only
+        // `تونة` listed, a Customer excluding fish was told Kafoo had removed
+        // سمك and was then served the tuna salad — the first version of this
+        // entry turned an honest silence into a confident false statement.
+        'تونة', 'تونا',
       },
     ),
     // Crustaceans and molluscs are distinct allergies and are grouped here.

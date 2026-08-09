@@ -27,6 +27,10 @@ export const NEGATION_MARKERS: readonly string[] = [
   'من غير',
   'بدون',
   'بلاش',
+  'ما باكلش',
+  'ماباكلش',
+  'ما بكلش',
+  'مابكلش',
   'مباكلش',
   'مبكلش',
 ];
@@ -70,6 +74,7 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'بوري',
       'سردين',
       'تونة',
+      'تونا',
     ],
   },
   {
