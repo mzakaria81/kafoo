@@ -1829,7 +1829,89 @@ objective is a worse fit than a weaker tool aimed at ours.
 
 **Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.
 
-### Observation 125: Evaluating an external coordination tool — the decisive question is where durable state lives, not feature overlap
+### Observation 125: A communication contract that describes a posture gets ignored; one that describes a shape gets followed
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** The founder said he routinely pastes Claude's answers into ChatGPT and asks it to explain what they meant, then supplied a twelve-point specification of the answer format he needs. Kafoo's CLAUDE.md already carried a "Who you are talking to" section saying to lead with the decision, explain in consequence not mechanism, and spell out jargon — every one of those rules was correct and none of them changed the output enough to be usable.
+**Skill:** New skill candidate: writing-for-a-non-developer-decision-maker
+**Type:** open-source
+**Phase/Area:** Project instruction files — the audience/communication section
+
+**Issue:** The failing instructions were all posture statements: adverbs and dispositions ("lead with", "explain in terms of", "briefly"). They are unfalsifiable in a single response, so nothing ever reads as a violation and drift is invisible. The instructions the founder wrote himself were shapes: a bottom line capped at three sentences, four named labels (Problem / Recommendation / Information / Decision needed), a fixed four-beat order for technical decisions, a length ceiling, a mandatory closing line, and a self-check question. Each of those can be checked against a draft and found absent. The founder's own evidence — outsourcing translation to a second AI — was the only reason the gap was detectable at all; without it the original section looked fine.
+
+**Suggested improvement:** When an instruction file governs how the agent writes rather than what it builds, express the requirement as structure the draft either has or lacks — a section order, a word count, a required closing line, a fixed vocabulary of labels, a yes/no check to run before sending. Reserve prose about tone for explaining why the structure exists. Where a rule is being rewritten because the old one failed, record that it failed and what the evidence was, so nobody restores the softer wording as a simplification.
+
+**Principle:** A behavioural rule an agent cannot fail visibly is a rule it will not follow. Convert dispositions into artefacts: instead of "be clear", require a named section, a bounded length, or a check with a yes/no answer. The test of such a rule is whether a reader holding the output can point at the place it is missing — if they cannot, it is a preference, not an instruction, and it will decay into decoration.
+
+### Observation 126: A guard that matches command text will block the prose describing the command
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Replacing a permission allowlist with a wide-open one plus a PreToolUse hook enforcing four hard blocks. The hook worked on the first try against 36 crafted cases, then blocked the commit that was trying to land it, because the commit message explained which commands the hook blocks.
+**Skill:** New skill candidate: writing-tool-call-guards
+**Type:** open-source
+**Phase/Area:** Guard/hook authoring — pattern scope
+
+**Issue:** A guard that inspects a shell command string cannot distinguish a command from a sentence about that command. The two are the same characters. Every realistic guard therefore has a false-positive class its author will not think to test, because the test cases they write are commands and the failures are prose: commit messages, echo, heredocs, documentation written with a redirect, a grep for the dangerous pattern itself. The failure surfaced here only because landing the guard required writing about it; a guard for something never discussed in commit messages would have shipped with the same defect latent, and each later false positive would look like an unrelated glitch. The fix is to strip what cannot name a target — heredoc bodies and quoted spans — before matching, which also narrows the guard honestly: a quoted path stops being caught, and that residual gap is worth stating rather than papering over.
+
+**Suggested improvement:** When authoring a guard over command text, add prose cases to the allow half of the self-test from the start — a commit message naming the blocked command, an echo, a heredoc — not only the dangerous spellings. Strip heredoc bodies and quoted strings before matching. Where a guard's coverage is genuinely partial after that, record the residual gap next to the rule instead of implying the block is total.
+
+**Principle:** A pattern that matches an action will also match a description of that action, and self-tests written by the guard's author cover the action only. Test the descriptions too. More generally: any filter over a representation, rather than over the thing represented, inherits every ambiguity of that representation — so decide explicitly which regions of the input can name a real target, and match only there.
+
+---
+
+### Observation 127: Repo-profiling skills should diff observed structure against the project's own documented structure
+
+**Status:** PARTIALLY ACTIONED (2026-08-09) — the project half is done: `CLAUDE.md`'s repo map now lists `apps/web/`, states the ADR-0008 Amendment 1 constraints, and records that it denied the surface until today; the ARB non-negotiable now names `apps/web/messages/` as the same rule's second home. The skill half remains OPEN — `find-skills` Phase 2 still has no step instructing it to diff observed structure against the project's own documented structure, so the next repository gets no such check.
+**Date:** 2026-08-09
+**Session context:** Running `/find-skills` over the Kafoo repository to recommend Claude Code skills from known marketplaces.
+**Skill:** find-skills
+**Type:** open-source
+**Phase/Area:** Phase 2 — Understand the Repository
+
+**Issue:** Phase 2 builds a repo profile by direct inspection (languages, frameworks, CI, docs, purpose) and then uses it only to score skill relevance. In this run the inspection surfaced a live Next.js application at `apps/web/` deployed to Cloudflare Workers via OpenNext — while the project's own agent-facing map in `CLAUDE.md` still stated there was no Customer web surface and listed only `apps/mobile/`. The skill had every fact needed to notice the contradiction and had no instruction to look for it, so the drift would have gone unreported. The cost is asymmetric: the observed structure is read once by this skill, but the documented structure is read by every future agent session as ground truth.
+
+**Suggested improvement:** Add a step at the end of Phase 2: after building the profile, read the project's own structural documentation (`CLAUDE.md`, `AGENTS.md`, README repo map, `docs/` architecture pages) and diff the documented structure against what was observed — top-level applications and packages present but undocumented, documented but absent, or described in a tense that contradicts what is on disk. Report any drift as a short note in the Phase 6 report, separate from the skill recommendations, since it is a finding about the repository rather than about skills.
+
+**Principle:** A skill that profiles an artefact to make a decision has already paid the cost of observing ground truth; when the artefact also carries a self-description, comparing the two is nearly free and catches drift that no dedicated process is watching for. Documentation that describes structure is read far more often than the structure is inspected, so a stale map costs more than a stale observation — surface the diff as a by-product rather than discarding it.
+
+---
+
+### Observation 128: An "already installed" check must enumerate every location the host actually loads from
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Running `/find-skills` over the Kafoo repository to recommend Claude Code skills from known marketplaces.
+**Skill:** find-skills
+**Type:** open-source
+**Phase/Area:** Phase 5 — Match Skills to the Project (irrelevance signals)
+
+**Issue:** Phase 5's first irrelevance signal is "Skill already installed (found in `~/.claude/plugins`)", and Phase 2's discovery step likewise greps `~/.claude/settings.json` for plugins. Claude Code also loads skills from a repository's own `.claude/skills/` directory, and this repository vendors 46 of them there — including direct namesakes of marketplace candidates (`security-review`, `brainstorming`, and `find-skills` itself). Following the phases literally, every one of those would have been scored as a fresh candidate and recommended back to a user who already has it, because the single directory the skill was told to check was the one they were not in. The failure is silent and reads as thoroughness: the report is longer, not visibly wrong.
+
+**Suggested improvement:** Change the Phase 5 signal and the Phase 2 discovery command to enumerate all load locations before scoring — the user-level plugin directory, the user and project `settings.json` plugin entries, and the project-level `.claude/skills/` (plus `.claude/plugins/` where present) — and match on skill name across the union. Where a namesake exists locally but differs from the marketplace version, say so rather than suppressing it silently, since a vendored fork and an upstream skill are not the same artefact.
+
+**Principle:** A deduplication check is only as good as its enumeration of where the thing being deduplicated can live. When a host resolves a resource from several locations by design, a check that names one of them will pass while missing most of the population — and because the symptom is a redundant recommendation rather than an error, nothing surfaces the gap. Derive the search set from the host's actual resolution order, not from the one canonical path that is easiest to name.
+
+
+---
+
+### Observation 129: In a shared working tree, "I did not commit" is not evidence that your work is uncommitted
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Fixing CLAUDE.md's repo map and the CI web-surface check in Kafoo, with a second Claude session live in the same working tree.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** Working alongside another session / pre-flight state check
+
+**Issue:** I edited four files, told the founder they were uncommitted and at risk of being lost at container teardown, and offered to commit them. The founder asked whether the work was already pushed. It was already committed — a parallel session had committed my working-tree edits minutes earlier, with authored messages I had not written. My statement was built on the absence of my own `git commit` call, which in a shared tree proves nothing: another writer can commit your changes, and the only way to know is to read git, not memory. The same session had already told me, via an Edit-tool warning, that the observation log had changed underneath it — evidence of the parallel writer that I registered and did not generalise. Separately, I began editing without checking `origin/main` at all; had the fix been merged upstream, the whole change would have been redundant.
+
+**Suggested improvement:** Two additions to the shared-tree guidance. First, a pre-flight step before any substantive edit: fetch the remote and confirm the target change is not already present upstream — the cost is one command and the failure it prevents is a whole task's redundant work. Second, a rule that any claim about repository state (committed, uncommitted, pushed, clean) must be read from git immediately before it is stated, never inferred from what this session did or did not do. Treat a concurrent-modification warning from any tool as a signal that both rules are now load-bearing for the rest of the session.
+
+**Principle:** In an environment with concurrent writers, an agent's own action history is not a valid model of shared state. The absence of an action you would have had to take proves only that you did not take it — not that nobody did. Any assertion about shared state must be re-read from the authoritative source at the moment of asserting it, because the window between observation and claim is exactly where another writer acts. A tool reporting "this changed underneath you" is a statement about the whole environment, not about one file.
+
+### Observation 130: Evaluating an external coordination tool — the decisive question is where durable state lives, not feature overlap
 
 **Status:** OPEN
 **Date:** 2026-08-09
