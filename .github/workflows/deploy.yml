@@ -57,6 +57,12 @@ name: Deploy
 on:
   push:
     branches: [main]
+  # Manual runs exist so a release candidate can be ASKED FOR. The mobile builds
+  # run on every merge because they are the only thing that compiles the app, but
+  # the bundles they produce are archived only when someone wants one — see
+  # "Archive release candidate" below for why keeping every merge's bundle was
+  # storing an artifact nobody could use.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-main
@@ -402,8 +408,24 @@ jobs:
             --split-debug-info=build/symbols
         working-directory: apps/mobile
 
+      # THE BUILD RUNS ON EVERY MERGE. THE ARTIFACT IS KEPT ONLY WHEN ASKED FOR.
+      #
+      # These are two different jobs wearing one name. The `flutter build` above is
+      # the ONLY thing in the whole pipeline that compiles the Android app — CI runs
+      # analysis and tests, which never touch Gradle — so it has to keep running on
+      # every merge or Android breakage is detected nowhere until release day.
+      #
+      # The bundle it produces is a different matter. It is unsigned whenever
+      # ANDROID_KEYSTORE_BASE64 is unset, and an unsigned bundle cannot be submitted
+      # to Play, so an arbitrary Tuesday's merge was archiving 90 days of something
+      # nobody can use and nobody downloads. Run this workflow manually when a
+      # candidate is actually wanted.
+      #
+      # The symbols follow the bundle deliberately. They are only meaningful for the
+      # exact binary they came from, so keeping them for a bundle that was discarded
+      # is keeping a key to a door that no longer exists.
       - name: Archive release candidate
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-android-${{ github.run_number }}
@@ -413,13 +435,29 @@ jobs:
 
       # Without these, a production crash report is a column of hex addresses.
       - name: Archive debug symbols
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-android-symbols-${{ github.run_number }}
           path: apps/mobile/build/symbols
           if-no-files-found: error
           retention-days: 90
+
+      # Say so, rather than leaving a merge looking like it produced a candidate it
+      # did not keep. A silent absence is how somebody goes looking for last week's
+      # bundle and finds nothing with no explanation.
+      - name: No candidate archived on this run
+        if: steps.detect.outputs.buildable == 'true' && github.event_name != 'workflow_dispatch'
+        run: |
+          {
+            echo "### Android: built, not archived"
+            echo ""
+            echo "The bundle compiled — that is this job's real purpose, and a failure"
+            echo "here would have meant the Android build is broken."
+            echo ""
+            echo "It was not kept, because bundles are archived only on a manual run."
+            echo "To get one: Actions → Deploy → Run workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Release notes
         working-directory: apps/mobile
@@ -541,8 +579,14 @@ jobs:
             --obfuscate \
             --split-debug-info=build/symbols
 
+      # Same rule as Android: the build is the check and runs every time, the
+      # artifact is kept only on a manual run. Applied here for consistency rather
+      # than because it changes anything today — this job is gated on iOS signing
+      # secrets that are not set, so it currently skips in full. An archive rule
+      # that differs between the two platforms is a trap for whoever configures
+      # those secrets and then wonders why only one side keeps its candidate.
       - name: Archive release candidate
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-ios-${{ github.run_number }}
@@ -551,7 +595,7 @@ jobs:
           retention-days: 90
 
       - name: Archive debug symbols and dSYMs
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-ios-symbols-${{ github.run_number }}
