@@ -1843,3 +1843,18 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When an instruction file governs how the agent writes rather than what it builds, express the requirement as structure the draft either has or lacks — a section order, a word count, a required closing line, a fixed vocabulary of labels, a yes/no check to run before sending. Reserve prose about tone for explaining why the structure exists. Where a rule is being rewritten because the old one failed, record that it failed and what the evidence was, so nobody restores the softer wording as a simplification.
 
 **Principle:** A behavioural rule an agent cannot fail visibly is a rule it will not follow. Convert dispositions into artefacts: instead of "be clear", require a named section, a bounded length, or a check with a yes/no answer. The test of such a rule is whether a reader holding the output can point at the place it is missing — if they cannot, it is a preference, not an instruction, and it will decay into decoration.
+
+### Observation 126: A guard that matches command text will block the prose describing the command
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Replacing a permission allowlist with a wide-open one plus a PreToolUse hook enforcing four hard blocks. The hook worked on the first try against 36 crafted cases, then blocked the commit that was trying to land it, because the commit message explained which commands the hook blocks.
+**Skill:** New skill candidate: writing-tool-call-guards
+**Type:** open-source
+**Phase/Area:** Guard/hook authoring — pattern scope
+
+**Issue:** A guard that inspects a shell command string cannot distinguish a command from a sentence about that command. The two are the same characters. Every realistic guard therefore has a false-positive class its author will not think to test, because the test cases they write are commands and the failures are prose: commit messages, echo, heredocs, documentation written with a redirect, a grep for the dangerous pattern itself. The failure surfaced here only because landing the guard required writing about it; a guard for something never discussed in commit messages would have shipped with the same defect latent, and each later false positive would look like an unrelated glitch. The fix is to strip what cannot name a target — heredoc bodies and quoted spans — before matching, which also narrows the guard honestly: a quoted path stops being caught, and that residual gap is worth stating rather than papering over.
+
+**Suggested improvement:** When authoring a guard over command text, add prose cases to the allow half of the self-test from the start — a commit message naming the blocked command, an echo, a heredoc — not only the dangerous spellings. Strip heredoc bodies and quoted strings before matching. Where a guard's coverage is genuinely partial after that, record the residual gap next to the rule instead of implying the block is total.
+
+**Principle:** A pattern that matches an action will also match a description of that action, and self-tests written by the guard's author cover the action only. Test the descriptions too. More generally: any filter over a representation, rather than over the thing represented, inherits every ambiguity of that representation — so decide explicitly which regions of the input can name a real target, and match only there.
