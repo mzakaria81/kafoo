@@ -2,80 +2,53 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "Bash(melos:*)",
-      "Bash(flutter analyze:*)",
-      "Bash(flutter test:*)",
-      "Bash(flutter pub get:*)",
-      "Bash(dart analyze:*)",
-      "Bash(dart format:*)",
-      "Bash(dart run build_runner:*)",
-      "Bash(supabase start)",
-      "Bash(supabase stop)",
-      "Bash(supabase status)",
-      "Bash(supabase migration new:*)",
-      "Bash(supabase db diff:*)",
-      "Bash(supabase functions serve:*)",
-      "Bash(git status)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(git add:*)",
-      "Bash(git fetch:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh issue view:*)",
-      "Bash(./scripts/verify.sh)",
-      "Bash(./scripts/verify.sh:*)",
-      "Bash(./scripts/install-toolchain.sh)",
-      "Bash(./scripts/local-db.sh:*)",
-      "Bash(dart test:*)",
-      "Bash(deno check:*)",
-      "Bash(supabase migration list:*)",
-      "Bash(python3 scripts/opencode-spend.py report)",
-      "Bash(python3 scripts/validate-coordination.py)",
-      "mcp__github__pull_request_read",
-      "mcp__github__list_pull_requests",
-      "mcp__github__search_pull_requests",
-      "mcp__github__issue_read",
-      "mcp__github__list_issues",
-      "mcp__github__search_issues",
-      "mcp__github__get_file_contents",
-      "mcp__github__search_code",
-      "mcp__github__get_commit",
-      "mcp__github__list_commits",
-      "mcp__github__list_branches",
-      "mcp__github__get_check_run",
-      "mcp__github__actions_list",
-      "mcp__github__get_job_logs",
-      "mcp__github__get_me",
-      "mcp__supabase__list_tables",
-      "mcp__supabase__list_migrations",
-      "mcp__supabase__list_extensions",
-      "mcp__supabase__list_edge_functions",
-      "mcp__supabase__get_advisors",
-      "mcp__supabase__get_logs",
-      "mcp__supabase__get_project_url",
-      "mcp__supabase__search_docs"
+      "Bash",
+      "mcp__github",
+      "mcp__supabase"
     ],
     "ask": [
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(gh pr create:*)",
       "Bash(supabase db reset)",
-      "Bash(supabase functions deploy:*)"
+      "Bash(supabase functions deploy:*)",
+      "mcp__supabase__deploy_edge_function",
+      "mcp__github__push_files",
+      "mcp__github__create_or_update_file",
+      "mcp__github__delete_file",
+      "mcp__github__merge_pull_request"
     ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
       "Read(./**/*.pem)",
       "Read(./**/*service-role*)",
-      "Bash(git push --force:*)",
-      "Bash(git push -f:*)",
+      "Bash(rm -rf:*)",
       "Bash(supabase db push --linked:*)",
       "Bash(supabase link:*)",
       "Bash(wrangler deploy:*)",
-      "Bash(rm -rf:*)"
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__merge_branch",
+      "mcp__supabase__delete_branch",
+      "mcp__supabase__reset_branch",
+      "mcp__supabase__rebase_branch"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-hard-blocks.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
