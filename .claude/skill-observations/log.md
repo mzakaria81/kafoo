@@ -1828,3 +1828,18 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When a hierarchy has three levels, state which level each parent's indicator counts, and close intermediate nodes from the source's own completion field rather than inferring completion from the children. Inferring it would silently overrule whoever owns that field. Verify the top-level indicator explicitly after any bulk close — a parent reading 0% while all its grandchildren are closed is the signature of this mistake.
 
 **Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.
+
+### Observation 125: A communication contract that describes a posture gets ignored; one that describes a shape gets followed
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** The founder said he routinely pastes Claude's answers into ChatGPT and asks it to explain what they meant, then supplied a twelve-point specification of the answer format he needs. Kafoo's CLAUDE.md already carried a "Who you are talking to" section saying to lead with the decision, explain in consequence not mechanism, and spell out jargon — every one of those rules was correct and none of them changed the output enough to be usable.
+**Skill:** New skill candidate: writing-for-a-non-developer-decision-maker
+**Type:** open-source
+**Phase/Area:** Project instruction files — the audience/communication section
+
+**Issue:** The failing instructions were all posture statements: adverbs and dispositions ("lead with", "explain in terms of", "briefly"). They are unfalsifiable in a single response, so nothing ever reads as a violation and drift is invisible. The instructions the founder wrote himself were shapes: a bottom line capped at three sentences, four named labels (Problem / Recommendation / Information / Decision needed), a fixed four-beat order for technical decisions, a length ceiling, a mandatory closing line, and a self-check question. Each of those can be checked against a draft and found absent. The founder's own evidence — outsourcing translation to a second AI — was the only reason the gap was detectable at all; without it the original section looked fine.
+
+**Suggested improvement:** When an instruction file governs how the agent writes rather than what it builds, express the requirement as structure the draft either has or lacks — a section order, a word count, a required closing line, a fixed vocabulary of labels, a yes/no check to run before sending. Reserve prose about tone for explaining why the structure exists. Where a rule is being rewritten because the old one failed, record that it failed and what the evidence was, so nobody restores the softer wording as a simplification.
+
+**Principle:** A behavioural rule an agent cannot fail visibly is a rule it will not follow. Convert dispositions into artefacts: instead of "be clear", require a named section, a bounded length, or a check with a yes/no answer. The test of such a rule is whether a reader holding the output can point at the place it is missing — if they cannot, it is a preference, not an instruction, and it will decay into decoration.
