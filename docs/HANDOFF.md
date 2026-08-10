@@ -293,13 +293,25 @@ What E2 has not done is measure itself — see "Where to pick up".
   Egyptian Arabic accuracy benchmark with an `msa_substituted` scoring rule, written 2026-08-03 and
   never run (WP-004, `NOT_STARTED`). Building the harness for the corpus that exists may beat
   importing one that does not.
-- **iOS release credentials** — the pipeline now has an iOS job, but it is gated behind a
-  preflight check and will not start until Apple Developer credentials exist. Needs Apple
-  Developer Program membership, then `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
-  `IOS_PROVISIONING_PROFILE_BASE64`, and `IOS_KEYCHAIN_PASSWORD` as repository secrets. Platform
-  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS, and iOS reaches users
-  through **TestFlight first** — friends and family, which means external testers and therefore
-  Beta App Review. The same signed archive serves both, so the pipeline is unchanged.
+- **iOS release credentials** — the pipeline has an iOS job, gated behind a preflight check that
+  will not let it start until Apple credentials exist. **The setup lives in one place and it is not
+  this file: `docs/ops/ios-testflight.md`.** It needs an Apple Developer Program membership, then
+  `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
+  `APP_STORE_CONNECT_PRIVATE_KEY_BASE64` and `APPLE_TEAM_ID` as repository secrets.
+
+  Until 2026-08-10 this bullet named `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
+  `IOS_PROVISIONING_PROFILE_BASE64` and `IOS_KEYCHAIN_PASSWORD`, which no longer exist anywhere in
+  the pipeline. Anyone following it would have set four secrets nothing reads, watched preflight
+  report `App Store Connect credentials present: false` forever, and had no reason to doubt the
+  document. Found by release-engineer, in the same change whose own commits fixed three comments
+  making that identical mistake — a rename is only finished when the prose is renamed with it.
+
+  It also said "the same signed archive serves both, so the pipeline is unchanged", which was never
+  the plan and is not what shipped. iOS signs through Apple's cloud signing: `xcodebuild` presents
+  the API key and Apple issues the certificate, so no `.p12` is exported from a Mac keychain — which
+  matters because Kafoo has no Mac. Platform scope is still ADR-0006: **both** Android and iOS, iOS
+  through **TestFlight first**. Internal testers — the founder's own phone — need no Beta App
+  Review; the moment a tester outside the Apple account is added, that changes.
 
 ## Repository secrets the Customer web surface needs
 

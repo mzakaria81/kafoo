@@ -767,7 +767,8 @@ jobs:
       # on every merge would fill the cap within a week and then fail every iOS build,
       # including the compile check this job exists for. Raised by release-engineer.
       #
-      # Only THIS step and the upload are gated. Building the archive stays on every merge
+      # Three steps are gated — the key install above, this one, and the upload below. Not the
+      # build: it stays on every merge
       # THAT REACHES THIS JOB, because `--no-codesign` spends nothing and "does iOS still
       # compile" is the whole reason for running on a merge. Gating the build as well would
       # have removed that check — which the recommendation asked for and its own reasoning
