@@ -1997,7 +1997,7 @@ to the file where it belongs. Any always-loaded context file will grow monotonic
 routing decision is made deliberately at write time — and the growth is invisible, because each
 individual addition is correct.
 
-### Observation 132: A documented output format was read, agreed with, and then not applied
+### Observation 133: A documented output format was read, agreed with, and then not applied
 
 **Status:** OPEN
 **Date:** 2026-08-09
