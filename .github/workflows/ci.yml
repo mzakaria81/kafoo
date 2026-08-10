@@ -96,3 +96,81 @@ jobs:
       # file in root's home, which is a large change to make for one check.
       - name: Run gate
         run: ./scripts/verify.sh
+
+  # ANDROID COMPILES NOWHERE ELSE BEFORE A MERGE, AND THAT IS WHAT THIS FIXES.
+  #
+  # The gate above runs `dart analyze` and the tests. Neither invokes Gradle, so an
+  # Android build can be broken in ways nothing here can see: a plugin raising
+  # minSdk, a Gradle or AGP version conflict, a manifest merge failure, a missing
+  # NDK. Until now the first thing to actually compile the app was `deploy.yml`,
+  # which runs AFTER the merge — so the pull request went green, main went red, and
+  # somebody unpicked it afterwards.
+  #
+  # A SEPARATE JOB, NOT A STEP IN THE GATE. It runs in parallel, so it adds no
+  # wall-clock to the feedback a pull request is waiting on. The duplicated Flutter
+  # setup is the same trade the `authorization suites` job already makes and is
+  # deliberate for the same reason.
+  #
+  # DEBUG, NOT RELEASE, AND THE DIFFERENCE MATTERS. A debug build needs no signing
+  # secrets, so it works on a fork's pull request, and it exercises the whole Gradle
+  # and plugin path where nearly all of these breakages live. What it does NOT cover
+  # is R8 shrinking and obfuscation, which only run in release — that stays covered
+  # by the release build in `deploy.yml` on merge. Cheap check early, thorough check
+  # late, rather than one of them twice.
+  #
+  # No artifact is uploaded on purpose. This is a check, not a deliverable; a debug
+  # APK from a pull request is of no use to anyone.
+  android-build:
+    # THE NAME CARRIES THE CAVEAT, because the name is the only part of this most
+    # people ever see. A green check reading "android compiles" claims more than a
+    # debug build delivers — R8 shrinking and obfuscation are release-only, so a
+    # failure that only appears under minification passes here. The comment below
+    # explains that; a comment inside a YAML file is invisible on the checks page,
+    # which is where the claim is actually read. Raised by release-engineer.
+    name: android compiles (debug — no R8/shrink coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Step level, after checkout — a job-level `hashFiles()` runs against an empty
+      # workspace and always yields '', which would skip this on every run. That trap
+      # is already recorded in deploy.yml and docs/HANDOFF.md.
+      - name: Detect buildable Android project
+        id: detect
+        run: |
+          if [ -d apps/mobile/android ]; then
+            echo "buildable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "buildable=false" >> "$GITHUB_OUTPUT"
+            echo "apps/mobile/android does not exist — nothing to compile."
+          fi
+
+      - uses: subosito/flutter-action@v2
+        if: steps.detect.outputs.buildable == 'true'
+        with:
+          channel: stable
+          cache: true
+
+      - name: Activate melos
+        if: steps.detect.outputs.buildable == 'true'
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Bootstrap workspace
+        if: steps.detect.outputs.buildable == 'true'
+        run: melos bootstrap
+
+      # `*.g.dart` and `*.freezed.dart` are git-ignored, so a clean checkout does not
+      # contain them and the app does not compile without them — a `@riverpod`
+      # controller's `state` lives in the generated part file. deploy.yml learned this
+      # the hard way when it inherited generated code as a side effect of whatever ran
+      # first on the same runner, and broke the day the gate moved to another job.
+      - name: Generate code
+        if: steps.detect.outputs.buildable == 'true'
+        run: melos exec --depends-on=build_runner -- dart run build_runner build
+
+      - name: Build debug APK
+        if: steps.detect.outputs.buildable == 'true'
+        run: flutter build apk --debug
+        working-directory: apps/mobile
