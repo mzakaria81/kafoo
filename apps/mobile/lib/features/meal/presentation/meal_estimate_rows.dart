@@ -86,7 +86,7 @@ class EstimateRow extends StatelessWidget {
                 child: Text(
                   label,
                   style: theme.textTheme.labelMedium
-                      ?.copyWith(color: theme.colorScheme.outline),
+                      ?.copyWith(color: KafooColors.textMuted),
                 ),
               ),
               if (!isCookOwn)
@@ -96,7 +96,7 @@ class EstimateRow extends StatelessWidget {
                     vertical: KafooSpacing.xs,
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: theme.colorScheme.outline),
+                    border: Border.all(color: KafooColors.borderStrong),
                     borderRadius: BorderRadius.circular(KafooSpacing.xs),
                   ),
                   child: Text(
@@ -115,7 +115,7 @@ class EstimateRow extends StatelessWidget {
           Text(
             basis,
             style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.outline),
+                ?.copyWith(color: KafooColors.textMuted),
           ),
           if (!editing) ...[
             const SizedBox(height: KafooSpacing.sm),

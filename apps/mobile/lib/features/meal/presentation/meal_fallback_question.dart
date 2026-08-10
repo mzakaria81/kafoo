@@ -72,7 +72,7 @@ class MealFallbackQuestion extends ConsumerWidget {
               Text(
                 l10n.mealConvFallbackNotice,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.outline,
+                  color: KafooColors.textMuted,
                 ),
               ),
               const SizedBox(height: KafooSpacing.md),

@@ -228,7 +228,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
             Text(
               l10n.mealSummaryEstimatesNotice(context.addressForm),
               style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.outline),
+                  ?.copyWith(color: KafooColors.textMuted),
             ),
             const SizedBox(height: KafooSpacing.md),
             if (state.analysisInFlight)
@@ -303,7 +303,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                 Text(
                   l10n.mealSummaryNeedsApproval,
                   style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.outline),
+                      ?.copyWith(color: KafooColors.textMuted),
                 ),
               ],
               const SizedBox(height: KafooSpacing.xl),

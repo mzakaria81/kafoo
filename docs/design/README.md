@@ -202,6 +202,18 @@ To source: (a) the Kafoo logo/wordmark; (b) one icon library — verify glyphs r
 6. **How a Cook hears a bad Review** — verbatim, or led by a summary with consent first (recommendation in DESIGN.md §10.13).
 7. **Undefined entirely:** toast/snackbar, tab bar, date & time pickers, rating input, dark mode.
 
+## The screenshots are never store screenshots
+
+**They show invented Cooks, Customers and Meals inside Kafoo's interface.** As specification renders
+in `docs/` that is fine — the trust rules cover seeding, demos and production, and a design document
+is none of those.
+
+They are also now the highest-fidelity Kafoo imagery that exists anywhere in this repository, which
+makes them exactly what somebody reaches for when a store listing needs pictures. **At that moment
+they become synthetic Cooks and Meals presented as real, which `business-rules.md` calls
+product-fatal.** Store and TestFlight screenshots come from a real build with real Meals. Never from
+here.
+
 ## Files
 
 | File | Contents |

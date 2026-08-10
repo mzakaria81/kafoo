@@ -220,8 +220,13 @@ class _MealConversationScreenState
 
     return Scaffold(
       appBar: AppBar(),
+      // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
+      // by 182 logical pixels, up from 4 before the theme once the design system's type scale landed, and an overflowing
+      // Column resolves it by clipping its LAST child — the button that submits.
+      // A Cook using large text on a cheap Android handset had no reachable
+      // control at all.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -268,7 +273,9 @@ class _MealConversationScreenState
                       ),
                 ),
               ],
-              const Spacer(),
+              // A fixed gap: a Spacer needs bounded height and a scroll view
+              // gives it none.
+              const SizedBox(height: KafooSpacing.xl),
               if (isPhoto) ...[
                 if (_uploading)
                   const SizedBox(

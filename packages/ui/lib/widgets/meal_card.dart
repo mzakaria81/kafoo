@@ -87,14 +87,19 @@ class MealCard extends StatelessWidget {
                         const SizedBox(height: KafooSpacing.xs),
                         Text(kitchenLabel, style: textTheme.bodySmall),
                         const SizedBox(height: KafooSpacing.sm),
+                        // THE LARGEST THING ON THE CARD, at 34/700.
+                        //
+                        // It was `titleSmall` — 14px, the smallest text here,
+                        // sitting under a 20px Meal name. Meanwhile a token test
+                        // asserted "a numeral is the largest thing in the system"
+                        // and passed, because it compared tokens to tokens and
+                        // never to a use. For a Cook who does not read
+                        // comfortably the price is the one reliably readable
+                        // element, and it was the hardest thing here to see.
                         Text(
                           price,
-                          style: textTheme.titleSmall?.copyWith(
-                            // The generated scheme, not the raw seed token —
-                            // every other colour on the screen is tonally
-                            // remapped from it and the price was the one
-                            // element off that palette.
-                            color: Theme.of(context).colorScheme.primary,
+                          style: KafooType.numeralRow.copyWith(
+                            color: KafooColors.primaryDeep,
                           ),
                         ),
                       ],
@@ -121,7 +126,7 @@ class MealCardPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(KafooSpacing.sm),
+        borderRadius: BorderRadius.circular(KafooRadius.thumbnail),
         child: Image.network(
           url,
           // A Meal photo beside the Meal's name is decorative in the semantics
@@ -137,7 +142,7 @@ class MealCardPhoto extends StatelessWidget {
           errorBuilder: (_, __, ___) => const SizedBox(
             width: _size,
             height: _size,
-            child: ColoredBox(color: Color(0x14000000)),
+            child: ColoredBox(color: KafooColors.surfaceSunken),
           ),
         ),
       );

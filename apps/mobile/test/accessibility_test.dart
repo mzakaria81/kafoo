@@ -16,6 +16,7 @@ import 'package:kafoo_mobile/features/meal/presentation/meal_edit_screen.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_account_repository.dart';
 import 'support/fake_discovery_repository.dart';
@@ -61,8 +62,16 @@ const _cookMeal = CookMeal(
   allergens: ['جلوتين'],
 );
 
+/// The app under test, **with the app's own theme**.
+///
+/// Until 2026-08-10 this built a themeless `MaterialApp`, so all thirty
+/// assertions below ran against Material's defaults and not one of them had ever
+/// seen `kafooTheme()` — the thing that decides every colour and size a Cook
+/// actually looks at. The design system shipped with token-level tests only, and
+/// token tests pass while screens clip, because a colour cannot overflow.
 Widget _testApp(Widget child, {double textScale = 1.0}) {
   return MaterialApp(
+    theme: kafooTheme(),
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: const [
@@ -198,13 +207,40 @@ void main() {
 
   // dart.md: layout must not clip at 200% text scale. Overflow is reported as
   // a framework exception, so a clean pump is the assertion.
-  for (final entry in _screens().entries) {
-    testWidgets('${entry.key} does not clip at 200% text scale',
-        (tester) async {
-      await tester.pumpWidget(_testApp(entry.value, textScale: 2.0));
-      await tester.pumpAndSettle();
+  //
+  // **AT PHONE SIZES, AND THAT IS THE HALF THAT WAS MISSING.** This loop ran only
+  // at Flutter's 800x600 test default, where a tall layout has room it will never
+  // have on a handset. Five screens overflowed at 360x640 while every assertion
+  // here stayed green — including the conversational publish flow, which is the
+  // path a Cook lands on when speech recognition is unavailable on her phone.
+  //
+  // 360x640 is the modal cheap Android; 320x568 is the smallest still in use.
+  const viewports = <String, Size>{
+    'default': Size.zero, // whatever the harness gives us
+    '360x640': Size(360, 640),
+    '320x568': Size(320, 568),
+  };
 
-      expect(tester.takeException(), isNull);
-    });
+  for (final entry in _screens().entries) {
+    for (final vp in viewports.entries) {
+      testWidgets('${entry.key} does not clip at 200% text scale, ${vp.key}',
+          (tester) async {
+        if (vp.value != Size.zero) {
+          tester.view.physicalSize = vp.value;
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.reset);
+        }
+        await tester.pumpWidget(_testApp(entry.value, textScale: 2.0));
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '${entry.key} clips at 200% on ${vp.key}. An overflowing '
+              'Column drops its LAST child, which is usually the button that '
+              'finishes the task.',
+        );
+      });
+    }
   }
 }

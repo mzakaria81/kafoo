@@ -169,8 +169,23 @@ jobs:
           prompt: |
             Review the diff of this pull request against Kafoo's review briefs.
 
-            The diff is `git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}`.
+            The diff is `git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} -- . ':!docs/design/references/'`.
             Read it first, in full, before dispatching anything.
+
+            **EXCLUDE `docs/design/references/` AND KEEP IT EXCLUDED.** Those are vendored
+            HTML design prototypes — reference material the design bundle's own README says
+            must never be shipped or ported. They are not code and nobody reviews them.
+
+            Adding that directory took the reviewable diff to 427,000 characters, and this
+            job then failed three times in a row on pull request #450: the agent read for two
+            minutes, exhausted its room, and stopped before writing a single finding. The
+            guard below caught it correctly each time and said "re-run the job" — which was
+            the wrong advice, because re-running a job that cannot fit its input just spends
+            the money again. Twice, before anyone compared the diff sizes.
+
+            If this job starts failing this way again, measure the diff before re-running
+            it. A reviewer that stops without writing anything is usually being asked to
+            read too much, not failing intermittently.
 
             Three dots, for the reason the selector step above uses them: `base.sha` is
             the base branch tip when the event fired, not the merge base, so a two-dot

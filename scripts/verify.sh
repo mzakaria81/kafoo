@@ -755,6 +755,43 @@ run "every screen has a route into it" bash -c '
   done
   exit $status'
 
+# THE ARABIC FONT IS DECLARED IN BOTH PLACES IT HAS TO BE.
+#
+# `KafooType.fontFamily` names a family in Dart; `apps/mobile/pubspec.yaml` is what actually bundles
+# it. Nothing connects the two. Rename, move or drop the pubspec block and the build SUCCEEDS while
+# every screen reverts to whatever Arabic face the handset happens to carry — the exact state the
+# design system exists to end.
+#
+# The test called "carries the bundled Arabic font" cannot catch it. It asserts the theme's family
+# equals `KafooType.fontFamily` — the constant against itself. It reads as coverage and is not.
+# `dart analyze` never opens pubspec, and widget tests never load real fonts. Same shape as the icon
+# font below and the Info.plist strings: invisible to everything except a person holding a phone.
+#
+# Written first INSIDE the android check above, where its quoting broke that block and the gate died
+# on an unbound variable — so it is its own check now, with no literal apostrophe in it.
+run "the Arabic font is bundled" bash -c '
+  [ -f apps/mobile/pubspec.yaml ] || { echo "   no mobile app — skipping"; exit 0; }
+  [ -f packages/ui/lib/theme/tokens.dart ] || { echo "   no design tokens yet — skipping"; exit 0; }
+  status=0
+  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/tokens.dart | head -1 |
+           grep -oE "[A-Za-z]+$")
+  if [ -z "$family" ]; then
+    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/tokens.dart."
+    status=1
+  elif ! grep -qE "^[[:space:]]+- family: ${family}$" apps/mobile/pubspec.yaml; then
+    echo "   FAIL: apps/mobile/pubspec.yaml does not declare the font family [${family}]."
+    echo "   Dart names the family, the pubspec bundles it, and nothing else connects them. Without"
+    echo "   the declaration the app builds clean and every Arabic glyph comes from the handset."
+    status=1
+  fi
+  declared=$(grep -cE "asset: assets/fonts/[A-Za-z0-9-]+[.]ttf" apps/mobile/pubspec.yaml || true)
+  [ "$declared" -gt 0 ] || { echo "   FAIL: no font assets declared."; status=1; }
+  for asset in $(grep -oE "assets/fonts/[A-Za-z0-9-]+[.]ttf" apps/mobile/pubspec.yaml); do
+    [ -f "apps/mobile/${asset}" ] || {
+      echo "   FAIL: ${asset} is declared in pubspec.yaml but is not on disk."; status=1; }
+  done
+  exit $status'
+
 # THE THINGS THAT ARE ONLY WRONG ON A REAL PHONE.
 #
 # Every other check in this file reads Dart, SQL or ARB. None of them opens the Android manifest or

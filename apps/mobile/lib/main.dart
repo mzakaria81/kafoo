@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,6 +30,39 @@ const _supabasePublishableKey =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // THE FONT'S LICENCE, WHERE A PERSON CAN READ IT.
+  //
+  // IBM Plex Sans Arabic ships under the SIL Open Font License, which asks that
+  // the notice travel with the font. It does travel inside each .ttf, and the
+  // OFL accepts that — but "inside a binary metadata table" is not somewhere
+  // anybody looks. Flutter aggregates licences from Dart packages only, so an
+  // app's own asset folder is invisible to its licences page unless registered.
+  //
+  // NOTHING ROUTES TO THE LICENCES PAGE YET, and that is a founder decision
+  // rather than an oversight. `settings_screen.dart` says in terms that the next
+  // entry added there is its own stop-and-ask, not a follow-on — so the entry
+  // that would reach `showLicensePage` is waiting on approval.
+  //
+  // Registering it anyway is still the right half to do now: the registration is
+  // what makes the notice available, it is correct whether or not a route
+  // exists, and the alternative is remembering to come back. But do not describe
+  // Kafoo's attribution as "visible to a user" until that route exists — today
+  // it is visible inside the font files and to Flutter, and no further.
+  LicenseRegistry.addLicense(() => Stream.value(
+        const LicenseEntryWithLineBreaks(
+          ['IBM Plex Sans Arabic'],
+          'Copyright 2019 IBM Corp. All rights reserved.\n\n'
+          'This Font Software is licensed under the SIL Open Font License, '
+          'Version 1.1. This licence is available at '
+          'https://openfontlicense.org and is also carried in the metadata of '
+          'each bundled font file.\n\n'
+          'IBM Plex is a trademark of IBM Corp., registered in many '
+          'jurisdictions worldwide. "Plex" is a Reserved Font Name under the '
+          'OFL: a modified version of these faces — including a subset — must '
+          'not carry it.',
+        ),
+      ));
 
   // Fail here, loudly, rather than at the first request with a confusing auth error. A missing
   // --dart-define is a build mistake, and an app that cannot reach Supabase cannot do anything

@@ -87,7 +87,67 @@ void main() {
     // is to disagree with the document when the document is wrong.
     const surface = KafooColors.surface;
 
-    test('every text token that carries meaning passes WCAG AA', () {
+    test('every text token passes AA on EVERY surface, not just the page', () {
+      // textSubtle passed on `surface` at 4.66:1 and failed on `surfaceSunken`
+      // at 4.43:1 — and surfaceSunken is the documented fill for drafts and
+      // wells, which is exactly where annotation lands. Checking one background
+      // is checking the easy case.
+      const backgrounds = <String, Color>{
+        'surface': KafooColors.surface,
+        'surfaceRaised': KafooColors.surfaceRaised,
+        'surfaceSunken': KafooColors.surfaceSunken,
+      };
+      const texts = <String, Color>{
+        'onSurface': KafooColors.onSurface,
+        'textMuted': KafooColors.textMuted,
+        'textSubtle': KafooColors.textSubtle,
+        'primaryDeep': KafooColors.primaryDeep,
+        'voiceDeep': KafooColors.voiceDeep,
+        'danger': KafooColors.danger,
+        'success': KafooColors.success,
+        'warning': KafooColors.warning,
+      };
+      texts.forEach((tName, text) {
+        backgrounds.forEach((bName, bg) {
+          expect(
+            _contrast(text, bg),
+            greaterThanOrEqualTo(4.5),
+            reason: '$tName on $bName is below AA.',
+          );
+        });
+      });
+    });
+
+    test('a boundary that carries meaning clears 3:1', () {
+      // WCAG 1.4.11. `border` and `borderStrong` are 1.29:1 and 1.54:1 — correct
+      // as the design drew them, and decorative by this measure. An empty input
+      // field is the typing fallback a Cook reaches when speech fails her, so
+      // its edge is the only thing marking where to tap and cannot be decorative.
+      expect(
+        _contrast(KafooColors.borderMeaningful, KafooColors.surface),
+        greaterThanOrEqualTo(3.0),
+      );
+    });
+
+    test('the documented ratios are the measured ratios', () {
+      // Two comments claimed numbers computed against pure white rather than the
+      // warm surface. A wrong figure in a comment is what the next person trusts
+      // instead of measuring.
+      expect(
+        _contrast(KafooColors.voiceDeep, KafooColors.surface),
+        closeTo(7.36, 0.05),
+      );
+      expect(
+        _contrast(KafooColors.textDisabled, KafooColors.surface),
+        closeTo(2.45, 0.05),
+      );
+      expect(
+        _contrast(KafooColors.voiceDeep, KafooColors.voiceTint),
+        greaterThanOrEqualTo(7.0), // the AAA claim
+      );
+    });
+
+    test('legacy: text tokens pass on the page', () {
       const pairs = <String, Color>{
         'onSurface': KafooColors.onSurface,
         'textMuted': KafooColors.textMuted,
@@ -126,6 +186,53 @@ void main() {
             'this". If it now passes, it is being used for readable content '
             'somewhere and needs a different token.',
       );
+    });
+  });
+
+  group('ColorScheme slots the app reads as text', () {
+    // THE TEST THAT WOULD HAVE CAUGHT THE WORST BUG IN THIS DESIGN SYSTEM.
+    //
+    // `outline` was wired to a 1.54:1 border colour while thirteen call sites in
+    // the app used it as a text colour — including the "this is an AI estimate"
+    // notice beside allergens and the sentence telling a Cook she must approve
+    // those estimates before publishing. Every token test passed, because the
+    // tokens were fine; the WIRING was wrong, and nothing looked at the wiring.
+    final scheme = kafooTheme().colorScheme;
+
+    test('every slot used as a text colour clears AA on the surface', () {
+      final slots = <String, Color>{
+        'onSurface': scheme.onSurface,
+        'onSurfaceVariant': scheme.onSurfaceVariant,
+        'outline': scheme.outline,
+        'error': scheme.error,
+        'primary': scheme.primary,
+        'onPrimaryContainer': scheme.onPrimaryContainer,
+        'onSecondaryContainer': scheme.onSecondaryContainer,
+        'onTertiaryContainer': scheme.onTertiaryContainer,
+        'onErrorContainer': scheme.onErrorContainer,
+      };
+      slots.forEach((name, color) {
+        expect(
+          _contrast(color, scheme.surface),
+          greaterThanOrEqualTo(4.5),
+          reason: 'colorScheme.$name is below AA on the surface. Grep the app '
+              'before assuming this slot is decorative — Material role names '
+              'suggest borders and the app reads several of them as text.',
+        );
+      });
+    });
+
+    test('a dialog has a background distinct from the page behind it', () {
+      // All six surfaceContainer roles were unset, so a dialog rendered at
+      // 1.00:1 against the page — no boundary but the scrim. ADR-0013 makes the
+      // confirmation gate the one surface that must be unmistakably in front.
+      expect(scheme.surfaceContainerHigh, isNot(scheme.surface));
+    });
+
+    test('tertiary is not the reserved voice hue', () {
+      // Unset, tertiary resolves to secondary — the teal ADR-0013 reserves for
+      // "the machine is talking".
+      expect(scheme.tertiary, isNot(KafooColors.voice));
     });
   });
 

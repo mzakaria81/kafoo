@@ -57,8 +57,21 @@ flutter:
   # Four weights, not eight. 400/500/600/700 are what the type scale uses; 100/200/300 are below the
   # 400 floor the design sets for Arabic body text, because thin strokes vanish in sunlight.
   #
-  # SIL Open Font License 1.1 — see IBMPlexSansArabic-LICENSE.txt beside the files. Bundling and
-  # redistribution are permitted; the licence file ships with them because the licence requires it.
+  # SIL Open Font License 1.1. Bundling and redistribution are permitted.
+  #
+  # THE .txt BESIDE THESE FILES DOES NOT SHIP, and this comment claimed it did until somebody built
+  # the asset bundle and looked. Flutter bundles what it is told to bundle; there is no `assets:`
+  # section here, so only the four .ttf files are packaged. The notice travels INSIDE them — each face
+  # carries the copyright, the OFL statement and the licence URL in its own metadata, which is a form
+  # the OFL explicitly accepts. Attribution is therefore satisfied by the binary, not by the .txt.
+  #
+  # The .txt stays in the repository as provenance for whoever next touches these fonts. Do not add it
+  # under `assets:`: that ships 4 KB no code reads and no person can see, which satisfies nothing the
+  # font metadata does not already satisfy. `LicenseRegistry` in main.dart is what makes it readable.
+  #
+  # The faces are unmodified upstream v1.005, so the OFL's reserved-name clause does not apply — it
+  # binds Modified Versions only. **A subset IS a modified version**, so if apps/web ever self-hosts a
+  # woff2 subset, that subset must be renamed away from "Plex".
   fonts:
     - family: IBMPlexSansArabic
       fonts:

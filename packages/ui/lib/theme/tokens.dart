@@ -55,7 +55,12 @@ abstract final class KafooSpacing {
 /// designer's monitor. Every text pair here is WCAG AA (4.5:1) or better on
 /// [surface]; [textDisabled] fails on purpose, and that is the only exception.
 ///
-/// Ratios in the comments were measured, not estimated.
+/// Ratios in the comments are measured. **Two were not, until 2026-08-10** —
+/// `voiceDeep` claimed 8.9:1 and measures 7.36:1, `textDisabled` claimed 2.9:1
+/// and measures 2.45:1. Both were computed against pure white rather than the
+/// warm surface, which flatters every number slightly. Nothing failed as a
+/// result, but a wrong figure in a comment is what the next person trusts
+/// instead of measuring, so the test now asserts the documented value.
 abstract final class KafooColors {
   // ── Brand ────────────────────────────────────────────────────────────────
 
@@ -101,12 +106,19 @@ abstract final class KafooColors {
   /// lighter greys become unreadable in sunlight.
   static const Color textMuted = Color(0xFF57534E);
 
-  /// Non-essential annotation ONLY. 4.8:1 — passes AA, but only just.
+  /// Non-essential annotation ONLY. 5.5:1 on the surface, 5.25:1 at worst.
   ///
   /// Never a price, a label, or an instruction. This is the last legible step.
-  static const Color textSubtle = Color(0xFF78716C);
+  ///
+  /// **Darkened from `#78716C` on 2026-08-10.** The design's value passed on
+  /// `surface` at 4.66:1 and FAILED on `surfaceSunken` at 4.43:1 — and
+  /// `surfaceSunken` is where annotation actually lands, since it is the fill for
+  /// drafts and wells. A token one step of background away from failing is a
+  /// token that fails. The contrast test now loops every text colour over all
+  /// three surfaces rather than only the page.
+  static const Color textSubtle = Color(0xFF6B6660);
 
-  /// Disabled control labels. 2.9:1 — **intentionally below AA.**
+  /// Disabled control labels. 2.45:1 — **intentionally below AA.**
   ///
   /// Failing contrast is the signal that the control is inert. Never use it for
   /// content anybody needs to read.
@@ -124,7 +136,7 @@ abstract final class KafooColors {
   /// for a human's words.
   static const Color voice = Color(0xFF0F766E);
 
-  /// Assistant speech set as text, and the «محفوظ» glance word. 8.9:1.
+  /// Assistant speech set as text, and the «محفوظ» glance word. 7.36:1.
   static const Color voiceDeep = Color(0xFF115E59);
 
   /// Voice panels and assistant speech backgrounds. Pairs with [voiceDeep] at
@@ -176,6 +188,20 @@ abstract final class KafooColors {
   /// Input borders at rest, drag handles. Heavier than [border] because an
   /// empty field must visibly be a field.
   static const Color borderStrong = Color(0xFFD6CCC0);
+
+  /// A boundary a user must be able to FIND, at 3.44:1.
+  ///
+  /// [border] and [borderStrong] are 1.29:1 and 1.54:1 against the surface. They
+  /// are correct as the design drew them — warm hairlines that separate without
+  /// shouting — and they are decoration by WCAG's measure, which asks 3:1 of any
+  /// boundary carrying information.
+  ///
+  /// **The empty input field is why this exists.** Typing is the fallback a Cook
+  /// reaches when speech fails her, and at 1.54:1 an empty field has no visible
+  /// edge in a bright kitchen: there is nothing to show her where to tap. Use
+  /// this for a boundary that is the only thing marking an interactive region.
+  /// Keep [border] for a card edge, where the content inside does that job.
+  static const Color borderMeaningful = Color(0xFF8F877D);
 
   /// Disabled control fill.
   static const Color disabledFill = Color(0xFFF0E9E1);
@@ -264,7 +290,20 @@ abstract final class KafooType {
 
   /// Fallbacks, Arabic-first: a swap from a Latin-metric face reflows the whole
   /// screen.
-  static const List<String> fontFamilyFallback = ['Noto Sans Arabic'];
+  ///
+  /// **This is an Android safety net and not an iOS one, and the difference is
+  /// worth knowing.** `Noto Sans Arabic` ships on Android; iOS has Geeza Pro and
+  /// SF Arabic instead, so on iOS this entry resolves to nothing and the chain
+  /// falls through to the platform default. Both iOS names are listed after it
+  /// so the net exists on both. It should never be reached either way — the
+  /// bundled face covers every character in Kafoo's strings, verified against
+  /// its glyph table — but Meal names are written by Cooks and cannot be
+  /// checked in advance.
+  static const List<String> fontFamilyFallback = [
+    'Noto Sans Arabic',
+    'Geeza Pro',
+    'SF Arabic',
+  ];
 
   /// 40/700. Welcome and onboarding only — tight leading is safe because it is
   /// never a paragraph.
