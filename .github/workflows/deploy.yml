@@ -7,9 +7,14 @@ name: Deploy
 # Secrets that light steps up:
 #   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD
 #     + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD   -> a signed Android bundle
-#   IOS_CERTIFICATE_BASE64 + IOS_CERTIFICATE_PASSWORD
-#     + IOS_PROVISIONING_PROFILE_BASE64
-#     + IOS_KEYCHAIN_PASSWORD                      -> a signed iOS archive
+#   APP_STORE_CONNECT_KEY_ID + APP_STORE_CONNECT_ISSUER_ID
+#     + APP_STORE_CONNECT_PRIVATE_KEY_BASE64
+#     + APPLE_TEAM_ID                              -> a signed iOS build, sent to TestFlight
+#
+# The iOS four replaced IOS_CERTIFICATE_BASE64, IOS_CERTIFICATE_PASSWORD,
+# IOS_PROVISIONING_PROFILE_BASE64 and IOS_KEYCHAIN_PASSWORD on 2026-08-10. Those four were
+# never set, and could not have been: producing a `.p12` certificate means exporting it from
+# a Mac keychain, and Kafoo has no Mac. Setup instructions: docs/ops/ios-testflight.md.
 #
 # THE WEB DEPLOY IS BACK, AND THIS TIME IT POINTS AT SOMETHING THAT EXISTS.
 #
@@ -293,12 +298,21 @@ jobs:
     outputs:
       has_ios_signing: ${{ steps.check.outputs.has_ios_signing }}
     steps:
+      # THREE SECRETS AND A TEAM ID, NONE OF WHICH COME FROM A MAC.
+      #
+      # This used to require a `.p12` certificate and a `.mobileprovision` profile — both of
+      # which are produced by exporting from a Mac's keychain, and Kafoo has no Mac. It was a
+      # signing scheme that could not be set up by the only person who would ever set it up.
+      #
+      # An App Store Connect API key is three values downloaded from a web page, and Xcode's
+      # `-allowProvisioningUpdates` uses it to create and fetch the certificate and profile at
+      # build time. Same result, no Mac anywhere in the chain. docs/ops/ios-testflight.md.
       - id: check
         env:
-          HAS_IOS: ${{ secrets.IOS_CERTIFICATE_BASE64 != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' }}
+          HAS_IOS: ${{ secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           echo "has_ios_signing=${HAS_IOS}" >> "$GITHUB_OUTPUT"
-          echo "iOS signing secrets present: ${HAS_IOS}"
+          echo "App Store Connect credentials present: ${HAS_IOS}"
 
       - uses: actions/checkout@v5
 
@@ -471,13 +485,26 @@ jobs:
       # --obfuscate with --split-debug-info makes the release AOT build
       # unreadable without the symbol files, so those files ARE the ability to
       # debug a production crash. They are archived below.
+      #
+      # THE TWO `--dart-define`s WERE MISSING UNTIL 2026-08-10, and every candidate this job
+      # produced before that date was an app that installs and then throws on its first
+      # screen. `main()` reads the Supabase address and publishable key through
+      # `String.fromEnvironment`, which returns an empty string rather than failing when the
+      # value was never passed. `demo-apk.yml` passed them from the day it was written; this
+      # job never did, and nothing noticed because no candidate has ever been installed.
+      # Found while wiring the iOS job, which had the identical hole.
       - name: Build app bundle
         if: steps.detect.outputs.buildable == 'true'
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           flutter build appbundle --release \
             --build-number="${{ github.run_number }}" \
             --obfuscate \
-            --split-debug-info=build/symbols
+            --split-debug-info=build/symbols \
+            --dart-define=SUPABASE_URL="${URL}" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
         working-directory: apps/mobile
 
       # THE BUILD RUNS ON EVERY MERGE. THE ARTIFACT IS KEPT ONLY WHEN ASKED FOR,
@@ -673,46 +700,118 @@ jobs:
       # the apt route does not exist there — to satisfy a database check for a job that builds an
       # iOS archive. Deno went with it, for the same reason it did in the Android job.
 
-      # iOS needs a certificate AND a provisioning profile, unlike Android's
-      # single keystore. Both land in a temporary keychain that is deleted with
-      # the runner; neither touches the working tree.
-      - name: Install signing certificate and profile
+      # ONE FILE, TWO CONSUMERS. `xcodebuild` is handed the path explicitly; `altool` only
+      # looks in a fixed list of directories and this is one of them, so writing it here
+      # serves both without a second copy. Deleted at the end of the job.
+      - name: Install the App Store Connect key
         if: steps.detect.outputs.buildable == 'true'
         env:
-          CERT_B64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
         run: |
-          CERT_PATH="$RUNNER_TEMP/cert.p12"
-          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$KEY_B64" | base64 --decode \
+            > "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+          echo "App Store Connect key installed"
 
-          printf '%s' "$CERT_B64" | base64 --decode > "$CERT_PATH"
-          printf '%s' "$PROFILE_B64" | base64 --decode > "$PROFILE_PATH"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security import "$CERT_PATH" -P "$CERT_PASSWORD" -A \
-            -t cert -f pkcs12 -k "$KEYCHAIN"
-          security list-keychain -d user -s "$KEYCHAIN"
-
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/"
-          echo "signing material installed into a temporary keychain"
-
-      # Build number from github.run_number: monotonic, never reused. Symbols
-      # are archived for the same reason as Android — an obfuscated AOT crash
-      # report is unreadable without them.
-      - name: Build IPA
+      # UNSIGNED HERE, SIGNED AT EXPORT, and the split is what removes the Mac from the
+      # chain: `-allowProvisioningUpdates` in the export step below asks Apple for the
+      # distribution certificate and provisioning profile using the API key and signs with
+      # what comes back. Nobody ever exports a `.p12` from a keychain they do not own.
+      #
+      # THE TWO `--dart-define`s ARE NOT OPTIONAL. `main()` reads the Supabase address and
+      # publishable key through `String.fromEnvironment`, which yields an empty string when
+      # the value was never passed, and then throws on the first screen. Without these the
+      # TestFlight build installs perfectly and dies on launch — a failure that looks like a
+      # broken app and is actually a missing build flag. `demo-apk.yml` has always passed
+      # them; this job and the Android one never did, because neither had ever been run.
+      #
+      # Build number from github.run_number: monotonic, never reused. Symbols are archived
+      # for the same reason as Android — an obfuscated AOT crash report is unreadable
+      # without them.
+      - name: Build the archive
         if: steps.detect.outputs.buildable == 'true'
         working-directory: apps/mobile
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          flutter build ipa --release \
+          flutter build ipa --release --no-codesign \
             --build-number="${{ github.run_number }}" \
             --obfuscate \
-            --split-debug-info=build/symbols
+            --split-debug-info=build/symbols \
+            --dart-define=SUPABASE_URL="${URL}" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
+
+      # `method` is `app-store` rather than the newer `app-store-connect`: both are accepted
+      # by current Xcode, the old name is accepted by older Xcode too, and this file cannot
+      # pin the runner's Xcode version.
+      #
+      # The options file is written here rather than committed because `teamID` is the only
+      # value in it and it comes from a secret. A committed file would either hardcode the
+      # team or be a template with one substitution — both worse than six lines of heredoc.
+      - name: Sign and export the app
+        if: steps.detect.outputs.buildable == 'true'
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>destination</key><string>export</string>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath apps/mobile/build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath apps/mobile/build/ios/ipa \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+
+      # THE ONLY STEP THAT LEAVES THE RUNNER, and the only one a person outside Kafoo can
+      # see the result of. Gated exactly like the archive steps below — manual run, from
+      # `main` — for the same reason and with the same limit: an `if:` inside this file
+      # cannot defend the file, because `workflow_dispatch` runs the workflow as it exists
+      # on the ref it was dispatched against. It stops an honest mistake, not a determined
+      # one, and the honest mistake it stops is a merge quietly pushing a build to a phone.
+      #
+      # `altool --upload-app` rather than a third-party action: it ships with Xcode, so
+      # there is no supply chain here beyond Apple's own tooling, and it is three lines.
+      - name: Send the build to TestFlight
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          IPA="$(find apps/mobile/build/ios/ipa -maxdepth 1 -name '*.ipa' | head -1)"
+          if [ -z "$IPA" ]; then
+            echo "::error::the export produced no .ipa — nothing to send"
+            exit 1
+          fi
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          {
+            echo "### Sent to TestFlight"
+            echo ""
+            echo "Build \`${{ github.run_number }}\` is uploaded. Apple takes a few minutes to"
+            echo "process it, then it appears in the TestFlight app on your phone."
+            echo "A build stops working 90 days after upload — run this again for a fresh one."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Same rule as Android: the build is the check and runs every time, the
       # artifact is kept only on a manual run. Applied here for consistency rather
@@ -764,11 +863,12 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # The keychain dies with the runner, but deleting it explicitly means a
-      # later step in this job cannot reach the signing identity.
-      - name: Remove signing material
+      # The runner is destroyed either way, but deleting it explicitly means a later step in
+      # this job cannot reach the key — and a private key that can create signing
+      # certificates for Kafoo is the one credential here that is not merely a build input.
+      - name: Remove the App Store Connect key
         if: always()
-        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+        run: rm -rf "$HOME/.appstoreconnect" || true
 
       - name: Release notes
         if: steps.detect.outputs.buildable == 'true'
@@ -777,7 +877,8 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Build number: \`${{ github.run_number }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Not submitted. Run the pre-submission checklist in" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`.claude/agents/release-engineer.md\` before uploading." >> "$GITHUB_STEP_SUMMARY"
-          echo "Store listing must be Egyptian Arabic first; no screenshot may" >> "$GITHUB_STEP_SUMMARY"
-          echo "show an invented Cook, Meal, or Review." >> "$GITHUB_STEP_SUMMARY"
+          echo "TestFlight is not the App Store. A build reaching your own phone is" >> "$GITHUB_STEP_SUMMARY"
+          echo "internal testing and needs no Apple review; PUBLISHING still does." >> "$GITHUB_STEP_SUMMARY"
+          echo "Before that, run the pre-submission checklist in" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`.claude/agents/release-engineer.md\`. Store listing must be Egyptian" >> "$GITHUB_STEP_SUMMARY"
+          echo "Arabic first; no screenshot may show an invented Cook, Meal, or Review." >> "$GITHUB_STEP_SUMMARY"
