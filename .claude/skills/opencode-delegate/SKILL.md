@@ -76,6 +76,11 @@ single-model backend like codex-delegate never had, and it has two owners:
   is usually a namespace nobody listed. Run `opencode models --refresh` before concluding a model is
   absent; the local catalog caches and a stale cache is indistinguishable from unavailability.
 
+**In this repository, that stated set lives in
+[references/kafoo-account.md](references/kafoo-account.md)** — the `opencode-go/` allowlist, the
+spend ledger you must run around every dispatch, the billing caps, and the current suspension.
+Read it before dispatching anything.
+
 More depth: [references/writing-the-brief.md](references/writing-the-brief.md).
 
 ## The loop
@@ -181,6 +186,9 @@ is in [references/review-and-land.md](references/review-and-land.md).
 
 ## References
 
+- [references/kafoo-account.md](references/kafoo-account.md) — **this repository's account rules**:
+  the `opencode-go/` prefix as the billing boundary, the model allowlist and task-shape table, the
+  spend ledger and calibration workflow, and what is currently suspended.
 - [references/writing-the-brief.md](references/writing-the-brief.md) — how to write a brief OpenCode can
   execute blind: structure, XML blocks, the report contract, embedding the real gate commands.
 - [references/dispatch-and-poll.md](references/dispatch-and-poll.md) — `relay.mjs` flags, the

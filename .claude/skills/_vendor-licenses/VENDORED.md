@@ -39,8 +39,9 @@ skill still costs context in every session. Add one with:
 npx skills add amElnagdy/delegate-skills --skill codex-delegate
 ```
 
-Model policy for `opencode-delegate` (flat-rate `opencode-go/` namespace only) lives in the
-"Delegating implementation work" section of `CLAUDE.md`.
+Model policy for `opencode-delegate` (flat-rate `opencode-go/` namespace only) lives in
+`.claude/skills/opencode-delegate/references/kafoo-account.md`; `CLAUDE.md` carries only the
+mandate and the current suspension.
 
 Independent review of `scripts/relay.mjs` (both copies): no network calls, no third-party
 dependencies (Node built-ins only), no credential reads; it spawns `opencode`/`claude`, `git`,

@@ -2005,3 +2005,139 @@ documents, one level out — stale in time rather than racing in time.
 checkout is current. Any check-then-act sequence over shared state must first establish that what
 it is reading is the shared state, not a snapshot of it — otherwise every step passes, agrees with
 every other step, and is wrong together.
+### Observation 133: Search-result summaries fabricated an official Anthropic skill that does not exist
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Founder asked whether Anthropic publishes a skill for reviewing CLAUDE.md files, and what the current recommendations are.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Research and verification before reporting tool availability
+
+**Issue:** A web search for an Anthropic CLAUDE.md review skill returned a confident summary
+asserting that "there is an Anthropic official skill that audits and improves CLAUDE.md files"
+and describing its rubric in detail — commands, architecture clarity, conciseness, currency,
+actionability. Fetching the primary source (`anthropics/skills` README) showed no such skill
+exists; the official mechanisms are `/doctor`'s trim check and `/init`. The fabricated summary
+was specific enough to be indistinguishable from a real finding, and reporting it would have
+sent the user looking for something that does not exist.
+
+**Suggested improvement:** Add a rule to the research/verification guidance: an assertion that a
+tool, skill, plugin or API exists must be confirmed against the primary source (repository
+listing, official docs page, package registry) before it is reported to the user. A search-engine
+summary is evidence that people write about the topic, not that the artefact exists.
+
+**Principle:** Search summaries answer the question they were asked, which biases them toward
+confirming the existence of whatever was searched for. Existence claims require a primary-source
+check; the more specific and useful the summarised detail, the more it should raise suspicion
+rather than confidence.
+
+### Observation 134: Always-loaded instruction files absorb corrections that belong in on-demand skills
+
+**Status:** PARTIALLY ACTIONED (2026-08-09) — project half done: CLAUDE.md cut 631->314 lines, the 228-line delegation section moved to `.claude/skills/opencode-delegate/references/kafoo-account.md`. Skill half still OPEN: the routing rule (name the destination at write time) is not yet recorded in task-observer or the cross-cutting principles.
+**Date:** 2026-08-09
+**Session context:** Auditing a 631-line project CLAUDE.md against Anthropic's under-200-line guidance.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Where a correction gets written
+
+**Issue:** The file's largest section — 228 lines, 36% of the whole — documented a delegation
+workflow that was already covered by two existing on-demand skills, and was itself suspended at
+the time. Every incident over three weeks (a wrong provider prefix, a billing-model error, a
+spend-ledger drift measurement) had been written into the always-loaded file rather than into the
+skill that runs the workflow. Nothing chose that destination; it was the file being read when the
+incident happened. The result is that the cost of every past incident is paid at the start of
+every session, including sessions that will never delegate.
+
+**Suggested improvement:** When a correction is logged or applied, name the destination explicitly
+and justify it: always-loaded only if it is needed in *every* session. A correction to a procedure
+belongs in the procedure's skill or a path-scoped rule, even when the procedure's own file is not
+the one currently open.
+
+**Principle:** Documentation gravitates to whichever file is open when the lesson is learned, not
+to the file where it belongs. Any always-loaded context file will grow monotonically unless the
+routing decision is made deliberately at write time — and the growth is invisible, because each
+individual addition is correct.
+
+### Observation 135: A documented output format was read, agreed with, and then not applied
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Auditing a project instruction file; the same instruction file specifies a
+mandatory reply format for this user.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Following a documented output contract
+
+**Issue:** The project's instruction file specifies an answer shape in unusual detail — a one-to-three
+sentence bottom line, then sections carrying named headings, then one of three named closing lines,
+plus four required labels for classifying each statement. The file also records that a previous,
+vaguer version of the same instruction had been ignored, and states outright that describing a
+posture failed where describing a shape might work. The reply produced was well-organised and
+plainly written, and still used invented headings rather than the named ones. The user had to ask
+for the format a second time. Notably, the failure was not a comprehension failure: the contract was
+in context, was understood, and was even cited elsewhere in the same session's work.
+
+**Suggested improvement:** When an instruction file prescribes a literal output template — named
+headings, required labels, a fixed closing line — treat it as a checklist to verify the drafted
+reply against before sending, not as style guidance to absorb. The verification is mechanical: does
+each named element literally appear? A format specified this precisely exists because approximation
+already failed.
+
+**Principle:** Adhering to the *spirit* of a format contract while substituting your own structure is
+a failure mode that looks like success, because the output is genuinely good — just not the thing
+that was asked for. The more precisely a format is specified, the more likely it was specified that
+way because someone previously delivered something good in the wrong shape. Prescribed structure is
+a requirement to satisfy literally, not a quality bar to clear by other means.
+
+### Observation 136: Auditing a file for redundancy without fetching the default branch first
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Auditing a project instruction file for bloat and recommending what to cut.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Establishing current state before an audit
+
+**Issue:** A 62-line section of the audited file was recommended for retention on the grounds that
+it was non-derivable and enforced nothing else. It had in fact been made redundant the previous day
+by a merged commit that moved the whole contract into two hooks — one re-stating it every turn, one
+rejecting output that ignored it. The session branch predated that merge, so the working tree was a
+truthful picture of a superseded repository. The user knew and had to say so; the audit had no way
+to notice, because everything it read agreed with itself.
+
+**Suggested improvement:** Before auditing any file for redundancy or duplication, fetch the
+default branch and diff against it. Redundancy is created by commits, and the ones that matter most
+are the recent ones you do not have. Make `git fetch origin <default>` plus a log of what is missing
+the first step of an audit, not a step taken later when a merge conflict forces it.
+
+**Principle:** An audit judges what is *already* covered elsewhere, which makes it uniquely
+sensitive to being one commit behind — more so than implementation work, where a stale base usually
+announces itself as a conflict. A stale checkout produces an internally consistent, confidently
+wrong audit: every source agrees, because they are all the same age.
+
+### Observation 137: Restructuring a document breaks references held by enforcement code
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Removing sections from an instruction file after their rules moved into hooks.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Checking for dangling references after a documentation change
+
+**Issue:** A validation hook cited a section heading of the file being restructured, inside the
+error message it returns when it rejects work — twice. Deleting that heading would have left the
+enforcement mechanism instructing future sessions to consult a section that no longer existed, and
+nothing would have failed: the hook still works, the gate still passes, and the defect only surfaces
+for whoever reads the rejection message and goes looking. It was caught by grepping for the removed
+*heading strings*, a check that would not have run if the sweep had only covered file paths.
+
+**Suggested improvement:** After removing or renaming any heading in a document that other files
+reference, grep the repository for the heading text itself, not just for the filename. Include
+scripts, hooks, CI config and test fixtures in the sweep — code that quotes documentation usually
+quotes it by section name, and that reference is invisible to a filename search.
+
+**Principle:** Prose is referenced by its headings, and those references live in code that keeps
+working after the heading is gone. A dangling documentation pointer fails silently and only at the
+moment someone follows it, which is the moment they were already confused. Structural edits to a
+document need a reference sweep on the same footing as renaming a function.
