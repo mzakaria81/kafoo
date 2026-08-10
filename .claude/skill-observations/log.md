@@ -2027,3 +2027,55 @@ a failure mode that looks like success, because the output is genuinely good —
 that was asked for. The more precisely a format is specified, the more likely it was specified that
 way because someone previously delivered something good in the wrong shape. Prescribed structure is
 a requirement to satisfy literally, not a quality bar to clear by other means.
+
+### Observation 134: Auditing a file for redundancy without fetching the default branch first
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Auditing a project instruction file for bloat and recommending what to cut.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Establishing current state before an audit
+
+**Issue:** A 62-line section of the audited file was recommended for retention on the grounds that
+it was non-derivable and enforced nothing else. It had in fact been made redundant the previous day
+by a merged commit that moved the whole contract into two hooks — one re-stating it every turn, one
+rejecting output that ignored it. The session branch predated that merge, so the working tree was a
+truthful picture of a superseded repository. The user knew and had to say so; the audit had no way
+to notice, because everything it read agreed with itself.
+
+**Suggested improvement:** Before auditing any file for redundancy or duplication, fetch the
+default branch and diff against it. Redundancy is created by commits, and the ones that matter most
+are the recent ones you do not have. Make `git fetch origin <default>` plus a log of what is missing
+the first step of an audit, not a step taken later when a merge conflict forces it.
+
+**Principle:** An audit judges what is *already* covered elsewhere, which makes it uniquely
+sensitive to being one commit behind — more so than implementation work, where a stale base usually
+announces itself as a conflict. A stale checkout produces an internally consistent, confidently
+wrong audit: every source agrees, because they are all the same age.
+
+### Observation 135: Restructuring a document breaks references held by enforcement code
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Removing sections from an instruction file after their rules moved into hooks.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Checking for dangling references after a documentation change
+
+**Issue:** A validation hook cited a section heading of the file being restructured, inside the
+error message it returns when it rejects work — twice. Deleting that heading would have left the
+enforcement mechanism instructing future sessions to consult a section that no longer existed, and
+nothing would have failed: the hook still works, the gate still passes, and the defect only surfaces
+for whoever reads the rejection message and goes looking. It was caught by grepping for the removed
+*heading strings*, a check that would not have run if the sweep had only covered file paths.
+
+**Suggested improvement:** After removing or renaming any heading in a document that other files
+reference, grep the repository for the heading text itself, not just for the filename. Include
+scripts, hooks, CI config and test fixtures in the sweep — code that quotes documentation usually
+quotes it by section name, and that reference is invisible to a filename search.
+
+**Principle:** Prose is referenced by its headings, and those references live in code that keeps
+working after the heading is gone. A dangling documentation pointer fails silently and only at the
+moment someone follows it, which is the moment they were already confused. Structural edits to a
+document need a reference sweep on the same footing as renaming a function.
