@@ -35,36 +35,38 @@ table, RLS policies, and answers to the privacy questions — message content be
 is a new category of personal data. It also carries the system's one exception to "no transcript":
 a message is read back verbatim before sending.
 
-## What blocks the voice system today
+## Sequencing — decided by the founder, 2026-08-10
 
-**The real-time path is unproven.** `docs/ops/spike-gemini-live.md` records the Gemini Live
-ephemeral-token flow failing on 2026-08-06, and ADR-0009 — where the voice conversation talks to the
-model — is still undecided as a result. A 150 ms acknowledgement budget needs an architecture Kafoo
-does not have.
+1. **EV, the voice layer, over E2's Meal conversation.** It already has a `VoiceButton` and asks one
+   question at a time, so it is the smallest real surface that exercises all nine states.
+2. **E4 Orders, specified voice-first.** The first epic that is voice-first by birth.
+3. **EM Messaging**, which Orders will want anyway — a Customer asking "is it spicy?" is the obvious
+   next thing once an Order exists.
 
-**This is the gating question for the whole direction and it should be answered before EV is
-specified**, not during. A voice-first product whose voice path cannot meet its own latency budget
-is a plan, not a product.
+Reviews stay where they were. They depend on completed Orders and inherit the dictated-text path from
+EM rather than needing their own.
 
-**Two smaller blocks**, both recorded in ADR-0013 and in `.claude/rules/business-rules.md`:
+**ADR-0009 is deliberately NOT answered first, and the founder chose that knowing the cost.** The
+alternative was to spike how voice reaches the model and learn whether 150 ms is achievable before
+building. Building first proves the states against working code; the risk accepted is that if
+ADR-0009 later picks an architecture this layer cannot sit on, the layer is rebuilt.
 
-- The offline-queued state persists raw audio, which the constitution forbids without an ADR. Queue
-  the transcript instead, or decide it properly.
-- Five glance words name Order and Message states that do not exist. They arrive with their feature,
-  not before it.
+**So the two latency budgets are targets, not gates.** A state that acknowledges in 900 ms still
+ships, and is reported as missing its budget — the same treatment discovery's 1112 ms got. What is
+never acceptable at any latency is a silent, still moment.
 
-## Sequencing — a proposal, not a decision
+## What is still unproven, and what to measure first
 
-The founder's call. What I would do, and why:
+**The real-time path.** `docs/ops/spike-gemini-live.md` records the Gemini Live ephemeral-token flow
+failing on 2026-08-06; ADR-0009 is open. This is now a known risk being carried rather than a blocker
+being cleared.
 
-1. **Answer ADR-0009** — how voice reaches the model. Everything else is speculative until this is
-   settled, and it is a spike rather than an epic.
-2. **EV over E2's Meal conversation**, which already has a `VoiceButton` and a question-at-a-time
-   flow. It is the smallest real surface that exercises all nine states, so the voice system gets
-   proven against working code instead of a new epic's unknowns.
-3. **E4 Orders, specified voice-first.** The first epic that is voice-first by birth.
-4. **EM Messaging**, which Orders will want anyway — a Customer asking "is it spicy?" is the
-   obvious next thing after an Order exists.
+**Offline transcription, and this is the first thing to measure.** The offline queue holds text, which
+means the phone must transcribe without a network. Kafoo delegates to Android `SpeechRecognizer` and
+iOS `SFSpeechRecognizer`, which normally reach the network, and `ar-EG` is already known to be missing
+from many Egyptian handsets. **Run `docs/ops/measuring-transcription.md` on a real Egyptian phone
+before building the offline state** — it needs a person with a handset, and it decides whether that
+state can exist at all.
 
-Reviews stay where they were. They depend on completed Orders, and they inherit the dictated-text
-path from EM rather than needing their own.
+**Five glance words name Order and Message states that do not exist.** They arrive with their feature,
+never before it. A glance word for a state the app cannot reach is a promise nothing keeps.

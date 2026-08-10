@@ -116,12 +116,16 @@ what a specific Order requires.
 
 Voice recordings are transcribed and discarded. Do not persist raw audio without an ADR.
 
-**The voice-first design wants to break this and is blocked until an ADR says otherwise.** Its
-offline state promises «كلامك محفوظ وهيتبعت أول ما النت يرجع» and draws a queued-audio card — which
-holds raw audio on the device until the network returns. ADR-0013 records the conflict and does not
-grant the exception, because how long audio is held, whether it survives a force-quit, and what
-deletes it are a separate decision from a design philosophy.
+**That holds offline too, and the founder decided it explicitly on 2026-08-10.** The voice-first
+design's offline state draws a queued-*audio* card; Kafoo queues the **transcript** instead. Speech is
+transcribed on the device, the text is queued, the audio is discarded. No exception to the rule above
+was needed and none was granted (ADR-0013, conflict 1).
 
-**Until that ADR exists, queue the transcript rather than the audio, or do not build the state.**
-Transcribing on-device before queueing keeps the promise to the Cook and the rule at the same time,
-and is the likely answer — but it is a decision somebody makes, not an assumption to code against.
+**The state may only promise what the phone can actually deliver.** On-device Arabic recognition
+normally needs the network on Android, and `docs/ops/measuring-transcription.md` records that `ar-EG`
+is missing on many Egyptian handsets — so on some phones there is no transcript to queue, because the
+thing that makes transcripts needs the network that just went away.
+
+Where transcription succeeds, queue the text and say «محفوظ». Where it fails, **say so plainly and
+offer tap or typing.** Never say «كلامك محفوظ» over words that were not captured: losing a Cook's
+sentence after telling her it was safe is worse than telling her the truth immediately.

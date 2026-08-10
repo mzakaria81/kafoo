@@ -87,19 +87,41 @@ scoped by this ADR and specified by a separate one.
 These are recorded rather than resolved, because two of them are the founder's to decide and the
 third needs precision before anyone writes code against it.
 
-### 1. Offline queued audio persists raw audio — blocked pending an ADR
+### 1. Offline queued audio — RESOLVED 2026-08-10: transcribe on the device, queue the text
 
-The offline state says «كلامك محفوظ وهيتبعت أول ما النت يرجع» and shows a queued-audio card. That
-stores raw audio on the device until the network returns.
+The offline state says «كلامك محفوظ وهيتبعت أول ما النت يرجع» and draws a queued-audio card, which
+would store raw audio on the device until the network returns. The constitution forbids that without
+an ADR: *"Voice recordings are transcribed and discarded. Raw audio MUST NOT be persisted."*
 
-The constitution is explicit: *"Voice recordings are transcribed and discarded. Raw audio MUST NOT
-be persisted without an ADR."* This ADR does not grant that — a queue is a different question from
-a philosophy, and it deserves its own decision covering how long audio is held, where, whether it
-survives a force-quit, and what deletes it.
+**Founder's decision: transcribe on the phone before queueing. Raw audio is never stored, offline or
+otherwise.** The queue holds text.
 
-**Until that ADR exists, the offline-queued state must queue the transcript, not the audio**, or the
-state is not built. Transcribing on-device before queueing satisfies both the design's promise to
-the Cook and the constitution, and is the likely answer — but it is a decision, not an assumption.
+**No exception is needed and none is granted**, which is the point of choosing this option — it keeps
+the constitution rule exactly as written rather than amending it. The queued-audio card in the design
+becomes a queued-*text* card. Nothing else about the state changes: the reassurance comes first, the
+glance word «محفوظ» still reads at 20px/700, and the cached rows still sit at 0.45 opacity.
+
+**This buys a hard technical dependency, and it has never been measured.** Kafoo's `VoiceInput`
+delegates to Android `SpeechRecognizer` and iOS `SFSpeechRecognizer` — platform services, not
+libraries Kafoo controls. On Android those normally reach the network unless an offline language pack
+is installed, and `docs/ops/measuring-transcription.md` already records that `ar-EG` is *missing on
+many Egyptian handsets*. Offline Arabic recognition is a strictly harder requirement than having the
+locale at all.
+
+So the consequence is plain: **on many phones there will be no transcript to queue, because the thing
+that produces transcripts needs the network that just disappeared.**
+
+That does not reopen the decision — storing audio would not fix it either, since the audio would
+still need transcribing later and the promise «كلامك محفوظ» would be resting on a recogniser that may
+never succeed. What it settles is what the state may *say*:
+
+> **The offline state may only promise what the phone can actually deliver.** Where on-device
+> transcription succeeds, queue the text and say «محفوظ». Where it does not, say so plainly and offer
+> tap or typing — never «كلامك محفوظ» over words that were not captured. Losing a Cook's sentence
+> after telling her it was safe is worse than telling her the truth immediately.
+
+Whether offline recognition works at all on real Egyptian handsets is the first thing to measure when
+the voice layer starts. The runbook already exists and needs a person with a phone.
 
 ### 2. "Draft-writing executes immediately" needs narrowing
 
@@ -156,11 +178,25 @@ every RLS rule, and the trust rules in `.claude/rules/business-rules.md`. **A vo
 is not a product with weaker guarantees**, and the confirmation gate makes several of them stronger
 — reading an irreversible action back aloud is a better approval step than a tap on a dialog.
 
-**Sequencing, which is a founder decision and is not settled here.** The voice system is specified
-against screens that largely do not exist: Orders are E4, Reviews later, messaging new. The cheapest
-honest path is to build the voice layer over what E2 and E3 already shipped — the Cook's Meal list
-and Customer discovery — and let Orders arrive already voice-first, rather than building Orders
-tap-first and retrofitting. That ordering is a proposal, not part of this decision.
+**Sequencing — decided by the founder, 2026-08-10.** Build the voice layer over E2's Meal
+conversation, **without waiting for ADR-0009 to settle how voice reaches the model, and accepting
+that the 150 ms and 400 ms budgets may not be reachable.**
+
+That is a deliberate trade and worth stating as one. The alternative was to spike ADR-0009 first and
+learn whether the latency is achievable before building anything. The founder chose to build, which
+means:
+
+- **The nine states get proven against working code** rather than against an unbuilt epic. E2's Meal
+  conversation already has a `VoiceButton` and asks one question at a time, so it is the smallest
+  real surface that exercises every state.
+- **The budgets become measurements rather than gates.** A state that acknowledges in 900 ms is still
+  built, still shipped, and reported as missing its budget — the same treatment discovery's 1112 ms
+  got. What is not acceptable is a silent, still moment; that is a defect at any latency.
+- **The risk accepted is rework.** If ADR-0009 later chooses an architecture the built layer cannot
+  sit on, the voice layer is rebuilt. The founder owns that, knowing it.
+
+E4 Orders is still specified voice-first from the start — that costs nothing today and avoids
+retrofitting a whole epic, and it does not depend on this ordering.
 
 ## What this decision points at
 
