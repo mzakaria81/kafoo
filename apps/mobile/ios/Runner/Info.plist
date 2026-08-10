@@ -24,8 +24,39 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Kafoo talks to Supabase over HTTPS and ships no cryptography of its own, which is
+	     Apple's exemption. Declared here so TestFlight does not hold every single build
+	     behind a manual export-compliance question in App Store Connect. If Kafoo ever
+	     adds its own encryption, this becomes a lie and must be removed. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- WITHOUT THESE THREE, IOS KILLS THE APP. It does not warn, log, or degrade: an app
+	     that asks for a protected resource without declaring why is terminated on the spot.
+	     Android is the opposite — a missing permission returns a denial the code can handle
+	     — so this class of bug cannot be found on the platform Kafoo has been built on.
+
+	     Nothing in the gate can see it either. `dart analyze` does not read this file, widget
+	     tests never reach the platform channel, and until 2026-08-10 the app had never been
+	     built for an iPhone at all. It is the same shape as the icon font that rendered every
+	     button as a Chinese character in the first Android build: invisible to every automated
+	     check, obvious the second a person holds the phone.
+
+	     Written in Egyptian Arabic and NOT mirrored into English, which is deliberate rather
+	     than an ARB parity oversight — `main.dart` pins `locale` to `ar` unconditionally, so
+	     the whole app is Arabic whatever language the phone is set to. An English system
+	     prompt in front of an Arabic app would be worse, not better. If that pin is ever
+	     lifted, these need `ar.lproj`/`en.lproj` variants and an entry in `knownRegions`.
+
+	     No NSCameraUsageDescription: `photo_picker.dart` opens the gallery only. Declaring a
+	     permission the app never asks for is a question at App Review with no good answer. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>كافو محتاج الميكروفون عشان تقدر تتكلم بدل ما تكتب.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>كافو محتاج صورك عشان تختار صورة للأكلة.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>كافو بيحوّل كلامك لكتابة عشان يفهم طلبك.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
