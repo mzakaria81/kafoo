@@ -131,6 +131,9 @@ jobs:
           unzip -o -q build/app/outputs/flutter-apk/app-release.apk -d "$CERTDIR" 'META-INF/*'
           CERT=$(find "$CERTDIR/META-INF" -maxdepth 1 \
                    \( -name '*.RSA' -o -name '*.EC' -o -name '*.DSA' \) | head -1)
+          # `tee` and not a plain redirect: the summary is for a person opening the run, the log is
+          # where anyone comparing two builds can actually read it back. Written to only one of them
+          # first, which made the fingerprint unreadable from anywhere but a browser.
           {
             echo "### Signed by"
             echo ""
@@ -143,7 +146,7 @@ jobs:
               echo "install over it. \`CN=Kafoo Demo Build\` is the fixed key; \`CN=Android Debug\`"
               echo "means the committed keystore is missing and updates will start failing."
             fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
           rm -r "$CERTDIR"
 
       - name: Archive APK
