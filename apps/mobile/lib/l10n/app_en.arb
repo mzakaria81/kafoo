@@ -994,6 +994,10 @@
   "@myMealsTitle": {
     "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
   },
+  "newMealEntry": "New Meal",
+  "@newMealEntry": {
+    "description": "Home-screen entry to offering a Meal. A noun rather than an imperative on purpose: it needs no grammatical form for the Cook, so it reads the same to everybody and costs no placeholder."
+  },
   "myMealsEmpty": "{addressForm, select, feminine{No Meals yet. Start one.} other{No Meals yet. Start one.}}",
   "@myMealsEmpty": {
     "description": "Shown when the Cook has no Meals at any status.",

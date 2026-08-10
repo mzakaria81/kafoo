@@ -712,6 +712,49 @@ run "edge functions are declared" bash -c '
   done
   exit $status'
 
+# EVERY SCREEN CAN BE OPENED BY SOMEBODY HOLDING THE PHONE.
+#
+# On 2026-08-09 the founder installed the app and found two screens. `my_meals_screen.dart`,
+# `meal_publish_entry.dart`, `meal_edit_screen.dart` and `kitchen_profile_screen.dart` — 920 lines,
+# the whole Cook side of E2 — were referenced by no file in `apps/mobile/lib/`. There was no route
+# into any of them.
+#
+# NOTHING IN THIS GATE COULD SEE IT, and that is the point. A widget test constructs a screen
+# directly, so it proves the screen renders; `analyze` proves it compiles; the RLS suites prove the
+# policies hold. Every automated check builds the thing under test with its own hands and therefore
+# shares one blind spot: none of them asks whether anything reaches it. "The tests pass" and "a user
+# can get there" are different claims and only the first was ever established.
+#
+# It had already happened once. `main.dart` carries a comment about the app shipping with no
+# `ProviderScope`, ending "a screen tested in isolation is not a screen that has been run" — written
+# beside the fix, as prose, three weeks before the identical failure recurred. That is why this is a
+# check and not a paragraph.
+#
+# IT MATCHES IMPORT LINES, NOT THE FILENAME ANYWHERE.
+#
+# The first version of this check grepped lib/ for the screen`s basename and could not fail: the
+# comment above in `home.dart` names all four files, so every screen counted as referenced by the
+# prose describing why they were not. A check defeated by a comment about the check is worse than no
+# check, because it reports ok. Only an `import` makes a screen reachable from another file, and a
+# comment cannot look like one.
+run "every screen has a route into it" bash -c '
+  [ -d apps/mobile/lib ] || { echo "   no mobile app yet — skipping"; exit 0; }
+  status=0
+  for file in apps/mobile/lib/features/*/presentation/*_screen.dart; do
+    [ -f "$file" ] || continue
+    base=$(basename "$file" .dart)
+    # Any import path ending in this filename, from anywhere in lib/ — main.dart, home.dart, or the
+    # screen this one sits behind. Excluding $file itself stops a screen counting as its own caller.
+    if ! grep -rl --include="*.dart" "^import .*${base}\.dart'"'"'" apps/mobile/lib \
+         | grep -qv "^${file}$"; then
+      echo "   FAIL: nothing in apps/mobile/lib imports ${base}.dart."
+      echo "   It compiles, its widget test passes, and NOBODY CAN OPEN IT. Give it a route from"
+      echo "   home.dart or from the screen it belongs behind, or delete it."
+      status=1
+    fi
+  done
+  exit $status'
+
 # THE THINGS THAT ARE ONLY WRONG ON A REAL PHONE.
 #
 # Every other check in this file reads Dart, SQL or ARB. None of them opens the Android manifest or

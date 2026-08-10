@@ -7,6 +7,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
+import 'meal_edit_screen.dart';
 import 'meal_enum_labels.dart';
 
 class MyMealsScreen extends ConsumerWidget {
@@ -208,8 +209,31 @@ class MyMealRow extends ConsumerWidget {
       onConfirmed: () => controller.setStatus(meal, MealStatus.archived),
     );
 
+    // Editing needs a complete [Meal], which a draft is not. `asMeal` is null
+    // exactly when a required field is still unanswered, so the control is
+    // absent rather than disabled for a Meal that cannot yet be edited — and
+    // absent for an archived one, which offers nothing at all.
+    final editable = meal.asMeal;
+    final edit = editable == null
+        ? null
+        : _MealAction(
+            label: l10n.mealEditTitle(context.addressForm),
+            mealTitle: _title(l10n),
+            // Editing opens a screen rather than changing anything, so there is
+            // nothing here to confirm.
+            warning: null,
+            confirmLabel: l10n.mealRetireConfirm(context.addressForm),
+            cancelLabel: l10n.mealRetireCancel(context.addressForm),
+            onConfirmed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MealEditScreen(meal: editable),
+              ),
+            ),
+          );
+
     final actions = switch (meal.status) {
       MealStatus.published => [
+          if (edit != null) edit,
           _MealAction(
             label: l10n.mealMakeUnavailable(context.addressForm),
             mealTitle: _title(l10n),
@@ -227,6 +251,7 @@ class MyMealRow extends ConsumerWidget {
           retire,
         ],
       MealStatus.unavailable => [
+          if (edit != null) edit,
           _MealAction(
             label: l10n.mealMakeAvailable(context.addressForm),
             mealTitle: _title(l10n),
