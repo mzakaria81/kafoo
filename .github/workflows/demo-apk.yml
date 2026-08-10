@@ -30,9 +30,15 @@ name: Demo APK
 # without touching the stored address.
 # ────────────────────────────────────────────────────────────────────────────────────────────────
 #
-# The APK is DEBUG-SIGNED and that is deliberate: apps/mobile/android/app/build.gradle.kts falls
-# back to debug keys when key.properties is absent, and a debug-signed APK sideloads fine. It is not
-# publishable, which is the correct property for a build carrying demo data.
+# THE APK IS SIGNED WITH A FIXED DEMO KEY, and both halves of that matter.
+#
+# Not publishable: `apps/mobile/android/demo/demo.keystore` cannot reach a store, which is the
+# correct property for a build carrying demo Cooks and Meals.
+#
+# Fixed: Android refuses an update signed by a different key from the installed app. Until
+# 2026-08-10 this fell back to the machine's debug key, and a fresh runner makes a new one every
+# run — so each demo APK was a different app to the phone, and installing one over another gave
+# "App not installed" until you uninstalled and lost everything the app remembered.
 
 on:
   workflow_dispatch:
@@ -112,6 +118,47 @@ jobs:
             --dart-define=SUPABASE_URL="${URL}" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
 
+      # PROVE WHICH KEY SIGNED IT RATHER THAN ASSERTING THE FIX WORKED. Two runs showing the same
+      # fingerprint is evidence; `CN=Android Debug` says the committed keystore went missing and
+      # updates are about to start failing again.
+      #
+      # `apksigner` and not the certificate file inside the archive: the first version looked for
+      # `META-INF/*.RSA` and called a perfectly signed APK unsigned, because that is the OLD
+      # signature format and Android stopped requiring it at minSdk 24. apksigner ships with the
+      # build tools already on the runner and understands every version — it is what Android uses.
+      #
+      # THIS STEP DESCRIBES THE BUILD AND MUST NEVER BREAK IT. It failed the job twice for reasons
+      # that had nothing to do with the app, and an informational step that can go red teaches
+      # whoever sees it that red does not mean broken — the one habit every other check here exists
+      # to prevent. So: no `set -e`, every outcome printed including "could not determine", and
+      # `tee` so the answer is readable in the log as well as the summary.
+      - name: Say which key signed it
+        working-directory: apps/mobile
+        continue-on-error: true
+        run: |
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          APKSIGNER=$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/build-tools" \
+                      -name apksigner 2>/dev/null | sort -V | tail -1)
+          {
+            echo "### Signed by"
+            echo ""
+            echo '```'
+            if [ -n "$APKSIGNER" ]; then
+              "$APKSIGNER" verify --print-certs "$APK" 2>&1 | grep -iE 'certificate|error|warning' \
+                || echo "apksigner said nothing recognisable — see the raw log"
+            else
+              echo "apksigner not found; falling back to the old signature format, which"
+              echo "modern builds may not carry:"
+              keytool -printcert -jarfile "$APK" 2>&1 | grep -E '^Owner:|SHA256:' \
+                || echo "no v1 signature block — this proves nothing either way"
+            fi
+            echo '```'
+            echo ""
+            echo "\`CN=Kafoo Demo Build\` is the fixed key, and its fingerprint must match the"
+            echo "previous demo build or the APK will refuse to install over it. \`CN=Android Debug\`"
+            echo "means the committed keystore went missing and updates are about to start failing."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Archive APK
         uses: actions/upload-artifact@v4
         with:
@@ -130,7 +177,8 @@ jobs:
             echo "1. Download **kafoo-demo-${{ github.run_number }}** from the Artifacts section"
             echo "   at the bottom of this page. It arrives as a zip; the APK is inside."
             echo "2. Open it on an Android phone. Allow \"install unknown apps\" when asked —"
-            echo "   this build is signed with a debug key, which is why it is not publishable."
+            echo "   this build is signed with the demo key, which is why it is not publishable."
+            echo "   It installs OVER a previous demo build — no uninstall, nothing lost."
             echo "3. It opens on food, signed in to nothing. That is the Customer surface."
             echo ""
             echo "To sign in as a Cook, use one of the demo numbers in \`supabase/demo-data.json\`,"

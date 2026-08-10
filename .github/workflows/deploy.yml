@@ -650,12 +650,23 @@ jobs:
           unzip -o -q "$AAB" -d "$CERTDIR" 'META-INF/*' 2>/dev/null || true
           CERT=$(find "$CERTDIR/META-INF" -maxdepth 1 \
                    \( -name '*.RSA' -o -name '*.EC' -o -name '*.DSA' \) 2>/dev/null | head -1)
+          # TWO FACTS, AND THE FIRST ONE DECIDES. Whether an upload key was even
+          # provided is knowable without reading anything; the certificate then says
+          # what was actually used. Naming the identities that are NOT publishable
+          # would be the enumeration mistake this repository keeps re-learning — a
+          # third non-publishable key added later would be reported as the upload key,
+          # which is exactly what nearly happened when the demo build stopped falling
+          # back to the debug key on 2026-08-10 and started using a committed one.
+          OWNER=$(keytool -printcert -file "$CERT" 2>/dev/null | grep -m1 '^Owner:' || echo 'Owner: unknown')
           if [ -z "$CERT" ]; then
             echo "Signed: \`NO — unsigned bundle\`" >> "$GITHUB_STEP_SUMMARY"
-          elif keytool -printcert -file "$CERT" 2>/dev/null | grep -q 'CN=Android Debug'; then
+          elif [ "${HAS_KEYSTORE}" != "true" ]; then
+            echo "Signed: \`FALLBACK KEY — NOT PUBLISHABLE\` — $OWNER" >> "$GITHUB_STEP_SUMMARY"
+            echo "No upload key was configured, so whatever signed this cannot reach a store." \
+              >> "$GITHUB_STEP_SUMMARY"
+          elif printf '%s' "$OWNER" | grep -q 'CN=Android Debug'; then
             echo "Signed: \`DEBUG KEY — NOT PUBLISHABLE\`" >> "$GITHUB_STEP_SUMMARY"
           else
-            OWNER=$(keytool -printcert -file "$CERT" 2>/dev/null | grep -m1 '^Owner:' || echo 'Owner: unknown')
             echo "Signed: \`upload key\` — $OWNER" >> "$GITHUB_STEP_SUMMARY"
           fi
           rm -rf "$CERTDIR"
