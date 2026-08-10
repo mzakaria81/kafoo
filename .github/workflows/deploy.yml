@@ -808,7 +808,6 @@ jobs:
             <key>method</key><string>app-store</string>
             <key>teamID</key><string>${TEAM_ID}</string>
             <key>signingStyle</key><string>automatic</string>
-            <key>uploadSymbols</key><true/>
             <key>destination</key><string>export</string>
           </dict>
           </plist>
@@ -844,6 +843,29 @@ jobs:
             echo "::error::the export produced no .ipa — nothing to send"
             exit 1
           fi
+
+          # READ THE CERTIFICATE, DO NOT TRUST THE EXIT CODE. The step above can succeed and
+          # still have signed with the wrong identity if automatic signing picked a
+          # development profile, and the first thing to notice would be a rejection from
+          # Apple whose message says nothing about identities. The Android job already
+          # inspects its certificate rather than believing the signing step — it prints what
+          # it found; this one refuses to upload, because here the upload is in the same job
+          # and a summary line arrives too late to stop it. Raised by release-engineer.
+          INSPECT="$RUNNER_TEMP/inspect"
+          rm -rf "$INSPECT" && mkdir -p "$INSPECT"
+          unzip -o -q "$IPA" -d "$INSPECT"
+          APP="$(find "$INSPECT/Payload" -maxdepth 1 -name '*.app' | head -1)"
+          AUTHORITY="$(codesign -dvvv "$APP" 2>&1 | grep -m1 '^Authority=' || true)"
+          echo "signed by: ${AUTHORITY:-nothing — the export is unsigned}"
+          case "$AUTHORITY" in
+            *"Apple Distribution"*) ;;
+            *)
+              echo "::error::exported with '${AUTHORITY:-no identity}', not an Apple Distribution certificate — refusing to upload"
+              exit 1
+              ;;
+          esac
+          rm -rf "$INSPECT"
+
           xcrun altool --upload-app -f "$IPA" -t ios \
             --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
           {
@@ -869,15 +891,30 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Archive debug symbols and dSYMs
+      # TWO STEPS, BECAUSE ONE STEP COULD NOT FAIL FOR THE CASE WORTH FAILING ON. These were a
+      # single upload with `if-no-files-found: warn`, and `if-no-files-found` only fires when
+      # NO path matched anything — so a run with Dart symbols and no dSYMs passed, silently,
+      # shipping a build whose native crashes can never be read. Even `error` on the combined
+      # step would not have caught it. Split, both `error`. Raised by release-engineer.
+      #
+      # They cover different crashes: Dart symbols un-obfuscate a Dart stack trace, dSYMs
+      # un-obfuscate a crash inside Apple's own frameworks or a plugin's native code.
+      - name: Archive Dart debug symbols
         if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-ios-symbols-${{ github.run_number }}
-          path: |
-            apps/mobile/build/symbols
-            apps/mobile/build/ios/archive/*.xcarchive/dSYMs
-          if-no-files-found: warn
+          path: apps/mobile/build/symbols
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Archive dSYMs
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-ios-dsyms-${{ github.run_number }}
+          path: apps/mobile/build/ios/archive/*.xcarchive/dSYMs
+          if-no-files-found: error
           retention-days: 90
 
       # Mirrors the Android job's notice. The comment on the Android archive rule
