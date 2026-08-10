@@ -1943,3 +1943,18 @@ features. A tool whose state cannot survive the environment's teardown event can
 process built around that teardown, however closely its feature list matches. And read the
 installer's write-list as carefully as the feature list — what a tool overwrites in your
 repository is part of its cost.
+
+### Observation 131: A closeout task list overstates remaining work when an unrelated PR satisfies one of its tasks
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Answering "are we ready to start E4?" — auditing E3's remaining work before the next epic.
+**Skill:** New skill candidate: epic-readiness-check
+**Type:** open-source
+**Phase/Area:** Reading planning state before proposing new work
+
+**Issue:** The project's coordination guidance warns that a stale task list understates what has shipped (someone rebuilds finished work). The inverse also occurs and is not covered: a closeout task was satisfied by a separate, unrelated pull request and left unticked, so the remaining-work count read higher than it was. Verifying each unchecked item against the working tree changed the answer from "7 tasks left" to "6, one already done elsewhere".
+
+**Suggested improvement:** When assessing readiness to start new work, do not trust unchecked boxes as evidence of undone work any more than checked boxes as evidence of done work. Verify each remaining item against the artefact it claims to change (grep the file for the thing the task says to add) before reporting a remaining-work figure.
+
+**Principle:** A checkbox records an intention at the moment it was written, not the state of the system now. Staleness runs in both directions: verify unchecked items against reality as rigorously as checked ones, because over-reporting remaining work delays a start just as over-reporting completion causes rework.
