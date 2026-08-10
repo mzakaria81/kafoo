@@ -270,8 +270,12 @@ jobs:
       # fails the build": a review FINDING stays advisory, because arguing with a
       # model must never gate a merge. A denial is not a finding. It says the review
       # was not performed, and a check that could not run must never report ok.
-      - name: A tool call was denied — the review is not trustworthy
+      - name: Report any denied tool calls onto the pull request
         if: always() && steps.reviewers.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
           set -uo pipefail
           OUT="${RUNNER_TEMP}/claude-execution-output.json"
@@ -291,17 +295,47 @@ jobs:
           # One line on purpose: a `run:` block is a YAML literal scalar, and an
           # embedded script whose lines start at column 0 ends the block early. That
           # is how this step was written the first time, and the file stopped parsing.
-          # SEARCH THE TEXT, NOT AN ASSUMED SHAPE. The previous version walked the
-          # top level of a list-or-dict and read the count from there. It parsed
-          # cleanly, found nothing, and printed "no permission denials" on a run whose
-          # own result recorded FOUR — because the count does not sit where that code
-          # looked. It was tested against JSON written by hand to match the assumption
-          # it was testing, which is not a test.
+          # ANCHORED TO A JSON KEY, because the file contains the reviewers' own prose
+          # and the reviewers write about this field.
           #
-          # A regex over the raw file cannot miss it for being nested one level deeper
-          # than expected. Over-matching is now cheap: denials warn rather than fail,
-          # for the reasons in the block below.
-          if ! DENIALS=$(python3 -c "import re;t=open('$OUT').read();m=re.findall(r'permission_denials_count[^0-9]{1,6}([0-9]+)',t);print(max(int(x) for x in m) if m else 0)"); then
+          # Two wrongs preceded this line. First a walk of the top level of a
+          # list-or-dict, which parsed cleanly, found nothing, and reported "no
+          # denials" on a run whose own result recorded four — the count sits deeper
+          # than that code looked, and it had only ever been tested against JSON
+          # written by hand to match the assumption being tested, which is a mirror
+          # rather than a test.
+          #
+          # The fix for that scanned the raw text for the field name near a number.
+          # That file also holds every word the reviewers wrote, so a review
+          # discussing `permission_denials_count ... 4` produced a phantom count of 4
+          # on a clean run — the same defect already fixed in the checklist step three
+          # lines below, reintroduced in its sibling. release-engineer caught it and
+          # reproduced it, which is the second time a guard in this file has been
+          # defeated by the reviewers' own quoted text.
+          #
+          # Requiring the quoted key and a colon means prose no longer counts: a
+          # reviewer would have to write verbatim JSON to trip it. Fixture below.
+          # The pattern checks itself before it is trusted, because it has been wrong
+          # twice and both times it failed in the direction of saying nothing is
+          # wrong. Prose mentioning the field near a number must count zero; real JSON
+          # must count what it says. Four lines, and it runs before every review.
+          PROSE='the run had permission_denials_count of 4 which the guard missed'
+          REAL='{"permission_denials_count": 3}'
+          COUNT_RE='import re,sys;t=sys.stdin.read();m=re.findall(r"\"permission_denials_count\"\s*:\s*([0-9]+)",t);print(max(int(x) for x in m) if m else 0)'
+          if [ "$(printf '%s' "$PROSE" | python3 -c "$COUNT_RE")" != "0" ] || \
+             [ "$(printf '%s' "$REAL"  | python3 -c "$COUNT_RE")" != "3" ]; then
+            echo "The denial-count pattern fails its own fixtures — refusing to report on it." >&2
+            {
+              echo "### Review not trustworthy — the denial check is broken"
+              echo ""
+              echo "Its pattern no longer distinguishes a reviewer writing ABOUT the"
+              echo "denial count from the count itself. Fix the pattern before reading"
+              echo "any denial number from this run."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if ! DENIALS=$(python3 -c "import re;t=open('$OUT').read();m=re.findall(r'\"permission_denials_count\"\s*:\s*([0-9]+)',t);print(max(int(x) for x in m) if m else 0)"); then
             {
               echo "### Review not trustworthy — could not read the run's own output"
               echo ""
@@ -326,6 +360,31 @@ jobs:
               echo "and a human decision, which is why this warns rather than picks."
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::warning::${DENIALS} tool call(s) denied — reviewer verification was degraded."
+
+            # AND PUT IT WHERE THE DECISION IS MADE. A step summary and an annotation
+            # live in the Actions run, which nobody opens for a review that came back
+            # clean — so a degraded review looked exactly like a good one in the only
+            # place anybody reads, the pull request itself. That is this file's
+            # recurring failure with the severity dialled down rather than removed,
+            # and trust-reviewer named it as such.
+            #
+            # Appended to the sticky comment rather than posted separately, so it
+            # travels with the findings it qualifies instead of arriving as a second
+            # notification somebody can miss.
+            CAPI="https://api.github.com/repos/$REPO/issues"
+            CID=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" "$CAPI/$PR/comments?per_page=100" | python3 -c "import json,sys;c=[x for x in json.load(sys.stdin) if x['user']['login']=='github-actions[bot]'];print(c[-1]['id'] if c else '')")
+            if [ -n "$CID" ]; then
+              OLD=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" "$CAPI/comments/$CID" | python3 -c "import json,sys;print(json.load(sys.stdin)['body'])")
+              NOTE=$(printf '%s\n\n---\n\n> ⚠️ **%s tool call(s) were denied during this review, so its verification is degraded.**\n>\n> Every brief declares `Bash`; this job grants `Bash(git:*)`. A reviewer that says it *ran* a check may have been refused and reasoned instead. Weigh the findings accordingly — a clean result here is weaker evidence than a clean result on a run with no denials.\n' "$OLD" "$DENIALS")
+              jq -n --arg b "$NOTE" '{body:$b}' > "$RUNNER_TEMP/patch.json"
+              curl -sS -X PATCH -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Content-Type: application/json" \
+                "$CAPI/comments/$CID" -d @"$RUNNER_TEMP/patch.json" >/dev/null \
+                && echo "Degradation notice appended to the pull request comment." \
+                || echo "::warning::Could not append the denial notice to the comment."
+            else
+              echo "::warning::No bot comment found to append the denial notice to."
+            fi
           else
             echo "No permission denials — the reviewers had the tools they asked for."
           fi
