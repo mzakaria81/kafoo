@@ -123,31 +123,39 @@ jobs:
       # prints the certificate rather than asserting the fix worked: two runs showing the same
       # fingerprint is evidence, and a run showing `CN=Android Debug` says the keystore went missing
       # and updates are about to start failing again.
+      # `apksigner`, NOT the certificate file inside the archive. The first version of this step
+      # looked for `META-INF/*.RSA` and reported "unsigned, this will not install" for an APK that
+      # was signed perfectly well: that file is the OLD signature format, and Android stopped
+      # requiring it at minSdk 24, so Gradle no longer writes one. A check that reports a healthy
+      # build as broken is the same defect as one that reports a broken build as healthy, and it
+      # was caught only because the answer was read rather than assumed.
+      #
+      # apksigner ships with the Android build tools already on the runner and understands every
+      # signature version, which is the whole reason to use the tool Android itself uses.
+      #
+      # `tee` and not a redirect: the summary is for a person opening the run, the log is where
+      # anyone comparing two builds can read it back.
       - name: Say which key signed it
         working-directory: apps/mobile
         run: |
           set -euo pipefail
-          CERTDIR=$(mktemp -d)
-          unzip -o -q build/app/outputs/flutter-apk/app-release.apk -d "$CERTDIR" 'META-INF/*'
-          CERT=$(find "$CERTDIR/META-INF" -maxdepth 1 \
-                   \( -name '*.RSA' -o -name '*.EC' -o -name '*.DSA' \) | head -1)
-          # `tee` and not a plain redirect: the summary is for a person opening the run, the log is
-          # where anyone comparing two builds can actually read it back. Written to only one of them
-          # first, which made the fingerprint unreadable from anywhere but a browser.
+          APKSIGNER=$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -name apksigner \
+                      | sort -V | tail -1)
           {
             echo "### Signed by"
             echo ""
-            if [ -z "$CERT" ]; then
-              echo "\`NOTHING — unsigned, this will not install\`"
+            if [ -z "$APKSIGNER" ]; then
+              echo "\`UNKNOWN — apksigner not found, this step proved nothing\`"
             else
-              keytool -printcert -file "$CERT" | grep -E '^Owner:|SHA256:' | sed 's/^/    /'
+              "$APKSIGNER" verify --print-certs \
+                build/app/outputs/flutter-apk/app-release.apk \
+                | grep -E 'Signer #1 certificate (DN|SHA-256)' | sed 's/^/    /'
               echo ""
               echo "The fingerprint must match the previous demo build, or the APK will refuse to"
               echo "install over it. \`CN=Kafoo Demo Build\` is the fixed key; \`CN=Android Debug\`"
               echo "means the committed keystore is missing and updates will start failing."
             fi
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          rm -r "$CERTDIR"
 
       - name: Archive APK
         uses: actions/upload-artifact@v4
