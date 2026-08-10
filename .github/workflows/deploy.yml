@@ -754,10 +754,17 @@ jobs:
       # on every merge would fill the cap within a week and then fail every iOS build,
       # including the compile check this job exists for. Raised by release-engineer.
       #
-      # Only THIS step and the upload are gated. Building the archive stays on every merge,
-      # because `--no-codesign` spends nothing and "does iOS still compile" is the whole
-      # reason this job runs on a merge at all. Gating the build as well would have removed
-      # that check — which the recommendation asked for and its own reasoning argued against.
+      # Only THIS step and the upload are gated. Building the archive stays on every merge
+      # THAT REACHES THIS JOB, because `--no-codesign` spends nothing and "does iOS still
+      # compile" is the whole reason for running on a merge. Gating the build as well would
+      # have removed that check — which the recommendation asked for and its own reasoning
+      # argued against.
+      #
+      # The capital letters are load-bearing. The whole job is gated on `has_ios_signing`,
+      # so until the four Apple secrets exist NOTHING here runs, including the compile check
+      # this paragraph is about. An earlier version of this comment said "every merge" flatly
+      # and described a check that does not happen yet — raised by release-engineer, and the
+      # same failure as a repo map listing a directory that was never committed.
       #
       # ponytail: three signed builds then a manual cleanup at developer.apple.com. Fixing
       # that properly means revoking stale certificates through the App Store Connect API on
