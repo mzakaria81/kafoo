@@ -1058,6 +1058,12 @@ abstract class AppLocalizations {
   /// **'أكلاتي'**
   String get myMealsTitle;
 
+  /// Home-screen entry to offering a Meal. A noun rather than an imperative on purpose: it needs no grammatical form for the Cook, so it reads the same to everybody and costs no placeholder.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلة جديدة'**
+  String get newMealEntry;
+
   /// Shown when the Cook has no Meals at any status.
   ///
   /// In ar, this message translates to:
