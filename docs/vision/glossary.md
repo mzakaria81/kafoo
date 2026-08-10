@@ -90,6 +90,47 @@ A Meal the AI Assistant suggests to a Customer. Ephemeral: never persisted as tr
 nobody. Recording that a Recommendation was *accepted* is an analytics event, not a stored
 entity.
 
+### Message
+
+الرسالة. Text sent between a Cook and a Customer, dictated to the AI Assistant and read aloud to
+the recipient. **Never** chat, DM, or thread.
+
+**Always text, never audio.** No voice note exists in Kafoo in either direction — the Assistant
+transcribes speech into text and reads incoming text aloud, so what travels between two people is
+always words on a screen that either of them can also hear. A Message is attributed to the person
+who dictated it, never to Kafoo: the Assistant is a pen, not a spokesperson.
+
+New with ADR-0013 and **not built** — no entity, no table, no policies. Listed here so the word is
+fixed before the code, which is the whole purpose of this file.
+
+## Voice
+
+New with ADR-0013. Full specification in `docs/design/DESIGN.md` §10.
+
+### Glance word
+
+One of a **closed set of eleven** Arabic words permitted to appear at large size, each fixed in
+size, weight, colour and position so it is recognised by shape rather than read:
+
+منشورة · مسودة · مش متاحة · أرشيف · طلب جديد · وصل · اتلغى · محفوظ · مفيش نت · اتبعت · اتقرت
+
+Colour carries the same meaning redundantly, so the word landing unread still lands. **Never
+introduce a twelfth without adding it to the set** — an unrecognised shape is worse than no word.
+
+Five of these name states Kafoo has not built: the Order words and the two delivery words. A glance
+word for a state the app cannot reach is a promise nothing keeps, so they arrive with their feature.
+
+### Confirmation gate
+
+The read-back that stands in front of every irreversible action. The Assistant speaks the whole
+thing, then waits for «أيوة» by voice or tap. **Silence never confirms** and no timeout resolves it.
+
+### Talk button
+
+The 88dp orb, bottom centre, hold-to-talk with tap-to-lock. Larger than the 48dp floor because it is
+found by thumb without looking, sometimes with wet hands. **Never** mic button — the name describes
+the hardware rather than what a person is doing with it.
+
 ## Actions
 
 | Use | Never | Why |

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #F5EFE7; }
+a { color: #9A3412; }
+a:hover { color: #C2410C; }
+@keyframes kafooSpin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div dir="rtl" style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; background: #FFFBF7; color: #1C1917; max-width: 1120px; margin: 0 auto; padding: 56px 40px 96px">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid #E7DED3; padding-bottom: 32px">
+  <div style="max-width: 640px">
+    <div style="font-size: 14px; font-weight: 600; letter-spacing: 0.06em; color: #C2410C; margin-bottom: 12px">كافو · العناصر الأساسية</div>
+    <h1 style="font-size: 40px; font-weight: 700; line-height: 1.35; margin: 0 0 16px">ستة عناصر، مبنية على الأساسيات</h1>
+    <p style="font-size: 18px; line-height: 1.75; color: #57534E; margin: 0; text-wrap: pretty">زرار · خانة إدخال · كارت الأكلة · شريحة فلتر · لوحة سفلية · حالة فاضية. كل واحد بكل حالاته، بالعربي المصري، من اليمين للشمال.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <button onClick="{{ toggleTap }}" style="font-family: inherit; font-size: 14px; font-weight: 600; color: #1C1917; background: #FFFFFF; border: 1px solid #D6CCC0; border-radius: 10px; padding: 14px 16px; min-height: 48px; cursor: pointer" style-hover="border-color: #0F766E">{{ tapLabel }}</button>
+    <span style="font-size: 13px; line-height: 1.6; color: #78716C; max-width: 200px; text-wrap: pretty">الحد الأدنى ٤٨×٤٨ نقطة على أي حاجة بتتضغط</span>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 32px; padding: 24px; background: #FAF5F0; border: 1px solid #E7DED3; border-radius: 14px">
+  <div style="grid-column: 1 / -1; font-size: 16px; font-weight: 600; line-height: 1.6">المصطلحات — الكلمة الواحدة اللي بنستخدمها، وبس</div>
+  <sc-for list="{{ lexicon }}" as="l" hint-placeholder-count="6">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 15px; font-weight: 600; line-height: 1.5">{{ l.ar }}</span>
+      <span style="font-size: 13px; line-height: 1.6; color: #78716C" dir="ltr">{{ l.en }}</span>
+      <span style="font-size: 13px; line-height: 1.6; color: #9F1239; text-decoration: line-through" dir="ltr">{{ l.never }}</span>
+    </div>
+  </sc-for>
+</div>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">١ — الزرار</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">الحشوة ١٦×٢٤ بتوصل الزرار لـ ٥٦ نقطة طول من غير أي حسابات، فحتى لو النص كبر ٢٠٠٪ الزرار يكبر معاه بدل ما يقص.</p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px">
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E">أساسي</div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer" style-hover="background: #AB3909">أضف للطلب</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #9A3412; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer; transform: scale(0.98)">أضف للطلب</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="display: flex">
+        <button disabled="{{ true }}" style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #A8A29E; background: #F0E9E1; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: not-allowed">المطبخ مقفول دلوقتي</button>
+      </div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: progress; display: flex; align-items: center; justify-content: center; gap: 12px">
+          <span style="width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.35); border-top-color: #FFFFFF; animation: kafooSpin 0.7s linear infinite; flex: none"></span>
+          <span>بيتبعت...</span>
+        </button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="font-size: 13px; line-height: 1.7; color: #78716C">عادي · مضغوط · موقوف · بيحمّل</div>
+    </div>
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E">ثانوي</div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9A3412; background: #FFF7ED; border: 1.5px solid #F0C9A8; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer" style-hover="border-color: #C2410C">شوف صفحة المطبخ</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9A3412; background: #FDE7D3; border: 1.5px solid #C2410C; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer; transform: scale(0.98)">شوف صفحة المطبخ</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="display: flex">
+        <button disabled="{{ true }}" style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #A8A29E; background: #FFFFFF; border: 1.5px solid #E7DED3; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: not-allowed">شوف صفحة المطبخ</button>
+      </div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9A3412; background: #FFF7ED; border: 1.5px solid #F0C9A8; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: progress; display: flex; align-items: center; justify-content: center; gap: 12px">
+          <span style="width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #F0C9A8; border-top-color: #9A3412; animation: kafooSpin 0.7s linear infinite; flex: none"></span>
+          <span>بيحمّل...</span>
+        </button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="font-size: 13px; line-height: 1.7; color: #78716C">نفس المقاسات — الفرق في اللون بس، مش في المساحة</div>
+    </div>
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E">تدميري</div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9F1239; background: #FEF2F2; border: 1.5px solid #F3B8C4; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer" style-hover="border-color: #9F1239">إلغاء الطلب</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #9F1239; border: 1.5px solid #9F1239; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer; transform: scale(0.98)">إلغاء الطلب</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="display: flex">
+        <button disabled="{{ true }}" style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #A8A29E; background: #FFFFFF; border: 1.5px solid #E7DED3; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: not-allowed">الطلب خرج، مش ينفع يتلغي</button>
+      </div>
+      <div style="position: relative; display: flex">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9F1239; background: #FEF2F2; border: 1.5px solid #F3B8C4; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: progress; display: flex; align-items: center; justify-content: center; gap: 12px">
+          <span style="width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #F3B8C4; border-top-color: #9F1239; animation: kafooSpin 0.7s linear infinite; flex: none"></span>
+          <span>بيتلغي...</span>
+        </button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="font-size: 13px; line-height: 1.7; color: #78716C">فاتح بشكل افتراضي — يمتلي بالنبيتي وقت الضغط بس</div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٢ — خانة الإدخال</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">النص المساعد موجود من الأول ومكانه محفوظ، فلما تظهر رسالة غلط الشكل مايقفزش — والأرقام دايماً من الشمال للشمين جوه خانة عربية.</p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 24px">
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 8px">فاضية</div>
+      <label style="font-size: 14px; font-weight: 600; line-height: 1.4">رقم التليفون</label>
+      <div style="position: relative; display: flex">
+        <input type="tel" dir="ltr" placeholder="01xxxxxxxxx" style="font-family: inherit; font-size: 16px; line-height: 1.5; color: #1C1917; background: #FFFFFF; border: 1.5px solid #D6CCC0; border-radius: 12px; padding: 14px 16px; min-height: 48px; width: 100%; box-sizing: border-box; text-align: left" />
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <span style="font-size: 13px; line-height: 1.6; color: #78716C">هنبعتلك كود على واتساب</span>
+    </div>
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 8px">مليانة</div>
+      <label style="font-size: 14px; font-weight: 600; line-height: 1.4">رقم التليفون</label>
+      <div style="display: flex">
+        <input type="tel" dir="ltr" value="01012345678" style="font-family: inherit; font-size: 16px; line-height: 1.5; color: #1C1917; background: #FFFFFF; border: 1.5px solid #A8A29E; border-radius: 12px; padding: 14px 16px; min-height: 48px; width: 100%; box-sizing: border-box; text-align: left" />
+      </div>
+      <span style="font-size: 13px; line-height: 1.6; color: #78716C">هنبعتلك كود على واتساب</span>
+    </div>
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 8px">مركّز عليها</div>
+      <label style="font-size: 14px; font-weight: 600; line-height: 1.4; color: #9A3412">رقم التليفون</label>
+      <div style="display: flex">
+        <input type="tel" dir="ltr" value="010123" style="font-family: inherit; font-size: 16px; line-height: 1.5; color: #1C1917; background: #FFFFFF; border: 1.5px solid #C2410C; border-radius: 12px; padding: 14px 16px; min-height: 48px; width: 100%; box-sizing: border-box; text-align: left; box-shadow: 0 0 0 3px rgba(194,65,12,0.18)" />
+      </div>
+      <span style="font-size: 13px; line-height: 1.6; color: #78716C">هنبعتلك كود على واتساب</span>
+    </div>
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 8px">فيها غلط</div>
+      <label style="font-size: 14px; font-weight: 600; line-height: 1.4; color: #9F1239">رقم التليفون</label>
+      <div style="display: flex">
+        <input type="tel" dir="ltr" value="010123" style="font-family: inherit; font-size: 16px; line-height: 1.5; color: #1C1917; background: #FEF2F2; border: 1.5px solid #9F1239; border-radius: 12px; padding: 14px 16px; min-height: 48px; width: 100%; box-sizing: border-box; text-align: left" />
+      </div>
+      <span style="font-size: 13px; line-height: 1.6; color: #9F1239; font-weight: 500">الرقم ناقص رقمين. لازم ١١ رقم.</span>
+    </div>
+
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 8px; grid-column: span 2">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 8px">نص طويل مع نص مساعد</div>
+      <label style="font-size: 14px; font-weight: 600; line-height: 1.4">العنوان بالتفصيل</label>
+      <div style="display: flex">
+        <textarea rows="{{ 3 }}" style="font-family: inherit; font-size: 16px; line-height: 1.75; color: #1C1917; background: #FFFFFF; border: 1.5px solid #D6CCC0; border-radius: 12px; padding: 14px 16px; width: 100%; box-sizing: border-box; resize: vertical">٢٧ شارع سوريا، الدور التالت، الشقة ٦ — الجرس على اليمين، والعمارة جمب الصيدلية.</textarea>
+      </div>
+      <span style="font-size: 13px; line-height: 1.6; color: #78716C">اكتب أي علامة تسهّل على الطباخة توصلك — العمارة، الدور، ولون الباب.</span>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٣ — كارت الأكلة</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 24px; max-width: 720px; text-wrap: pretty">اسم الطباخة فوق الصورة مش تحتها — لأن الثقة في كافو بتيجي من الشخص، والصورة مجرد تأكيد.</p>
+
+  <div style="display: flex; align-items: flex-start; gap: 12px; background: #FEF2F2; border: 1.5px dashed #9F1239; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; max-width: 720px">
+    <span style="font-size: 18px; font-weight: 700; color: #9F1239; line-height: 1.5">!</span>
+    <p style="font-size: 15px; line-height: 1.75; color: #9F1239; margin: 0; font-weight: 500; text-wrap: pretty">كل مكان صورة هنا فاضي بالقصد. كافو ما بتستخدمش صور أكل مولّدة بالذكاء الاصطناعي — الصور النهائية بتتصور مع الطباخة في مطبخها. المكان الفاضي ده مقصود إنه يبان إنه مؤقت، عشان ما يعديش بالغلط للإنتاج.</p>
+  </div>
+
+  <div style="display: flex; gap: 24px; flex-wrap: wrap">
+    <div style="width: 340px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; overflow: hidden">
+      <div style="position: relative">
+        <div style="{{ photoStyle }}">
+          <span style="font-size: 14px; font-weight: 700; line-height: 1.5; color: #9F1239; background: #FFFFFF; border: 1.5px dashed #9F1239; border-radius: 8px; padding: 8px 12px; text-align: center">مكان صورة مؤقت<br />مش هينزل في النسخة النهائية</span>
+        </div>
+        <div style="position: absolute; bottom: 12px; right: 12px; display: flex; align-items: center; gap: 8px; background: rgba(255,251,247,0.95); border-radius: 999px; padding: 6px 12px 6px 6px">
+          <span style="width: 32px; height: 32px; border-radius: 50%; background: #F0C9A8; flex: none"></span>
+          <span style="font-size: 14px; font-weight: 600; line-height: 1.4">الحاجة سميحة</span>
+        </div>
+      </div>
+      <div style="padding: 16px">
+        <div style="font-size: 20px; font-weight: 600; line-height: 1.5; margin-bottom: 4px">محشي ورق عنب بالزيت</div>
+        <div style="font-size: 14px; line-height: 1.7; color: #57534E; margin-bottom: 8px">الطباخة: الحاجة سميحة · المعادي · ١.٢ كم</div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1.7; color: #57534E; margin-bottom: 16px">
+          <span style="color: #9A3412; font-weight: 600">٤.٨</span>
+          <span>من ٦٣ تقييم</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+          <div style="font-size: 24px; font-weight: 700; line-height: 1.4">١٢٠ <span style="font-size: 15px; font-weight: 500; color: #57534E">جنيه</span></div>
+          <div style="position: relative; display: flex">
+            <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 14px 20px; min-height: 48px; cursor: pointer">أضف للطلب</button>
+            <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="width: 340px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; overflow: hidden; opacity: 0.85">
+      <div style="position: relative">
+        <div style="{{ photoStyle }}">
+          <span style="font-size: 14px; font-weight: 700; line-height: 1.5; color: #9F1239; background: #FFFFFF; border: 1.5px dashed #9F1239; border-radius: 8px; padding: 8px 12px; text-align: center">مكان صورة مؤقت<br />مش هينزل في النسخة النهائية</span>
+        </div>
+        <div style="position: absolute; inset: 0; background: rgba(28,25,23,0.45); display: flex; align-items: center; justify-content: center">
+          <span style="font-size: 16px; font-weight: 600; color: #FFFBF7; background: rgba(28,25,23,0.75); border-radius: 999px; padding: 8px 16px; line-height: 1.5">خلص النهاردة</span>
+        </div>
+      </div>
+      <div style="padding: 16px">
+        <div style="font-size: 20px; font-weight: 600; line-height: 1.5; margin-bottom: 4px">كشري بالعدس والحمص</div>
+        <div style="font-size: 14px; line-height: 1.7; color: #57534E; margin-bottom: 16px">الطباخ: عم رجب · حلوان · ٣.٤ كم</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+          <div style="font-size: 24px; font-weight: 700; line-height: 1.4; color: #57534E">٦٥ <span style="font-size: 15px; font-weight: 500">جنيه</span></div>
+          <button disabled="{{ true }}" style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #A8A29E; background: #F0E9E1; border: 0; border-radius: 12px; padding: 14px 20px; min-height: 48px; cursor: not-allowed">نبّهني بكرة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 40px">
+    <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px">
+      <h3 style="font-size: 20px; font-weight: 600; line-height: 1.5; margin: 0">نفس الكارت والنص مكبّر ٢٠٠٪</h3>
+      <span style="font-size: 14px; line-height: 1.7; color: #78716C">مفيش قص: الكارت بيطول، والصف اللي فيه السعر والزرار بينزل تحت بعضه</span>
+    </div>
+    <div style="width: 400px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; overflow: hidden">
+      <div style="position: relative">
+        <div style="{{ photoStyleLarge }}">
+          <span style="font-size: 20px; font-weight: 700; line-height: 1.5; color: #9F1239; background: #FFFFFF; border: 1.5px dashed #9F1239; border-radius: 8px; padding: 12px 16px; text-align: center">مكان صورة مؤقت<br />مش هينزل في النسخة النهائية</span>
+        </div>
+        <div style="position: absolute; bottom: 12px; right: 12px; display: flex; align-items: center; gap: 12px; background: rgba(255,251,247,0.95); border-radius: 999px; padding: 8px 16px 8px 8px">
+          <span style="width: 48px; height: 48px; border-radius: 50%; background: #F0C9A8; flex: none"></span>
+          <span style="font-size: 28px; font-weight: 600; line-height: 1.4">الحاجة سميحة</span>
+        </div>
+      </div>
+      <div style="padding: 16px">
+        <div style="font-size: 40px; font-weight: 600; line-height: 1.5; margin-bottom: 8px; text-wrap: pretty">محشي ورق عنب بالزيت</div>
+        <div style="font-size: 28px; line-height: 1.7; color: #57534E; margin-bottom: 16px; text-wrap: pretty">الطباخة: الحاجة سميحة · المعادي · ١.٢ كم</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+          <div style="font-size: 48px; font-weight: 700; line-height: 1.4">١٢٠ <span style="font-size: 30px; font-weight: 500; color: #57534E">جنيه</span></div>
+          <button style="font-family: inherit; font-size: 32px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; cursor: pointer; flex: 1 1 auto">أضف للطلب</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٤ — شريحة الفلتر</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">الشريحة نفسها ٤٠ نقطة بس، فحواليها مساحة ضغط مخفية بتوصّلها ٤٨ — الشكل يفضل خفيف والإيد تلاقيها.</p>
+  <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 24px">
+    <div>
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 12px">المطبخ</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px">
+        <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="7">
+          <div style="position: relative; display: flex; align-items: center">
+            <button onClick="{{ ch.toggle }}" style="{{ ch.style }}">{{ ch.label }}</button>
+            <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBoxChip }}"></span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size: 13px; line-height: 1.7; color: #78716C; margin-top: 12px">دوس على أي شريحة — المختار طوبي مليان، والباقي بحدود دافية.</div>
+    </div>
+    <div style="border-top: 1px solid #F0E9E1; padding-top: 24px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 12px">حالات إضافية</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+        <button style="font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1.4; color: #FFFFFF; background: #C2410C; border: 1.5px solid #C2410C; border-radius: 999px; padding: 10px 16px; min-height: 40px; cursor: pointer; display: flex; align-items: center; gap: 8px">نباتي <span style="font-size: 16px; line-height: 1">×</span></button>
+        <button disabled="{{ true }}" style="font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1.4; color: #A8A29E; background: #FFFFFF; border: 1.5px dashed #E7DED3; border-radius: 999px; padding: 10px 16px; min-height: 40px; cursor: not-allowed">حلويات — مفيش دلوقتي</button>
+        <span style="font-size: 15px; font-weight: 600; color: #9A3412; padding: 10px 4px; line-height: 1.4">شيل الكل</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٥ — اللوحة السفلية</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">القرار الأساسي تحت خالص عند الإبهام، والملخص فوقه — عشان اللي بيقرا بسرعة وهو ماشي يلاقي الرقم قبل الزرار.</p>
+  <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start">
+    <div style="width: 380px; background: #1C1917; border-radius: 32px; padding: 8px; box-shadow: 0 8px 24px rgba(28,25,23,0.12)">
+      <div style="background: rgba(28,25,23,0.55); border-radius: 26px 26px 0 0; height: 96px"></div>
+      <div style="background: #FFFBF7; border-radius: 26px; padding: 8px 24px 24px">
+        <div style="width: 44px; height: 4px; border-radius: 999px; background: #D6CCC0; margin: 0 auto 24px"></div>
+        <h3 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 16px">تأكيد الطلب</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #E7DED3">
+          <div style="display: flex; justify-content: space-between; gap: 16px; font-size: 16px; line-height: 1.75">
+            <span>محشي ورق عنب × ١</span><span style="font-weight: 600">١٢٠ جنيه</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 16px; font-size: 16px; line-height: 1.75; color: #57534E">
+            <span>التوصيل من المعادي</span><span>١٥ جنيه</span>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; gap: 16px; padding: 16px 0 24px">
+          <span style="font-size: 16px; font-weight: 600; line-height: 1.5">الإجمالي</span>
+          <span style="font-size: 24px; font-weight: 700; line-height: 1.4">١٣٥ جنيه</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="position: relative; display: flex">
+            <button style="font-family: inherit; font-size: 18px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 14px; padding: 16px 24px; min-height: 56px; width: 100%; cursor: pointer">أكّد الطلب</button>
+            <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+          </div>
+          <div style="position: relative; display: flex">
+            <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #57534E; background: transparent; border: 0; border-radius: 14px; padding: 14px 24px; min-height: 48px; width: 100%; cursor: pointer">استنى، عايز أعدّل</button>
+            <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+          </div>
+        </div>
+        <div style="height: 4px; width: 120px; border-radius: 999px; background: #E7DED3; margin: 16px auto 0"></div>
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 280px; border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 16px; font-weight: 600; line-height: 1.6">قواعد اللوحة</div>
+      <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">المقبض فوق دايماً، لأن أول حركة أي حد بيعملها إنه يسحب لتحت.</div>
+      <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">أقصى ارتفاع ٩٠٪ من الشاشة — لازم يفضل بان جزء من اللي تحتها، عشان الناس تعرف إنها بتتقفل.</div>
+      <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">الإلغاء نص عادي مش زرار ملون — الرجوع لازم يكون سهل بس ما يشدّش العين.</div>
+      <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">لما النص يكبر، اللوحة بتبقى قابلة للف من جوه؛ الزرار السفلي بيفضل ثابت مكانه.</div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٦ — الحالة الفاضية</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">مفيش رسمة كبيرة ولا اعتذار — سبب واضح، ووقت متوقّع، وحركة واحدة يعملها العميل.</p>
+  <div style="display: flex; gap: 24px; flex-wrap: wrap">
+    <div style="width: 380px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FFF7ED; border: 1.5px dashed #F0C9A8; display: flex; align-items: center; justify-content: center; flex: none">
+        <span style="width: 28px; height: 4px; border-radius: 999px; background: #C2410C"></span>
+      </div>
+      <div style="font-size: 20px; font-weight: 600; line-height: 1.5; text-wrap: pretty">مفيش مطابخ فاتحة جمبك دلوقتي</div>
+      <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0; text-wrap: pretty">الطباخين في المعادي بيفتحوا من حوالي ١١ الصبح. تحب نبعتلك تنبيه أول ما أول مطبخ يفتح؟</p>
+      <div style="position: relative; display: flex; width: 100%; margin-top: 8px">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer">نبّهني أول ما يفتح</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+      <div style="position: relative; display: flex; width: 100%">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9A3412; background: transparent; border: 0; border-radius: 12px; padding: 14px 24px; min-height: 48px; width: 100%; cursor: pointer">وسّع دايرة البحث لـ ٥ كم</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+    </div>
+    <div style="width: 380px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FEF2F2; border: 1.5px dashed #F3B8C4; display: flex; align-items: center; justify-content: center; flex: none">
+        <span style="font-size: 24px; font-weight: 700; color: #9F1239; line-height: 1">!</span>
+      </div>
+      <div style="font-size: 20px; font-weight: 600; line-height: 1.5; text-wrap: pretty">النت قطع في نص الكلام</div>
+      <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0; text-wrap: pretty">اللي قولته محفوظ. أول ما النت يرجع هنكمّل من نفس المكان.</p>
+      <div style="position: relative; display: flex; width: 100%; margin-top: 8px">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.5; color: #9A3412; background: #FFF7ED; border: 1.5px solid #F0C9A8; border-radius: 12px; padding: 16px 24px; min-height: 48px; width: 100%; cursor: pointer">جرّب تاني</button>
+        <sc-if value="{{ tap }}" hint-placeholder-val="{{ false }}"><span style="{{ tapBox }}"></span></sc-if>
+      </div>
+    </div>
+  </div>
+</section>
+
+<sc-if value="{{ showEnglish }}" hint-placeholder-val="{{ true }}">
+<section dir="ltr" style="padding-top: 64px; margin-top: 64px; border-top: 1px solid #E7DED3; text-align: left">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.35; margin: 0 0 8px">English mirror</h2>
+  <p style="font-size: 16px; line-height: 1.6; color: #57534E; margin: 0 0 24px; max-width: 640px; text-wrap: pretty">Layout mirrors, terminology is fixed: Cook, Customer, Meal, Kitchen Profile, Order, Review — never chef, vendor, restaurant, dish, product, listing, buyer or user.</p>
+  <div style="display: flex; gap: 24px; flex-wrap: wrap">
+    <div style="width: 340px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; overflow: hidden">
+      <div style="{{ photoStyle }}">
+        <span style="font-size: 14px; font-weight: 700; line-height: 1.5; color: #9F1239; background: #FFFFFF; border: 1.5px dashed #9F1239; border-radius: 8px; padding: 8px 12px; text-align: center">Placeholder — never ships</span>
+      </div>
+      <div style="padding: 16px">
+        <div style="font-size: 20px; font-weight: 600; line-height: 1.35; margin-bottom: 4px">Stuffed vine leaves</div>
+        <div style="font-size: 14px; line-height: 1.5; color: #57534E; margin-bottom: 16px">Cook: Hagga Samiha · Maadi · 1.2 km</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="font-size: 24px; font-weight: 700">120 <span style="font-size: 15px; font-weight: 500; color: #57534E">EGP</span></div>
+          <button style="font-family: inherit; font-size: 16px; font-weight: 600; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 14px 20px; min-height: 48px; cursor: pointer">Add to Order</button>
+        </div>
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 12px; justify-content: center">
+      <div style="display: flex; gap: 12px; flex-wrap: wrap">
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 16px 24px; min-height: 48px; cursor: pointer">Place Order</button>
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; color: #9A3412; background: #FFF7ED; border: 1.5px solid #F0C9A8; border-radius: 12px; padding: 16px 24px; min-height: 48px; cursor: pointer">View Kitchen Profile</button>
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; color: #9F1239; background: #FEF2F2; border: 1.5px solid #F3B8C4; border-radius: 12px; padding: 16px 24px; min-height: 48px; cursor: pointer">Cancel Order</button>
+      </div>
+      <div style="font-size: 14px; line-height: 1.6; color: #78716C">Latin runs one line-height step tighter (1.5 vs 1.75) at the same size.</div>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120},&quot;showEnglish&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Content&quot;}}">
+class Component extends DCLogic {
+  state = { tap: false, active: { "نباتي": true, "مصري": true } };
+
+  renderVals() {
+    const hatch = "repeating-linear-gradient(45deg, #F0E9E1 0 10px, #FAF5F0 10px 20px)";
+    const photoBase = {
+      background: hatch, border: "1.5px dashed #C7B9A8",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: "16px",
+      boxSizing: "border-box"
+    };
+    const chipLabels = ["مصري", "شامي", "نباتي", "من غير جلوتين", "أكل رجيم", "سخن دلوقتي", "أقل من ١٠٠ جنيه"];
+    return {
+      lexicon: [
+        { ar: "الطباخة / الطباخ", en: "Cook", never: "chef · vendor" },
+        { ar: "العميل", en: "Customer", never: "user · buyer" },
+        { ar: "الأكلة", en: "Meal", never: "dish · product" },
+        { ar: "صفحة المطبخ", en: "Kitchen Profile", never: "restaurant · listing" },
+        { ar: "الطلب", en: "Order", never: "cart · checkout" },
+        { ar: "التقييم", en: "Review", never: "rating · feedback" }
+      ],
+      tap: this.state.tap,
+      tapLabel: this.state.tap ? "اخفي حدود الضغط" : "ورّيني حدود الضغط",
+      toggleTap: () => this.setState(s => ({ tap: !s.tap })),
+      showEnglish: this.props.showEnglish ?? true,
+      tapBox: { position: "absolute", top: "50%", right: "50%", transform: "translate(50%,-50%)",
+        width: "calc(100% + 8px)", height: "100%", minHeight: "48px",
+        outline: "1.5px dashed #0F766E", outlineOffset: "0", borderRadius: "14px",
+        background: "rgba(15,118,110,0.07)", pointerEvents: "none" },
+      tapBoxChip: { position: "absolute", top: "50%", right: "50%", transform: "translate(50%,-50%)",
+        width: "calc(100% + 8px)", height: "48px",
+        outline: "1.5px dashed #0F766E", borderRadius: "999px",
+        background: "rgba(15,118,110,0.07)", pointerEvents: "none" },
+      photoStyle: Object.assign({}, photoBase, { height: "180px" }),
+      photoStyleLarge: Object.assign({}, photoBase, { height: "220px" }),
+      chips: chipLabels.map(label => {
+        const on = !!this.state.active[label];
+        return {
+          label,
+          toggle: () => this.setState(s => ({ active: Object.assign({}, s.active, { [label]: !s.active[label] }) })),
+          style: {
+            fontFamily: "inherit", fontSize: "15px", fontWeight: 600, lineHeight: 1.4,
+            color: on ? "#FFFFFF" : "#44403C",
+            background: on ? "#C2410C" : "#FFFFFF",
+            border: on ? "1.5px solid #C2410C" : "1.5px solid #D6CCC0",
+            borderRadius: "999px", padding: "10px 16px", minHeight: "40px", cursor: "pointer"
+          }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

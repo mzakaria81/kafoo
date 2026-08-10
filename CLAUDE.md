@@ -84,6 +84,28 @@ existed and looked like an oversight.
 **NEVER** build a form where a conversation would work. If you find yourself adding a fourth input
 field, stop and propose a conversational flow instead.
 
+**NEVER** ship a component without its spoken Egyptian Arabic line. **Kafoo is voice-first as of
+2026-08-10 (ADR-0013), and that is a different thing from what this file used to mean by it.** It
+used to mean a microphone button on a form. It now means the assistant speaks, the user speaks
+back, and **the screen is the receipt of that exchange rather than the place information first
+appears.** The assumption underneath is that a Cook may not read comfortably — so anything only the
+screen says is invisible to the person the product exists for.
+
+Four consequences bind every screen, and `docs/design/DESIGN.md` §10 has the rest:
+
+- **A component is unfinished until its spoken line is written.** Visual states alone are no longer
+  a component. This changes what "done" means for `packages/ui/` and every widget above it.
+- **The assistant paraphrases what it understood; it never shows a transcript.** The one exception
+  is a message to another human, which is read back verbatim before sending — those exact words are
+  what the other person receives.
+- **Reversible actions execute and are announced. Irreversible ones are read back and wait for a
+  spoken «أيوة». Silence never confirms**, and no timeout may resolve a gate.
+- **Every state reaches the user three ways — visual, spoken, haptic — any one sufficient alone.**
+
+**Tap is a complete alternative, never a degraded one**, and typing is never a *consequence* of the
+assistant failing to understand. Large Arabic text is a closed set of eleven glance words; numerals
+are the largest type in the system. Do not invent a twelfth glance word — add it to the set first.
+
 **NEVER** let AI write to the database without explicit human approval in the flow. AI suggests,
 humans approve. This is a domain rule, not a UX preference.
 
@@ -103,6 +125,7 @@ style nit — it propagates into schema, prompts, and UI. Full glossary: `docs/v
 | Order | purchase, transaction, ticket |
 | Review | feedback, rating (rating is the *score inside* a review) |
 | Conversation | chat, session (session is runtime-only, never user-facing) |
+| Message | chat, DM, thread |
 | AI Assistant | bot, chatbot, LLM, robot |
 | Publish / Archive | upload / delete |
 | Accept Order / Reject Order | approve / decline |
@@ -132,6 +155,8 @@ Read the directory tree from the disk. What it will not tell you:
   generated file.
 - **Read `decisions/` before proposing any architecture change.** `specs/` holds per-epic spec, plan
   and tasks; `coordination/` holds work packages, one JSON file each.
+- **`docs/design/` is the design system, and `DESIGN.md` §10 is the voice specification.** The
+  HTML files beside it are design references — never shipped, never ported.
 
 ## Building a feature
 
@@ -223,6 +248,16 @@ Development speed is last. Do not trade trust or simplicity for it.
 
 App launch <2s · voice response <2s · meal publish <3s · search <1.5s.
 If a change pushes past a budget, say so in the PR rather than shipping it silently.
+
+**Two more arrived with voice-first (ADR-0013), and they are tighter than anything above.** Input is
+acknowledged — haptic and orb growth — within **150 ms**, and the thinking state visible before
+**400 ms**. Half a second of silence reads as "the button didn't work", so the Cook taps again and
+cuts off her own speech. They govern the gap before the 2 s round-trip, not instead of it. **Nothing
+in a voice flow may be silent and still.**
+
+**Neither is measured and the path behind them is unproven** — `docs/ops/spike-gemini-live.md`
+records the ephemeral-token flow failing on 2026-08-06 and ADR-0009 is open. Targets a design
+committed to, not budgets a build has met.
 
 **Only the founder raises a budget.** Search was <1s until 2026-08-08, when he raised it having seen
 the first end-to-end measurement — 1112 ms median, 1438 ms p95 over 1,013 Meals.
