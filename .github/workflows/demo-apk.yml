@@ -112,6 +112,40 @@ jobs:
             --dart-define=SUPABASE_URL="${URL}" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
 
+      # SAY WHICH KEY SIGNED IT, BECAUSE THE ANSWER DECIDES WHETHER THE BUILD INSTALLS.
+      #
+      # Android refuses an update signed by a different key from the installed app. This build used
+      # to fall back to the local debug key, and a fresh runner generates a new one every time, so
+      # every demo APK was a different app to the phone: "App not installed", uninstall, lose the
+      # session and every answer the app remembered. Reported by the founder on 2026-08-10.
+      #
+      # `apps/mobile/android/demo/demo.keystore` is committed so the key stops changing. This step
+      # prints the certificate rather than asserting the fix worked: two runs showing the same
+      # fingerprint is evidence, and a run showing `CN=Android Debug` says the keystore went missing
+      # and updates are about to start failing again.
+      - name: Say which key signed it
+        working-directory: apps/mobile
+        run: |
+          set -euo pipefail
+          CERTDIR=$(mktemp -d)
+          unzip -o -q build/app/outputs/flutter-apk/app-release.apk -d "$CERTDIR" 'META-INF/*'
+          CERT=$(find "$CERTDIR/META-INF" -maxdepth 1 \
+                   \( -name '*.RSA' -o -name '*.EC' -o -name '*.DSA' \) | head -1)
+          {
+            echo "### Signed by"
+            echo ""
+            if [ -z "$CERT" ]; then
+              echo "\`NOTHING — unsigned, this will not install\`"
+            else
+              keytool -printcert -file "$CERT" | grep -E '^Owner:|SHA256:' | sed 's/^/    /'
+              echo ""
+              echo "The fingerprint must match the previous demo build, or the APK will refuse to"
+              echo "install over it. \`CN=Kafoo Demo Build\` is the fixed key; \`CN=Android Debug\`"
+              echo "means the committed keystore is missing and updates will start failing."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -r "$CERTDIR"
+
       - name: Archive APK
         uses: actions/upload-artifact@v4
         with:

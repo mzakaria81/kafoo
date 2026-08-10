@@ -12,3 +12,15 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# ONE EXCEPTION, AND IT IS NOT A KEYSTORE WORTH HIDING.
+#
+# demo/demo.keystore signs the demo APK only. Its password is `android`, it can never reach the
+# Play Store, and anybody can generate an equivalent in ten seconds — so the rule above protects
+# nothing here while costing something real: without a FIXED key, every demo build is signed by a
+# different one, Android refuses to install it over the previous version, and the only way through
+# is to uninstall and lose everything the app remembered. That happened to the founder on
+# 2026-08-10 and is the reason this line exists.
+#
+# The upload key is still covered by the rule above and still never enters the tree.
+!demo/demo.keystore
