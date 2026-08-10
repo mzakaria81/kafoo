@@ -703,8 +703,11 @@ jobs:
       # ONE FILE, TWO CONSUMERS. `xcodebuild` is handed the path explicitly; `altool` only
       # looks in a fixed list of directories and this is one of them, so writing it here
       # serves both without a second copy. Deleted at the end of the job.
+      #
+      # Gated with the signing step below, so an ordinary merge never puts this key on a
+      # runner at all. A merge builds unsigned, and an unsigned build needs no credential.
       - name: Install the App Store Connect key
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
@@ -744,6 +747,24 @@ jobs:
             --dart-define=SUPABASE_URL="${URL}" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
 
+      # SIGNING SPENDS A LIMITED RESOURCE, WHICH IS WHY THIS IS GATED AND THE STEP ABOVE IS
+      # NOT. `-allowProvisioningUpdates` asks Apple to create an Apple Distribution
+      # certificate when the machine has none, and a GitHub runner is destroyed after every
+      # run, so it never has one. Apple caps how many can exist at once — three — so signing
+      # on every merge would fill the cap within a week and then fail every iOS build,
+      # including the compile check this job exists for. Raised by release-engineer.
+      #
+      # Only THIS step and the upload are gated. Building the archive stays on every merge,
+      # because `--no-codesign` spends nothing and "does iOS still compile" is the whole
+      # reason this job runs on a merge at all. Gating the build as well would have removed
+      # that check — which the recommendation asked for and its own reasoning argued against.
+      #
+      # ponytail: three signed builds then a manual cleanup at developer.apple.com. Fixing
+      # that properly means revoking stale certificates through the App Store Connect API on
+      # each run — sixty lines of JWT signing that cannot be tested until an Apple account
+      # exists. Do it when the cleanup becomes annoying, not before.
+      # docs/ops/ios-testflight.md says what the failure looks like.
+      #
       # `method` is `app-store` rather than the newer `app-store-connect`: both are accepted
       # by current Xcode, the old name is accepted by older Xcode too, and this file cannot
       # pin the runner's Xcode version.
@@ -752,7 +773,7 @@ jobs:
       # value in it and it comes from a secret. A committed file would either hardcode the
       # team or be a template with one substitution — both worse than six lines of heredoc.
       - name: Sign and export the app
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}

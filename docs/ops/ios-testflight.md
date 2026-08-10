@@ -110,17 +110,26 @@ paste it straight into the secret. It is one long line with no spaces.
 to yourself.** It is a private key. The clipboard, going directly into GitHub's secret box, is the
 shortest path it can take.
 
-## Step 6 — ask for a build
+## Step 6 — add yourself as a tester
+
+**appstoreconnect.apple.com** → **Apps** → **Kafoo** → **TestFlight** tab → **Internal Testing** →
+**+** → create a group called `Founder` → add yourself.
+
+Do this once. An uploaded build does not appear on your phone by itself — it appears to the people
+in a testing group, and until you are in one there is nobody to show it to. Internal testers need
+no Apple review, which is what makes this route minutes rather than days.
+
+## Step 7 — ask for a build
 
 **Actions** → **Deploy** → **Run workflow** → branch **main** → **Run workflow**.
 
 It must be `main` and it must be this manual button. A merge to `main` builds the app to check that
-it still compiles but deliberately sends nothing to Apple — pushing to your phone is something you
-ask for, never something that happens because a change landed.
+it still compiles, but deliberately does not sign it and sends nothing to Apple — pushing to your
+phone is something you ask for, never something that happens because a change landed.
 
 Ten to twenty minutes later the run finishes, and its summary says the build was sent.
 
-## Step 7 — install it
+## Step 8 — install it
 
 On your iPhone, install **TestFlight** from the App Store. Sign in with the same Apple ID from
 step 1. Kafoo appears. Tap Install.
@@ -139,6 +148,31 @@ permanently red.
 **"No profiles found" or a signing error in "Sign and export the app".** The app record in step 2
 does not exist, or its Bundle ID is not exactly `com.kafoo.kafooMobile`, or the API key's access
 level is below App Manager.
+
+**"Maximum number of certificates generated" — and this one is expected, not a fault.** Apple lets
+three signing certificates exist at once. Every signed build asks for a new one, because the
+machine that builds is destroyed afterwards and keeps nothing. So the fourth build fails.
+
+The fix takes a minute: **developer.apple.com** → **Certificates, IDs & Profiles** → **Certificates**
+→ delete the older **Apple Distribution** entries → dispatch again. Deleting one does not break
+builds already in TestFlight or on the App Store; it only stops that certificate signing anything
+new.
+
+Only signed builds spend a slot. Ordinary merges build without signing, so normal development
+never touches this — three *TestFlight* builds, not three merges.
+
+**The build uploaded but nothing appears in TestFlight on your phone.** Either Apple is still
+processing it — five to fifteen minutes is normal, and App Store Connect shows the state — or you
+skipped step 6 and are not in a testing group.
+
+**"altool is not available" or an upload tool error.** `altool` is Apple's older upload command and
+Apple has been steering people towards Transporter. It works today; if a future Xcode on GitHub's
+machines drops it, this is the symptom, and the workflow's upload step is the thing to change.
+
+**Apple asks for privacy details before the build can be distributed.** The three permissions Kafoo
+declares — microphone, speech recognition, photo library — may need matching entries in App Store
+Connect's privacy questionnaire. Internal testing usually does not require it; publishing always
+does. Fill it in when asked.
 
 **The upload is rejected for a duplicate build number.** Each run uses the GitHub run number, which
 never repeats, so this means the same run was uploaded twice. Dispatch a new run.
