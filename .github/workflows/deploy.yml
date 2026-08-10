@@ -341,6 +341,31 @@ jobs:
           sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
                                       "postgresql-${PG_MAJOR}-pgvector"
 
+      # THE GATE TYPE-CHECKS THE WEB SURFACE NOW, SO THIS JOB HAS TO RESOLVE ITS
+      # DEPENDENCIES — the same two steps ci.yml grew in #443, which this job did not.
+      #
+      # #443 made verify.sh FAIL rather than skip in CI when apps/web/node_modules is
+      # absent, which is right: a skip there had been reporting ok without running on
+      # every pull request. It added setup-node and npm ci to ci.yml and to the `web`
+      # job below, and missed this one — which runs the same gate on a different
+      # runner, where nothing had installed them.
+      #
+      # Every deploy on main failed from that merge at 21:58 until this fix. Nothing
+      # announced it: `preflight` is what `web`, `android` and `ios` all depend on, so
+      # they reported "skipped" rather than red, and the Customer surface simply
+      # stopped being published while the workflow looked like it was only partly
+      # running. A dependency failing quietly is how a deploy goes missing for hours.
+      #
+      # Node version pinned to match ci.yml and the `web` job — one definition of the
+      # runtime, three places that must agree.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install web surface dependencies
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+
       # A release is not the place to discover a missing RLS policy.
       #
       # Unguarded, unlike the per-job version it replaces: that one was gated on the platform
