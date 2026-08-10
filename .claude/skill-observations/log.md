@@ -1972,7 +1972,7 @@ rather than confidence.
 
 ### Observation 132: Always-loaded instruction files absorb corrections that belong in on-demand skills
 
-**Status:** OPEN
+**Status:** PARTIALLY ACTIONED (2026-08-09) — project half done: CLAUDE.md cut 631->314 lines, the 228-line delegation section moved to `.claude/skills/opencode-delegate/references/kafoo-account.md`. Skill half still OPEN: the routing rule (name the destination at write time) is not yet recorded in task-observer or the cross-cutting principles.
 **Date:** 2026-08-09
 **Session context:** Auditing a 631-line project CLAUDE.md against Anthropic's under-200-line guidance.
 **Skill:** task-observer (cross-cutting principle candidate)
