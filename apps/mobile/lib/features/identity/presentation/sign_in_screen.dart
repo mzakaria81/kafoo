@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:kafoo_domain/egyptian_phone.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,9 +31,35 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  /// Shows an error and says it out loud.
+  ///
+  /// `errorText` alone renders the message and announces nothing, so a Customer
+  /// using a screen reader taps the button and hears silence. Every error on this
+  /// screen goes through here so that cannot be true of one of them. The
+  /// direction is RTL because the app is pinned to Arabic — see `main.dart`.
+  void _showError(String message) {
+    setState(() => _error = message);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      TextDirection.rtl,
+    );
+  }
+
   Future<void> _submit() async {
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty) return;
+    final typed = _phoneController.text.trim();
+    if (typed.isEmpty) return;
+
+    // NOBODY IN EGYPT TYPES `+20`, and until 2026-08-10 nothing here turned what
+    // they do type into what the authentication service accepts. `01112513196`
+    // went across as-is, came back rejected, and was reported as "no internet".
+    final phone = normalizeEgyptianMobile(typed);
+    if (phone == null) {
+      _showError(
+        AppLocalizations.of(context).signInPhoneNotMobile(context.addressForm),
+      );
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -52,16 +80,28 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
       );
     } on AuthException catch (e) {
+      // AN ANSWER FROM THE SERVER IS PROOF THE NETWORK WORKS. This branch used
+      // to report every refusal as "no internet connection", which contradicted
+      // itself: the only way to be refused is to have been heard. It said so on
+      // the first build anybody installed, in front of the founder.
+      //
+      // The wording does not guess WHY the code was not sent — an unknown
+      // number, a number that cannot receive SMS, and a messaging provider that
+      // is down are indistinguishable from here, and inventing a reason would be
+      // the same failure one layer along.
       final l10n = AppLocalizations.of(context);
       if (e.message.contains('rate') || e.statusCode == '429') {
-        setState(() => _error = l10n.signInRateLimited(5, context.addressForm));
+        _showError(l10n.signInRateLimited(context.addressForm));
       } else {
-        setState(() => _error = l10n.signInNetworkError(context.addressForm));
+        _showError(l10n.signInCodeNotSent(context.addressForm));
       }
     } on Exception catch (_) {
+      // Nothing came back at all. This is the one case where the network really
+      // is the likely cause, so it keeps the network message.
       if (!mounted) return;
-      setState(() => _error =
-          AppLocalizations.of(context).signInNetworkError(context.addressForm));
+      _showError(
+        AppLocalizations.of(context).signInNetworkError(context.addressForm),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }

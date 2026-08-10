@@ -46,6 +46,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
 
   bool _checkingExisting = true;
   bool _voiceAvailable = false;
+  bool _voiceNeedsArabic = false;
   bool _listening = false;
 
   /// Set once the person speaks or types on the current step, so the funnel
@@ -81,6 +82,12 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
     setState(() {
       _checkingExisting = false;
       _voiceAvailable = available;
+      // THE FLOW THIS WAS REPORTED FROM. A recogniser that works with no Arabic
+      // installed is the one unavailable case a Cook can fix in their own
+      // settings, and saying it here as well as on search is the difference
+      // between a dead end and an instruction. Raised by conversation-designer,
+      // which pointed out the fix had landed only on the Customer's screen.
+      _voiceNeedsArabic = !available && _voice.engineAvailable;
     });
 
     unawaited(emitEvent(
@@ -339,9 +346,18 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
         else
           // research.md §3: recognition missing is the likeliest
           // real-world outcome. Say so plainly and keep the flow whole.
-          Text(
-            l10n.convVoiceUnavailable(context.addressForm),
-            style: Theme.of(context).textTheme.bodySmall,
+          //
+          // `liveRegion` because a Cook who cannot see the screen is told this
+          // by nothing else: the microphone button simply is not there, and an
+          // absence announces nothing.
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              _voiceNeedsArabic
+                  ? l10n.convVoiceNeedsArabic(context.addressForm)
+                  : l10n.convVoiceUnavailable(context.addressForm),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         const Spacer(),
         FilledButton(

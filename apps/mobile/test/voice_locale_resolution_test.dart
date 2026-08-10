@@ -126,6 +126,38 @@ Widget _testApp(Widget child) {
 
 void main() {
   group('VoiceInput locale resolution', () {
+    // THE DIFFERENCE THAT DECIDES WHICH SENTENCE A PERSON READS. A device with a
+    // working recogniser and no Arabic is told to add Arabic in its settings; a
+    // device with no recogniser at all is told voice does not work here. Both
+    // used to produce the second message, which is why granting the microphone
+    // permission and then being told voice does not work was the whole
+    // experience the founder had.
+    test(
+        'a working recogniser with no Arabic is unavailable BUT engine-available',
+        () async {
+      final fake = FakeSpeechToText(
+        availableLocales: [
+          LocaleName('en_US', 'English (US)'),
+          LocaleName('fr_FR', 'French'),
+        ],
+      );
+      final voice = VoiceInput(speech: fake);
+      final available = await voice.initialize();
+
+      expect(available, isFalse,
+          reason: 'no Arabic means no Arabic-first voice');
+      expect(voice.engineAvailable, isTrue,
+          reason:
+              'the microphone and recogniser are fine — only the language is missing');
+      expect(voice.localeMatch, equals(VoiceLocaleMatch.none));
+    });
+
+    test('no locales at all is still engine-available', () async {
+      final voice = VoiceInput(speech: FakeSpeechToText());
+      expect(await voice.initialize(), isFalse);
+      expect(voice.engineAvailable, isTrue);
+    });
+
     test('ar-EG on the device resolves to exact match', () async {
       final fake = FakeSpeechToText(
         availableLocales: [
