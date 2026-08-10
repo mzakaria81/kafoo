@@ -190,4 +190,43 @@ void main() {
       );
     }
   });
+
+  testWidgets('leaving survives 200% text on a small screen', (tester) async {
+    // SC-011 says leaving stays one step from the first screen after signing
+    // in. Five entries at double text size overflow a 320x480 phone, and a
+    // Column that cannot scroll resolves that by pushing its LAST child off the
+    // bottom — which is this one. The old three-entry home had the headroom to
+    // hide the problem.
+    //
+    // It walks into RemoveAccountScreen rather than stopping at the tap, which
+    // is how that screen's identical overflow was found. FOUR MORE SCREENS HAVE
+    // THE SAME SHAPE and are not fixed: change_phone_screen, code_screen,
+    // email_sign_in_screen and sign_in_screen are all Padding > Column >
+    // Spacer with no scroll view. They are the sign-in path rather than the
+    // leave path, so they are a separate change with the founder's call on
+    // scope, not something to sweep in here — but a 200% Cook cannot finish
+    // signing in either.
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MediaQuery(
+      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+      child: _testApp(SignedInHome(
+        kitchenProfileRepository: FakeKitchenProfileRepository(
+          existing: _profile,
+        ),
+      )),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+
+    final leave = find.text(l10n.removeAccountEntry('other'));
+    expect(leave, findsOneWidget);
+    await tester.ensureVisible(leave);
+    await tester.tap(leave);
+    await tester.pumpAndSettle();
+    expect(find.byType(SignedInHome), findsNothing);
+  });
 }

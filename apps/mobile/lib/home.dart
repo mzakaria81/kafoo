@@ -136,8 +136,13 @@ class _SignedInHomeState extends State<SignedInHome> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.appTitle)),
+      // SCROLLS, AND MUST. Five entries at 200% text scale overflow a 320x480
+      // phone by 192 logical pixels, and a Column that cannot scroll resolves
+      // that by pushing its last child off the bottom — which is leaving, the
+      // one control SC-011 requires to stay one step away. The three-entry
+      // version this replaced had the headroom to hide it.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -167,7 +172,10 @@ class _SignedInHomeState extends State<SignedInHome> {
                   ),
                 ),
               ),
-              const Spacer(),
+              // A fixed gap rather than a Spacer: a Spacer needs bounded height
+              // and there is none inside a scroll view. It still separates
+              // leaving from the things a Cook came here to do.
+              const SizedBox(height: KafooSpacing.xl),
               // SC-011: leaving is reachable in one step from the first screen
               // after signing in — no deeper than joining was. It is not buried
               // under a settings tree, because burying it is the dark pattern
