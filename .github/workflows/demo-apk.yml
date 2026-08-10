@@ -30,9 +30,15 @@ name: Demo APK
 # without touching the stored address.
 # ────────────────────────────────────────────────────────────────────────────────────────────────
 #
-# The APK is DEBUG-SIGNED and that is deliberate: apps/mobile/android/app/build.gradle.kts falls
-# back to debug keys when key.properties is absent, and a debug-signed APK sideloads fine. It is not
-# publishable, which is the correct property for a build carrying demo data.
+# THE APK IS SIGNED WITH A FIXED DEMO KEY, and both halves of that matter.
+#
+# Not publishable: `apps/mobile/android/demo/demo.keystore` cannot reach a store, which is the
+# correct property for a build carrying demo Cooks and Meals.
+#
+# Fixed: Android refuses an update signed by a different key from the installed app. Until
+# 2026-08-10 this fell back to the machine's debug key, and a fresh runner makes a new one every
+# run — so each demo APK was a different app to the phone, and installing one over another gave
+# "App not installed" until you uninstalled and lost everything the app remembered.
 
 on:
   workflow_dispatch:
@@ -112,37 +118,20 @@ jobs:
             --dart-define=SUPABASE_URL="${URL}" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
 
-      # SAY WHICH KEY SIGNED IT, BECAUSE THE ANSWER DECIDES WHETHER THE BUILD INSTALLS.
+      # PROVE WHICH KEY SIGNED IT RATHER THAN ASSERTING THE FIX WORKED. Two runs showing the same
+      # fingerprint is evidence; `CN=Android Debug` says the committed keystore went missing and
+      # updates are about to start failing again.
       #
-      # Android refuses an update signed by a different key from the installed app. This build used
-      # to fall back to the local debug key, and a fresh runner generates a new one every time, so
-      # every demo APK was a different app to the phone: "App not installed", uninstall, lose the
-      # session and every answer the app remembered. Reported by the founder on 2026-08-10.
+      # `apksigner` and not the certificate file inside the archive: the first version looked for
+      # `META-INF/*.RSA` and called a perfectly signed APK unsigned, because that is the OLD
+      # signature format and Android stopped requiring it at minSdk 24. apksigner ships with the
+      # build tools already on the runner and understands every version — it is what Android uses.
       #
-      # `apps/mobile/android/demo/demo.keystore` is committed so the key stops changing. This step
-      # prints the certificate rather than asserting the fix worked: two runs showing the same
-      # fingerprint is evidence, and a run showing `CN=Android Debug` says the keystore went missing
-      # and updates are about to start failing again.
-      # `apksigner`, NOT the certificate file inside the archive. The first version of this step
-      # looked for `META-INF/*.RSA` and reported "unsigned, this will not install" for an APK that
-      # was signed perfectly well: that file is the OLD signature format, and Android stopped
-      # requiring it at minSdk 24, so Gradle no longer writes one. A check that reports a healthy
-      # build as broken is the same defect as one that reports a broken build as healthy, and it
-      # was caught only because the answer was read rather than assumed.
-      #
-      # apksigner ships with the Android build tools already on the runner and understands every
-      # signature version, which is the whole reason to use the tool Android itself uses.
-      #
-      # `tee` and not a redirect: the summary is for a person opening the run, the log is where
-      # anyone comparing two builds can read it back.
-      # THIS STEP DESCRIBES THE BUILD AND MUST NEVER BREAK IT. It has now failed the build twice
-      # for reasons that had nothing to do with the app: once looking for a signature file that
-      # modern Android no longer writes, once because a `grep` found nothing and `pipefail` turned
-      # that into a failed job. An informational step that can go red is worse than no step —
-      # it teaches whoever sees it that red does not mean broken.
-      #
-      # So: no `set -e`, every outcome printed, and the step always succeeds. What it reports is
-      # for a person to read, and a person can tell "could not determine" from "signed by X".
+      # THIS STEP DESCRIBES THE BUILD AND MUST NEVER BREAK IT. It failed the job twice for reasons
+      # that had nothing to do with the app, and an informational step that can go red teaches
+      # whoever sees it that red does not mean broken — the one habit every other check here exists
+      # to prevent. So: no `set -e`, every outcome printed including "could not determine", and
+      # `tee` so the answer is readable in the log as well as the summary.
       - name: Say which key signed it
         working-directory: apps/mobile
         continue-on-error: true
@@ -188,7 +177,8 @@ jobs:
             echo "1. Download **kafoo-demo-${{ github.run_number }}** from the Artifacts section"
             echo "   at the bottom of this page. It arrives as a zip; the APK is inside."
             echo "2. Open it on an Android phone. Allow \"install unknown apps\" when asked —"
-            echo "   this build is signed with a debug key, which is why it is not publishable."
+            echo "   this build is signed with the demo key, which is why it is not publishable."
+            echo "   It installs OVER a previous demo build — no uninstall, nothing lost."
             echo "3. It opens on food, signed in to nothing. That is the Customer surface."
             echo ""
             echo "To sign in as a Cook, use one of the demo numbers in \`supabase/demo-data.json\`,"
