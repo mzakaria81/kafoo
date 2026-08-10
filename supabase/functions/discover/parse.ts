@@ -102,11 +102,16 @@ const FOLDED_FORMS: ReadonlyArray<{ id: string; terms: readonly string[]; folded
     }))
   );
 
-/// Words that join two foods in one breath.
+/// Words that end the food and begin something else.
 ///
 /// Whole words. A bare waw is also a prefix, so splitting on the character would cut ordinary food
-/// names in half.
-const CONJUNCTIONS: readonly string[] = ['\u0648\u0644\u0627', '\u0648', '\u0623\u0648', '\u0627\u0648'];
+/// names in half \u2014 and `\u0628\u0633` is the front of `\u0628\u0633\u0637\u0631\u0645\u0629`, which is meat.
+///
+/// `\u0628\u0633` means "but", and what follows it is the food the Customer says they DO want. Without it,
+/// `\u0645\u0628\u0643\u0644\u0634 \u0644\u062d\u0645\u0629 \u0628\u0633 \u0628\u062d\u0628 \u0627\u0644\u0641\u0631\u0627\u062e` took the whole tail as the food and excluded the CHICKEN, leaving the
+/// meat on screen under a label naming chicken. Added 2026-08-10; the Dart side carries the same
+/// entry and `index_test.ts` holds the shared case.
+const CONJUNCTIONS: readonly string[] = ['\u0648\u0644\u0627', '\u0648', '\u0623\u0648', '\u0627\u0648', '\u0628\u0633'];
 
 /// Where `form` begins a word in `text`, or -1.
 function wordStartIndexOf(text: string, form: string): number {

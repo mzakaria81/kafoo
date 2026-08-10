@@ -62,7 +62,7 @@ import 'package:test/test.dart';
 /// memory, and goes red if a new surface form collides with ordinary Cook text.
 void main() {
   group('Cook-side over-exclusion', () {
-    test('the vocabulary reaches exactly seven words it does not mean', () {
+    test('the vocabulary reaches exactly eight words it does not mean', () {
       final unexplained = <String>{};
 
       for (final exclusion in ExclusionVocabulary.all) {
@@ -224,10 +224,30 @@ const List<String> _cookText = [
 
 /// Pinned rather than counted, so the membership is what has to stay true.
 ///
-/// Seven entries, all of them a Customer losing a Meal that does not contain the
+/// Eight entries, all of them a Customer losing a Meal that does not contain the
 /// food they excluded. Over-exclusion, which is the safe direction — recorded
 /// at its measured size so the next person to weigh a fix weighs it against a
 /// number instead of an impression.
+///
+/// **`تونة` in `زيتونة` was bought deliberately on 2026-08-10**, and it is the
+/// only line the founder's four vocabulary decisions added. Measured the same
+/// run: `مايونيز` collides with NOTHING in this corpus, so `egg` grew its reach
+/// at no Cook-side cost at all; `مبكلش` and `مباكلش` are negation markers rather
+/// than foods and cannot appear here by construction; and `جوز` was left out, so
+/// the pigeon Meals it would have hit are absent from this list by decision
+/// rather than by luck.
+///
+/// The olive is the price of a tuna sandwich never reaching a fish allergy, and
+/// it is ONE form: measured 2026-08-10, `زيتون`, `زيت زيتون` and `زيتون أسود`
+/// are all untouched. Only the feminine singular `زيتونة` collides.
+///
+/// **A left-hand boundary WOULD recover it**, and an earlier draft of this note
+/// claimed the opposite by mixing it up with `بيضاء`. `تونة` sits interior to
+/// `زيتونة`, which is exactly the shape a left boundary removes — the same shape
+/// as `أبيض`, listed above as one of the seven it fixes. The case a left
+/// boundary genuinely cannot fix is the feminine adjective `بيضاء`, because
+/// `بيضاء` BEGINS with `بيض`. The reason the boundary is still rejected is the
+/// closed clitic list in the section above, not this collision.
 const Set<String> _knownOverExclusion = {
   'dairy: لبن in ملبن',
   'egg: بيض in فلفل أبيض',
@@ -236,4 +256,5 @@ const Set<String> _knownOverExclusion = {
   'egg: بيض in دقيق أبيض',
   'egg: بيض in عيش أبيض',
   'egg: بيض in سكر أبيض',
+  'fish: تونة in زيتونة',
 };
