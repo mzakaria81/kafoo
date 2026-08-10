@@ -19,6 +19,23 @@ Installed: 2026-07-26
 License texts are alongside this file. CC BY 4.0 requires attribution — keep
 `task-observer.LICENSE` and the credit above with any redistribution.
 
+## Local patches on vendored skills
+
+A vendored skill edited here no longer matches its upstream commit, so the next
+update from source will conflict on the patched section rather than applying
+cleanly. Record every patch below; without the list, a future update either
+silently discards the change or stalls on a diff nobody can explain.
+
+| Skill | Patched | Change | Re-apply after upstream update? |
+|---|---|---|---|
+| `task-observer` | 2026-08-10 | "Name the destination before writing the fix" under *Acting on Observations*, plus its Quick Reference row. From observation #134: corrections gravitate to whichever file is open, which is how an always-loaded instruction file grows without anyone deciding it should. | Yes, unless upstream has adopted an equivalent rule. CC BY 4.0 permits the adaptation; the attribution above stays. |
+
+Kafoo-specific configuration is deliberately kept **out** of vendored skill
+bodies and in a separate reference file the skill points at — see
+`opencode-delegate/references/kafoo-account.md`. Prefer that shape over
+patching a vendored body whenever the content is project-specific; patch the
+body only for a change that is general enough to send upstream.
+
 ## What was trimmed
 
 - **Task Observer**: two ~1.5 MB PNG banners omitted; `SKILL.md` + `references/` only.
