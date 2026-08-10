@@ -4,5 +4,6 @@
 /// value in a widget is a finding — see `.claude/rules/dart.md`.
 library;
 
+export 'theme/theme.dart';
 export 'theme/tokens.dart';
 export 'widgets/meal_card.dart';

@@ -74,10 +74,12 @@ class KafooApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: KafooColors.primary),
-        useMaterial3: true,
-      ),
+      // The design system, not Material's guess at it. `ColorScheme.fromSeed`
+      // stood here until 2026-08-10: it derived twenty-odd colours from the one
+      // terracotta seed and used none of the values anybody had chosen, in
+      // whatever font the handset happened to install. See ADR-0013 and
+      // `docs/design/DESIGN.md`.
+      theme: kafooTheme(),
       // Above the Navigator on purpose. A pushed route is not a descendant of
       // the widget that pushed it, so a scope placed inside [home] would be
       // invisible to every screen reached by pushing — which is all of them.

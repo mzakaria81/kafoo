@@ -44,6 +44,33 @@ flutter:
   # before. The gate cannot catch this one — a person looking at a screen is what caught it.
   uses-material-design: true
 
+  # IBM PLEX SANS ARABIC, BUNDLED RATHER THAN FETCHED.
+  #
+  # Until 2026-08-10 Kafoo declared no font at all, so every Arabic glyph came from whatever the
+  # handset happened to install — which means the app looked different on every phone and nobody had
+  # chosen how it looked on any of them.
+  #
+  # Bundled, not `google_fonts`: that package downloads at first render, and on an Egyptian mobile
+  # network that is a visible blank screen followed by a reflow of every line on the page. 968 KB in
+  # the APK is the right trade against a Cook watching text appear twice.
+  #
+  # Four weights, not eight. 400/500/600/700 are what the type scale uses; 100/200/300 are below the
+  # 400 floor the design sets for Arabic body text, because thin strokes vanish in sunlight.
+  #
+  # SIL Open Font License 1.1 — see IBMPlexSansArabic-LICENSE.txt beside the files. Bundling and
+  # redistribution are permitted; the licence file ships with them because the licence requires it.
+  fonts:
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700
+
 dev_dependencies:
   build_runner: ^2.15.1
   flutter_test:
