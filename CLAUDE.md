@@ -71,6 +71,16 @@ entry. `ar` is the default locale, not the fallback. **In `apps/web/` the same r
 different file** — `apps/web/messages/ar.json` and `en.json`, because a TypeScript surface cannot
 read Flutter's ARB. Two locale files, one rule: no string outside them, `ar` written first.
 
+**The iOS permission prompts are the one exception, and it is a platform limit rather than a
+choice.** `apps/mobile/ios/Runner/Info.plist` carries the `NS*UsageDescription` strings — the
+sentences iOS shows when Kafoo asks for the microphone, speech recognition or the photo library.
+iOS reads them before Flutter has started, so ARB does not exist yet at the moment they are
+displayed; there is no version of this rule that reaches them. They are written in Egyptian Arabic
+and not mirrored into English, because `main.dart` pins the locale to `ar` whatever language the
+phone is set to. **Do not "fix" them into ARB** — the app crashes without them, and the crash is
+silent to every check the gate runs. Raised by release-engineer on 2026-08-10, once the strings
+existed and looked like an oversight.
+
 **NEVER** build a form where a conversation would work. If you find yourself adding a fourth input
 field, stop and propose a conversational flow instead.
 

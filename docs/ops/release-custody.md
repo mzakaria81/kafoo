@@ -17,9 +17,22 @@ belief copied forward.
 |---|---|---|
 | Android **app signing key** | Google (see decision 1) | Permanent — the only one-way door |
 | Android **upload key** | Us | Reset through Play Console |
-| Apple distribution certificate | Us | Revoke and regenerate |
-| Apple provisioning profile | Us | Regenerate |
+| Apple distribution certificate | Apple, since 2026-08-10 | Regenerated automatically on the next build |
+| Apple provisioning profile | Apple, since 2026-08-10 | Regenerated automatically on the next build |
+| Apple **App Store Connect API key** | Us | Revoke in App Store Connect, issue another |
 | **Account access** (Google, Apple ID) | Us | **The real risk on both platforms** |
+
+**Two rows moved to Apple on 2026-08-10 and one row is new.** The certificate and profile used to
+be produced on a Mac and stored as GitHub secrets. Kafoo has no Mac, so that was a scheme nobody
+could execute. `deploy.yml` now signs through Apple's cloud signing: `xcodebuild` presents an App
+Store Connect API key, Apple issues the certificate and profile, and the build uses them. Losing
+either is now a non-event — the next build asks for new ones.
+
+**The API key inherits the risk they shed, and it is not smaller.** It is a private key that can
+create signing certificates for Kafoo and upload builds under Kafoo's name. It is one `.p8` file
+downloadable exactly once, held as a GitHub secret and nowhere else. Treat it as a credential in
+the trustee envelope, not as a build input: revoking it is instant and costs one dispatch, so
+revoke on any doubt rather than investigating first. Setup: `docs/ops/ios-testflight.md`.
 
 ## Decisions
 

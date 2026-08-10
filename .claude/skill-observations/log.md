@@ -1943,7 +1943,69 @@ features. A tool whose state cannot survive the environment's teardown event can
 process built around that teardown, however closely its feature list matches. And read the
 installer's write-list as carefully as the feature list — what a tool overwrites in your
 repository is part of its cost.
-### Observation 131: Search-result summaries fabricated an official Anthropic skill that does not exist
+
+### Observation 131: A component test proves rendering, never reachability
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** The founder reported seeing only two screens in the Android build and asked
+where the Cook screens were. Four merged screens — my_meals_screen (350 lines),
+meal_publish_entry (187), meal_edit_screen (120), kitchen_profile_screen (264) — are referenced by
+zero files in `apps/mobile/lib/`. Re-verified against `origin/main` after fetching: still zero. The
+entire Cook side of E2 is unreachable from the running app.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** What counts as evidence that a feature works
+
+**Issue:** Every gate passed on all four screens. Widget tests construct a screen directly, so they
+prove it renders; `analyze` proves it compiles; the RLS suites prove the policies hold. None can
+see that no code path reaches the screen. `ship-check` verified SC-### criteria against the spec,
+not against the app's navigation graph. The identical failure had already happened once here —
+`main.dart` carries a comment about the app shipping without a `ProviderScope` because "a screen
+tested in isolation is not a screen that has been run" — and that lesson was recorded as a prose
+comment beside its fix, which did not prevent the second instance three weeks later.
+
+**Suggested improvement:** Add to the skill's verification list: for a user-facing surface, prove
+reachability from the application entry point, not just that the component renders under test. The
+cheap mechanical form is a grep — assert every screen symbol is referenced from at least one
+non-test file or a router table — not a framework. State explicitly that "the tests pass" and "a
+user can reach it" are different claims, and that an automated gate establishes only the first.
+
+**Principle:** A component test proves a component works; it cannot prove the component is
+reachable. Every automated gate constructs the thing under test directly and therefore shares that
+blind spot, so any verification checklist for user-facing work needs a reachability assertion
+distinct from a rendering assertion. When a lesson of this kind recurs, the prose comment left
+beside the first fix was the wrong enforcement mechanism — convert it into a check that runs.
+
+### Observation 132: Numbering collided because the branch was cut from a shallow clone
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Appended an observation as 125 after reading the highest number in the working
+tree. The container held a shallow clone seven commits behind `main`, where 125 through 130 were
+already taken. The founder caught the staleness, not the tooling.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** Numbering discipline — the pre-check step
+
+**Issue:** The skill's three-step numbering discipline reads the log on disk. Every step behaved
+correctly and still produced a collision, because a working tree is not the shared log — it is one
+snapshot of it. The pre-write assertion greps the same stale file as the pre-check, so both agree
+with each other and disagree with the remote. Post-write verification cannot catch it either: it
+counts occurrences in the local file, and the colliding entry is not in that file yet.
+
+**Suggested improvement:** In the numbering-discipline pre-check, add a step before reading the
+log: confirm the checkout is level with the remote (`git fetch` the default branch, then compare),
+and read the highest number from the remote's copy as well as the local one, taking the maximum. A
+shallow or stale clone should be called out loudly, since it silently invalidates the whole
+sequence. This is the same class of failure as the concurrent-append race the skill already
+documents, one level out — stale in time rather than racing in time.
+
+**Principle:** A discipline that reads shared state from a local checkout is only as correct as the
+checkout is current. Any check-then-act sequence over shared state must first establish that what
+it is reading is the shared state, not a snapshot of it — otherwise every step passes, agrees with
+every other step, and is wrong together.
+### Observation 133: Search-result summaries fabricated an official Anthropic skill that does not exist
 
 **Status:** OPEN
 **Date:** 2026-08-09
@@ -1970,7 +2032,7 @@ confirming the existence of whatever was searched for. Existence claims require 
 check; the more specific and useful the summarised detail, the more it should raise suspicion
 rather than confidence.
 
-### Observation 132: Always-loaded instruction files absorb corrections that belong in on-demand skills
+### Observation 134: Always-loaded instruction files absorb corrections that belong in on-demand skills
 
 **Status:** PARTIALLY ACTIONED (2026-08-09) — project half done: CLAUDE.md cut 631->314 lines, the 228-line delegation section moved to `.claude/skills/opencode-delegate/references/kafoo-account.md`. Skill half still OPEN: the routing rule (name the destination at write time) is not yet recorded in task-observer or the cross-cutting principles.
 **Date:** 2026-08-09
@@ -1997,7 +2059,7 @@ to the file where it belongs. Any always-loaded context file will grow monotonic
 routing decision is made deliberately at write time — and the growth is invisible, because each
 individual addition is correct.
 
-### Observation 133: A documented output format was read, agreed with, and then not applied
+### Observation 135: A documented output format was read, agreed with, and then not applied
 
 **Status:** OPEN
 **Date:** 2026-08-09
@@ -2028,7 +2090,7 @@ that was asked for. The more precisely a format is specified, the more likely it
 way because someone previously delivered something good in the wrong shape. Prescribed structure is
 a requirement to satisfy literally, not a quality bar to clear by other means.
 
-### Observation 134: Auditing a file for redundancy without fetching the default branch first
+### Observation 136: Auditing a file for redundancy without fetching the default branch first
 
 **Status:** OPEN
 **Date:** 2026-08-10
@@ -2054,7 +2116,7 @@ sensitive to being one commit behind — more so than implementation work, where
 announces itself as a conflict. A stale checkout produces an internally consistent, confidently
 wrong audit: every source agrees, because they are all the same age.
 
-### Observation 135: Restructuring a document breaks references held by enforcement code
+### Observation 137: Restructuring a document breaks references held by enforcement code
 
 **Status:** OPEN
 **Date:** 2026-08-10

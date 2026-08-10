@@ -1087,6 +1087,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myMealsTitle => 'أكلاتي';
 
   @override
+  String get newMealEntry => 'أكلة جديدة';
+
+  @override
   String myMealsEmpty(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

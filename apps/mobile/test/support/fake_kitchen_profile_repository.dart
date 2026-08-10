@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:kafoo_domain/domain.dart';
@@ -15,6 +16,10 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
   /// When true, [findMine] returns a Failure.
   bool failFindMine;
 
+  /// Set to hold [findMine] open until the test completes it. Null — the
+  /// default, and what every other test uses — returns immediately.
+  Completer<void>? findMineGate;
+
   /// When true, [updateField] fails — the case where the previous version must
   /// remain what the Cook sees.
   bool failUpdates;
@@ -29,6 +34,11 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
 
   @override
   Future<Result<KitchenProfile?, AppError>> findMine() async {
+    // Held open when a test supplies [findMineGate], so the caller's
+    // not-yet-loaded state can actually be observed. Without it this returns in
+    // the same microtask and every loading branch is unreachable — a test of
+    // one would pass on its first run while asserting nothing.
+    if (findMineGate != null) await findMineGate!.future;
     if (failFindMine) {
       return const Failure(AppError(messageKey: 'kitchenConvSaveError'));
     }
