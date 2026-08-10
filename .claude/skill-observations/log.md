@@ -2034,7 +2034,7 @@ rather than confidence.
 
 ### Observation 134: Always-loaded instruction files absorb corrections that belong in on-demand skills
 
-**Status:** ACTIONED (2026-08-10) — skill half landed: "Name the destination before writing the fix" added to task-observer under *Acting on Observations*, with a Quick Reference row and the patch recorded in `.claude/skills/_vendor-licenses/VENDORED.md`. Project half landed earlier in #447 (CLAUDE.md 631->287). Cross-cutting propagation not done — that needs the founder's approval per skill-authoring, and is proposed rather than applied.
+**Status:** ACTIONED (2026-08-10) — both halves closed. Project: CLAUDE.md 631->287 and the delegation procedure moved to the opencode-delegate skill (#447). Skill: "Name the destination before writing the fix" added to task-observer, patch recorded in VENDORED.md (#452). Cross-cutting: promoted to `cross-cutting-principles.md` as principle 1, opportunistic propagation, on the founder's approval.
 **Date:** 2026-08-09
 **Session context:** Auditing a 631-line project CLAUDE.md against Anthropic's under-200-line guidance.
 **Skill:** task-observer (cross-cutting principle candidate)
