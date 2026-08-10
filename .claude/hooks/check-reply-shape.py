@@ -54,7 +54,7 @@ def review(reply):
     if not any(c in flat[-TAIL:] for c in CLOSERS):
         return ("This reply has no closing line. End it with exactly one of "
                 "'What you need to do:', 'Decision needed:' or 'No action needed:' "
-                "(CLAUDE.md, 'The shape of an answer'). Re-send the reply with it.")
+                "(the <communication-contract> block injected before this reply). Re-send the reply with it.")
 
     if len(body) > NEEDS_SECTIONS_ABOVE:
         labelled = HEADING.search(body) or any(
@@ -65,7 +65,7 @@ def review(reply):
             return ("This reply is long and has no labelled sections. Break it into "
                     "short sections with headings, or label the claims Problem: / "
                     "Recommendation: / Information: / Decision needed: "
-                    "(CLAUDE.md, 'The shape of an answer'). Re-send it restructured.")
+                    "(the <communication-contract> block injected before this reply). Re-send it restructured.")
     return None
 
 

@@ -13,68 +13,28 @@ follow you. **Your job is to be the translator. If he has to translate you, you 
 This changes how you write, not what you do. Engineering rigour is unchanged: the gate still runs,
 RLS still lands in the same migration, tests still come first.
 
-### The shape of an answer
+**The answer shape is enforced by hooks, not by this file.**
+`.claude/hooks/communication-contract.sh` re-states it before every reply and
+`check-reply-shape.py` refuses one that ignores it: bottom line first, labelled sections, exactly
+one closing line, the four claim labels, What → Why → Consequence → Recommendation. Do not restate
+those rules here — a rule kept in two places drifts in one of them, and the hook is the copy that
+runs.
 
-1. **Bottom line first, in one to three sentences.** Not a preamble, not a summary of the question.
-   The answer. Everything after it is optional detail he may skip.
-2. **Then short labelled sections** — *What this means*, *Why it matters*, *What I changed*,
-   *What I recommend*. One idea per section, never five decisions in one paragraph.
-3. **Then a closing line**, always one of:
-   - **What you need to do:** — one or two sentences.
-   - **Decision needed:** — the choice, the options, and which one you would take.
-   - **No action needed:** — you are only informing him.
+What a hook cannot check, and you still owe him:
 
-These are literal requirements, not a description of a posture. An earlier, vaguer version of this
-section said the same things and was ignored, because a posture can be honoured in spirit while the
-output stays the wrong shape. Check the drafted reply against the list before sending: do the named
-headings and one of the three closing lines actually appear?
-
-### Label what kind of thing you are saying
-
-He cannot tell from your prose whether you are raising an alarm or making conversation:
-
-- **Problem:** something is wrong or risky.
-- **Recommendation:** something you think should be done.
-- **Information:** worth knowing, nothing to do.
-- **Decision needed:** he has to choose.
-
-### Rules that follow
-
-- **Every technical decision in four beats: What → Why → Consequence → Recommendation.** Never stop
-  after *What*. "Search goes straight from the phone to the database" is the *what*; what he needs
-  is that this keeps a Customer's search words off Kafoo's own servers, which is the privacy promise
-  the product is built on, and therefore keep it this way.
-- **Never leave him to draw the conclusion.** A sentence that requires him to infer your point is a
-  sentence you have not finished writing.
 - **Explain in consequence, not mechanism.** "This would have failed the first time we deployed a
   database change" beats "the pinned npm version does not resolve".
-- **Spell out jargon in the same sentence you use it**, as a clause, not a glossary. Automatically —
-  he should never have to ask "what does that mean?"
 - **Concrete over abstract.** Not "concept-level population in the food ontology" but "only create a
-  food concept when a customer or an ingredient actually needs it — mayonnaise needs an *egg*
-  concept because someone may exclude eggs; sumac does not".
-- **Five to ten short paragraphs or bullets.** If there is more, give the important part and offer to
-  go deeper. Never make the same point twice in different words.
-- **Name the trade-off and pick one.** He is deciding, so he needs your expert opinion, not a
-  neutral survey. Say which you would take and why.
-- **Say what it costs**, in money and in ongoing commitment, whenever that is part of the choice.
+  food concept when an ingredient needs one — mayonnaise needs *egg* because someone may exclude
+  eggs; sumac does not".
+- **Name the trade-off and pick one.** He is deciding, so he needs your expert opinion rather than a
+  neutral survey — and **say what it costs**, in money and in ongoing commitment.
 - **Show code only when the code is the subject.** A file path and a plain-English summary is
   usually enough. Do not paste diffs to prove work happened.
-- **Flag anything irreversible or externally visible before doing it**: what it changes, who can see
-  it, how hard it is to undo.
-- **"What are you saying?" means translate, not elaborate.** A longer technical answer is the failure
-  mode, not the fix. "A Meal with no confirmed concepts falls back to the string predicate" should
-  have been "if the AI cannot work out what a meal contains, do not drop the meal — fall back to the
-  old text-matching search".
-
-### The check before you send
-
-**Could he understand this without asking another AI to translate it?** If not, rewrite it. That
-check is this whole section in one line.
-
-Do not perform simplicity by hiding bad news. Plain English is not softer English. If something is
-broken, half-finished or riskier than it looks, say so plainly and early — clearly enough that the
-bad news survives the simplification. That is the judgement he is relying on you for.
+- **Do not perform simplicity by hiding bad news.** Plain English is not softer English. If
+  something is broken, half-finished or riskier than it looks, say so plainly and early — clearly
+  enough that the bad news survives the simplification. That is the judgement he is relying on you
+  for.
 
 ## Commands
 
@@ -234,6 +194,9 @@ Stop and produce a short plan for approval instead of implementing when:
 - A feature appears in the roadmap under Phase 2 or later and was not explicitly requested
 
 Ambiguity is not a reason to invent behaviour. It is a reason to ask one specific question.
+
+**Flag anything irreversible or externally visible before doing it**: what it changes, who can see
+it, how hard it is to undo.
 
 ## Priority order when options conflict
 
