@@ -135,26 +135,39 @@ jobs:
       #
       # `tee` and not a redirect: the summary is for a person opening the run, the log is where
       # anyone comparing two builds can read it back.
+      # THIS STEP DESCRIBES THE BUILD AND MUST NEVER BREAK IT. It has now failed the build twice
+      # for reasons that had nothing to do with the app: once looking for a signature file that
+      # modern Android no longer writes, once because a `grep` found nothing and `pipefail` turned
+      # that into a failed job. An informational step that can go red is worse than no step —
+      # it teaches whoever sees it that red does not mean broken.
+      #
+      # So: no `set -e`, every outcome printed, and the step always succeeds. What it reports is
+      # for a person to read, and a person can tell "could not determine" from "signed by X".
       - name: Say which key signed it
         working-directory: apps/mobile
+        continue-on-error: true
         run: |
-          set -euo pipefail
-          APKSIGNER=$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -name apksigner \
-                      | sort -V | tail -1)
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          APKSIGNER=$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/build-tools" \
+                      -name apksigner 2>/dev/null | sort -V | tail -1)
           {
             echo "### Signed by"
             echo ""
-            if [ -z "$APKSIGNER" ]; then
-              echo "\`UNKNOWN — apksigner not found, this step proved nothing\`"
+            echo '```'
+            if [ -n "$APKSIGNER" ]; then
+              "$APKSIGNER" verify --print-certs "$APK" 2>&1 | grep -iE 'certificate|error|warning' \
+                || echo "apksigner said nothing recognisable — see the raw log"
             else
-              "$APKSIGNER" verify --print-certs \
-                build/app/outputs/flutter-apk/app-release.apk \
-                | grep -E 'Signer #1 certificate (DN|SHA-256)' | sed 's/^/    /'
-              echo ""
-              echo "The fingerprint must match the previous demo build, or the APK will refuse to"
-              echo "install over it. \`CN=Kafoo Demo Build\` is the fixed key; \`CN=Android Debug\`"
-              echo "means the committed keystore is missing and updates will start failing."
+              echo "apksigner not found; falling back to the old signature format, which"
+              echo "modern builds may not carry:"
+              keytool -printcert -jarfile "$APK" 2>&1 | grep -E '^Owner:|SHA256:' \
+                || echo "no v1 signature block — this proves nothing either way"
             fi
+            echo '```'
+            echo ""
+            echo "\`CN=Kafoo Demo Build\` is the fixed key, and its fingerprint must match the"
+            echo "previous demo build or the APK will refuse to install over it. \`CN=Android Debug\`"
+            echo "means the committed keystore went missing and updates are about to start failing."
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Archive APK
