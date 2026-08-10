@@ -1412,6 +1412,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «{first}»} =2{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «{first}» و«{second}»} other{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «{first}» و«{second}» و«{third}»}}'**
   String searchJudgementAlternatives(
       int count, String first, String second, String third);
+
+  /// Shown when the typed number is not an Egyptian mobile number, before anything is sent.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم ده مش شكله رقم موبايل مصري. {addressForm, select, feminine{اكتبي} other{اكتب}} رقمك كده: 01xxxxxxxxx'**
+  String signInPhoneNotMobile(String addressForm);
+
+  /// Shown when the server refused to send a sign-in code. Never claims the internet is down.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقدرناش نبعت كود على الرقم ده. {addressForm, select, feminine{اتأكدي} other{اتأكد}} من الرقم وجرب تاني.'**
+  String signInCodeNotSent(String addressForm);
+
+  /// Shown when speech recognition works but the device has no Arabic locale installed.
+  ///
+  /// In ar, this message translates to:
+  /// **'عشان الصوت يشتغل، لازم العربي يكون متسطّب في إعدادات النطق بتاعة الموبايل. الكتابة شغالة عادي.'**
+  String get searchVoiceNeedsArabic;
 }
 
 class _AppLocalizationsDelegate

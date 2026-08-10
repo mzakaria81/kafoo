@@ -60,6 +60,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _phrase = TextEditingController();
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
   bool _voiceAvailable = false;
+  bool _voiceNeedsArabic = false;
   bool _listening = false;
 
   @override
@@ -78,7 +79,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Future<void> _initVoice() async {
     final available = await _voice.initialize();
     if (!mounted) return;
-    setState(() => _voiceAvailable = available);
+    setState(() {
+      _voiceAvailable = available;
+      // A working recogniser with no Arabic is the one unavailable case a person
+      // can fix themselves, so it gets its own sentence rather than being folded
+      // into "voice does not work on this phone" — which is true, unactionable,
+      // and what the founder was shown after granting the microphone permission.
+      _voiceNeedsArabic = !available && _voice.engineAvailable;
+    });
   }
 
   Future<void> _submit() async {
@@ -206,7 +214,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               // is the likeliest real outcome on an Egyptian handset, so it is
               // said plainly rather than left as a dead microphone.
               Text(
-                l10n.searchVoiceUnavailable,
+                _voiceNeedsArabic
+                    ? l10n.searchVoiceNeedsArabic
+                    : l10n.searchVoiceUnavailable,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
           ],

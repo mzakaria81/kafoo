@@ -30,12 +30,23 @@ class VoiceInput {
   final SpeechToText _speech;
   bool _initialized = false;
   bool _available = false;
+  bool _engineAvailable = false;
   String? _arabicLocaleId;
   VoiceLocaleMatch _localeMatch = VoiceLocaleMatch.none;
 
   /// Whether recognition can be used at all. False means the conversation
   /// must offer typing with a plain explanation, never a dead microphone.
   bool get isAvailable => _available;
+
+  /// Whether the device has a working recogniser, regardless of language.
+  ///
+  /// TRUE HERE WITH [isAvailable] FALSE MEANS ONE SPECIFIC THING: the microphone
+  /// works, permission was granted, and the device simply has no Arabic speech
+  /// language installed. That is a different sentence to a person — one they can
+  /// act on in their phone's settings — and until 2026-08-10 both cases produced
+  /// the same message, so the founder granted the microphone permission, was
+  /// told voice does not work on this phone, and had no way to know why.
+  bool get engineAvailable => _engineAvailable;
 
   bool get isListening => _speech.isListening;
 
@@ -55,6 +66,7 @@ class VoiceInput {
     _initialized = true;
     try {
       _available = await _speech.initialize();
+      _engineAvailable = _available;
       if (_available) {
         _arabicLocaleId = await _resolveArabicLocale();
         // An engine with no Arabic locale cannot serve an Arabic-first
@@ -67,6 +79,7 @@ class VoiceInput {
       // platform channel returning nothing surfaces as a TypeError, and an
       // unavailable microphone must degrade to typing, never crash the flow.
       _available = false;
+      _engineAvailable = false;
     }
     return _available;
   }

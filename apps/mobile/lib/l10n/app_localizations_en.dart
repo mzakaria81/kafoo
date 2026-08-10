@@ -1564,4 +1564,32 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String signInPhoneNotMobile(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Write',
+        'other': 'Write',
+      },
+    );
+    return 'That does not look like an Egyptian mobile number. $_temp0 it like this: 01xxxxxxxxx';
+  }
+
+  @override
+  String signInCodeNotSent(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Check',
+        'other': 'Check',
+      },
+    );
+    return 'We could not send a code to that number. $_temp0 the number and try again.';
+  }
+
+  @override
+  String get searchVoiceNeedsArabic =>
+      'Voice needs Arabic installed in your phone’s speech settings. Typing works as normal.';
 }

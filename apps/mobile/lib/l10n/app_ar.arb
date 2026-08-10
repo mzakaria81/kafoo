@@ -1377,5 +1377,27 @@
         "example": "فتة لحمة"
       }
     }
+  },
+  "signInPhoneNotMobile": "الرقم ده مش شكله رقم موبايل مصري. {addressForm, select, feminine{اكتبي} other{اكتب}} رقمك كده: 01xxxxxxxxx",
+  "@signInPhoneNotMobile": {
+    "description": "Shown when the typed number is not an Egyptian mobile number, before anything is sent.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "signInCodeNotSent": "مقدرناش نبعت كود على الرقم ده. {addressForm, select, feminine{اتأكدي} other{اتأكد}} من الرقم وجرب تاني.",
+  "@signInCodeNotSent": {
+    "description": "Shown when the server refused to send a sign-in code. Never claims the internet is down.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "searchVoiceNeedsArabic": "عشان الصوت يشتغل، لازم العربي يكون متسطّب في إعدادات النطق بتاعة الموبايل. الكتابة شغالة عادي.",
+  "@searchVoiceNeedsArabic": {
+    "description": "Shown when speech recognition works but the device has no Arabic locale installed."
   }
 }

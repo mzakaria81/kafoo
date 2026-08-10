@@ -1512,4 +1512,32 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String signInPhoneNotMobile(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اكتبي',
+        'other': 'اكتب',
+      },
+    );
+    return 'الرقم ده مش شكله رقم موبايل مصري. $_temp0 رقمك كده: 01xxxxxxxxx';
+  }
+
+  @override
+  String signInCodeNotSent(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اتأكدي',
+        'other': 'اتأكد',
+      },
+    );
+    return 'مقدرناش نبعت كود على الرقم ده. $_temp0 من الرقم وجرب تاني.';
+  }
+
+  @override
+  String get searchVoiceNeedsArabic =>
+      'عشان الصوت يشتغل، لازم العربي يكون متسطّب في إعدادات النطق بتاعة الموبايل. الكتابة شغالة عادي.';
 }

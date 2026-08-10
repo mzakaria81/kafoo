@@ -1377,5 +1377,27 @@
         "example": "فتة لحمة"
       }
     }
+  },
+  "signInPhoneNotMobile": "That does not look like an Egyptian mobile number. {addressForm, select, feminine{Write} other{Write}} it like this: 01xxxxxxxxx",
+  "@signInPhoneNotMobile": {
+    "description": "Shown when the typed number is not an Egyptian mobile number, before anything is sent.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "signInCodeNotSent": "We could not send a code to that number. {addressForm, select, feminine{Check} other{Check}} the number and try again.",
+  "@signInCodeNotSent": {
+    "description": "Shown when the server refused to send a sign-in code. Never claims the internet is down.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "searchVoiceNeedsArabic": "Voice needs Arabic installed in your phone’s speech settings. Typing works as normal.",
+  "@searchVoiceNeedsArabic": {
+    "description": "Shown when speech recognition works but the device has no Arabic locale installed."
   }
 }
