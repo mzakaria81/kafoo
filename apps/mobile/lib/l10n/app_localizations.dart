@@ -218,11 +218,11 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{كمّلي} other{كمّل}}'**
   String signInContinue(String addressForm);
 
-  /// Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.
+  /// Shown when sign-in is rate limited. States no wait time: the client is never told one.
   ///
   /// In ar, this message translates to:
-  /// **'{addressForm, select, feminine{جربت كتير. استني {minutes} دقيقة وبعدين جربي تاني.} other{جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.}}'**
-  String signInRateLimited(int minutes, String addressForm);
+  /// **'{addressForm, select, feminine{جربتي كتير. استني شوية وجربي تاني.} other{جربت كتير. استنى شوية وجرب تاني.}}'**
+  String signInRateLimited(String addressForm);
 
   /// Heading on the OTP code entry screen.
   ///
@@ -1416,20 +1416,26 @@ abstract class AppLocalizations {
   /// Shown when the typed number is not an Egyptian mobile number, before anything is sent.
   ///
   /// In ar, this message translates to:
-  /// **'الرقم ده مش شكله رقم موبايل مصري. {addressForm, select, feminine{اكتبي} other{اكتب}} رقمك كده: 01xxxxxxxxx'**
+  /// **'{addressForm, select, feminine{الرقم ده مش شكله رقم موبايل مصري. اكتبي رقمك كده: 01xxxxxxxxx} other{الرقم ده مش شكله رقم موبايل مصري. اكتب رقمك كده: 01xxxxxxxxx}}'**
   String signInPhoneNotMobile(String addressForm);
 
   /// Shown when the server refused to send a sign-in code. Never claims the internet is down.
   ///
   /// In ar, this message translates to:
-  /// **'مقدرناش نبعت كود على الرقم ده. {addressForm, select, feminine{اتأكدي} other{اتأكد}} من الرقم وجرب تاني.'**
+  /// **'{addressForm, select, feminine{مقدرناش نبعت كود على الرقم ده. اتأكدي من الرقم وجربي تاني.} other{مقدرناش نبعت كود على الرقم ده. اتأكد من الرقم وجرب تاني.}}'**
   String signInCodeNotSent(String addressForm);
 
-  /// Shown when speech recognition works but the device has no Arabic locale installed.
+  /// Shown when speech recognition works but the device has no Arabic locale installed. Customer-facing and ungendered per ADR-0010.
   ///
   /// In ar, this message translates to:
-  /// **'عشان الصوت يشتغل، لازم العربي يكون متسطّب في إعدادات النطق بتاعة الموبايل. الكتابة شغالة عادي.'**
+  /// **'عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. الكتابة شغالة عادي.'**
   String get searchVoiceNeedsArabic;
+
+  /// Shown to a Cook when speech recognition works but the device has no Arabic locale installed.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.} other{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.}}'**
+  String convVoiceNeedsArabic(String addressForm);
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:kafoo_domain/egyptian_phone.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,6 +31,21 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  /// Shows an error and says it out loud.
+  ///
+  /// `errorText` alone renders the message and announces nothing, so a Customer
+  /// using a screen reader taps the button and hears silence. Every error on this
+  /// screen goes through here so that cannot be true of one of them. The
+  /// direction is RTL because the app is pinned to Arabic — see `main.dart`.
+  void _showError(String message) {
+    setState(() => _error = message);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      TextDirection.rtl,
+    );
+  }
+
   Future<void> _submit() async {
     final typed = _phoneController.text.trim();
     if (typed.isEmpty) return;
@@ -39,8 +55,9 @@ class _SignInScreenState extends State<SignInScreen> {
     // went across as-is, came back rejected, and was reported as "no internet".
     final phone = normalizeEgyptianMobile(typed);
     if (phone == null) {
-      setState(() => _error = AppLocalizations.of(context)
-          .signInPhoneNotMobile(context.addressForm));
+      _showError(
+        AppLocalizations.of(context).signInPhoneNotMobile(context.addressForm),
+      );
       return;
     }
 
@@ -74,16 +91,17 @@ class _SignInScreenState extends State<SignInScreen> {
       // the same failure one layer along.
       final l10n = AppLocalizations.of(context);
       if (e.message.contains('rate') || e.statusCode == '429') {
-        setState(() => _error = l10n.signInRateLimited(5, context.addressForm));
+        _showError(l10n.signInRateLimited(context.addressForm));
       } else {
-        setState(() => _error = l10n.signInCodeNotSent(context.addressForm));
+        _showError(l10n.signInCodeNotSent(context.addressForm));
       }
     } on Exception catch (_) {
       // Nothing came back at all. This is the one case where the network really
       // is the likely cause, so it keeps the network message.
       if (!mounted) return;
-      setState(() => _error =
-          AppLocalizations.of(context).signInNetworkError(context.addressForm));
+      _showError(
+        AppLocalizations.of(context).signInNetworkError(context.addressForm),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }

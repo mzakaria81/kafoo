@@ -213,11 +213,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               // FR-008: typing is never the degraded path. Recognition missing
               // is the likeliest real outcome on an Egyptian handset, so it is
               // said plainly rather than left as a dead microphone.
-              Text(
-                _voiceNeedsArabic
-                    ? l10n.searchVoiceNeedsArabic
-                    : l10n.searchVoiceUnavailable,
-                style: Theme.of(context).textTheme.bodySmall,
+              // Announced, not merely rendered. A message written to be more
+              // actionable than the one it replaced reaches nobody who cannot
+              // see it unless it is a live region — the same treatment every
+              // other status sentence on this screen already gets.
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _voiceNeedsArabic
+                      ? l10n.searchVoiceNeedsArabic
+                      : l10n.searchVoiceUnavailable,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
           ],
         ),

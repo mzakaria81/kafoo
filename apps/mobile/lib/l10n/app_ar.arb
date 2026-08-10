@@ -136,13 +136,10 @@
       }
     }
   },
-  "signInRateLimited": "{addressForm, select, feminine{جربت كتير. استني {minutes} دقيقة وبعدين جربي تاني.} other{جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.}}",
+  "signInRateLimited": "{addressForm, select, feminine{جربتي كتير. استني شوية وجربي تاني.} other{جربت كتير. استنى شوية وجرب تاني.}}",
   "@signInRateLimited": {
-    "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
+    "description": "Shown when sign-in is rate limited. States no wait time: the client is never told one.",
     "placeholders": {
-      "minutes": {
-        "type": "int"
-      },
       "addressForm": {
         "type": "String"
       }
@@ -1378,7 +1375,7 @@
       }
     }
   },
-  "signInPhoneNotMobile": "الرقم ده مش شكله رقم موبايل مصري. {addressForm, select, feminine{اكتبي} other{اكتب}} رقمك كده: 01xxxxxxxxx",
+  "signInPhoneNotMobile": "{addressForm, select, feminine{الرقم ده مش شكله رقم موبايل مصري. اكتبي رقمك كده: 01xxxxxxxxx} other{الرقم ده مش شكله رقم موبايل مصري. اكتب رقمك كده: 01xxxxxxxxx}}",
   "@signInPhoneNotMobile": {
     "description": "Shown when the typed number is not an Egyptian mobile number, before anything is sent.",
     "placeholders": {
@@ -1387,7 +1384,7 @@
       }
     }
   },
-  "signInCodeNotSent": "مقدرناش نبعت كود على الرقم ده. {addressForm, select, feminine{اتأكدي} other{اتأكد}} من الرقم وجرب تاني.",
+  "signInCodeNotSent": "{addressForm, select, feminine{مقدرناش نبعت كود على الرقم ده. اتأكدي من الرقم وجربي تاني.} other{مقدرناش نبعت كود على الرقم ده. اتأكد من الرقم وجرب تاني.}}",
   "@signInCodeNotSent": {
     "description": "Shown when the server refused to send a sign-in code. Never claims the internet is down.",
     "placeholders": {
@@ -1396,8 +1393,17 @@
       }
     }
   },
-  "searchVoiceNeedsArabic": "عشان الصوت يشتغل، لازم العربي يكون متسطّب في إعدادات النطق بتاعة الموبايل. الكتابة شغالة عادي.",
+  "searchVoiceNeedsArabic": "عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. الكتابة شغالة عادي.",
   "@searchVoiceNeedsArabic": {
-    "description": "Shown when speech recognition works but the device has no Arabic locale installed."
+    "description": "Shown when speech recognition works but the device has no Arabic locale installed. Customer-facing and ungendered per ADR-0010."
+  },
+  "convVoiceNeedsArabic": "{addressForm, select, feminine{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.} other{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.}}",
+  "@convVoiceNeedsArabic": {
+    "description": "Shown to a Cook when speech recognition works but the device has no Arabic locale installed.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   }
 }

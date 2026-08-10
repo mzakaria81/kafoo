@@ -149,12 +149,12 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String signInRateLimited(int minutes, String addressForm) {
+  String signInRateLimited(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'جربت كتير. استني $minutes دقيقة وبعدين جربي تاني.',
-        'other': 'جربت كتير. استنى $minutes دقيقة وبعدين جرب تاني.',
+        'feminine': 'جربتي كتير. استني شوية وجربي تاني.',
+        'other': 'جربت كتير. استنى شوية وجرب تاني.',
       },
     );
     return '$_temp0';
@@ -1518,11 +1518,12 @@ class AppLocalizationsAr extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'اكتبي',
-        'other': 'اكتب',
+        'feminine':
+            'الرقم ده مش شكله رقم موبايل مصري. اكتبي رقمك كده: 01xxxxxxxxx',
+        'other': 'الرقم ده مش شكله رقم موبايل مصري. اكتب رقمك كده: 01xxxxxxxxx',
       },
     );
-    return 'الرقم ده مش شكله رقم موبايل مصري. $_temp0 رقمك كده: 01xxxxxxxxx';
+    return '$_temp0';
   }
 
   @override
@@ -1530,14 +1531,29 @@ class AppLocalizationsAr extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'اتأكدي',
-        'other': 'اتأكد',
+        'feminine':
+            'مقدرناش نبعت كود على الرقم ده. اتأكدي من الرقم وجربي تاني.',
+        'other': 'مقدرناش نبعت كود على الرقم ده. اتأكد من الرقم وجرب تاني.',
       },
     );
-    return 'مقدرناش نبعت كود على الرقم ده. $_temp0 من الرقم وجرب تاني.';
+    return '$_temp0';
   }
 
   @override
   String get searchVoiceNeedsArabic =>
-      'عشان الصوت يشتغل، لازم العربي يكون متسطّب في إعدادات النطق بتاعة الموبايل. الكتابة شغالة عادي.';
+      'عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. الكتابة شغالة عادي.';
+
+  @override
+  String convVoiceNeedsArabic(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.',
+        'other':
+            'عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.',
+      },
+    );
+    return '$_temp0';
+  }
 }

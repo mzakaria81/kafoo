@@ -153,12 +153,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String signInRateLimited(int minutes, String addressForm) {
+  String signInRateLimited(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'Too many attempts. Wait $minutes minutes and try again.',
-        'other': 'Too many attempts. Wait $minutes minutes and try again.',
+        'feminine': 'Too many attempts. Wait a little and try again.',
+        'other': 'Too many attempts. Wait a little and try again.',
       },
     );
     return '$_temp0';
@@ -1570,11 +1570,13 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'Write',
-        'other': 'Write',
+        'feminine':
+            'That does not look like an Egyptian mobile number. Write it like this: 01xxxxxxxxx',
+        'other':
+            'That does not look like an Egyptian mobile number. Write it like this: 01xxxxxxxxx',
       },
     );
-    return 'That does not look like an Egyptian mobile number. $_temp0 it like this: 01xxxxxxxxx';
+    return '$_temp0';
   }
 
   @override
@@ -1582,14 +1584,30 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'Check',
-        'other': 'Check',
+        'feminine':
+            'We could not send a code to that number. Check the number and try again.',
+        'other':
+            'We could not send a code to that number. Check the number and try again.',
       },
     );
-    return 'We could not send a code to that number. $_temp0 the number and try again.';
+    return '$_temp0';
   }
 
   @override
   String get searchVoiceNeedsArabic =>
-      'Voice needs Arabic installed in your phone’s speech settings. Typing works as normal.';
+      'Voice needs Arabic enabled in your phone’s speech recognition settings. Typing works as normal.';
+
+  @override
+  String convVoiceNeedsArabic(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'Voice needs Arabic enabled in your phone’s speech recognition settings. You can type your answer instead.',
+        'other':
+            'Voice needs Arabic enabled in your phone’s speech recognition settings. You can type your answer instead.',
+      },
+    );
+    return '$_temp0';
+  }
 }
