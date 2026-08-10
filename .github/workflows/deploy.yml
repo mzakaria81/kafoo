@@ -52,11 +52,24 @@ name: Deploy
 # already advanced is how a migration gets applied twice or skipped. If this job is ever wanted
 # back, turn Supabase Branching's production deploys off first. Do not run both.
 #
-# NOTE ON STORE SUBMISSION: this workflow deliberately stops at building and
-# archiving a release candidate. It does not upload to App Store Connect or Play.
-# A binary cannot be un-shipped, so submission stays a human decision made with
-# release health in front of them — the same "machines propose, people approve"
-# rule the constitution applies to the AI Assistant.
+# NOTE ON STORE SUBMISSION, AND THE LINE MOVED ON 2026-08-10.
+#
+# This workflow CAN now put a signed build in front of a person: on a manual dispatch from `main`,
+# the iOS job uploads to TestFlight for internal testing. That reaches phones belonging to people
+# already on the Apple account, triggers no Apple review, and is visible to nobody outside it.
+#
+# It still never submits for public App Store review, and never touches Play production. A binary
+# in front of the public cannot be un-shipped, so that submission stays a human decision made with
+# release health in front of them — the same "machines propose, people approve" rule the
+# constitution applies to the AI Assistant. The boundary moved from "no upload at all" to "no
+# public release", which is where it belongs; a workflow that cannot reach a tester's phone is a
+# workflow nobody can test with.
+#
+# Until 2026-08-10 this note said the workflow "does not upload to App Store Connect or Play" —
+# written when that was true, left standing when the TestFlight step landed in the same change.
+# The top of a file is where a reader decides how much damage it can do, and a stale answer there
+# is worse than none. Raised by release-engineer, the third comment on this pull request to claim
+# something the pipeline did not do.
 # See .claude/agents/release-engineer.md for the pre-submission checklist.
 
 on:
