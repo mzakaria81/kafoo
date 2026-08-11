@@ -10,6 +10,7 @@
 /// the design will not let a caller skip.
 library;
 
+export 'theme/numerals.dart';
 export 'theme/theme.dart';
 export 'theme/tokens.dart';
 export 'theme/typography.dart';

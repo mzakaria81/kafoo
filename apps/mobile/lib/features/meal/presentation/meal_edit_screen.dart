@@ -7,6 +7,7 @@ import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/money.dart';
 import '../application/meal_edit_controller.dart';
 import 'meal_summary_rows.dart';
 
@@ -85,7 +86,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
             ),
             SummaryRow(
               label: l10n.mealSummaryLabelPrice,
-              value: l10n.publicMealPriceValue(currentMeal.price),
+              value: mealPriceLabel(l10n, currentMeal.price),
               editing: _editingField == MealEditField.price,
               controller: _editController,
               editLabel: l10n.convEdit(context.addressForm),

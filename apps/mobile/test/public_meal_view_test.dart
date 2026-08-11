@@ -58,7 +58,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('كشري'), findsWidgets);
-    expect(find.text('35.00 جنيه'), findsOneWidget);
+    // ٣٥٫٠٠ and not 35.00: an Arabic screen reads Arabic-Indic digits, and the
+    // price is the element a Customer is most likely to read. The value is
+    // untouched — this is a glyph swap, so both decimal places survive it.
+    expect(find.text('٣٥٫٠٠ جنيه'), findsOneWidget);
+    expect(find.text('35.00 جنيه'), findsNothing);
     expect(
       find.text('عدس ورز ومكرونة مع صلصة الطماطم والبصل المقلي'),
       findsOneWidget,

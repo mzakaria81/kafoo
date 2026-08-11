@@ -5,6 +5,7 @@ import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/money.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
 import 'meal_edit_screen.dart';
@@ -175,7 +176,7 @@ class MyMealRow extends ConsumerWidget {
           Text(
             price == null
                 ? l10n.myMealsNoPriceYet
-                : l10n.publicMealPriceValue(price),
+                : mealPriceLabel(l10n, price),
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: KafooSpacing.xs),

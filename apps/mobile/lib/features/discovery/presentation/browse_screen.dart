@@ -6,6 +6,7 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/money.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
 import '../application/browse_controller.dart';
@@ -196,7 +197,7 @@ Widget discoveredMealCard({
   // typed — `numeric(10,2)`, never a double — and this card was rendering it
   // bare as "35" while the Meal one tap deeper said "٣٥ جنيه". Money a
   // Customer reads is never a naked number.
-  final price = l10n.publicMealPriceValue(item.meal.price);
+  final price = mealPriceLabel(l10n, item.meal.price);
 
   return MealCard(
     title: item.meal.title,
