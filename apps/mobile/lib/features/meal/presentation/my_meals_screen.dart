@@ -136,8 +136,9 @@ class _FullState extends ConsumerState<_Full> {
               // persists until reversed.
               KafooMuteButton(
                 muted: voice.muted,
-                label:
-                    voice.muted ? l10n.voiceMuteRestore : l10n.voiceMuteSilence,
+                label: voice.muted
+                    ? l10n.voiceMuteRestore(form)
+                    : l10n.voiceMuteSilence(form),
                 onChanged: (muted) => ref
                     .read(assistantVoiceProvider.notifier)
                     .setMuted(muted: muted),
@@ -172,7 +173,7 @@ class _FullState extends ConsumerState<_Full> {
                   // element on the screen.
                   KafooSpokenBanner(
                     line: summary,
-                    hearAgainLabel: l10n.myMealsHearAgain,
+                    hearAgainLabel: l10n.myMealsHearAgain(form),
                     // Inert while muted, and on a handset with no Arabic speech
                     // data. A control that silently does nothing is worse than
                     // one that visibly cannot.
@@ -314,7 +315,7 @@ class MyMealRow extends ConsumerWidget {
         price == null ? l10n.myMealsNoPriceYet : mealPriceLabel(l10n, price),
       ),
       placeholderLabel: l10n.mealNoPhotoYet,
-      hearLabel: l10n.myMealsHearRow,
+      hearLabel: l10n.myMealsHearRow(context.addressForm),
       // Read aloud, quietly: the row carries a price, homes are shared, and
       // income is private.
       onHear: ref.watch(assistantVoiceProvider).canSpeak

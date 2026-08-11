@@ -241,7 +241,7 @@ void main() {
       await tester.pumpAndSettle();
       final greeting = speech.spoken.single.line;
 
-      await tester.tap(find.byTooltip(l10n.myMealsHearAgain));
+      await tester.tap(find.byTooltip(l10n.myMealsHearAgain('other')));
       await tester.pumpAndSettle();
 
       expect(speech.spoken.where((s) => s.line == greeting), hasLength(2));

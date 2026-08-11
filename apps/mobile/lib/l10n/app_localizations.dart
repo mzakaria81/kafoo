@@ -1503,17 +1503,17 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}'**
   String voiceTalkButton(String addressForm);
 
-  /// Press to silence the assistant. Describes the RESULT of pressing, because a speaker glyph does not say which way it is about to go.
+  /// Press to silence the assistant. Describes the RESULT of pressing, because a speaker glyph does not say which way it is about to go. Takes an address form: it is an instruction aimed at the Cook, and a single-gender imperative addresses half of them in the wrong grammar.
   ///
   /// In ar, this message translates to:
-  /// **'اسكت صوت المساعد'**
-  String get voiceMuteSilence;
+  /// **'{addressForm, select, feminine{اسكتي صوت المساعد} other{اسكت صوت المساعد}}'**
+  String voiceMuteSilence(String addressForm);
 
-  /// Press to let the assistant talk again.
+  /// Press to let the assistant talk again. Takes an address form: it is an instruction aimed at the Cook, and a single-gender imperative addresses half of them in the wrong grammar.
   ///
   /// In ar, this message translates to:
-  /// **'رجّع صوت المساعد'**
-  String get voiceMuteRestore;
+  /// **'{addressForm, select, feminine{رجّعي صوت المساعد} other{رجّع صوت المساعد}}'**
+  String voiceMuteRestore(String addressForm);
 
   /// Announced while the microphone is open. Recording is always indicated; there is no silent listening, so this cannot be switched off.
   ///
@@ -1587,17 +1587,17 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{عندك {total} أكلة، منهم {published} على المنيو. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} على المنيو. عايز تعمل إيه؟}}'**
   String myMealsSpokenSummary(String addressForm, int total, int published);
 
-  /// Re-says the assistant's greeting. The greeting is an event, said once on arrival; this is how a Cook hears it again without the screen nagging her. Inert while muted and on a handset with no Arabic speech data — a control that silently does nothing is worse than one that visibly cannot.
+  /// Re-says the assistant's greeting. The greeting is an event, said once on arrival; this is how a Cook hears it again without the screen nagging her. Inert while muted and on a handset with no Arabic speech data — a control that silently does nothing is worse than one that visibly cannot. Takes an address form: it is an instruction aimed at the Cook, and a single-gender imperative addresses half of them in the wrong grammar.
   ///
   /// In ar, this message translates to:
-  /// **'اسمعها تاني'**
-  String get myMealsHearAgain;
+  /// **'{addressForm, select, feminine{اسمعيها تاني} other{اسمعها تاني}}'**
+  String myMealsHearAgain(String addressForm);
 
-  /// Reads one Meal row aloud, quietly, because the row carries a price and income is private. Inert on a handset with no Arabic speech data.
+  /// Reads one Meal row aloud, quietly, because the row carries a price and income is private. Inert on a handset with no Arabic speech data. Takes an address form: it is an instruction aimed at the Cook, and a single-gender imperative addresses half of them in the wrong grammar.
   ///
   /// In ar, this message translates to:
-  /// **'اسمعي الأكلة دي'**
-  String get myMealsHearRow;
+  /// **'{addressForm, select, feminine{اسمعي الأكلة دي} other{اسمع الأكلة دي}}'**
+  String myMealsHearRow(String addressForm);
 
   /// Opens the actions for one Meal.
   ///

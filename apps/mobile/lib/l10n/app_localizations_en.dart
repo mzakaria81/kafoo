@@ -1729,10 +1729,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get voiceMuteSilence => 'Silence the assistant';
+  String voiceMuteSilence(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Silence the assistant',
+        'other': 'Silence the assistant',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get voiceMuteRestore => 'Let the assistant talk';
+  String voiceMuteRestore(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Restore the assistant\'s voice',
+        'other': 'Restore the assistant\'s voice',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voiceRecording => 'Recording now';
@@ -1791,10 +1809,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myMealsHearAgain => 'Hear it again';
+  String myMealsHearAgain(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Hear it again',
+        'other': 'Hear it again',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get myMealsHearRow => 'Hear this Meal';
+  String myMealsHearRow(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Hear this Meal',
+        'other': 'Hear this Meal',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsRowActions => 'More for this Meal';
