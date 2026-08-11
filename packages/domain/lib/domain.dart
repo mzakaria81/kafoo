@@ -5,6 +5,7 @@
 /// rather than adding the import. See `.claude/rules/dart.md`.
 library;
 
+export 'confirmation_gate.dart';
 export 'conversation_step.dart';
 export 'discovery_request.dart';
 export 'discovery_result.dart';
@@ -16,3 +17,4 @@ export 'meal_analysis.dart';
 export 'meal_step.dart';
 export 'result.dart';
 export 'search_consent.dart';
+export 'voice.dart';
