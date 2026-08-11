@@ -73,10 +73,6 @@ reassurance «أكلاتك كلها في أمان», and a retry.
 - **The queued-audio card** with «محفوظ» and its animated bars. Nothing queues
   anything, because nothing records anything.
 
-**The reassurance is currently a promise the app cannot keep.** It says what
-was said is saved. Until there is a queue, nothing was said and nothing is
-saved. It is correct copy for the designed system and premature for this one.
-
 **What it costs.** A local store for the last list, plus an outbox for anything
 spoken while offline. Neither is large; the outbox needs a decision about how
 long a queued item survives.
@@ -168,6 +164,17 @@ silhouette without reading. It is the longest member of that set and it wraps to
 two lines at 200% text scale. That is a deliberate trade of a design property
 for a familiar phrase, not an oversight.
 
+## 10. ~~The mute control does nothing~~ — CLOSED
+
+**Closed 2026-08-11.** It silences the assistant, stops a sentence already in
+progress, and the answer survives the next launch. Pressing it mid-sentence had
+to be immediate: anything slower means a Cook pressed it in a room with people
+in it and the app kept talking.
+
+**Still open:** the speech-rate control (بالراحة / عادي / سريع) and the two-voice
+setting from `DESIGN.md` §10.11. Both need a settings screen, which is a new
+screen and therefore a decision rather than an implementation.
+
 ## 11. Only one screen has a voice
 
 **What a Cook hears.** The Meal list greets her, reads any Meal on request, and
@@ -188,14 +195,3 @@ and the seam are done; this is per-screen wiring, one screen at a time.
 from six places. Nothing has yet proved the speaking and listening engines can
 share a phone's audio without fighting over it, because no screen does both
 today. The first one that does needs a real-device test before it ships.
-
-## 10. ~~The mute control does nothing~~ — CLOSED
-
-**Closed 2026-08-11.** It silences the assistant, stops a sentence already in
-progress, and the answer survives the next launch. Pressing it mid-sentence had
-to be immediate: anything slower means a Cook pressed it in a room with people
-in it and the app kept talking.
-
-**Still open:** the speech-rate control (بالراحة / عادي / سريع) and the two-voice
-setting from `DESIGN.md` §10.11. Both need a settings screen, which is a new
-screen and therefore a decision rather than an implementation.
