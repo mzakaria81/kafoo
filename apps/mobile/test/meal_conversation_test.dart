@@ -1142,6 +1142,60 @@ void main() {
         '"allergens":"قمح","category":"طبق رئيسي"}}';
 
     testWidgets(
+        'at 200% text with both errors showing, a choice is still reachable',
+        (tester) async {
+      // THE SAME DEFECT CLASS THIS BRANCH FIXED ONE SCREEN OVER, REINTRODUCED
+      // HERE BY THIS BRANCH. Raised by accessibility-reviewer on PR #455.
+      //
+      // This screen was a fixed Column above an `Expanded` list of choices.
+      // Adding the analysis-error line to the header meant that at 200% text
+      // scale, with both an analysis error and a save error showing, what
+      // `Expanded` had left could approach nothing — and the choices squeezed to
+      // nothing are cuisine and category, the two answers the database REQUIRES
+      // before a Meal can leave draft. A Cook using large text who hit an AI
+      // failure would have been locked out of publishing AGAIN, by the very
+      // feature added to tell her what went wrong.
+      //
+      // `ensureVisible` is the assertion: it throws when a widget cannot be
+      // brought on screen.
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+        child: _testApp(
+          const MealFallbackQuestion(
+            step: MealFallbackStepId.cuisine,
+            // Both at once, which is the state this branch made reachable.
+            error: AppError(messageKey: 'mealSaveError'),
+            analysisError: AppError(messageKey: 'analyzeMealTimeout'),
+          ),
+          repo: FakeMealRepository(),
+          ai: _stubAi(),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(l10n.analyzeMealTimeout('other')), findsOneWidget);
+
+      // Scrolled to rather than simply found: at this scale the header fills the
+      // screen, so the choices are below the fold and a lazily-built list has not
+      // even created them yet. `scrollUntilVisible` throws if it cannot get
+      // there, which is precisely the failure the old fixed-height layout had —
+      // there was nowhere to scroll TO, because the list itself had no height.
+      final choice = find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian);
+      await tester.scrollUntilVisible(choice, 200);
+      expect(choice, findsOneWidget);
+      expect(tester.takeException(), isNull);
+      // And it can actually be answered, not merely reached.
+      await tester.tap(choice);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
         'analysis failed: Cook is asked cuisine then category and can publish',
         (tester) async {
       final repo = FakeMealRepository();
