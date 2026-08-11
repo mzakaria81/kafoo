@@ -662,8 +662,14 @@ void main() {
     });
 
     testWidgets('and a man hears every one conjugated for him', (tester) async {
+      // The fake engine, same as the feminine case: muting goes through the
+      // voice layer, and without it the toggle has nothing to act on.
       await tester.pumpWidget(
-        _app(FakeMealRepository(meals: [_published]), form: 'other'),
+        _app(
+          FakeMealRepository(meals: [_published]),
+          speech: FakeSpeechOutput(),
+          form: 'other',
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -677,6 +683,21 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')),
+        findsNothing,
+      );
+
+      // And the label it swaps to. Only the feminine side of this was covered,
+      // so a male Cook silencing the assistant had no test proving the button
+      // he then looks at speaks to him.
+      await tester.tap(find.bySemanticsLabel(l10n.voiceMuteSilence('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('other')),
+        findsWidgets,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('feminine')),
         findsNothing,
       );
     });
