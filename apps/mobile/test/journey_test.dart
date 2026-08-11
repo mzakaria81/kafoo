@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
+import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
+import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
 import 'package:kafoo_mobile/home.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_mobile/main.dart';
@@ -16,6 +20,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'support/fake_account_repository.dart';
 import 'support/fake_discovery_repository.dart';
 import 'support/fake_kitchen_profile_repository.dart';
+import 'support/fake_meal_repository.dart';
 
 /// THE APP, BOOTED WHOLE AND WALKED THROUGH.
 ///
@@ -78,12 +83,17 @@ Widget _app({
   required Stream<AuthState> auth,
   required FakeAccountRepository account,
   required FakeKitchenProfileRepository kitchen,
+  FakeMealRepository? meals,
 }) =>
     ProviderScope(
       overrides: [
         discoveryRepositoryProvider.overrideWithValue(
           FakeDiscoveryRepository(onOffer: _onOffer),
         ),
+        if (meals != null) mealRepositoryProvider.overrideWithValue(meals),
+        // The Meal conversation starts an analysis as soon as a description
+        // arrives. Left real it reaches a model provider from a test.
+        aiProviderProvider.overrideWithValue(StubAiProvider(const {})),
       ],
       child: KafooApp(
         authState: auth,
@@ -272,6 +282,76 @@ void main() {
     expect(app.theme?.textTheme.bodyMedium?.fontFamily, KafooType.fontFamily);
     // `ar` is the default locale, not the fallback.
     expect(app.locale, const Locale('ar'));
+  });
+
+  testWidgets('a Cook answers two questions about her food and moves on',
+      (tester) async {
+    // THE JOURNEY THAT WAS BROKEN IN THE FOUNDER'S HAND ON 2026-08-11. He made
+    // his Kitchen Profile, started his first Meal, named it, typed what was in
+    // it, and was told «مقدرناش نحفظ الأكلة». The Meal had saved. The app was
+    // wrong about its own success.
+    //
+    // BE HONEST ABOUT WHAT THIS TEST DOES AND DOES NOT CATCH. The crash was in
+    // the Supabase repository's row parsing, and this journey runs on a fake, so
+    // it would NOT have found that bug. `meal_draft_row_test.dart` is what does,
+    // by pinning the row a real Postgres returns. What this asserts is the thing
+    // a fake CAN prove: the conversation moves from one question to the next,
+    // and a Cook is never told a save failed while it succeeded.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final meals = FakeMealRepository();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    // Question one: what is it called.
+    expect(find.text(l10n.mealConvPromptDish), findsOneWidget);
+    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(meals.createdTitles, ['كشري']);
+
+    // Question two: what is in it. This is where it stopped.
+    expect(find.text(l10n.mealConvPromptDescription('other')), findsOneWidget);
+    await tester.enterText(
+      _fieldOn(MealConversationScreen),
+      'عدس ورز ومكرونة، وبنحمر البصل فوقها',
+    );
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(l10n.mealSaveError('other')),
+      findsNothing,
+      reason: 'THE BUG. The description reached the database and the Cook was '
+          'told it had not. Being wrong in this direction is the worst of the '
+          'two: she retypes work that is already saved, or gives up.',
+    );
+    expect(
+      meals.updateDraftArgs.last.description,
+      'عدس ورز ومكرونة، وبنحمر البصل فوقها',
+    );
+    // And she has moved on. The departure matters as much as the arrival: with
+    // the write reported as failed, the description question stayed on screen
+    // with her own words still in the box.
+    expect(find.text(l10n.mealConvPromptDescription('other')), findsNothing);
+    expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
   });
 
   testWidgets('the signed-in journey survives 200% text on a small phone',

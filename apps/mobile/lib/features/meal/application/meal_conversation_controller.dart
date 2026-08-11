@@ -497,7 +497,9 @@ class MealConversationController extends _$MealConversationController {
 
     state = state.copyWith(error: null);
 
-    final Result<Meal, AppError> result;
+    // CookMeal, not Meal: every write here lands on a draft, and a draft has no
+    // cuisine or category until one of these very calls puts it there.
+    final Result<CookMeal, AppError> result;
     switch (field) {
       case MealEstimateFields.cuisine:
         if (value is! Cuisine) return false;
