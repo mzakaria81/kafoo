@@ -67,6 +67,7 @@ class KafooTalkButton extends StatelessWidget {
     required this.onPressEnd,
     this.onLockToggle,
     this.locked = false,
+    this.enabled = true,
     this.size = KafooSpacing.talkButton,
     super.key,
   });
@@ -91,6 +92,13 @@ class KafooTalkButton extends StatelessWidget {
 
   final bool locked;
 
+  /// Whether the orb responds.
+  ///
+  /// False draws it exactly as designed and inert, because the design is not
+  /// wrong — the engine behind it has not arrived. [label] must then say so, in
+  /// the same way every other disabled control in Kafoo states its reason.
+  final bool enabled;
+
   final double size;
 
   @override
@@ -104,6 +112,7 @@ class KafooTalkButton extends StatelessWidget {
 
     return Semantics(
       button: true,
+      enabled: enabled,
       label: label,
       // A recording indicator that cannot be switched off. There is no silent
       // listening in Kafoo, not even for a wake word, so the state reaches a
@@ -114,20 +123,22 @@ class KafooTalkButton extends StatelessWidget {
         spacing: KafooSpacing.row,
         children: [
           Listener(
-            onPointerDown: (_) => onPressStart(),
-            onPointerUp: (_) => onPressEnd(),
-            onPointerCancel: (_) => onPressEnd(),
+            onPointerDown: enabled ? (_) => onPressStart() : null,
+            onPointerUp: enabled ? (_) => onPressEnd() : null,
+            onPointerCancel: enabled ? (_) => onPressEnd() : null,
             child: GestureDetector(
-              onTap: onLockToggle,
+              onTap: enabled ? onLockToggle : null,
               child: AnimatedContainer(
                 duration: KafooMotion.enter,
                 curve: KafooMotion.enterCurve,
                 width: size,
                 height: size,
                 decoration: BoxDecoration(
-                  color: state == TalkOrbState.offlineQueued
-                      ? KafooColors.surface
-                      : fill,
+                  color: switch ((enabled, state)) {
+                    (false, _) => KafooColors.disabledFill,
+                    (_, TalkOrbState.offlineQueued) => KafooColors.surface,
+                    _ => fill,
+                  },
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: ring,

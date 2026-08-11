@@ -1520,6 +1520,156 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لو مقولتيش حاجة، مفيش حاجة هتحصل.'**
   String get gateSilenceFootnote;
+
+  /// Glance word for a published Meal. From the closed set of eleven large words — recognised by shape, always 20px/700 in a row. Distinct from myMealsStatusPublished, which is a descriptive sentence used in body text.
+  ///
+  /// In ar, this message translates to:
+  /// **'منشورة'**
+  String get glancePublished;
+
+  /// Glance word for a draft Meal, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة'**
+  String get glanceDraft;
+
+  /// Glance word for a Meal that is not on offer today, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش متاحة'**
+  String get glanceUnavailable;
+
+  /// Glance word for a retired Meal, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرشيف'**
+  String get glanceArchived;
+
+  /// Glance word for a lost connection, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش نت'**
+  String get glanceOffline;
+
+  /// Glance word for work held safely until the connection returns, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'محفوظ'**
+  String get glanceSaved;
+
+  /// The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{عندك {total} أكلة، منهم {published} منشورة. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} منشورة. عايز تعمل إيه؟}}'**
+  String myMealsSpokenSummary(String addressForm, int total, int published);
+
+  /// Repeats the assistant's last line. Disabled until a speech engine is chosen.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمعها تاني'**
+  String get myMealsHearAgain;
+
+  /// Reads one Meal row aloud. Disabled until a speech engine is chosen.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمعي الأكلة دي'**
+  String get myMealsHearRow;
+
+  /// Opens the actions for one Meal.
+  ///
+  /// In ar, this message translates to:
+  /// **'حاجات تانية للأكلة دي'**
+  String get myMealsRowActions;
+
+  /// The tap alternative beside the talk button. Tap is a complete alternative to voice, never a degraded one.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أو ضيفي أكلة بإيدك} other{أو ضيف أكلة بإيدك}}'**
+  String myMealsAddByHand(String addressForm);
+
+  /// The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي'**
+  String get voiceNotReadyYet;
+
+  /// The whole of the empty Meal list: an invitation to speak, not a form.
+  ///
+  /// In ar, this message translates to:
+  /// **'احكيلي عن أكلة'**
+  String get myMealsEmptyInvitation;
+
+  /// Spoken invitation on the empty Meal list.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{قوليلي اسم الأكلة وأنا هكمل معاكي.} other{قوللي اسم الأكلة وأنا هكمل معاك.}}'**
+  String myMealsEmptySpoken(String addressForm);
+
+  /// The tap alternative on the empty Meal list.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أو اكتبيها بإيدك} other{أو اكتبها بإيدك}}'**
+  String myMealsEmptyByHand(String addressForm);
+
+  /// Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع.} other{اللي قلته محفوظ وهيتبعت أول ما النت يرجع.}}'**
+  String myMealsOfflineReassurance(String addressForm);
+
+  /// Labels the stale Meal list shown at reduced opacity under a failure. Showing the last good data beats showing nothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر نسخة محفوظة · {time}'**
+  String myMealsCachedAt(String time);
+
+  /// Reloads the Meal list after a failure.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{جربي تاني} other{جرب تاني}}'**
+  String myMealsRetry(String addressForm);
+
+  /// The verdict word on the publish confirmation gate, 32px/700 in the success colour.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنشر؟'**
+  String get publishGateQuestion;
+
+  /// Read back in full before publishing. Not a summary — the read-back is what the Cook is agreeing to.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name} بـ {price} جنيه، هتتنشر وتبقى على المنيو دلوقتي.'**
+  String publishGateReadback(String name, String price);
+
+  /// The confirming answer on the publish gate. 72dp, solid green.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أيوة، انشريها} other{أيوة، انشرها}}'**
+  String publishGateYes(String addressForm);
+
+  /// Second rung of the recognition failure ladder. A two-word answer is recognised far more reliably than open speech.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{الأكلة اسمها {guess}؟ قولي أيوة أو لأ.} other{الأكلة اسمها {guess}؟ قول أيوة أو لأ.}}'**
+  String recognitionNarrowQuestion(String addressForm, String guess);
+
+  /// Escape from the tapped options at the bottom of the failure ladder. Never leads to a keyboard as a consequence of failure.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش حاجة من دول'**
+  String get recognitionNoneOfThese;
+
+  /// The currency word beside a price, set one step smaller than the numeral. Separate from publicMealPriceValue so the number can be the largest thing on the screen and the word can be quiet beside it.
+  ///
+  /// In ar, this message translates to:
+  /// **'جنيه'**
+  String get publicMealPriceUnit;
+
+  /// How a Meal row in the Cook's list reads aloud. Composed from an ARB entry so the separator follows the locale rather than an Arabic comma reaching an English voice.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name}، {status}، {price}'**
+  String mealRowSemanticLabel(String name, String status, String price);
 }
 
 class _AppLocalizationsDelegate

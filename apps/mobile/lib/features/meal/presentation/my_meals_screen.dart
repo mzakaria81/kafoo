@@ -9,98 +9,176 @@ import '../../../l10n/money.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
 import 'meal_edit_screen.dart';
-import 'meal_enum_labels.dart';
+import 'my_meals_row_sheet.dart';
+import 'my_meals_states.dart';
 
+/// The Cook's Meal list, voice-first.
+///
+/// This is the canonical screen in the design handoff, and it is built to that
+/// shape rather than to the tap-first version it replaced: the assistant speaks
+/// on arrival, the banner underneath the title is the receipt of what it said,
+/// the price is the largest thing in every row, and the talk button owns the
+/// bottom of the screen.
+///
+/// **Some of it is drawn and inert, on purpose.** The talk button and the
+/// "hear this Meal" controls have no engine behind them yet, so they render
+/// exactly as designed and disabled, with the reason in their labels. Hiding
+/// them would hide the gap; `docs/design/backend-gaps.md` is the list.
 class MyMealsScreen extends ConsumerWidget {
   const MyMealsScreen({this.onResumeDraft, super.key});
 
   /// Called after [MealConversationController.resume] seeds the conversation
-  /// from a stored draft. Navigation is the caller's concern, exactly as
-  /// [MealSummaryScreen.onPublished] works.
+  /// from a stored draft. Navigation is the caller's concern.
   final void Function(CookMeal meal)? onResumeDraft;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final state = ref.watch(myMealsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.myMealsTitle)),
       body: SafeArea(
         // Loading is checked FIRST and before emptiness. "No Meals yet" and
         // "not answered yet" look identical in the data and mean opposite
         // things to the Cook reading them.
-        child: state.loading
-            ? const Center(child: CircularProgressIndicator())
-            : state.error != null && state.meals.isEmpty
-                ? _ErrorState(error: state.error!)
-                : state.meals.isEmpty
-                    ? const _EmptyState()
-                    : Column(
-                        children: [
-                          if (state.error != null)
-                            _InlineError(error: state.error!),
-                          Expanded(
-                            child: ListView.separated(
-                              padding: const EdgeInsetsDirectional.all(
-                                  KafooSpacing.lg),
-                              itemCount: state.meals.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: KafooSpacing.sm),
-                              itemBuilder: (context, index) {
-                                final meal = state.meals[index];
-                                return MyMealRow(
-                                  meal: meal,
-                                  onResumeDraft: onResumeDraft,
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+        //
+        // The spinner is not from the design: DESIGN.md lists the loading state
+        // as undefined and tells an implementer to stop and ask rather than
+        // invent one. This is the pre-existing treatment, kept unchanged.
+        child: switch (state) {
+          MyMealsState(loading: true) =>
+            const Center(child: CircularProgressIndicator()),
+          MyMealsState(error: final error?) when state.meals.isEmpty =>
+            MyMealsFailed(error: error),
+          MyMealsState(meals: []) => const MyMealsEmpty(),
+          _ => _Full(state: state, onResumeDraft: onResumeDraft),
+        },
       ),
     );
   }
 }
 
-/// The Cook-facing text for an [AppError] this screen can produce.
-///
-/// One function rather than a copy in each of the two widgets that render an
-/// error: a second switch is a second place to forget a key, and the fallback
-/// shows the raw key to the Cook, which is the failure this must not have.
-String _errorMessage(
-  AppLocalizations l10n,
-  String addressForm,
-  AppError error,
-) =>
-    switch (error.messageKey) {
-      'mealLoadError' => l10n.mealLoadError(addressForm),
-      'mealAvailabilityError' => l10n.mealAvailabilityError(addressForm),
-      'mealDeleteError' => l10n.mealDeleteError(addressForm),
-      _ => l10n.mealLoadError(addressForm),
-    };
+class _Full extends ConsumerWidget {
+  const _Full({required this.state, this.onResumeDraft});
 
-class _ErrorState extends ConsumerWidget {
-  const _ErrorState({required this.error});
-
-  final AppError error;
+  final MyMealsState state;
+  final void Function(CookMeal meal)? onResumeDraft;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final form = context.addressForm;
+    final published =
+        state.meals.where((m) => m.status == MealStatus.published).length;
 
-    return Center(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            KafooSpacing.lg,
+            KafooSpacing.md,
+            KafooSpacing.lg,
+            KafooSpacing.row,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.myMealsTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              // Every screen carries the mute control, top inline-end.
+              KafooMuteButton(
+                muted: false,
+                label: l10n.voiceMuteSilence,
+                onChanged: (_) {},
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: KafooSpacing.lg,
+          ),
+          // The receipt of the spoken greeting, and the most important element
+          // on the screen.
+          child: KafooSpokenBanner(
+            line:
+                l10n.myMealsSpokenSummary(form, state.meals.length, published),
+            hearAgainLabel: l10n.myMealsHearAgain,
+          ),
+        ),
+        if (state.error != null)
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              KafooSpacing.lg,
+              KafooSpacing.row,
+              KafooSpacing.lg,
+              0,
+            ),
+            child: Text(
+              myMealsErrorMessage(l10n, form, state.error!),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: KafooColors.error),
+            ),
+          ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+            itemCount: state.meals.length,
+            separatorBuilder: (_, __) =>
+                const SizedBox(height: KafooSpacing.row),
+            itemBuilder: (context, index) => MyMealRow(
+              meal: state.meals[index],
+              onResumeDraft: onResumeDraft,
+            ),
+          ),
+        ),
+        const _TalkDock(),
+      ],
+    );
+  }
+}
+
+/// The bottom of every voice screen: the orb, and the way to do it by hand.
+class _TalkDock extends StatelessWidget {
+  const _TalkDock();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KafooSpacing.lg,
+        KafooSpacing.row,
+        KafooSpacing.lg,
+        KafooSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        spacing: KafooSpacing.sm,
         children: [
-          Text(
-            _errorMessage(l10n, context.addressForm, error),
-            style: Theme.of(context).textTheme.bodyLarge,
+          // Drawn as designed and inert: there is no speech engine. The label
+          // carries the reason, the way every disabled control in Kafoo does.
+          KafooTalkButton(
+            state: TalkOrbState.idle,
+            amplitude: 0,
+            enabled: false,
+            label: l10n.voiceNotReadyYet,
+            onPressStart: () {},
+            onPressEnd: () {},
           ),
-          const SizedBox(height: KafooSpacing.md),
-          FilledButton(
-            onPressed: () => ref.invalidate(myMealsControllerProvider),
-            child: Text(l10n.mealLoadRetry(context.addressForm)),
+          // Tap is a complete alternative, not a degraded one — and today it is
+          // the only one that works.
+          TextButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            style: TextButton.styleFrom(
+              minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+            ),
+            child: Text(l10n.myMealsAddByHand(context.addressForm)),
           ),
         ],
       ),
@@ -108,42 +186,7 @@ class _ErrorState extends ConsumerWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Text(l10n.myMealsEmpty(context.addressForm),
-          style: Theme.of(context).textTheme.bodyLarge),
-    );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.error});
-
-  final AppError error;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final message = _errorMessage(l10n, context.addressForm, error);
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(
-        start: KafooSpacing.lg,
-        end: KafooSpacing.lg,
-        top: KafooSpacing.md,
-      ),
-      child: Text(message,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.error,
-              )),
-    );
-  }
-}
-
+/// One Meal in the Cook's list.
 class MyMealRow extends ConsumerWidget {
   const MyMealRow({required this.meal, this.onResumeDraft, super.key});
 
@@ -153,224 +196,70 @@ class MyMealRow extends ConsumerWidget {
   /// The dish name, or what to call a draft that has none.
   ///
   /// The schema permits a title-less row, so the list names one rather than
-  /// rendering a blank that reads as something broken. Also used as the
-  /// screen-reader suffix on every action, so a Cook hears which Meal an
-  /// action applies to even before the first question is answered.
+  /// rendering a blank that reads as something broken.
   String _title(AppLocalizations l10n) =>
       meal.title ?? l10n.myMealsUntitledDraft;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final controller = ref.read(myMealsControllerProvider.notifier);
     final price = meal.price;
+    final statusText = glanceWordText(l10n, meal.status);
 
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(bottom: KafooSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(_title(l10n), style: theme.textTheme.bodyLarge),
-          const SizedBox(height: KafooSpacing.xs),
-          Text(
-            price == null
-                ? l10n.myMealsNoPriceYet
-                : mealPriceLabel(l10n, price),
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: KafooSpacing.xs),
-          Text(
-            mealStatusLabel(l10n, meal.status),
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.outline,
-            ),
-          ),
-          const SizedBox(height: KafooSpacing.xs),
-          _buildAction(context, ref, controller, l10n),
-        ],
+    return KafooMealRow(
+      name: _title(l10n),
+      // The numeral alone; the currency is one step smaller beside it.
+      price: price == null
+          ? l10n.myMealsNoPriceYet
+          : KafooNumerals.arabicIndic(price),
+      priceUnit: price == null ? null : l10n.publicMealPriceUnit,
+      status: glanceWordFor(meal.status),
+      statusText: statusText,
+      semanticsLabel: l10n.mealRowSemanticLabel(
+        _title(l10n),
+        statusText,
+        price == null ? l10n.myMealsNoPriceYet : mealPriceLabel(l10n, price),
       ),
+      placeholderLabel: l10n.photoPlaceholder,
+      // Drawn, disabled: no engine to read it aloud yet.
+      hearLabel: l10n.myMealsHearRow,
+      moreLabel: l10n.myMealsRowActions,
+      // A retired Meal offers nothing. Drawn inert rather than opening an empty
+      // sheet — and inert rather than absent, so the row keeps its shape.
+      onMore: meal.status == MealStatus.archived
+          ? null
+          : () => showMyMealRowSheet(
+                context: context,
+                ref: ref,
+                meal: meal,
+                title: _title(l10n),
+                onResumeDraft: onResumeDraft,
+                onEdit: (editable) => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => MealEditScreen(meal: editable),
+                  ),
+                ),
+              ),
     );
   }
+}
 
-  Widget _buildAction(
-    BuildContext context,
-    WidgetRef ref,
-    MyMealsController controller,
-    AppLocalizations l10n,
-  ) {
-    final retire = _MealAction(
-      label: l10n.mealRetire(context.addressForm),
-      mealTitle: _title(l10n),
-      // Retirement is always confirmed. It is the one action on this screen
-      // that cannot be undone by taking the same action again.
-      warning: l10n.mealRetireWarning,
-      confirmLabel: l10n.mealRetireConfirm(context.addressForm),
-      cancelLabel: l10n.mealRetireCancel(context.addressForm),
-      onConfirmed: () => controller.setStatus(meal, MealStatus.archived),
-    );
-
-    // Editing needs a complete [Meal], which a draft is not. `asMeal` is null
-    // exactly when a required field is still unanswered, so the control is
-    // absent rather than disabled for a Meal that cannot yet be edited — and
-    // absent for an archived one, which offers nothing at all.
-    final editable = meal.asMeal;
-    final edit = editable == null
-        ? null
-        : _MealAction(
-            label: l10n.mealEditTitle(context.addressForm),
-            mealTitle: _title(l10n),
-            // Editing opens a screen rather than changing anything, so there is
-            // nothing here to confirm.
-            warning: null,
-            confirmLabel: l10n.mealRetireConfirm(context.addressForm),
-            cancelLabel: l10n.mealRetireCancel(context.addressForm),
-            onConfirmed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MealEditScreen(meal: editable),
-              ),
-            ),
-          );
-
-    final actions = switch (meal.status) {
-      MealStatus.published => [
-          if (edit != null) edit,
-          _MealAction(
-            label: l10n.mealMakeUnavailable(context.addressForm),
-            mealTitle: _title(l10n),
-            // Only when this is the Cook's last Meal on offer. Taking any
-            // other one off the menu is ordinary and reversible, and putting a
-            // dialog in front of it teaches Cooks to dismiss dialogs.
-            warning: controller.wouldCloseKitchen(meal)
-                ? l10n.mealLastOnOfferWarning(context.addressForm)
-                : null,
-            confirmLabel: l10n.mealLastOnOfferConfirm(context.addressForm),
-            cancelLabel: l10n.mealLastOnOfferCancel(context.addressForm),
-            onConfirmed: () =>
-                controller.setStatus(meal, MealStatus.unavailable),
-          ),
-          retire,
-        ],
-      MealStatus.unavailable => [
-          if (edit != null) edit,
-          _MealAction(
-            label: l10n.mealMakeAvailable(context.addressForm),
-            mealTitle: _title(l10n),
-            // Putting a Meal back on the menu never closes a kitchen.
-            warning: null,
-            confirmLabel: l10n.mealLastOnOfferConfirm(context.addressForm),
-            cancelLabel: l10n.mealLastOnOfferCancel(context.addressForm),
-            onConfirmed: () => controller.setStatus(meal, MealStatus.published),
-          ),
-          retire,
-        ],
-      MealStatus.draft => [
-          _MealAction(
-            label: l10n.mealResumeDraft(context.addressForm),
-            mealTitle: _title(l10n),
-            warning: null,
-            confirmLabel: l10n.mealRetireConfirm(context.addressForm),
-            cancelLabel: l10n.mealRetireCancel(context.addressForm),
-            onConfirmed: () async {
-              ref
-                  .read(mealConversationControllerProvider.notifier)
-                  .resume(meal);
-              onResumeDraft?.call(meal);
-            },
-          ),
-          _MealAction(
-            label: l10n.mealDeleteDraft(context.addressForm),
-            mealTitle: _title(l10n),
-            warning: l10n.mealDeleteDraftWarning(context.addressForm),
-            confirmLabel: l10n.mealDeleteDraftConfirm(context.addressForm),
-            cancelLabel: l10n.mealRetireCancel(context.addressForm),
-            onConfirmed: () => controller.deleteDraft(meal),
-          ),
-        ],
-      // A retired Meal offers nothing. Not a disabled control — an absent one.
-      MealStatus.archived => const <Widget>[],
+/// The glance word for a Meal's status.
+///
+/// The closed set, not the descriptive sentences in `myMealsStatus*` — those
+/// are body text ("مش متاحة دلوقتي"), and a glance word is recognised by its
+/// silhouette, so it has to be the same shape every time.
+GlanceWord glanceWordFor(MealStatus status) => switch (status) {
+      MealStatus.published => GlanceWord.published,
+      MealStatus.draft => GlanceWord.draft,
+      MealStatus.unavailable => GlanceWord.unavailable,
+      MealStatus.archived => GlanceWord.archived,
     };
 
-    return actions.isEmpty
-        ? const SizedBox.shrink()
-        : Wrap(
-            spacing: KafooSpacing.sm,
-            runSpacing: KafooSpacing.xs,
-            children: actions,
-          );
-  }
-}
-
-/// One action on a Meal row: a button, and the confirmation it does or does
-/// not need.
-///
-/// One widget rather than three near-identical ones. The three actions on this
-/// screen — take off the menu, put back on, retire, delete a draft — differ
-/// only in their words and in what they finally call, and a copy per action is
-/// three places to forget the 48dp floor or the screen-reader label.
-///
-/// [warning] is what decides whether a confirmation appears at all. Null means
-/// act immediately: an ordinary reversible change must not be gated behind a
-/// dialog, because a Cook trained to dismiss dialogs will dismiss the one that
-/// mattered.
-class _MealAction extends StatelessWidget {
-  const _MealAction({
-    required this.label,
-    required this.mealTitle,
-    required this.warning,
-    required this.confirmLabel,
-    required this.cancelLabel,
-    required this.onConfirmed,
-  });
-
-  final String label;
-  final String mealTitle;
-  final String? warning;
-  final String confirmLabel;
-  final String cancelLabel;
-  final Future<void> Function() onConfirmed;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: () => _onTap(context),
-      style: TextButton.styleFrom(
-        minimumSize: const Size(
-          KafooSpacing.minTapTarget,
-          KafooSpacing.minTapTarget,
-        ),
-      ),
-      child: Semantics(
-        button: true,
-        // Names the Meal, so a Cook using a screen reader hears which one this
-        // acts on rather than four identical "take it off the menu" buttons.
-        label: '$label: $mealTitle',
-        child: Text(label),
-      ),
-    );
-  }
-
-  Future<void> _onTap(BuildContext context) async {
-    final message = warning;
-    if (message != null) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(cancelLabel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(confirmLabel),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-    await onConfirmed();
-  }
-}
+String glanceWordText(AppLocalizations l10n, MealStatus status) =>
+    switch (status) {
+      MealStatus.published => l10n.glancePublished,
+      MealStatus.draft => l10n.glanceDraft,
+      MealStatus.unavailable => l10n.glanceUnavailable,
+      MealStatus.archived => l10n.glanceArchived,
+    };

@@ -1653,4 +1653,158 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gateSilenceFootnote => 'لو مقولتيش حاجة، مفيش حاجة هتحصل.';
+
+  @override
+  String get glancePublished => 'منشورة';
+
+  @override
+  String get glanceDraft => 'مسودة';
+
+  @override
+  String get glanceUnavailable => 'مش متاحة';
+
+  @override
+  String get glanceArchived => 'أرشيف';
+
+  @override
+  String get glanceOffline => 'مفيش نت';
+
+  @override
+  String get glanceSaved => 'محفوظ';
+
+  @override
+  String myMealsSpokenSummary(String addressForm, int total, int published) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'عندك $total أكلة، منهم $published منشورة. عايزة تعملي إيه؟',
+        'other': 'عندك $total أكلة، منهم $published منشورة. عايز تعمل إيه؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsHearAgain => 'اسمعها تاني';
+
+  @override
+  String get myMealsHearRow => 'اسمعي الأكلة دي';
+
+  @override
+  String get myMealsRowActions => 'حاجات تانية للأكلة دي';
+
+  @override
+  String myMealsAddByHand(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أو ضيفي أكلة بإيدك',
+        'other': 'أو ضيف أكلة بإيدك',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceNotReadyYet => 'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي';
+
+  @override
+  String get myMealsEmptyInvitation => 'احكيلي عن أكلة';
+
+  @override
+  String myMealsEmptySpoken(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قوليلي اسم الأكلة وأنا هكمل معاكي.',
+        'other': 'قوللي اسم الأكلة وأنا هكمل معاك.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsEmptyByHand(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أو اكتبيها بإيدك',
+        'other': 'أو اكتبها بإيدك',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsOfflineReassurance(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع.',
+        'other': 'اللي قلته محفوظ وهيتبعت أول ما النت يرجع.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsCachedAt(String time) {
+    return 'آخر نسخة محفوظة · $time';
+  }
+
+  @override
+  String myMealsRetry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني',
+        'other': 'جرب تاني',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publishGateQuestion => 'تنشر؟';
+
+  @override
+  String publishGateReadback(String name, String price) {
+    return '$name بـ $price جنيه، هتتنشر وتبقى على المنيو دلوقتي.';
+  }
+
+  @override
+  String publishGateYes(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أيوة، انشريها',
+        'other': 'أيوة، انشرها',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recognitionNarrowQuestion(String addressForm, String guess) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الأكلة اسمها $guess؟ قولي أيوة أو لأ.',
+        'other': 'الأكلة اسمها $guess؟ قول أيوة أو لأ.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recognitionNoneOfThese => 'مفيش حاجة من دول';
+
+  @override
+  String get publicMealPriceUnit => 'جنيه';
+
+  @override
+  String mealRowSemanticLabel(String name, String status, String price) {
+    return '$name، $status، $price';
+  }
 }

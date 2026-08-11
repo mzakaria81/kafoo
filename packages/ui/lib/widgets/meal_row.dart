@@ -62,13 +62,16 @@ class KafooMealRow extends StatelessWidget {
 
   final String? photoUrl;
 
-  /// Reads this row aloud. Null hides the control — there is no text-to-speech
-  /// service in Kafoo yet, and a button that does nothing is worse than no
-  /// button.
+  /// Reads this row aloud.
+  ///
+  /// Null with a [hearLabel] set draws the control **disabled**, not absent: a
+  /// missing button is a design that changed, a disabled one is a capability
+  /// that has not arrived. Kafoo has no text-to-speech engine yet, and hiding
+  /// the control would hide that.
   final VoidCallback? onHear;
   final String? hearLabel;
 
-  /// Opens the row's bottom sheet.
+  /// Opens the row's bottom sheet. Same nullable-means-disabled rule.
   final VoidCallback? onMore;
   final String? moreLabel;
 
@@ -171,21 +174,21 @@ class KafooMealRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     spacing: KafooSpacing.sm,
                     children: [
-                      if (onHear != null)
+                      if (hearLabel != null)
                         _RoundAction(
                           icon: Icons.volume_up_outlined,
-                          label: hearLabel ?? '',
+                          label: hearLabel!,
                           background: KafooColors.voiceTint,
                           foreground: KafooColors.voiceDeep,
-                          onPressed: onHear!,
+                          onPressed: onHear,
                         ),
-                      if (onMore != null)
+                      if (moreLabel != null)
                         _RoundAction(
                           icon: Icons.more_horiz,
-                          label: moreLabel ?? '',
+                          label: moreLabel!,
                           background: KafooColors.surfaceSunken,
                           foreground: KafooColors.onSurface,
-                          onPressed: onMore!,
+                          onPressed: onMore,
                         ),
                     ],
                   ),
@@ -212,7 +215,9 @@ class _RoundAction extends StatelessWidget {
   final String label;
   final Color background;
   final Color foreground;
-  final VoidCallback onPressed;
+
+  /// Null draws the control inert. See [KafooMealRow.onHear].
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -228,6 +233,7 @@ class _RoundAction extends StatelessWidget {
           style: IconButton.styleFrom(
             backgroundColor: background,
             foregroundColor: foreground,
+            disabledForegroundColor: KafooColors.textDisabled,
             shape: const CircleBorder(),
           ),
         ),

@@ -12,6 +12,7 @@ import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_meal_repository.dart';
 
@@ -104,6 +105,38 @@ Widget _app(
       ),
     );
 
+/// Opens the `···` sheet on one Meal row.
+///
+/// The actions moved off the row and into a bottom sheet when the list became
+/// voice-first: a row led by a 34px price and a glance word cannot also carry
+/// four text buttons without undoing the thing that shape is for. **What each
+/// action does, and which ones confirm first, did not change** — which is why
+/// these tests were rewritten around the new gesture rather than replaced.
+Future<void> _openActions(WidgetTester tester, {int row = 0}) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(MyMealRow).at(row),
+      matching: find.byIcon(Icons.more_horiz),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Dismisses the row sheet.
+///
+/// Scoped to the sheet on purpose: «سيبها زي ما هي» is also the word on two of
+/// the confirmation dialogs, so an unscoped finder matches both surfaces and
+/// the tap becomes ambiguous.
+Future<void> _closeSheet(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(KafooSheet),
+      matching: find.byType(TextButton),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late AppLocalizations l10n;
 
@@ -131,11 +164,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 20));
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text(l10n.myMealsEmpty('other')), findsNothing);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
 
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.myMealsEmpty('other')), findsNothing);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
     expect(find.text(_published.title!), findsOneWidget);
   });
 
@@ -145,7 +178,7 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.myMealsEmpty('other')), findsOneWidget);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
@@ -156,10 +189,18 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.myMealsStatusDraft), findsOneWidget);
-    expect(find.text(l10n.myMealsStatusPublished), findsOneWidget);
-    expect(find.text(l10n.myMealsStatusUnavailable), findsOneWidget);
-    expect(find.text(l10n.myMealsStatusArchived), findsOneWidget);
+    // Scrolled, not asserted in place: four rows led by a 34px price do not
+    // fit above the talk dock on a 600px test surface, and a status hidden by
+    // the fold is still a status the list shows.
+    for (final glance in [
+      l10n.glanceDraft,
+      l10n.glancePublished,
+      l10n.glanceUnavailable,
+      l10n.glanceArchived,
+    ]) {
+      await tester.scrollUntilVisible(find.text(glance), 200);
+      expect(find.text(glance), findsOneWidget);
+    }
   });
 
   testWidgets(
@@ -169,8 +210,14 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    await _openActions(tester, row: 0);
     expect(find.text(l10n.mealMakeUnavailable('other')), findsOneWidget);
+    expect(find.text(l10n.mealMakeAvailable('other')), findsNothing);
+    await _closeSheet(tester);
+
+    await _openActions(tester, row: 1);
     expect(find.text(l10n.mealMakeAvailable('other')), findsOneWidget);
+    expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
   });
 
   testWidgets('a retired Meal offers no action at all', (tester) async {
@@ -178,6 +225,17 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    // Inert rather than absent: the row keeps its shape, and the control
+    // cannot open an empty sheet.
+    final more = find.descendant(
+      of: find.byType(MyMealRow).first,
+      matching: find.byIcon(Icons.more_horiz),
+    );
+    expect(more, findsOneWidget);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsNothing);
     expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
     expect(find.text(l10n.mealMakeAvailable('other')), findsNothing);
   });
@@ -191,14 +249,9 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    // Tap the button on the first Meal row (كشري), not the second.
-    final firstRow = find.byType(MyMealRow).first;
-    await tester.tap(
-      find.descendant(
-        of: firstRow,
-        matching: find.text(l10n.mealMakeUnavailable('other')),
-      ),
-    );
+    // The first Meal row (كشري), not the second.
+    await _openActions(tester);
+    await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
     await tester.pumpAndSettle();
 
     expect(repo.setStatusArgs, hasLength(1));
@@ -214,13 +267,19 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    await _openActions(tester);
     await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.mealLastOnOfferWarning('other')), findsOneWidget);
     expect(repo.setStatusArgs, isEmpty);
 
-    await tester.tap(find.text(l10n.mealLastOnOfferCancel('other')));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.mealLastOnOfferCancel('other')),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(repo.setStatusArgs, isEmpty);
 
@@ -247,13 +306,8 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    final firstRow = find.byType(MyMealRow).first;
-    await tester.tap(
-      find.descendant(
-        of: firstRow,
-        matching: find.text(l10n.mealMakeUnavailable('other')),
-      ),
-    );
+    await _openActions(tester);
+    await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
     await tester.pumpAndSettle();
 
     final updated =
@@ -272,13 +326,8 @@ void main() {
     // Now flip the fail flag so the setStatus call fails.
     repo.failOperations = true;
 
-    final firstRow = find.byType(MyMealRow).first;
-    await tester.tap(
-      find.descendant(
-        of: firstRow,
-        matching: find.text(l10n.mealMakeUnavailable('other')),
-      ),
-    );
+    await _openActions(tester);
+    await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -292,28 +341,24 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    final firstRow = find.byType(MyMealRow).first;
-    await tester.tap(
-      find.descendant(
-        of: firstRow,
-        matching: find.text(l10n.mealRetire('other')),
-      ),
-    );
+    await _openActions(tester);
+    await tester.tap(find.text(l10n.mealRetire('other')));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.mealRetireWarning), findsOneWidget);
     expect(repo.setStatusArgs, isEmpty);
 
-    await tester.tap(find.text(l10n.mealRetireCancel('other')));
+    // The dialog's cancel, not the sheet's — both carry the same word.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.mealRetireCancel('other')),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(repo.setStatusArgs, isEmpty);
 
-    await tester.tap(
-      find.descendant(
-        of: firstRow,
-        matching: find.text(l10n.mealRetire('other')),
-      ),
-    );
+    await tester.tap(find.text(l10n.mealRetire('other')));
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
@@ -341,13 +386,8 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    final firstRow = find.byType(MyMealRow).first;
-    await tester.tap(
-      find.descendant(
-        of: firstRow,
-        matching: find.text(l10n.mealRetire('other')),
-      ),
-    );
+    await _openActions(tester);
+    await tester.tap(find.text(l10n.mealRetire('other')));
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
@@ -370,6 +410,14 @@ void main() {
   testWidgets('a retired Meal offers no route back', (tester) async {
     final repo = FakeMealRepository(meals: [_archived]);
     await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MyMealRow).first,
+        matching: find.byIcon(Icons.more_horiz),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
@@ -395,35 +443,18 @@ void main() {
   });
 
   testWidgets('only a draft offers deletion', (tester) async {
-    final repo = FakeMealRepository(
-      meals: [_draft, _published, _unavailable, _archived],
-    );
+    // Two Meals rather than four: the claim is about status, and four rows led
+    // by a 34px price do not fit above the talk dock on a test surface.
+    final repo = FakeMealRepository(meals: [_draft, _published]);
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    await _openActions(tester, row: 0);
     expect(find.text(l10n.mealDeleteDraft('other')), findsOneWidget);
+    await _closeSheet(tester);
 
-    final deleteButton = find.text(l10n.mealDeleteDraft('other'));
-    final draftRow = find.byType(MyMealRow).first;
-    expect(
-      find.descendant(of: draftRow, matching: deleteButton),
-      findsOneWidget,
-    );
-
-    for (final mealLabel in [
-      l10n.myMealsStatusPublished,
-      l10n.myMealsStatusUnavailable,
-      l10n.myMealsStatusArchived,
-    ]) {
-      final rowFinder = find.ancestor(
-        of: find.text(mealLabel),
-        matching: find.byType(MyMealRow),
-      );
-      expect(
-        find.descendant(of: rowFinder, matching: deleteButton),
-        findsNothing,
-      );
-    }
+    await _openActions(tester, row: 1);
+    expect(find.text(l10n.mealDeleteDraft('other')), findsNothing);
   });
 
   testWidgets(
@@ -435,6 +466,7 @@ void main() {
 
     expect(repo.lastDeletedMealId, isNull);
 
+    await _openActions(tester);
     await tester.tap(find.text(l10n.mealDeleteDraft('other')));
     await tester.pumpAndSettle();
 
@@ -457,6 +489,7 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    await _openActions(tester);
     await tester.tap(find.text(l10n.mealDeleteDraft('other')));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.mealDeleteDraftConfirm('other')));
@@ -475,8 +508,8 @@ void main() {
 
     expect(find.text(_halfDraft.title!), findsOneWidget);
     expect(find.text(_published.title!), findsOneWidget);
-    expect(find.text(l10n.myMealsStatusDraft), findsOneWidget);
-    expect(find.text(l10n.myMealsStatusPublished), findsOneWidget);
+    expect(find.text(l10n.glanceDraft), findsOneWidget);
+    expect(find.text(l10n.glancePublished), findsOneWidget);
     expect(find.text(l10n.mealLoadError('other')), findsNothing);
     expect(find.byType(MyMealRow), findsNWidgets(2));
   });
@@ -503,10 +536,13 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    await _openActions(tester);
     expect(find.text(l10n.mealDeleteDraft('other')), findsOneWidget);
     expect(find.text(l10n.mealMakeUnavailable('other')), findsNothing);
     expect(find.text(l10n.mealMakeAvailable('other')), findsNothing);
     expect(find.text(l10n.mealRetire('other')), findsNothing);
+    // Editing needs a complete Meal, which a half-answered draft is not.
+    expect(find.text(l10n.mealEditTitle('other')), findsNothing);
   });
 
   // The schema dropped NOT NULL from title along with the other four answers,
@@ -540,35 +576,16 @@ void main() {
   // --- T097: Resume a draft from the list ------------------------------------
 
   testWidgets('only a draft offers to be carried on', (tester) async {
-    final repo = FakeMealRepository(
-      meals: [_draft, _published, _unavailable, _archived],
-    );
+    final repo = FakeMealRepository(meals: [_draft, _published]);
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    await _openActions(tester, row: 0);
     expect(find.text(l10n.mealResumeDraft('other')), findsOneWidget);
+    await _closeSheet(tester);
 
-    final resumeButton = find.text(l10n.mealResumeDraft('other'));
-    final draftRow = find.byType(MyMealRow).first;
-    expect(
-      find.descendant(of: draftRow, matching: resumeButton),
-      findsOneWidget,
-    );
-
-    for (final mealLabel in [
-      l10n.myMealsStatusPublished,
-      l10n.myMealsStatusUnavailable,
-      l10n.myMealsStatusArchived,
-    ]) {
-      final rowFinder = find.ancestor(
-        of: find.text(mealLabel),
-        matching: find.byType(MyMealRow),
-      );
-      expect(
-        find.descendant(of: rowFinder, matching: resumeButton),
-        findsNothing,
-      );
-    }
+    await _openActions(tester, row: 1);
+    expect(find.text(l10n.mealResumeDraft('other')), findsNothing);
   });
 
   testWidgets('tapping it seeds the conversation and calls back',
@@ -604,6 +621,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _openActions(tester);
     await tester.tap(find.text(l10n.mealResumeDraft('other')));
     await tester.pumpAndSettle();
 

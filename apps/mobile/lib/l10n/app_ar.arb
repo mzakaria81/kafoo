@@ -1491,5 +1491,178 @@
   "gateSilenceFootnote": "لو مقولتيش حاجة، مفيش حاجة هتحصل.",
   "@gateSilenceFootnote": {
     "description": "Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe."
+  },
+  "glancePublished": "منشورة",
+  "@glancePublished": {
+    "description": "Glance word for a published Meal. From the closed set of eleven large words — recognised by shape, always 20px/700 in a row. Distinct from myMealsStatusPublished, which is a descriptive sentence used in body text."
+  },
+  "glanceDraft": "مسودة",
+  "@glanceDraft": {
+    "description": "Glance word for a draft Meal, from the closed set."
+  },
+  "glanceUnavailable": "مش متاحة",
+  "@glanceUnavailable": {
+    "description": "Glance word for a Meal that is not on offer today, from the closed set."
+  },
+  "glanceArchived": "أرشيف",
+  "@glanceArchived": {
+    "description": "Glance word for a retired Meal, from the closed set."
+  },
+  "glanceOffline": "مفيش نت",
+  "@glanceOffline": {
+    "description": "Glance word for a lost connection, from the closed set."
+  },
+  "glanceSaved": "محفوظ",
+  "@glanceSaved": {
+    "description": "Glance word for work held safely until the connection returns, from the closed set."
+  },
+  "myMealsSpokenSummary": "{addressForm, select, feminine{عندك {total} أكلة، منهم {published} منشورة. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} منشورة. عايز تعمل إيه؟}}",
+  "@myMealsSpokenSummary": {
+    "description": "The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      },
+      "total": {
+        "type": "int"
+      },
+      "published": {
+        "type": "int"
+      }
+    }
+  },
+  "myMealsHearAgain": "اسمعها تاني",
+  "@myMealsHearAgain": {
+    "description": "Repeats the assistant's last line. Disabled until a speech engine is chosen."
+  },
+  "myMealsHearRow": "اسمعي الأكلة دي",
+  "@myMealsHearRow": {
+    "description": "Reads one Meal row aloud. Disabled until a speech engine is chosen."
+  },
+  "myMealsRowActions": "حاجات تانية للأكلة دي",
+  "@myMealsRowActions": {
+    "description": "Opens the actions for one Meal."
+  },
+  "myMealsAddByHand": "{addressForm, select, feminine{أو ضيفي أكلة بإيدك} other{أو ضيف أكلة بإيدك}}",
+  "@myMealsAddByHand": {
+    "description": "The tap alternative beside the talk button. Tap is a complete alternative to voice, never a degraded one.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceNotReadyYet": "الكلام لسه مش شغال — ضيفي بإيدك دلوقتي",
+  "@voiceNotReadyYet": {
+    "description": "The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end."
+  },
+  "myMealsEmptyInvitation": "احكيلي عن أكلة",
+  "@myMealsEmptyInvitation": {
+    "description": "The whole of the empty Meal list: an invitation to speak, not a form."
+  },
+  "myMealsEmptySpoken": "{addressForm, select, feminine{قوليلي اسم الأكلة وأنا هكمل معاكي.} other{قوللي اسم الأكلة وأنا هكمل معاك.}}",
+  "@myMealsEmptySpoken": {
+    "description": "Spoken invitation on the empty Meal list.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "myMealsEmptyByHand": "{addressForm, select, feminine{أو اكتبيها بإيدك} other{أو اكتبها بإيدك}}",
+  "@myMealsEmptyByHand": {
+    "description": "The tap alternative on the empty Meal list.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "myMealsOfflineReassurance": "{addressForm, select, feminine{اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع.} other{اللي قلته محفوظ وهيتبعت أول ما النت يرجع.}}",
+  "@myMealsOfflineReassurance": {
+    "description": "Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "myMealsCachedAt": "آخر نسخة محفوظة · {time}",
+  "@myMealsCachedAt": {
+    "description": "Labels the stale Meal list shown at reduced opacity under a failure. Showing the last good data beats showing nothing.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "myMealsRetry": "{addressForm, select, feminine{جربي تاني} other{جرب تاني}}",
+  "@myMealsRetry": {
+    "description": "Reloads the Meal list after a failure.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "publishGateQuestion": "تنشر؟",
+  "@publishGateQuestion": {
+    "description": "The verdict word on the publish confirmation gate, 32px/700 in the success colour."
+  },
+  "publishGateReadback": "{name} بـ {price} جنيه، هتتنشر وتبقى على المنيو دلوقتي.",
+  "@publishGateReadback": {
+    "description": "Read back in full before publishing. Not a summary — the read-back is what the Cook is agreeing to.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "publishGateYes": "{addressForm, select, feminine{أيوة، انشريها} other{أيوة، انشرها}}",
+  "@publishGateYes": {
+    "description": "The confirming answer on the publish gate. 72dp, solid green.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "recognitionNarrowQuestion": "{addressForm, select, feminine{الأكلة اسمها {guess}؟ قولي أيوة أو لأ.} other{الأكلة اسمها {guess}؟ قول أيوة أو لأ.}}",
+  "@recognitionNarrowQuestion": {
+    "description": "Second rung of the recognition failure ladder. A two-word answer is recognised far more reliably than open speech.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      },
+      "guess": {
+        "type": "String"
+      }
+    }
+  },
+  "recognitionNoneOfThese": "مفيش حاجة من دول",
+  "@recognitionNoneOfThese": {
+    "description": "Escape from the tapped options at the bottom of the failure ladder. Never leads to a keyboard as a consequence of failure."
+  },
+  "publicMealPriceUnit": "جنيه",
+  "@publicMealPriceUnit": {
+    "description": "The currency word beside a price, set one step smaller than the numeral. Separate from publicMealPriceValue so the number can be the largest thing on the screen and the word can be quiet beside it."
+  },
+  "mealRowSemanticLabel": "{name}، {status}، {price}",
+  "@mealRowSemanticLabel": {
+    "description": "How a Meal row in the Cook's list reads aloud. Composed from an ARB entry so the separator follows the locale rather than an Arabic comma reaching an English voice.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
   }
 }
