@@ -252,3 +252,40 @@ Two consequences, and the second is the one to hold on to:
 Not yet verified in the chosen voices. The free tier cannot call a library voice from code, so the
 lines in "the corpus" above were all read by the stock voice. Re-run them in Ghozlan and Ahmad before
 anything is bundled — in the vendor's studio at no cost, or from code once the plan allows it.
+
+## Second run, in the chosen voices, 2026-08-11
+
+Starter plan confirmed by the API, and **the Egyptian library voices answer from code** — verified by
+calling Ghozlan directly. Three numbers worth recording because they differ from the pricing page:
+
+| Fact | Value |
+|---|---|
+| Monthly character allowance | **40,000**, not the 30,000 the pricing page advertised |
+| Instant voice cloning | on |
+| Professional voice cloning | off — that is the Creator tier |
+| Voices the account may hold | 10 |
+
+Second run: 42 clips, every §10 line in both chosen voices, plus a four-way comparison of the same
+sentence on `eleven_multilingual_v2` and `eleven_v3` with and without written direction.
+**997 characters of 40,000.**
+
+That number is the one to carry into the cost argument. The entire spoken vocabulary of the product,
+in both voices, is roughly a thousand characters — **2.5% of one month's allowance**, spent again only
+when the wording changes. Whatever the running cost of Kafoo's voice turns out to be, it is not the
+fixed lines.
+
+### Still outstanding
+
+Four listening verdicts, and only a Cairene ear can give them:
+
+1. **«نفسك في إيه؟»** — *nafsik* to a woman, or *nafsak* to a man? The only one of the four that
+   carries a defect. If it is wrong, the fix is vowel marks or rewording, and the same risk applies to
+   every unvowelled line in the product.
+2. **«معلش، مافهمتش. قوليها تاني؟»** — does «مافهمتش» arrive as one natural word? A Cook hears this
+   sentence every time recognition fails.
+3. **The eleven glance words** — all whole, especially «مش متاحة» and «اتلغى».
+4. **«٣ نجوم» and «٤٥ دقيقة»** — Arabic-Indic digits read as Egyptian numbers.
+
+Plus two judgements that are preferences rather than defects: whether written-in warmth
+(`[warmly]`, `[thoughtful]`) is close enough to a conversational assistant's feel, and whether `eleven_v3`
+is worth its unpredictability for lines that are heard before they ship.
