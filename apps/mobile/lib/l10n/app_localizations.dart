@@ -1076,12 +1076,6 @@ abstract class AppLocalizations {
   /// **'مسودة'**
   String get myMealsStatusDraft;
 
-  /// Status word for a Meal on offer and visible to Customers.
-  ///
-  /// In ar, this message translates to:
-  /// **'على المنيو'**
-  String get myMealsStatusPublished;
-
   /// Status word for a Meal temporarily off the menu.
   ///
   /// In ar, this message translates to:
@@ -1521,10 +1515,16 @@ abstract class AppLocalizations {
   /// **'لو مقولتيش حاجة، مفيش حاجة هتحصل.'**
   String get gateSilenceFootnote;
 
-  /// Glance word for a published Meal. From the closed set of eleven large words — recognised by shape, always 20px/700 in a row. Distinct from myMealsStatusPublished, which is a descriptive sentence used in body text.
+  /// What a screen reader says while the Meal list is a skeleton. Required by KafooSkeletonList: without it a blind Cook hears nothing during the one state where she most needs to be told to wait.
   ///
   /// In ar, this message translates to:
-  /// **'منشورة'**
+  /// **'بحمّل أكلاتك…'**
+  String get myMealsLoading;
+
+  /// Status word for a Meal on offer and visible to Customers. ONE WORD FOR ONE THING: this is the only key for it, used both as the glance word on the Meal list and as the status label everywhere else. It replaced a second key holding a second word, which is how a Cook came to meet two names for the same status. It is the longest member of the eleven-word glance set — a phrase where the others are single words — because the founder chose the wording a Cook already uses over the one that reads fastest.
+  ///
+  /// In ar, this message translates to:
+  /// **'على المنيو'**
   String get glancePublished;
 
   /// Glance word for a draft Meal, from the closed set.
@@ -1560,7 +1560,7 @@ abstract class AppLocalizations {
   /// The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.
   ///
   /// In ar, this message translates to:
-  /// **'{addressForm, select, feminine{عندك {total} أكلة، منهم {published} منشورة. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} منشورة. عايز تعمل إيه؟}}'**
+  /// **'{addressForm, select, feminine{عندك {total} أكلة، منهم {published} على المنيو. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} على المنيو. عايز تعمل إيه؟}}'**
   String myMealsSpokenSummary(String addressForm, int total, int published);
 
   /// Repeats the assistant's last line. Disabled until a speech engine is chosen.
@@ -1611,11 +1611,11 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{أو اكتبيها بإيدك} other{أو اكتبها بإيدك}}'**
   String myMealsEmptyByHand(String addressForm);
 
-  /// Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong.
+  /// Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong. It reassures her about her MEALS, not about anything she said — this panel appears when a list fails to load, where she has spoken nothing and nothing is queued. Takes no address form because the sentence does not inflect.
   ///
   /// In ar, this message translates to:
-  /// **'{addressForm, select, feminine{اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع.} other{اللي قلته محفوظ وهيتبعت أول ما النت يرجع.}}'**
-  String myMealsOfflineReassurance(String addressForm);
+  /// **'أكلاتك كلها في أمان. المشكلة في النت بس.'**
+  String get myMealsOfflineReassurance;
 
   /// Labels the stale Meal list shown at reduced opacity under a failure. Showing the last good data beats showing nothing.
   ///

@@ -9,6 +9,9 @@ look finished and quietly lost the list below.
 This is that list. Each entry says what a person sees today, what is missing
 behind it, and what it costs to close.
 
+**Four of the ten are closed.** 1, 8, 9 and 10 are done; the rest are listed
+below with what each still needs.
+
 **Nothing here blocks the screen from shipping.** Everything a Cook can already
 do — see her Meals, take one off the menu, put it back, retire it, carry on a
 draft, delete a draft, edit — works, and is covered by tests.
@@ -130,30 +133,40 @@ and «مفيش حاجة من دول».
 The strings and the ladder logic exist (`RecognitionLadder`, tested), so the
 panel is a rendering job once those two land.
 
-## 8. The loading state is not from the design
+## 8. ~~The loading state is not from the design~~ — CLOSED
 
-**What a Cook sees.** A plain spinner.
+**Closed 2026-08-11.** `DESIGN.md` listed this as undefined and told an
+implementer to stop and ask; the founder answered "build it", to the design's
+own hint — a hairline skeleton at the Meal-row footprint.
 
-**What is missing.** `DESIGN.md` lists the loading state as undefined and tells
-an implementer to stop and ask rather than invent one — and notes that on
-Egyptian networks this is a state people live in. The design asks for a hairline
-skeleton at the Meal-row footprint.
+`KafooSkeletonList` draws three rows in the real row's shape: same raised
+surface, same border, same radius, same 80px thumbnail, and each bar exactly as
+tall as the line of type it stands in for, taken from the type scale rather than
+typed in. A test compares its height against a real Meal row, because the whole
+value of a skeleton is that the list does not jump when the data lands. The
+largest bar sits where the price will be, since the price is the largest thing
+in a real row.
 
-**This is a design gap, not a backend one.** It needs a decision before it can
-be built.
+It pulses, slowly, and stops completely when the platform's reduce-motion
+setting is on. On Egyptian networks this state lasts long enough that a
+motionless screen reads as a hung app, which is the moment people force-quit.
 
-## 9. Two status vocabularies exist
+## 9. ~~Two status vocabularies exist~~ — CLOSED
 
-**What a Cook sees.** «منشورة» on the Meal list; «على المنيو» on other screens.
+**Closed 2026-08-11, by the founder, against the recommendation that was here.**
+This file proposed keeping the glance word «منشورة». He chose «على المنيو» — the
+words a Cook already uses about her own menu — and it is now the only name for
+that status anywhere in the app.
 
-**Why.** The glance word is a fixed shape from a closed set of eleven, recognised
-without reading. The older `myMealsStatus*` strings are descriptive sentences
-used in body text. Both are correct in their place, but a Cook meets two words
-for one thing.
+The second key is gone rather than set to the same text: two keys holding one
+sentence is how the two vocabularies appeared in the first place.
+`myMealsStatusPublished` was deleted and everything reads `glancePublished`.
 
-**Recommendation:** keep the glance word wherever the status is a label, and
-reword the descriptive strings to contain it — "منشورة على المنيو" rather than a
-second name. Small, and a vocabulary decision rather than a code one.
+**The cost, stated because it is real.** «على المنيو» is three words where every
+other glance word is one, and the glance set is meant to be recognised by
+silhouette without reading. It is the longest member of that set and it wraps to
+two lines at 200% text scale. That is a deliberate trade of a design property
+for a familiar phrase, not an oversight.
 
 ## 10. ~~The mute control does nothing~~ — CLOSED
 

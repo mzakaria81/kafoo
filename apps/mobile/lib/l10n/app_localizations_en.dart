@@ -1151,9 +1151,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myMealsStatusDraft => 'Draft';
 
   @override
-  String get myMealsStatusPublished => 'On the menu';
-
-  @override
   String get myMealsStatusUnavailable => 'Not available right now';
 
   @override
@@ -1709,7 +1706,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gateSilenceFootnote => 'If you say nothing, nothing happens.';
 
   @override
-  String get glancePublished => 'Published';
+  String get myMealsLoading => 'Loading your Meals…';
+
+  @override
+  String get glancePublished => 'On the menu';
 
   @override
   String get glanceDraft => 'Draft';
@@ -1732,9 +1732,9 @@ class AppLocalizationsEn extends AppLocalizations {
       addressForm,
       {
         'feminine':
-            'You have $total Meals, $published of them published. What would you like to do?',
+            'You have $total Meals, $published of them on the menu. What would you like to do?',
         'other':
-            'You have $total Meals, $published of them published. What would you like to do?',
+            'You have $total Meals, $published of them on the menu. What would you like to do?',
       },
     );
     return '$_temp0';
@@ -1793,18 +1793,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String myMealsOfflineReassurance(String addressForm) {
-    String _temp0 = intl.Intl.selectLogic(
-      addressForm,
-      {
-        'feminine':
-            'What you said is saved and will send as soon as the connection is back.',
-        'other':
-            'What you said is saved and will send as soon as the connection is back.',
-      },
-    );
-    return '$_temp0';
-  }
+  String get myMealsOfflineReassurance =>
+      'Your Meals are all safe. It is the connection that is the problem.';
 
   @override
   String myMealsCachedAt(String time) {

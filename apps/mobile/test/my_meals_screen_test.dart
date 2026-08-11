@@ -163,7 +163,9 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pump(const Duration(milliseconds: 20));
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // A skeleton at the Meal-row footprint, not a spinner. "No Meals yet" and
+    // "not answered yet" are opposite messages and must not share a screen.
+    expect(find.byType(KafooSkeletonList), findsOneWidget);
     expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
 
     await tester.pumpAndSettle();
@@ -179,7 +181,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.myMealsEmptyInvitation), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byType(KafooSkeletonList), findsNothing);
   });
 
   testWidgets('shows every status, including drafts', (tester) async {

@@ -5,18 +5,23 @@ import 'package:kafoo_ui/ui.dart';
 /// What these tests are, and what they are deliberately not.
 ///
 /// `.claude/rules/dart.md` asks for golden tests on the design system. There
-/// are none here on purpose: a golden compares rendered pixels, and the
-/// designed typeface is not in this repository yet, so every golden would
-/// record the fallback font and would have to be regenerated the day the real
-/// one lands. What these assert instead are the design's *measurable* claims —
+/// are none here on purpose: a golden compares rendered pixels, and widget
+/// tests render with a test font rather than the bundled one, so a golden
+/// records a shape no Cook will ever see. What these assert instead are the
+/// design's *measurable* claims —
 /// sizes, colours, tap targets, and that nothing clips at 200% text scale.
 /// Those are the rules a screen actually breaks.
 Widget _host(Widget child,
-        {double textScale = 1, Size size = const Size(390, 800)}) =>
+        {double textScale = 1,
+        Size size = const Size(390, 800),
+        bool disableAnimations = false}) =>
     MediaQuery(
       data: MediaQueryData(
         size: size,
         textScaler: TextScaler.linear(textScale),
+        // Set HERE and not in a wrapper around _host: this MediaQuery replaces
+        // whatever is above it, so an outer one is silently discarded.
+        disableAnimations: disableAnimations,
       ),
       // No `locale: ar` on the MaterialApp: this package does not depend on
       // flutter_localizations, so declaring the locale without its delegates
@@ -30,6 +35,18 @@ Widget _host(Widget child,
         ),
       ),
     );
+
+double _firstBarOpacity(WidgetTester tester) => tester
+    .widget<FadeTransition>(
+      find
+          .descendant(
+            of: find.byKey(KafooSkeletonList.rowKey(0)),
+            matching: find.byType(FadeTransition),
+          )
+          .first,
+    )
+    .opacity
+    .value;
 
 void main() {
   group('KafooButton', () {
@@ -141,10 +158,10 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _host(
-          const KafooGlanceWord(word: GlanceWord.published, text: 'منشورة'),
+          const KafooGlanceWord(word: GlanceWord.published, text: 'على المنيو'),
         ),
       );
-      final style = tester.widget<Text>(find.text('منشورة')).style!;
+      final style = tester.widget<Text>(find.text('على المنيو')).style!;
       expect(style.color, KafooColors.success);
       expect(style.fontSize, 20);
       expect(style.fontWeight, FontWeight.w700);
@@ -192,8 +209,8 @@ void main() {
           price: '١٢٠',
           priceUnit: 'جنيه',
           status: status,
-          statusText: 'منشورة',
-          semanticsLabel: 'محشي ورق عنب، منشورة، ١٢٠ جنيه',
+          statusText: 'على المنيو',
+          semanticsLabel: 'محشي ورق عنب، على المنيو، ١٢٠ جنيه',
           placeholderLabel: 'مكان صورة مؤقت',
         );
 
@@ -201,7 +218,7 @@ void main() {
       await tester.pumpWidget(_host(row()));
       final price = tester.widget<Text>(find.text('١٢٠')).style!;
       final name = tester.widget<Text>(find.text('محشي ورق عنب')).style!;
-      final status = tester.widget<Text>(find.text('منشورة')).style!;
+      final status = tester.widget<Text>(find.text('على المنيو')).style!;
 
       expect(price.fontSize, 34);
       expect(price.fontSize, greaterThan(status.fontSize!));
@@ -281,7 +298,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _host(KafooFilterChip(
-          label: 'منشورة',
+          label: 'على المنيو',
           selected: false,
           onSelected: (_) {},
         )),
@@ -418,6 +435,88 @@ void main() {
         findsOneWidget,
       );
       handle.dispose();
+    });
+  });
+
+  group('KafooSkeletonList', () {
+    // A repeating animation never settles, so every test here pumps single
+    // frames. `pumpAndSettle` would time out rather than fail informatively.
+    Widget mealRow() => const KafooMealRow(
+          name: 'محشي ورق عنب',
+          price: '١٢٠',
+          priceUnit: 'جنيه',
+          status: GlanceWord.published,
+          statusText: 'على المنيو',
+          semanticsLabel: 'محشي ورق عنب، على المنيو، ١٢٠ جنيه',
+          placeholderLabel: 'مكان صورة مؤقت',
+        );
+
+    testWidgets('the list does not resize when the real rows arrive',
+        (tester) async {
+      // THE WHOLE POINT OF A SKELETON. A placeholder of the wrong height moves
+      // the list under the Cook's thumb at the exact moment she reaches for it.
+      await tester.pumpWidget(_host(mealRow()));
+      final real = tester.getSize(find.byType(KafooMealRow)).height;
+
+      await tester.pumpWidget(
+        _host(const KafooSkeletonList(semanticsLabel: 'بحمّل أكلاتك')),
+      );
+      await tester.pump();
+      final skeleton =
+          tester.getSize(find.byKey(KafooSkeletonList.rowKey(0))).height;
+
+      expect(skeleton, closeTo(real, 1));
+    });
+
+    testWidgets('tells a screen reader to wait instead of reading empty boxes',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _host(const KafooSkeletonList(semanticsLabel: 'بحمّل أكلاتك')),
+      );
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('بحمّل أكلاتك'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('breathes, so a slow network does not read as a hung app',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(const KafooSkeletonList(semanticsLabel: 'بحمّل أكلاتك')),
+      );
+      await tester.pump();
+      final before = _firstBarOpacity(tester);
+
+      await tester.pump(const Duration(milliseconds: 550));
+
+      expect(_firstBarOpacity(tester), isNot(closeTo(before, 0.01)));
+    });
+
+    testWidgets('holds still when the platform asks for reduced motion',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const KafooSkeletonList(semanticsLabel: 'بحمّل أكلاتك'),
+          disableAnimations: true,
+        ),
+      );
+      await tester.pump();
+      final before = _firstBarOpacity(tester);
+
+      await tester.pump(const Duration(milliseconds: 550));
+
+      expect(_firstBarOpacity(tester), before);
+      expect(before, 1);
+    });
+
+    testWidgets('shows a list, not a count', (tester) async {
+      await tester.pumpWidget(
+        _host(const KafooSkeletonList(semanticsLabel: 'بحمّل أكلاتك')),
+      );
+      await tester.pump();
+      expect(find.byKey(KafooSkeletonList.rowKey(2)), findsOneWidget);
+      expect(find.byKey(KafooSkeletonList.rowKey(3)), findsNothing);
     });
   });
 }

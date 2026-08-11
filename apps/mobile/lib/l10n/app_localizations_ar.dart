@@ -1105,9 +1105,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myMealsStatusDraft => 'مسودة';
 
   @override
-  String get myMealsStatusPublished => 'على المنيو';
-
-  @override
   String get myMealsStatusUnavailable => 'مش متاحة دلوقتي';
 
   @override
@@ -1655,7 +1652,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gateSilenceFootnote => 'لو مقولتيش حاجة، مفيش حاجة هتحصل.';
 
   @override
-  String get glancePublished => 'منشورة';
+  String get myMealsLoading => 'بحمّل أكلاتك…';
+
+  @override
+  String get glancePublished => 'على المنيو';
 
   @override
   String get glanceDraft => 'مسودة';
@@ -1678,8 +1678,8 @@ class AppLocalizationsAr extends AppLocalizations {
       addressForm,
       {
         'feminine':
-            'عندك $total أكلة، منهم $published منشورة. عايزة تعملي إيه؟',
-        'other': 'عندك $total أكلة، منهم $published منشورة. عايز تعمل إيه؟',
+            'عندك $total أكلة، منهم $published على المنيو. عايزة تعملي إيه؟',
+        'other': 'عندك $total أكلة، منهم $published على المنيو. عايز تعمل إيه؟',
       },
     );
     return '$_temp0';
@@ -1737,16 +1737,8 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String myMealsOfflineReassurance(String addressForm) {
-    String _temp0 = intl.Intl.selectLogic(
-      addressForm,
-      {
-        'feminine': 'اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع.',
-        'other': 'اللي قلته محفوظ وهيتبعت أول ما النت يرجع.',
-      },
-    );
-    return '$_temp0';
-  }
+  String get myMealsOfflineReassurance =>
+      'أكلاتك كلها في أمان. المشكلة في النت بس.';
 
   @override
   String myMealsCachedAt(String time) {

@@ -85,9 +85,11 @@
   --kafoo-scrim: rgba(28, 25, 23, 0.55);
   --kafoo-focus-ring: 0 0 0 3px rgba(194, 65, 12, 0.18);
 
-  /* IBM Plex Sans Arabic is not self-hosted yet — see KafooType.fontFamily.
-     The fallback stack is Arabic-first on purpose: swapping in from a
-     Latin-metric fallback reflows the whole page. */
+  /* Bundled on mobile (packages/ui/fonts/), NOT self-hosted here yet, so this
+     surface renders in the system stack while the app renders in Plex. Closing
+     it means adding a public/ directory and an asset route to the Workers
+     build — see docs/design/README.md. The fallback stack is Arabic-first on
+     purpose: swapping in from a Latin-metric fallback reflows the whole page. */
   --kafoo-font: 'IBM Plex Sans Arabic', 'Noto Sans Arabic', system-ui,
     -apple-system, 'Segoe UI', Tahoma, sans-serif;
   /* Arabic stacks marks above and below the baseline, so it needs ~0.15 more

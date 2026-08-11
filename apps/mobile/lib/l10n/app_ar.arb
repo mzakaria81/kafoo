@@ -1008,10 +1008,6 @@
   "@myMealsStatusDraft": {
     "description": "Status word for a Meal still in draft, not yet on offer."
   },
-  "myMealsStatusPublished": "على المنيو",
-  "@myMealsStatusPublished": {
-    "description": "Status word for a Meal on offer and visible to Customers."
-  },
   "myMealsStatusUnavailable": "مش متاحة دلوقتي",
   "@myMealsStatusUnavailable": {
     "description": "Status word for a Meal temporarily off the menu."
@@ -1492,9 +1488,13 @@
   "@gateSilenceFootnote": {
     "description": "Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe."
   },
-  "glancePublished": "منشورة",
+  "myMealsLoading": "بحمّل أكلاتك…",
+  "@myMealsLoading": {
+    "description": "What a screen reader says while the Meal list is a skeleton. Required by KafooSkeletonList: without it a blind Cook hears nothing during the one state where she most needs to be told to wait."
+  },
+  "glancePublished": "على المنيو",
   "@glancePublished": {
-    "description": "Glance word for a published Meal. From the closed set of eleven large words — recognised by shape, always 20px/700 in a row. Distinct from myMealsStatusPublished, which is a descriptive sentence used in body text."
+    "description": "Status word for a Meal on offer and visible to Customers. ONE WORD FOR ONE THING: this is the only key for it, used both as the glance word on the Meal list and as the status label everywhere else. It replaced a second key holding a second word, which is how a Cook came to meet two names for the same status. It is the longest member of the eleven-word glance set — a phrase where the others are single words — because the founder chose the wording a Cook already uses over the one that reads fastest."
   },
   "glanceDraft": "مسودة",
   "@glanceDraft": {
@@ -1516,7 +1516,7 @@
   "@glanceSaved": {
     "description": "Glance word for work held safely until the connection returns, from the closed set."
   },
-  "myMealsSpokenSummary": "{addressForm, select, feminine{عندك {total} أكلة، منهم {published} منشورة. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} منشورة. عايز تعمل إيه؟}}",
+  "myMealsSpokenSummary": "{addressForm, select, feminine{عندك {total} أكلة، منهم {published} على المنيو. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} على المنيو. عايز تعمل إيه؟}}",
   "@myMealsSpokenSummary": {
     "description": "The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.",
     "placeholders": {
@@ -1578,14 +1578,9 @@
       }
     }
   },
-  "myMealsOfflineReassurance": "{addressForm, select, feminine{اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع.} other{اللي قلته محفوظ وهيتبعت أول ما النت يرجع.}}",
+  "myMealsOfflineReassurance": "أكلاتك كلها في أمان. المشكلة في النت بس.",
   "@myMealsOfflineReassurance": {
-    "description": "Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong.",
-    "placeholders": {
-      "addressForm": {
-        "type": "String"
-      }
-    }
+    "description": "Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong. It reassures her about her MEALS, not about anything she said — this panel appears when a list fails to load, where she has spoken nothing and nothing is queued. Takes no address form because the sentence does not inflect."
   },
   "myMealsCachedAt": "آخر نسخة محفوظة · {time}",
   "@myMealsCachedAt": {

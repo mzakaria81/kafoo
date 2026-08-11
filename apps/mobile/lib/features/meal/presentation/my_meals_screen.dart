@@ -42,13 +42,10 @@ class MyMealsScreen extends ConsumerWidget {
         // Loading is checked FIRST and before emptiness. "No Meals yet" and
         // "not answered yet" look identical in the data and mean opposite
         // things to the Cook reading them.
-        //
-        // The spinner is not from the design: DESIGN.md lists the loading state
-        // as undefined and tells an implementer to stop and ask rather than
-        // invent one. This is the pre-existing treatment, kept unchanged.
         child: switch (state) {
-          MyMealsState(loading: true) =>
-            const Center(child: CircularProgressIndicator()),
+          MyMealsState(loading: true) => KafooSkeletonList(
+              semanticsLabel: AppLocalizations.of(context).myMealsLoading,
+            ),
           MyMealsState(error: final error?) when state.meals.isEmpty =>
             MyMealsFailed(error: error),
           MyMealsState(meals: []) => const MyMealsEmpty(),

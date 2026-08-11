@@ -17,7 +17,9 @@ import '../theme/typography.dart';
 /// The words themselves are Arabic strings and belong in the ARB files; a
 /// caller passes the localized text alongside the case.
 enum GlanceWord {
-  /// منشورة
+  /// على المنيو — the only phrase in a set of single words. The founder chose
+  /// the wording a Cook already uses over the one that reads fastest, so this
+  /// case wraps to two lines at 200% text scale where the others do not.
   published(KafooColors.success),
 
   /// مسودة — the one drawn with a dashed edge, because a draft is not final.

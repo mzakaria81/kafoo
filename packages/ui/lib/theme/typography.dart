@@ -17,18 +17,19 @@ import 'tokens.dart';
 /// `TextTheme` sets `letterSpacing` on most roles, so every Arabic style below
 /// zeroes it explicitly rather than inheriting.
 abstract final class KafooType {
-  /// The family, once it is bundled.
+  /// The designed face, bundled in `packages/ui/fonts/`.
   ///
-  /// **The font files are not in this repository yet.** IBM Plex Sans Arabic
-  /// must be self-hosted as a woff2/ttf subset (Arabic + Latin, weights
-  /// 400/500/600/700) and declared under `flutter: fonts:` before this name
-  /// resolves to anything; until then the platform default is used, which is
-  /// legible but is not the designed face. Sourcing it is an open asset task.
-  static const String fontFamily = 'IBM Plex Sans Arabic';
+  /// **The `packages/kafoo_ui/` prefix is required, not decorative.** Flutter
+  /// spells a font owned by a package this way, and dropping the prefix does
+  /// not fail — it silently resolves to the platform default, which is exactly
+  /// the bug bundling the font was meant to end. Verified glyph coverage
+  /// includes the Arabic-Indic digits ٠–٩ and the U+066B/U+066C separators,
+  /// because prices are written in them.
+  static const String fontFamily = 'packages/kafoo_ui/IBMPlexSansArabic';
 
-  /// Kept in the stack so a missing or failed webfont degrades to an Arabic
-  /// face rather than to a Latin one — a Latin-metric fallback reflows the
-  /// whole page when the real font swaps in.
+  /// Reached only for a glyph the bundled face does not carry. Arabic rather
+  /// than Latin on purpose: a Latin-metric fallback reflows a whole paragraph
+  /// around one missing character.
   static const List<String> fontFamilyFallback = ['Noto Sans Arabic'];
 
   /// Tracking is allowed on Latin eyebrow and label text only, never on Arabic.

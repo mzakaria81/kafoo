@@ -23,6 +23,7 @@ export 'widgets/glance_word.dart';
 export 'widgets/meal_card.dart';
 export 'widgets/meal_row.dart';
 export 'widgets/photo_placeholder.dart';
+export 'widgets/skeleton.dart';
 export 'widgets/spoken_banner.dart';
 export 'widgets/talk_button.dart';
 export 'widgets/text_field.dart';

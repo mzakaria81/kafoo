@@ -122,7 +122,7 @@ class MyMealsFailed extends ConsumerWidget {
       failure: true,
       title: l10n.glanceOffline,
       body: myMealsErrorMessage(l10n, form, error),
-      reassurance: l10n.myMealsOfflineReassurance(form),
+      reassurance: l10n.myMealsOfflineReassurance,
       cachedLabel: cachedAt == null ? null : l10n.myMealsCachedAt(cachedAt!),
       cachedContent: cached,
       primaryAction: KafooButton(

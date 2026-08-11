@@ -792,6 +792,25 @@ run "android release build sanity" bash -c '
     echo "   renders them out of a CJK fallback. Every icon becomes a Chinese character."
     status=1
   fi
+
+  # The same class of bug as the icon font, one layer up: the text face. Every weight the
+  # pubspec declares must exist on disk, and the Dart constant must carry the package prefix.
+  # Get either wrong and Flutter falls back to the platform font in silence — the app looks
+  # fine in a screenshot and is not the design.
+  while read -r asset; do
+    [ -f "packages/ui/$asset" ] || {
+      echo "   FAIL: packages/ui/pubspec.yaml declares $asset and the file is not there."
+      echo "   The screen silently renders in the handset default instead."
+      status=1
+    }
+  done < <(grep -oE "fonts/IBMPlexSansArabic-[A-Za-z]+\.ttf" packages/ui/pubspec.yaml | sort -u)
+
+  if ! grep -q "packages/kafoo_ui/IBMPlexSansArabic" packages/ui/lib/theme/typography.dart; then
+    echo "   FAIL: KafooType.fontFamily has lost the packages/kafoo_ui/ prefix."
+    echo "   Flutter needs that spelling for a font a package owns. Without it the name"
+    echo "   resolves to nothing and every screen quietly uses the platform default."
+    status=1
+  fi
   exit $status'
 
 echo ""

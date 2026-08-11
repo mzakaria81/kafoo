@@ -116,15 +116,20 @@ same reason.
 ## What is not built yet
 
 The messaging surface (§10.12) — dictation, the verbatim send gate, and both
-sides of a Cook ↔ Customer thread. And no screen yet assembles the components
-above; the Cook's Meal List v2 is the canonical one to build from them.
+sides of a Cook ↔ Customer thread. Recognition on the Meal list: the assistant
+speaks there but does not listen there.
 
-`DESIGN.md`'s own "Known gaps" list — loading/skeleton, status badge versus
-glance word, the app bar, the warning colour, assistant voice casting, how a
-Cook hears a bad Review, and toast/tab bar/pickers/rating input/dark mode — are
-**stop-and-ask items, not gaps to improvise around.**
+`DESIGN.md`'s own "Known gaps" list — status badge versus glance word, the app
+bar, the warning colour, assistant voice casting, how a Cook hears a bad Review,
+and toast/tab bar/pickers/rating input/dark mode — are **stop-and-ask items, not
+gaps to improvise around.** The loading/skeleton state has since been asked and
+answered: `KafooSkeletonList`, built 2026-08-11.
 
-The font is also missing: IBM Plex Sans Arabic is named in the theme but is not
-self-hosted in this repository, so the platform default renders instead. It
-needs a woff2/ttf subset (Arabic + Latin, weights 400/500/600/700) declared
-under `flutter: fonts:` and preloaded on the web surface.
+**The font is bundled on mobile and still missing on web.**
+`packages/ui/fonts/` carries IBM Plex Sans Arabic in the three weights the type
+scale uses, under the SIL Open Font License, and `KafooType.fontFamily` names it
+with the `packages/kafoo_ui/` prefix Flutter requires. `apps/web/` still falls
+back to the system stack: self-hosting there means adding a `public/` directory
+and an asset route to the Cloudflare Workers build, which is a change worth
+verifying against a real deploy rather than guessing at. Until then the two
+surfaces do not render in the same face.

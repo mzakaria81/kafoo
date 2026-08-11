@@ -121,7 +121,7 @@ void main() {
       final speech = DeviceSpeechOutput(tts: tts);
       await speech.initialize();
 
-      await speech.speak('محشي، منشورة، ١٢٠ جنيه', quiet: true);
+      await speech.speak('محشي، على المنيو، ١٢٠ جنيه', quiet: true);
       expect(tts.volumes.last, lessThan(1));
 
       await speech.speak('عايزة تعملي إيه؟');
@@ -217,12 +217,12 @@ void main() {
     test('records the line and whether it was quiet', () async {
       final speech = FakeSpeechOutput();
       await speech.initialize();
-      await speech.speak('تمام، الأكلة منشورة');
+      await speech.speak('تمام، الأكلة على المنيو');
       await speech.speak('١٢٠ جنيه', quiet: true);
 
       expect(
         speech.spoken.map((s) => s.line),
-        ['تمام، الأكلة منشورة', '١٢٠ جنيه'],
+        ['تمام، الأكلة على المنيو', '١٢٠ جنيه'],
       );
       expect(speech.spoken.last.quiet, isTrue);
     });
