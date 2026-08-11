@@ -623,9 +623,42 @@ void main() {
         find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')),
         findsWidgets,
       );
-      // And not the masculine of any of them, on the same screen.
+      // And not the masculine of any of them, on the same screen. Presence
+      // alone would pass on a label that had quietly gone back to one
+      // hardcoded string.
       expect(find.byTooltip(l10n.myMealsHearAgain('other')), findsNothing);
       expect(find.byTooltip(l10n.myMealsHearRow('other')), findsNothing);
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('other')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('including the label the mute button swaps to', (tester) async {
+      // The restore label only exists once the assistant is silenced, so no
+      // test had ever rendered it in either gender.
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(
+          FakeMealRepository(meals: [_published]),
+          speech: speech,
+          form: 'feminine',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('feminine')),
+        findsWidgets,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('other')),
+        findsNothing,
+      );
     });
 
     testWidgets('and a man hears every one conjugated for him', (tester) async {
@@ -638,6 +671,14 @@ void main() {
       expect(find.byTooltip(l10n.myMealsHearRow('other')), findsOneWidget);
       expect(find.byTooltip(l10n.myMealsHearAgain('feminine')), findsNothing);
       expect(find.byTooltip(l10n.myMealsHearRow('feminine')), findsNothing);
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('other')),
+        findsWidgets,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')),
+        findsNothing,
+      );
     });
   });
 
