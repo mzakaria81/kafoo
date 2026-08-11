@@ -1700,5 +1700,32 @@
         "type": "String"
       }
     }
+  },
+  "mealRetireQuestion": "{addressForm, select, feminine{تشيليها خالص؟} other{تشيلها خالص؟}}",
+  "@mealRetireQuestion": {
+    "description": "The verdict question at the read-back gate for retiring a Meal. A verdict, not a sentence: it is the largest word on the gate and is read at a glance.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "mealDeleteDraftQuestion": "{addressForm, select, feminine{تمسحي المسودة؟} other{تمسح المسودة؟}}",
+  "@mealDeleteDraftQuestion": {
+    "description": "The verdict question at the read-back gate for deleting a draft.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "mealLastOnOfferQuestion": "{addressForm, select, feminine{تقفلي المطبخ؟} other{تقفل المطبخ؟}}",
+  "@mealLastOnOfferQuestion": {
+    "description": "The verdict question when the Meal coming off the menu is the Cook's last one on offer. It names the real consequence — nobody can find her kitchen — rather than the mechanical one.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   }
 }

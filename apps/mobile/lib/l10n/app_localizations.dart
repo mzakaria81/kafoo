@@ -1694,6 +1694,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{name}، {status}، {price}'**
   String mealRowSemanticLabel(String name, String status, String price);
+
+  /// The verdict question at the read-back gate for retiring a Meal. A verdict, not a sentence: it is the largest word on the gate and is read at a glance.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{تشيليها خالص؟} other{تشيلها خالص؟}}'**
+  String mealRetireQuestion(String addressForm);
+
+  /// The verdict question at the read-back gate for deleting a draft.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{تمسحي المسودة؟} other{تمسح المسودة؟}}'**
+  String mealDeleteDraftQuestion(String addressForm);
+
+  /// The verdict question when the Meal coming off the menu is the Cook's last one on offer. It names the real consequence — nobody can find her kitchen — rather than the mechanical one.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{تقفلي المطبخ؟} other{تقفل المطبخ؟}}'**
+  String mealLastOnOfferQuestion(String addressForm);
 }
 
 class _AppLocalizationsDelegate

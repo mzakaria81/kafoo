@@ -235,6 +235,74 @@ void main() {
     });
   });
 
+  group('an irreversible action is read back aloud', () {
+    // `.claude/rules/business-rules.md`: an irreversible action is read back in
+    // full and waits for «أيوة»; voice and tap both answer. These three were
+    // silent pop-up dialogs until 2026-08-11 — on a screen that greets a Cook
+    // out loud and reads her Meals to her, which made the silence at the one
+    // moment worth speaking louder rather than quieter.
+    testWidgets('retiring a Meal says the warning out loud', (tester) async {
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_published]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealRetire('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        contains(l10n.mealRetireWarning),
+      );
+      // Full volume, not the quiet used for money: this is the sentence she is
+      // being asked to agree to.
+      expect(
+        speech.spoken.firstWhere((s) => s.line == l10n.mealRetireWarning).quiet,
+        isFalse,
+      );
+    });
+
+    testWidgets('answering stops it mid-sentence', (tester) async {
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_published]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealRetire('other')));
+      await tester.pumpAndSettle();
+      expect(speech.stopped, isFalse);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(KafooConfirmationGate),
+          matching: find.text(l10n.mealRetireCancel('other')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(speech.stopped, isTrue);
+    });
+
+    testWidgets('a reversible change is not gated at all', (tester) async {
+      // Off the menu and back on is ordinary. A Cook trained to dismiss a gate
+      // will dismiss the one that mattered.
+      final repo = FakeMealRepository(meals: [_published, _publishedSecond]);
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(KafooConfirmationGate), findsNothing);
+      expect(repo.setStatusArgs, hasLength(1));
+    });
+  });
+
   testWidgets('shows every status, including drafts', (tester) async {
     final repo = FakeMealRepository(
       meals: [_draft, _published, _unavailable, _archived],
@@ -336,7 +404,7 @@ void main() {
 
     await tester.tap(
       find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(KafooConfirmationGate),
         matching: find.text(l10n.mealLastOnOfferCancel('other')),
       ),
     );
@@ -411,7 +479,7 @@ void main() {
     // The dialog's cancel, not the sheet's — both carry the same word.
     await tester.tap(
       find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(KafooConfirmationGate),
         matching: find.text(l10n.mealRetireCancel('other')),
       ),
     );
@@ -422,7 +490,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(KafooConfirmationGate),
         matching: find.text(l10n.mealRetireConfirm('other')),
       ),
     );
@@ -451,7 +519,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(KafooConfirmationGate),
         matching: find.text(l10n.mealRetireConfirm('other')),
       ),
     );

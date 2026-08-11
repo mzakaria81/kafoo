@@ -1856,4 +1856,40 @@ class AppLocalizationsAr extends AppLocalizations {
   String mealRowSemanticLabel(String name, String status, String price) {
     return '$name، $status، $price';
   }
+
+  @override
+  String mealRetireQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تشيليها خالص؟',
+        'other': 'تشيلها خالص؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealDeleteDraftQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تمسحي المسودة؟',
+        'other': 'تمسح المسودة؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealLastOnOfferQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تقفلي المطبخ؟',
+        'other': 'تقفل المطبخ؟',
+      },
+    );
+    return '$_temp0';
+  }
 }

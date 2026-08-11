@@ -1913,4 +1913,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String mealRowSemanticLabel(String name, String status, String price) {
     return '$name, $status, $price';
   }
+
+  @override
+  String mealRetireQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Retire it for good?',
+        'other': 'Retire it for good?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealDeleteDraftQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Delete the draft?',
+        'other': 'Delete the draft?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealLastOnOfferQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Close the kitchen?',
+        'other': 'Close the kitchen?',
+      },
+    );
+    return '$_temp0';
+  }
 }
