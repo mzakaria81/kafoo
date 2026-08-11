@@ -677,7 +677,7 @@ abstract class AppLocalizations {
   /// Shown when the price the Cook typed is not a price the database can hold — words, zero, or more precision than numeric(10,2). Arabic-Indic digits are NOT this case: parseMealPrice accepts them, which is the whole point of it existing.
   ///
   /// In ar, this message translates to:
-  /// **'مش فاهمين السعر. {addressForm, select, feminine{اكتبيه} other{اكتبه}} أرقام بس، أكبر من صفر.'**
+  /// **'مش فاهمين السعر. {addressForm, select, feminine{اكتبيه} other{اكتبه}} بالأرقام بس، أكبر من صفر.'**
   String mealPriceInvalid(String addressForm);
 
   /// Shown when uploading a Meal photo fails. The Cook can proceed without a photo.
@@ -817,6 +817,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'من غير صورة'**
   String get mealSummaryNoPhoto;
+
+  /// Spoken when the summary's photo row is reached. It CONFIRMS the photograph is attached rather than naming the image, because that is the question the Cook is on this screen to answer. Before 2026-08-11 the row rendered the storage path as text, so a screen reader at least said something; the image that replaced it announced nothing at all.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللي {addressForm, select, feminine{اخترتيها} other{اخترتها}}، موجودة'**
+  String mealSummaryPhotoAttached(String addressForm);
+
+  /// Spoken for the Meal photograph on the Customer's public view. Names the image, because a Customer is looking at food rather than checking their own upload.
+  ///
+  /// In ar, this message translates to:
+  /// **'صورة الأكلة'**
+  String get publicMealPhotoLabel;
+
+  /// Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen.
+  ///
+  /// In ar, this message translates to:
+  /// **'بنجيب الأكلة اللي بدأتها...'**
+  String get mealConvResuming;
 
   /// Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.
   ///

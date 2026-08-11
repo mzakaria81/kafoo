@@ -236,8 +236,15 @@ class _MealConversationScreenState
     final l10n = AppLocalizations.of(context);
 
     if (_seeding) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Center(
+          // Announced, though it lasts one microtask. A state only the screen
+          // reports is invisible to the person this product exists for, and
+          // «كمّل الأكلة دي» is the path a returning Cook takes.
+          child: CircularProgressIndicator(
+            semanticsLabel: l10n.mealConvResuming,
+          ),
+        ),
       );
     }
 

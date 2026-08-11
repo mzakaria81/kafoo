@@ -210,6 +210,8 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
               label: l10n.mealSummaryLabelPhoto,
               photoUrl: photoUrl,
               noPhotoLabel: l10n.mealSummaryNoPhoto,
+              photoSemanticsLabel:
+                  l10n.mealSummaryPhotoAttached(context.addressForm),
             ),
             SummaryRow(
               label: l10n.mealSummaryLabelPrice,

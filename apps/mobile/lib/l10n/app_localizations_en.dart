@@ -960,6 +960,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mealSummaryNoPhoto => 'No photo';
 
   @override
+  String mealSummaryPhotoAttached(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'The one you chose is attached',
+        'other': 'The one you chose is attached',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publicMealPhotoLabel => 'Photo of the dish';
+
+  @override
+  String get mealConvResuming => 'Loading the Meal you started...';
+
+  @override
   String mealSummaryConfirm(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

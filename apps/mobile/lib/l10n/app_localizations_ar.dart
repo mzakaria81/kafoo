@@ -770,7 +770,7 @@ class AppLocalizationsAr extends AppLocalizations {
         'other': 'اكتبه',
       },
     );
-    return 'مش فاهمين السعر. $_temp0 أرقام بس، أكبر من صفر.';
+    return 'مش فاهمين السعر. $_temp0 بالأرقام بس، أكبر من صفر.';
   }
 
   @override
@@ -916,6 +916,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealSummaryNoPhoto => 'من غير صورة';
+
+  @override
+  String mealSummaryPhotoAttached(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اخترتيها',
+        'other': 'اخترتها',
+      },
+    );
+    return 'اللي $_temp0، موجودة';
+  }
+
+  @override
+  String get publicMealPhotoLabel => 'صورة الأكلة';
+
+  @override
+  String get mealConvResuming => 'بنجيب الأكلة اللي بدأتها...';
 
   @override
   String mealSummaryConfirm(String addressForm) {

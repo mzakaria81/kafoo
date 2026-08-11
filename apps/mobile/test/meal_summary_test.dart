@@ -284,6 +284,53 @@ void main() {
     expect(find.text(l10n.mealSummaryNoPhoto), findsNothing);
   });
 
+  testWidgets('the photo says out loud that it is attached', (tester) async {
+    // Raised by accessibility-reviewer on PR #455, and it is a regression THIS
+    // change introduced. The row it replaced rendered the storage path as text —
+    // useless to read but audible. An unlabelled image announces nothing, so a
+    // Cook using a screen reader came out of the fix with strictly less than she
+    // had: no way to confirm her photograph was attached, on the screen whose
+    // whole purpose is checking the Meal before offering it.
+    //
+    // Asserts the ANNOUNCED STRING, not the presence of a Semantics widget. A
+    // test for the widget type passes on an empty label.
+    // Disposed at the end of the body rather than in a tearDown: Flutter checks
+    // for leaked semantics handles before tearDowns run.
+    final handle = tester.ensureSemantics();
+
+    await _tallSurface(tester);
+    const draft = CookMeal(
+      id: 'draft-photo-a11y',
+      cookId: 'c1',
+      title: _dish,
+      description: _description,
+      price: _price,
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      photoPath: 'c1/draft-photo-a11y.jpg',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    final repo = FakeMealRepository(meals: const [draft]);
+
+    await tester.pumpWidget(_app(repo, resumeFrom: draft));
+    await tester.pumpAndSettle();
+
+    // The row's own «الصورة» and the confirmation merge into one node, which is
+    // what a screen reader reads out: "الصورة، اللي اخترتها، موجودة". Asserted as
+    // the merged string on purpose — the isolated label is not what she hears,
+    // and the first version of this test found the two repeating the word صورة.
+    expect(
+      tester.getSemantics(find.byType(MealPhoto)),
+      matchesSemantics(
+        label: '${l10n.mealSummaryLabelPhoto}\n'
+            '${l10n.mealSummaryPhotoAttached('other')}',
+        isImage: true,
+      ),
+    );
+    handle.dispose();
+  });
+
   testWidgets('a declined photo reads as a choice, not an empty row',
       (tester) async {
     final repo = FakeMealRepository();

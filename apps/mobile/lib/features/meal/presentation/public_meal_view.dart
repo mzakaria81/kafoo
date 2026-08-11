@@ -89,7 +89,11 @@ class PublicMealView extends StatelessWidget {
               ],
 
               // 1. Photo.
-              if (photoUrl != null) MealPhoto(url: photoUrl!),
+              if (photoUrl != null)
+                MealPhoto(
+                  url: photoUrl!,
+                  semanticsLabel: l10n.publicMealPhotoLabel,
+                ),
               const SizedBox(height: KafooSpacing.lg),
 
               // 2. Title.

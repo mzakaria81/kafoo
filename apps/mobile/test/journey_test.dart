@@ -532,4 +532,53 @@ void main() {
     expect(leave, findsOneWidget);
     await tester.ensureVisible(leave);
   });
+
+  testWidgets('the Meal conversation survives 200% text on a small phone',
+      (tester) async {
+    // THE 200% JOURNEY STOPPED AT THE HOME SCREEN, which is the screen with the
+    // most headroom. The Meal conversation is the one with a RECORDED history of
+    // clipping: at 360x640 with text at 200% its Column overflowed by 182 logical
+    // pixels, and an overflowing Column resolves it by clipping its LAST child —
+    // «كمّل», the button that submits the answer. A Cook using large text on a
+    // cheap Android handset had no reachable control at all.
+    //
+    // A `SingleChildScrollView` fixed it and nothing walked into the screen to
+    // prove it, so the fix was correct by inspection only. Raised by
+    // accessibility-reviewer on PR #455.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(MediaQuery(
+      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+      child: _app(
+        auth: auth.stream,
+        account: FakeAccountRepository(),
+        kitchen: FakeKitchenProfileRepository(existing: _profile),
+        meals: FakeMealRepository(),
+      ),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    final newMeal = find.text(l10n.newMealEntry);
+    await tester.ensureVisible(newMeal);
+    await tester.tap(newMeal);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(l10n.mealConvPromptDish), findsOneWidget);
+
+    // The control that submits her answer. `ensureVisible` is the assertion: it
+    // throws when the widget cannot be brought on screen, which is exactly what
+    // a clipped last child does.
+    final submit =
+        _buttonOn(MealConversationScreen, l10n.convContinue('other'));
+    expect(submit, findsOneWidget);
+    await tester.ensureVisible(submit);
+    expect(tester.takeException(), isNull);
+  });
 }

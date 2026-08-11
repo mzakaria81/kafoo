@@ -110,6 +110,7 @@ class PhotoRow extends StatelessWidget {
     required this.label,
     required this.photoUrl,
     required this.noPhotoLabel,
+    required this.photoSemanticsLabel,
     super.key,
   });
 
@@ -125,6 +126,10 @@ class PhotoRow extends StatelessWidget {
   final String? photoUrl;
 
   final String noPhotoLabel;
+
+  /// Spoken in place of the photograph. Confirms it is attached, which is the
+  /// question the Cook is on this screen to answer.
+  final String photoSemanticsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +147,7 @@ class PhotoRow extends StatelessWidget {
           ),
           const SizedBox(height: KafooSpacing.xs),
           if (photoUrl case final url?)
-            MealPhoto(url: url)
+            MealPhoto(url: url, semanticsLabel: photoSemanticsLabel)
           else
             Text(
               noPhotoLabel,
