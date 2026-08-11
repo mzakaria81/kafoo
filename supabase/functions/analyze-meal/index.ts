@@ -438,6 +438,42 @@ export async function handleAnalyzeMeal(
     used_photo: usedPhoto,
   };
 
+  // WHICH FIELDS THE MODEL FILLED, AND WHICH IT EXPLAINED. NAMES ONLY.
+  //
+  // On 2026-08-11 this function answered a Cook in 2.5 seconds with a 785-byte
+  // analysis and her screen said the assistant could not estimate anything. The
+  // app drops any field with no `basis` sentence — correctly, since an
+  // unexplained calorie count is one a Cook has no grounds to believe — and
+  // dropped every one of them. Nothing anywhere recorded that, so a working call
+  // and a useless one were indistinguishable in the logs, and the cause had to
+  // be reasoned about instead of read.
+  //
+  // FIELD NAMES AND COUNTS, NEVER CONTENT. The Cook's words, the model's
+  // sentences and the photograph stay out of the log: this is a demo database
+  // real people sign into, `docs/ops/demo-environment.md` says who can read it,
+  // and a diagnostic is not a reason to start storing what somebody cooks. The
+  // names alone answer the only question that was hard — did the model fill
+  // fields without explaining them.
+  const filled = (['ingredients', 'calories', 'allergens', 'cuisine', 'category'] as const)
+    .filter((field) => {
+      const value = payload[field];
+      if (value === null || value === undefined) return false;
+      return Array.isArray(value) ? value.length > 0 : true;
+    });
+  const explained = Object.entries(analysis.basis ?? {})
+    .filter(([, sentence]) => typeof sentence === 'string' && sentence.trim().length > 0)
+    .map(([field]) => field);
+  console.log(
+    JSON.stringify({
+      event: 'analyze_meal_shape',
+      filled,
+      explained,
+      // The case the app reads as "the assistant said nothing usable".
+      unexplained: filled.filter((field) => !explained.includes(field)),
+      used_photo: usedPhoto,
+    }),
+  );
+
   return sseResponse(payload);
 }
 
