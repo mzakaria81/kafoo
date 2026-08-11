@@ -444,6 +444,69 @@ void main() {
     expect(find.text(l10n.mealConvPromptPrice('other')), findsNothing);
   });
 
+  testWidgets('a Cook comes back to a half-finished Meal and carries on',
+      (tester) async {
+    // 2026-08-11: he saved a Meal half-answered, came back, tapped «كمّل الأكلة
+    // دي» and was asked the FIRST question again. Every answer he had given was
+    // still in the database and none of it was on screen.
+    //
+    // `my_meals_screen.dart` seeded the conversation controller and then pushed
+    // the conversation route. The controller is autoDispose, so a `ref.read`
+    // with nothing watching it created the provider, took the seeding, and threw
+    // it away before the route existed — the pushed screen then WATCHED the
+    // provider and got a brand new empty one.
+    //
+    // NOTHING WAS WRONG INSIDE EITHER SCREEN. Both had passing widget tests. The
+    // defect lived entirely in the handover, which is why it needed this file.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final meals = FakeMealRepository(
+      meals: const [
+        CookMeal(
+          id: 'draft-1',
+          cookId: 'c1',
+          title: 'كشري',
+          description: 'عدس ورز ومكرونة',
+          photoPath: 'c1/draft-1.jpg',
+          status: MealStatus.draft,
+          nutritionSource: NutritionSource.ai,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.mealResumeDraft('other')));
+    await tester.pumpAndSettle();
+
+    // Dish, description and photo were answered. Price was not.
+    expect(
+      find.text(l10n.mealConvPromptPrice('other')),
+      findsOneWidget,
+      reason: 'THE BUG. She was asked the dish question again, and retyping an '
+          'answer the app already has is how a Cook concludes it lost her work.',
+    );
+    expect(
+      find.text(l10n.mealConvPromptDish),
+      findsNothing,
+      reason: 'the question she already answered must not come back',
+    );
+    expect(
+      find.text(l10n.mealConvPromptDescription('other')),
+      findsNothing,
+    );
+  });
+
   testWidgets('the signed-in journey survives 200% text on a small phone',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);

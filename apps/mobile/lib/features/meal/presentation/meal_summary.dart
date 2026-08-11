@@ -11,6 +11,7 @@ import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/meal_estimate_fields.dart';
+import '../data/meal_repository.dart';
 import 'meal_enum_labels.dart';
 import 'meal_error_text.dart';
 import 'meal_estimate_display.dart';
@@ -170,6 +171,12 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
     final needsApproval =
         !notifier.allEstimatesApproved && estimateFields.isNotEmpty;
     final theme = Theme.of(context);
+    // The bucket is public, so this is string construction rather than a
+    // request — safe to derive in build().
+    final storedPhoto = draft.photoPath;
+    final photoUrl = storedPhoto == null
+        ? null
+        : ref.read(mealRepositoryProvider).photoUrl(storedPhoto);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.mealSummaryTitle)),
@@ -201,7 +208,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
             ),
             PhotoRow(
               label: l10n.mealSummaryLabelPhoto,
-              photoPath: draft.photoPath,
+              photoUrl: photoUrl,
               noPhotoLabel: l10n.mealSummaryNoPhoto,
             ),
             SummaryRow(

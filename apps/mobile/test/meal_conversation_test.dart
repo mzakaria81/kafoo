@@ -79,6 +79,26 @@ class _DeferredAiProvider implements AiProvider {
   }
 }
 
+/// Throws instead of returning a [Failure], which is what the real transport
+/// does and what no other double here models.
+///
+/// `client.functions.invoke` throws a `FunctionException` on every non-2xx
+/// reply, so `analyze-meal` answering 500 — an unset provider key, a function
+/// not deployed — arrives as an exception rather than the `Result` the interface
+/// promises. Every double in this file returned a well-behaved `Failure`, so the
+/// suite proved the controller handles failures it is TOLD about and nothing
+/// about the failure it actually meets.
+class _ThrowingAiProvider implements AiProvider {
+  int calls = 0;
+
+  @override
+  Future<Result<AiResponse, AppError>> complete(AiRequest request) async {
+    calls++;
+    throw StateError(
+        'the transport threw, as Supabase functions do on non-2xx');
+  }
+}
+
 /// Minimal valid analysis JSON the parser accepts as non-empty.
 const _analysisReply =
     '{"ingredients":["عدس","رز"],"calories":850,"allergens":["جلوتين"],'
@@ -615,6 +635,58 @@ void main() {
     expect(
       repo.updateDraftArgs.every((c) => c.category == null),
       isTrue,
+    );
+  });
+
+  test('a provider that THROWS does not leave the estimates spinning',
+      () async {
+    // THE DEAD END THE FOUNDER HIT ON 2026-08-11. «تقديرات المساعد» spun forever
+    // and the conversation could not be finished at all.
+    //
+    // `AiProvider.complete` is declared to return a `Result`, so every test
+    // above hands back a `Failure` when it wants to model a failure. The
+    // TRANSPORT does not honour that declaration: `functions.invoke` throws on
+    // any non-2xx reply, and `_startAnalysis` calls the completion inside
+    // `unawaited(...)`, so the throw went nowhere at all.
+    //
+    // The consequence is worse than a spinner. `currentFallbackStep` returns
+    // null while `analysisInFlight` is set, so the questions that ASK for
+    // cuisine and category never appear — and those are the two answers the
+    // database requires before a Meal can leave draft. A stuck flag is a Cook
+    // locked out of publishing.
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo, ai: _ThrowingAiProvider());
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+    await pumpEventQueue();
+
+    final state = container.read(mealConversationControllerProvider);
+    expect(
+      state.analysisInFlight,
+      isFalse,
+      reason: 'THE BUG. A flag left up by a swallowed throw is a spinner with '
+          'no end and no explanation.',
+    );
+    expect(state.analysisError, isNotNull, reason: 'and it must SAY something');
+    expect(
+      state.error,
+      isNull,
+      reason: 'a model failure is not a save failure — her answers are saved',
+    );
+
+    // And the way out is open: the fallback questions are offered, so cuisine
+    // and category can still be answered and the Meal can still be published.
+    controller.declinePhoto();
+    await controller.answer(MealStepId.price, '60');
+    expect(controller.currentStep, isNull);
+    expect(
+      controller.currentFallbackStep,
+      MealFallbackStepId.cuisine,
+      reason: 'the question that unblocks publishing, which a stuck flag hid',
     );
   });
 

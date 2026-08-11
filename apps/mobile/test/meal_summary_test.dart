@@ -18,6 +18,7 @@ import 'package:kafoo_mobile/features/meal/presentation/meal_estimate_rows.dart'
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary_rows.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_meal_repository.dart';
 
@@ -60,7 +61,12 @@ AiProvider _stubAi([String? reply]) => StubAiProvider({
       if (reply != null) 'meal-analysis': reply,
     });
 
-Widget _app(FakeMealRepository repo, {AiProvider? ai}) => ProviderScope(
+Widget _app(
+  FakeMealRepository repo, {
+  AiProvider? ai,
+  CookMeal? resumeFrom,
+}) =>
+    ProviderScope(
       overrides: [
         mealRepositoryProvider.overrideWithValue(repo),
         aiProviderProvider.overrideWithValue(ai ?? _stubAi()),
@@ -74,7 +80,10 @@ Widget _app(FakeMealRepository repo, {AiProvider? ai}) => ProviderScope(
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        home: MealConversationScreen(
+          voiceInput: _UnavailableVoiceInput(),
+          resumeFrom: resumeFrom,
+        ),
       ),
     );
 
@@ -229,6 +238,50 @@ void main() {
     expect(find.text(_dish), findsOneWidget);
     expect(find.text(_description), findsOneWidget);
     expect(find.text(_price), findsOneWidget);
+  });
+
+  testWidgets('a photo is rendered, not printed as a storage path',
+      (tester) async {
+    // 2026-08-11: the founder photographed his food and the summary showed him
+    // `c1/draft-photo.jpg` under the word «الصورة». The row took the storage
+    // path and rendered it as text — and nothing anywhere in the app resolved a
+    // path into a URL, so there was nothing else it could have drawn.
+    //
+    // The bucket is public (`create_meals.sql`), so this is string construction
+    // rather than a request. `MealPhoto` already existed, inside a
+    // Customer-facing screen, one import away from the Cook screen that needed
+    // it.
+    await _tallSurface(tester);
+    const draft = CookMeal(
+      id: 'draft-photo',
+      cookId: 'c1',
+      title: _dish,
+      description: _description,
+      price: _price,
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      photoPath: 'c1/draft-photo.jpg',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    final repo = FakeMealRepository(meals: const [draft]);
+
+    await tester.pumpWidget(_app(repo, resumeFrom: draft));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MealSummaryScreen), findsOneWidget);
+    expect(
+      find.byType(MealPhoto),
+      findsOneWidget,
+      reason: 'THE BUG. She checks the Meal here before offering it, and the '
+          'photograph is the part she is checking.',
+    );
+    expect(
+      find.text('c1/draft-photo.jpg'),
+      findsNothing,
+      reason: 'a path inside a bucket was never something to show a person',
+    );
+    expect(find.text(l10n.mealSummaryNoPhoto), findsNothing);
   });
 
   testWidgets('a declined photo reads as a choice, not an empty row',

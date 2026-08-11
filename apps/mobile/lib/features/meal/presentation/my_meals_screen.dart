@@ -253,12 +253,17 @@ class MyMealRow extends ConsumerWidget {
             warning: null,
             confirmLabel: l10n.mealRetireConfirm(context.addressForm),
             cancelLabel: l10n.mealRetireCancel(context.addressForm),
-            onConfirmed: () async {
-              ref
-                  .read(mealConversationControllerProvider.notifier)
-                  .resume(meal);
-              onResumeDraft?.call(meal);
-            },
+            // NO `resume()` CALL HERE, DELIBERATELY. It used to seed the
+            // conversation controller through `ref.read` before handing over —
+            // and the controller is autoDispose, so with nothing on this screen
+            // watching it, the seeded state was disposed before the next route
+            // existed. The Cook was asked the dish question again with every
+            // answer she had given still in the database.
+            //
+            // The draft travels as an argument now. `MealConversationScreen`
+            // seeds from it in `initState`, inside the route that watches the
+            // provider, which is the only place the seeding survives.
+            onConfirmed: () async => onResumeDraft?.call(meal),
           ),
           _MealAction(
             label: l10n.mealDeleteDraft(context.addressForm),

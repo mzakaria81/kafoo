@@ -147,3 +147,35 @@ class MealCardPhoto extends StatelessWidget {
         ),
       );
 }
+
+/// A Meal's photograph, full width.
+///
+/// Named as its own widget so the "has a photo" branch can be asserted in a
+/// test. [Image.network] cannot resolve under the test binding, so a test that
+/// looked for the decoded image would be testing the network rather than the
+/// layout.
+///
+/// **IN THE DESIGN SYSTEM BECAUSE TWO SCREENS SHOW A MEAL'S PHOTOGRAPH.** It
+/// lived inside `public_meal_view.dart` — a Customer-facing screen — while the
+/// Cook's own summary rendered the storage path as text beside the word
+/// «الصورة». The widget that draws a photograph was one import away from the
+/// screen that needed it and behind a screen nobody would think to import.
+class MealPhoto extends StatelessWidget {
+  const MealPhoto({required this.url, super.key});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(KafooSpacing.sm),
+      child: Image.network(
+        url,
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
