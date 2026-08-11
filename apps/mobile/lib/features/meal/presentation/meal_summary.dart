@@ -11,7 +11,9 @@ import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/meal_estimate_fields.dart';
+import '../data/meal_repository.dart';
 import 'meal_enum_labels.dart';
+import 'meal_error_text.dart';
 import 'meal_estimate_display.dart';
 import 'meal_estimate_rows.dart';
 import 'meal_summary_rows.dart';
@@ -86,10 +88,14 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
 
   Future<void> _commitEstimateEdit(String field) async {
     final controller = ref.read(mealConversationControllerProvider.notifier);
+    final raw = _editController.text.trim();
     final Object? value = switch (field) {
       MealEstimateFields.cuisine => _editCuisine,
       MealEstimateFields.category => _editCategory,
-      MealEstimateFields.calories => int.tryParse(_editController.text.trim()),
+      // `int.tryParse('٣٥٠')` is null. An Arabic keyboard produces those digits,
+      // so a Cook correcting the calorie estimate the way she types numbers had
+      // her correction thrown away — see `normalizeArabicDigits`.
+      MealEstimateFields.calories => int.tryParse(normalizeArabicDigits(raw)),
       MealEstimateFields.ingredients => _parseList(_editController.text),
       MealEstimateFields.allergens => _parseList(_editController.text),
       _ => null,
@@ -165,6 +171,12 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
     final needsApproval =
         !notifier.allEstimatesApproved && estimateFields.isNotEmpty;
     final theme = Theme.of(context);
+    // The bucket is public, so this is string construction rather than a
+    // request — safe to derive in build().
+    final storedPhoto = draft.photoPath;
+    final photoUrl = storedPhoto == null
+        ? null
+        : ref.read(mealRepositoryProvider).photoUrl(storedPhoto);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.mealSummaryTitle)),
@@ -196,8 +208,10 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
             ),
             PhotoRow(
               label: l10n.mealSummaryLabelPhoto,
-              photoPath: draft.photoPath,
+              photoUrl: photoUrl,
               noPhotoLabel: l10n.mealSummaryNoPhoto,
+              photoSemanticsLabel:
+                  l10n.mealSummaryPhotoAttached(context.addressForm),
             ),
             SummaryRow(
               label: l10n.mealSummaryLabelPrice,
@@ -275,10 +289,22 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                   onCategoryChanged: (value) =>
                       setState(() => _editCategory = value),
                 ),
+            // The AI Assistant's own failure, kept separate from a save failure
+            // above it: one means her answers did not reach the database, the
+            // other means the estimates did not arrive. Reading them as the same
+            // sentence would send her looking for the wrong problem.
+            if (state.analysisError case final failure?) ...[
+              const SizedBox(height: KafooSpacing.md),
+              Text(
+                mealErrorText(context, failure, fromAnalysis: true),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.error),
+              ),
+            ],
             if (state.error != null && !_publishFailed) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealSaveError(context.addressForm),
+                mealErrorText(context, state.error!),
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.error),
               ),

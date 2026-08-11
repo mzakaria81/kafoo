@@ -80,6 +80,22 @@ abstract interface class MealRepository {
     required Uint8List bytes,
   });
 
+  /// A URL the app can render for a photo stored at [photoPath].
+  ///
+  /// **THE SUMMARY SHOWED THE PATH ITSELF UNTIL 2026-08-11.** A Cook who had
+  /// just taken a photograph of her food was shown the text
+  /// `7a38f558-…/69d0e03e-….jpg` where the photograph should have been, on the
+  /// screen where she checks the Meal before putting it on offer. Nothing
+  /// resolved a URL anywhere in the app, so there was nothing for the row to
+  /// render — `public_meal_view.dart` takes a `photoUrl` and no caller had ever
+  /// supplied one either.
+  ///
+  /// Synchronous and non-failing because `meal-photos` is a PUBLIC bucket
+  /// (`create_meals.sql`), so this is string construction rather than a request.
+  /// It stays on the repository regardless: this layer is the only one that may
+  /// know how Supabase addresses storage.
+  String photoUrl(String photoPath);
+
   /// Every Meal belonging to the signed-in Cook, at every status.
   ///
   /// Returns [CookMeal] rather than [Meal] because a draft may be half-answered
@@ -298,6 +314,10 @@ class SupabaseMealRepository implements MealRepository {
       return Failure(AppError(messageKey: 'mealPhotoError', cause: e));
     }
   }
+
+  @override
+  String photoUrl(String photoPath) =>
+      _client.storage.from(_bucket).getPublicUrl(photoPath);
 
   @override
   Future<Result<List<CookMeal>, AppError>> myMeals() async {

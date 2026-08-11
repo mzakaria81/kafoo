@@ -147,3 +147,60 @@ class MealCardPhoto extends StatelessWidget {
         ),
       );
 }
+
+/// A Meal's photograph, full width.
+///
+/// Named as its own widget so the "has a photo" branch can be asserted in a
+/// test. [Image.network] cannot resolve under the test binding, so a test that
+/// looked for the decoded image would be testing the network rather than the
+/// layout.
+///
+/// **IN THE DESIGN SYSTEM BECAUSE TWO SCREENS SHOW A MEAL'S PHOTOGRAPH.** It
+/// lived inside `public_meal_view.dart` — a Customer-facing screen — while the
+/// Cook's own summary rendered the storage path as text beside the word
+/// «الصورة». The widget that draws a photograph was one import away from the
+/// screen that needed it and behind a screen nobody would think to import.
+class MealPhoto extends StatelessWidget {
+  const MealPhoto({
+    required this.url,
+    required this.semanticsLabel,
+    super.key,
+  });
+
+  final String url;
+
+  /// What a Cook who cannot see the screen hears here.
+  ///
+  /// **Required, and it caught a regression on the day this widget moved.** The
+  /// summary row it replaced rendered the storage path as TEXT — useless to read
+  /// but at least audible. An unlabelled image announced nothing, so a Cook
+  /// using a screen reader came out of this change with strictly less than she
+  /// had: no way to confirm her photograph was attached, on the screen whose
+  /// whole purpose is checking the Meal before offering it.
+  ///
+  /// CLAUDE.md: a component is unfinished until its spoken line is written. An
+  /// optional label would have let the next caller ship the same gap.
+  final String semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticsLabel,
+      image: true,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(KafooSpacing.sm),
+        child: Image.network(
+          url,
+          // The label lives on the Semantics node above, which is the one place
+          // it can be composed by the caller. Announcing the image separately
+          // would read it twice.
+          excludeFromSemantics: true,
+          height: 200,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+}

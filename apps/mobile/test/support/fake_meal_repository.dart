@@ -196,6 +196,12 @@ class FakeMealRepository implements MealRepository {
     return Success('fake-cook/$mealId.jpg');
   }
 
+  /// The same shape the public bucket produces, so a test can assert the row
+  /// renders an image rather than a path without reaching a network.
+  @override
+  String photoUrl(String photoPath) =>
+      'https://fake.supabase.co/storage/v1/object/public/meal-photos/$photoPath';
+
   /// Meals returned by myMeals(). Set by tests; defaults to empty.
   List<CookMeal> meals = [];
 

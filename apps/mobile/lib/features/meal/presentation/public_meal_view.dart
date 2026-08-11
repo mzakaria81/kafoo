@@ -89,7 +89,11 @@ class PublicMealView extends StatelessWidget {
               ],
 
               // 1. Photo.
-              if (photoUrl != null) MealPhoto(url: photoUrl!),
+              if (photoUrl != null)
+                MealPhoto(
+                  url: photoUrl!,
+                  semanticsLabel: l10n.publicMealPhotoLabel,
+                ),
               const SizedBox(height: KafooSpacing.lg),
 
               // 2. Title.
@@ -155,30 +159,6 @@ class PublicMealView extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// The meal photo, named as its own widget so the "has a photo" branch can
-/// be asserted in a test. [Image.network] cannot resolve under the test
-/// binding, so a test that looked for the decoded image would be testing the
-/// network rather than the layout.
-class MealPhoto extends StatelessWidget {
-  const MealPhoto({required this.url, super.key});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(KafooSpacing.sm),
-      child: Image.network(
-        url,
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
   }

@@ -14,6 +14,7 @@ import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../../conversation/presentation/voice_button.dart';
 import '../application/meal_conversation_controller.dart';
+import 'meal_error_text.dart';
 import 'meal_fallback_question.dart';
 import 'meal_summary.dart';
 
@@ -29,11 +30,33 @@ class MealConversationScreen extends ConsumerStatefulWidget {
   const MealConversationScreen({
     this.voiceInput,
     this.pickPhoto = pickPhotoFromGallery,
+    this.resumeFrom,
     super.key,
   });
 
   final VoiceInput? voiceInput;
   final PickPhoto pickPhoto;
+
+  /// The stored draft to carry on from, or null to start a new Meal.
+  ///
+  /// **SEEDING HAPPENS HERE, AND MOVING IT HERE IS THE FIX FOR A DEFECT THE
+  /// FOUNDER HIT ON 2026-08-11.** He saved a half-finished Meal, came back, and
+  /// «كمّل» asked him the first question again — every answer he had given was
+  /// still in the database and none of it was on screen.
+  ///
+  /// `my_meals_screen.dart` called `resume()` through `ref.read` and then pushed
+  /// this route. The controller is `@riverpod` without `keepAlive`, so it is
+  /// autoDispose: a `read` with nothing watching creates the provider, takes the
+  /// mutation, and disposes it before the next frame. The push then built this
+  /// screen, which WATCHES the provider, so Riverpod constructed a fresh one —
+  /// `build()` returns an empty draft, and the conversation starts over.
+  ///
+  /// Nothing was broken inside either screen. The seeding happened in a route
+  /// that was not listening, which is the same shape as every other defect that
+  /// has reached his phone: correct parts, wrong seam. Seeding from `initState`
+  /// of the screen that watches the provider is what makes the two the same
+  /// instance.
+  final CookMeal? resumeFrom;
 
   @override
   ConsumerState<MealConversationScreen> createState() =>
@@ -52,9 +75,30 @@ class _MealConversationScreenState
   /// records how the answer arrived without recording what was said (FR-037).
   String _inputMode = 'typed';
 
+  /// True until the stored draft has been read into the controller.
+  ///
+  /// **A LOADING FRAME RATHER THAN THE WRONG QUESTION.** Riverpod forbids
+  /// modifying a provider during a widget life-cycle, so the seeding cannot
+  /// happen in `initState` itself — it is deferred by one microtask. Without
+  /// this flag the first frame would render `currentStep`, which for an unseeded
+  /// controller is the dish question: the exact thing the Cook complained about,
+  /// on screen for one frame instead of forever.
+  ///
+  /// A test using `pumpAndSettle` would never see that frame, which is why the
+  /// flag is here rather than a comment saying it does not matter.
+  late bool _seeding = widget.resumeFrom != null;
+
   @override
   void initState() {
     super.initState();
+    final draft = widget.resumeFrom;
+    if (draft != null) {
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(mealConversationControllerProvider.notifier).resume(draft);
+        setState(() => _seeding = false);
+      });
+    }
     unawaited(_initVoice());
   }
 
@@ -190,6 +234,20 @@ class _MealConversationScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(mealConversationControllerProvider);
     final l10n = AppLocalizations.of(context);
+
+    if (_seeding) {
+      return Scaffold(
+        body: Center(
+          // Announced, though it lasts one microtask. A state only the screen
+          // reports is invisible to the person this product exists for, and
+          // «كمّل الأكلة دي» is the path a returning Cook takes.
+          child: CircularProgressIndicator(
+            semanticsLabel: l10n.mealConvResuming(context.addressForm),
+          ),
+        ),
+      );
+    }
+
     final step = _currentStep;
 
     if (step == null) {
@@ -200,6 +258,7 @@ class _MealConversationScreenState
         return MealFallbackQuestion(
           step: fallback,
           error: state.error,
+          analysisError: state.analysisError,
         );
       }
       // Rendered in place rather than pushed as a route.
@@ -248,6 +307,14 @@ class _MealConversationScreenState
                 TextField(
                   controller: _answerController,
                   maxLines: step.id == MealStepId.description ? 4 : 1,
+                  // A number pad for the one question that is a number. It
+                  // reduces how often the price arrives as Arabic-Indic digits;
+                  // it does not remove the need to handle them, because on many
+                  // Egyptian handsets the number pad IS Arabic-Indic. The
+                  // parsing in `parseMealPrice` is the fix — this is a courtesy.
+                  keyboardType: step.id == MealStepId.price
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : null,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _acceptAnswer(),
                 ),
@@ -267,7 +334,7 @@ class _MealConversationScreenState
               if (state.error != null) ...[
                 const SizedBox(height: KafooSpacing.sm),
                 Text(
-                  _errorText(l10n, state.error!),
+                  mealErrorText(context, state.error!),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -315,14 +382,4 @@ class _MealConversationScreenState
       ),
     );
   }
-
-  /// Both keys already existed for the repository (T033); this screen adds no
-  /// error vocabulary of its own. The default is the save error rather than a
-  /// generic one, because every failure this screen can currently reach is a
-  /// failure to write the draft.
-  String _errorText(AppLocalizations l10n, AppError error) =>
-      switch (error.messageKey) {
-        'mealPhotoError' => l10n.mealPhotoError(context.addressForm),
-        _ => l10n.mealSaveError(context.addressForm),
-      };
 }

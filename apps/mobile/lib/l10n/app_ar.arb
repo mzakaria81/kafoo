@@ -655,6 +655,15 @@
       }
     }
   },
+  "mealPriceInvalid": "مش فاهمين السعر. {addressForm, select, feminine{اكتبيه} other{اكتبه}} بالأرقام بس، أكبر من صفر.",
+  "@mealPriceInvalid": {
+    "description": "Shown when the price the Cook typed is not a price the database can hold — words, zero, or more precision than numeric(10,2). Arabic-Indic digits are NOT this case: parseMealPrice accepts them, which is the whole point of it existing.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
   "mealPhotoError": "الصورة ما اتحملتش. ممكن {addressForm, select, feminine{تكملي} other{تكمل}} من غير صورة.",
   "@mealPhotoError": {
     "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo.",
@@ -786,6 +795,28 @@
   "mealSummaryNoPhoto": "من غير صورة",
   "@mealSummaryNoPhoto": {
     "description": "Shown in place of a photo when the Cook declined one."
+  },
+  "mealSummaryPhotoAttached": "اللي {addressForm, select, feminine{اخترتيها} other{اخترتها}}، موجودة",
+  "@mealSummaryPhotoAttached": {
+    "description": "Spoken when the summary's photo row is reached. It CONFIRMS the photograph is attached rather than naming the image, because that is the question the Cook is on this screen to answer. Before 2026-08-11 the row rendered the storage path as text, so a screen reader at least said something; the image that replaced it announced nothing at all.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "publicMealPhotoLabel": "صورة الأكلة",
+  "@publicMealPhotoLabel": {
+    "description": "Spoken for the Meal photograph on the Customer's public view. Names the image, because a Customer is looking at food rather than checking their own upload."
+  },
+  "mealConvResuming": "بنجيب الأكلة اللي {addressForm, select, feminine{بدأتيها} other{بدأتها}}...",
+  "@mealConvResuming": {
+    "description": "Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen. GENDERED, because the first version was not: it told every Cook «اللي بدأتها», addressing a woman as a man on a line she hears every time she comes back to a Meal. ADR-0010 exists because that mistake was already made once. Raised by localization-reviewer on PR #455.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealSummaryConfirm": "{addressForm, select, feminine{تمام، انشريها} other{تمام، انشرها}}",
   "@mealSummaryConfirm": {

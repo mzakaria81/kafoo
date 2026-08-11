@@ -79,6 +79,26 @@ class _DeferredAiProvider implements AiProvider {
   }
 }
 
+/// Throws instead of returning a [Failure], which is what the real transport
+/// does and what no other double here models.
+///
+/// `client.functions.invoke` throws a `FunctionException` on every non-2xx
+/// reply, so `analyze-meal` answering 500 — an unset provider key, a function
+/// not deployed — arrives as an exception rather than the `Result` the interface
+/// promises. Every double in this file returned a well-behaved `Failure`, so the
+/// suite proved the controller handles failures it is TOLD about and nothing
+/// about the failure it actually meets.
+class _ThrowingAiProvider implements AiProvider {
+  int calls = 0;
+
+  @override
+  Future<Result<AiResponse, AppError>> complete(AiRequest request) async {
+    calls++;
+    throw StateError(
+        'the transport threw, as Supabase functions do on non-2xx');
+  }
+}
+
 /// Minimal valid analysis JSON the parser accepts as non-empty.
 const _analysisReply =
     '{"ingredients":["عدس","رز"],"calories":850,"allergens":["جلوتين"],'
@@ -343,6 +363,61 @@ void main() {
     expect(repo.updateDraftArgs[1].description, isNull);
   });
 
+  group('the price as the Cook types it', () {
+    // 2026-08-11: «١٢٠» from an Arabic keyboard reached a `numeric(10,2)` column
+    // as that text and Postgres refused it. The Cook read «مقدرناش نحفظ الأكلة»
+    // about a Meal that was fine. `parseMealPrice` holds the rule;
+    // `packages/domain/test/meal_price_test.dart` covers its cases. These two
+    // pin the two things the CONTROLLER owns: what it sends, and what it does
+    // when the answer is not a price at all.
+
+    test('Arabic-Indic digits reach the database as digits Postgres reads',
+        () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo);
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      await controller.answer(MealStepId.dish, 'كشري');
+      controller.declinePhoto();
+      final ok = await controller.answer(MealStepId.price, '١٢٠ جنيه');
+
+      expect(ok, isTrue);
+      expect(repo.updateDraftArgs.last.price, '120');
+      // The same string in memory as in the row. Two representations of one
+      // price is how a summary comes to disagree with what it summarises.
+      expect(container.read(mealConversationControllerProvider).draft.price,
+          '120');
+    });
+
+    test('an answer that is not a price is refused without a write', () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo);
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      await controller.answer(MealStepId.dish, 'كشري');
+      controller.declinePhoto();
+      final ok = await controller.answer(MealStepId.price, 'مية وعشرين');
+
+      expect(ok, isFalse);
+      expect(
+        repo.updateDraftArgs.where((c) => c.price != null),
+        isEmpty,
+        reason: 'Nothing is sent. The database would refuse it with a message '
+            'the Cook cannot act on, so the refusal happens here instead.',
+      );
+      expect(
+        container.read(mealConversationControllerProvider).error?.messageKey,
+        'mealPriceInvalid',
+        reason: 'NOT mealSaveError. She can fix this one, and only if the '
+            'sentence tells her what to fix.',
+      );
+    });
+  });
+
   test('MealDrafted emits exactly once with no attributes', () async {
     final repo = FakeMealRepository();
     final events = <({String name, Map<String, Object> attributes})>[];
@@ -488,9 +563,14 @@ void main() {
     await controller.answer(MealStepId.description, 'عدس ورز');
     expect(ai.completers, hasLength(1));
 
-    await controller.answer(MealStepId.photo, 'meal-photos/uid/id.jpg');
+    // `{uid}/{mealId}.jpg` — the shape `SupabaseMealRepository.uploadPhoto`
+    // builds and the only shape `meals.photo_path` ever holds. This literal used
+    // to read `meal-photos/uid/id.jpg`, and `analyze-meal` required that form,
+    // so both halves agreed on a format no upload produces and every analysis of
+    // a Meal with a photograph was refused. 2026-08-11.
+    await controller.answer(MealStepId.photo, 'uid/id.jpg');
     expect(ai.completers, hasLength(2));
-    expect(ai.requests[1].variables['photo_path'], 'meal-photos/uid/id.jpg');
+    expect(ai.requests[1].variables['photo_path'], 'uid/id.jpg');
 
     const newerReply =
         '{"ingredients":["من الصورة"],"calories":900,"allergens":["جلوتين"],'
@@ -560,6 +640,58 @@ void main() {
     expect(
       repo.updateDraftArgs.every((c) => c.category == null),
       isTrue,
+    );
+  });
+
+  test('a provider that THROWS does not leave the estimates spinning',
+      () async {
+    // THE DEAD END THE FOUNDER HIT ON 2026-08-11. «تقديرات المساعد» spun forever
+    // and the conversation could not be finished at all.
+    //
+    // `AiProvider.complete` is declared to return a `Result`, so every test
+    // above hands back a `Failure` when it wants to model a failure. The
+    // TRANSPORT does not honour that declaration: `functions.invoke` throws on
+    // any non-2xx reply, and `_startAnalysis` calls the completion inside
+    // `unawaited(...)`, so the throw went nowhere at all.
+    //
+    // The consequence is worse than a spinner. `currentFallbackStep` returns
+    // null while `analysisInFlight` is set, so the questions that ASK for
+    // cuisine and category never appear — and those are the two answers the
+    // database requires before a Meal can leave draft. A stuck flag is a Cook
+    // locked out of publishing.
+    final repo = FakeMealRepository();
+    final container = _container(repo: repo, ai: _ThrowingAiProvider());
+    addTearDown(container.dispose);
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+
+    await controller.answer(MealStepId.dish, 'كشري');
+    await controller.answer(MealStepId.description, 'عدس ورز');
+    await pumpEventQueue();
+
+    final state = container.read(mealConversationControllerProvider);
+    expect(
+      state.analysisInFlight,
+      isFalse,
+      reason: 'THE BUG. A flag left up by a swallowed throw is a spinner with '
+          'no end and no explanation.',
+    );
+    expect(state.analysisError, isNotNull, reason: 'and it must SAY something');
+    expect(
+      state.error,
+      isNull,
+      reason: 'a model failure is not a save failure — her answers are saved',
+    );
+
+    // And the way out is open: the fallback questions are offered, so cuisine
+    // and category can still be answered and the Meal can still be published.
+    controller.declinePhoto();
+    await controller.answer(MealStepId.price, '60');
+    expect(controller.currentStep, isNull);
+    expect(
+      controller.currentFallbackStep,
+      MealFallbackStepId.cuisine,
+      reason: 'the question that unblocks publishing, which a stuck flag hid',
     );
   });
 
@@ -1008,6 +1140,60 @@ void main() {
         '"category":"main",'
         '"basis":{"ingredients":"من الوصف","calories":"تقدير",'
         '"allergens":"قمح","category":"طبق رئيسي"}}';
+
+    testWidgets(
+        'at 200% text with both errors showing, a choice is still reachable',
+        (tester) async {
+      // THE SAME DEFECT CLASS THIS BRANCH FIXED ONE SCREEN OVER, REINTRODUCED
+      // HERE BY THIS BRANCH. Raised by accessibility-reviewer on PR #455.
+      //
+      // This screen was a fixed Column above an `Expanded` list of choices.
+      // Adding the analysis-error line to the header meant that at 200% text
+      // scale, with both an analysis error and a save error showing, what
+      // `Expanded` had left could approach nothing — and the choices squeezed to
+      // nothing are cuisine and category, the two answers the database REQUIRES
+      // before a Meal can leave draft. A Cook using large text who hit an AI
+      // failure would have been locked out of publishing AGAIN, by the very
+      // feature added to tell her what went wrong.
+      //
+      // `ensureVisible` is the assertion: it throws when a widget cannot be
+      // brought on screen.
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+        child: _testApp(
+          const MealFallbackQuestion(
+            step: MealFallbackStepId.cuisine,
+            // Both at once, which is the state this branch made reachable.
+            error: AppError(messageKey: 'mealSaveError'),
+            analysisError: AppError(messageKey: 'analyzeMealTimeout'),
+          ),
+          repo: FakeMealRepository(),
+          ai: _stubAi(),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(l10n.analyzeMealTimeout('other')), findsOneWidget);
+
+      // Scrolled to rather than simply found: at this scale the header fills the
+      // screen, so the choices are below the fold and a lazily-built list has not
+      // even created them yet. `scrollUntilVisible` throws if it cannot get
+      // there, which is precisely the failure the old fixed-height layout had —
+      // there was nowhere to scroll TO, because the list itself had no height.
+      final choice = find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian);
+      await tester.scrollUntilVisible(choice, 200);
+      expect(choice, findsOneWidget);
+      expect(tester.takeException(), isNull);
+      // And it can actually be answered, not merely reached.
+      await tester.tap(choice);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets(
         'analysis failed: Cook is asked cuisine then category and can publish',
