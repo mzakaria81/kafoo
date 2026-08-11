@@ -32,11 +32,14 @@ than promising «محفوظ» over words nobody captured.
 
 ## What this branch contributes
 
-`speech_output.dart` states the reason the seam exists: *"the founder chose the device's own voice to
-start — free, offline, no account, available today — with a paid Cairene voice to follow once the
-flows are settled and there are real sentences to audition."*
+**ADR-0014 is the decision this branch serves**, and it was taken the same day: speak with the
+device's own voice first, and buy one later. It names two things a device voice cannot settle — the
+casting question, which "cannot be settled from a sample reel — it needs real Kafoo sentences, said in
+the flows they belong to", and whether a paid voice is worth its bill on a surface that speaks
+constantly.
 
-**That follow-on is this work.** It is the second adapter the seam was built for.
+**That follow-on is this work.** It is the second adapter the seam was built for, and it answers both
+of ADR-0014's open questions with measurements rather than estimates.
 
 - **`docs/ops/measuring-spoken-arabic.md`** — the runbook for whether a service speaks Egyptian at
   all. The mirror of `measuring-transcription.md`, and unlike it needs no handset, which makes it the
