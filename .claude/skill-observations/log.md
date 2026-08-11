@@ -2197,3 +2197,36 @@ because that is where a skill stops manipulating files and starts addressing a h
 **Principle:** A skill's process steps usually port between environments; its delivery step usually
 does not. Delivery failures are the ones that fail quietly — the work is done, the artefact exists,
 and only the human never sees it. Audit the last step of a borrowed procedure harder than the middle.
+
+### Observation 140: A topically perfect skill can still be the wrong dependency
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Founder asked whether a public `voice-agents` skill was useful, one turn after
+approving work on a voice module.
+**Skill:** task-observer (references/skill-authoring.md — evaluating a candidate skill)
+**Type:** open-source
+**Phase/Area:** Deciding whether to install a third-party skill
+
+**Issue:** The candidate skill matched the task's topic exactly — voice agents, speech-to-text,
+text-to-speech, latency budgets, interruption handling — and was still the wrong thing to install.
+Three reasons, none of them visible from the name or description: every example was in a different
+language from the target codebase; the examples called model-provider SDKs directly, which this
+repository's architecture decision forbids in feature code; and its recommended architecture
+streamed raw audio to a cloud model, which a standing privacy rule here does not permit without a
+new decision. A topical match invites installation, and the mismatches were only findable by
+reading the whole file against the project's own rules.
+
+**Suggested improvement:** When judging a candidate skill, read it against the project's
+non-negotiables rather than against the task. Specifically check: the language and framework of its
+examples; whether it instructs calls that an architecture decision routes through an abstraction;
+whether its default architecture assumes data movement the privacy rules restrict; and whether its
+worked examples exist in the languages the project actually ships. Report the verdict as
+useful-ideas-versus-installable-dependency, and harvest the ideas into the project's own design
+document instead of installing the file.
+
+**Principle:** Relevance and compatibility are independent axes, and a skill's metadata only
+advertises the first. The failure mode is not a skill that says nothing useful — it is a skill that
+says useful things in a form the project must reject, so following it produces work that the gate
+turns back. Judge a borrowed instruction set by what it would make you write, not by what it is
+about.
