@@ -9,6 +9,7 @@ import '../../../l10n/money.dart';
 import '../../conversation/application/assistant_voice.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
+import '../data/meal_repository.dart';
 import 'meal_edit_screen.dart';
 import 'my_meals_row_sheet.dart';
 import 'my_meals_states.dart';
@@ -288,8 +289,17 @@ class MyMealRow extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final price = meal.price;
     final statusText = glanceWordText(l10n, meal.status);
+    // HER OWN PHOTOGRAPH, WHICH THIS ROW NEVER SHOWED. The row was built with
+    // no photo at all, so a Cook who took one and uploaded it opened her list
+    // and saw «مفيش صورة للأكلة دي لسه» over every Meal. `meal_summary.dart`
+    // resolved it correctly one file over; this row simply never asked.
+    final storedPhoto = meal.photoPath;
+    final photoUrl = storedPhoto == null
+        ? null
+        : ref.read(mealRepositoryProvider).photoUrl(storedPhoto);
 
     return KafooMealRow(
+      photoUrl: photoUrl,
       name: _title(l10n),
       // The numeral alone; the currency is one step smaller beside it.
       price: price == null

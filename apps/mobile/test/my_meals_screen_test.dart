@@ -38,6 +38,19 @@ const _halfDraft = CookMeal(
   nutritionSource: NutritionSource.ai,
 );
 
+const _photographed = CookMeal(
+  id: 'm-photo',
+  cookId: 'c1',
+  title: 'ملوخية',
+  description: 'بالأرانب',
+  price: '80',
+  photoPath: 'c1/m-photo.jpg',
+  cuisine: Cuisine.egyptian,
+  category: MealCategory.main,
+  status: MealStatus.published,
+  nutritionSource: NutritionSource.ai,
+);
+
 const _published = CookMeal(
   id: 'm-pub',
   cookId: 'c1',
@@ -426,6 +439,42 @@ void main() {
       // Still reassured — her Meals are safe either way — just not told a
       // cause that was not the cause.
       expect(find.text(l10n.myMealsFailedReassurance), findsOneWidget);
+    });
+  });
+
+  group('a Cook sees her own photograph', () {
+    // THE ROW NEVER ASKED FOR IT. `photo_path` was in the data, the repository
+    // could turn it into a URL, and this row simply did not pass one — so a
+    // Cook who photographed her food opened her list and read «مفيش صورة للأكلة
+    // دي لسه» over every Meal. No test built a Meal with a photo, which is why
+    // nothing caught it.
+    testWidgets('a Meal with a photo does not claim to have none',
+        (tester) async {
+      await tester.pumpWidget(_app(FakeMealRepository(meals: [_photographed])));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(KafooPhotoPlaceholder), findsNothing);
+      expect(find.text(l10n.mealNoPhotoYet), findsNothing);
+    });
+
+    testWidgets('a Meal with none shows the quiet slot, not the hazard one',
+        (tester) async {
+      await tester.pumpWidget(_app(FakeMealRepository(meals: [_published])));
+      await tester.pumpAndSettle();
+
+      final placeholder = tester.widget<KafooPhotoPlaceholder>(
+        find.byType(KafooPhotoPlaceholder),
+      );
+      // `semanticsLabel`, not `label`: at an 80px thumbnail no words fit
+      // legibly, so the slot carries its sentence for a screen reader only.
+      expect(placeholder.semanticsLabel, l10n.mealNoPhotoYet);
+      // Not the hazard register. A Cook may publish without a photograph, so
+      // hazard stripes over real food make the same accusation the wording was
+      // already fixed to stop making.
+      expect(placeholder.mock, isFalse);
+      // Its own spoken label is deliberately swallowed by the row's composed
+      // sentence — the row reads as one sentence rather than four stops, which
+      // is what `excludeSemantics` on the photo-and-text block is for.
     });
   });
 

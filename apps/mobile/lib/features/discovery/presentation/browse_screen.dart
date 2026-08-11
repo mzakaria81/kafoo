@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/money.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../meal/data/meal_repository.dart';
 import '../application/browse_controller.dart';
 
 /// What a Customer sees having said nothing.
@@ -131,15 +132,16 @@ class BrowseBody extends ConsumerWidget {
             entry!,
             const SizedBox(height: KafooSpacing.md),
           ],
-          for (final item in state.onOffer) _card(l10n, item),
+          for (final item in state.onOffer) _card(l10n, ref, item),
         ],
       ),
     );
   }
 
-  Widget _card(AppLocalizations l10n, DiscoveredMeal item) =>
+  Widget _card(AppLocalizations l10n, WidgetRef ref, DiscoveredMeal item) =>
       discoveredMealCard(
         l10n: l10n,
+        ref: ref,
         item: item,
         source: MealOpenSource.browse,
         onOpen: onOpen,
@@ -188,6 +190,7 @@ abstract final class MealOpenSource {
 /// is emitted here rather than at the call sites.
 Widget discoveredMealCard({
   required AppLocalizations l10n,
+  required WidgetRef ref,
   required DiscoveredMeal item,
   required String source,
   void Function(DiscoveredMeal item)? onOpen,
@@ -199,7 +202,16 @@ Widget discoveredMealCard({
   // Customer reads is never a naked number.
   final price = mealPriceLabel(l10n, item.meal.price);
 
+  // THE COOK'S PHOTOGRAPH, WHICH THIS CARD NEVER SHOWED. `photo_path` comes
+  // back from discovery and was dropped on the floor here, so every Meal in
+  // Discover rendered an empty slot — including the ones whose Cooks had
+  // photographed their food.
+  final storedPhoto = item.meal.photoPath;
+
   return MealCard(
+    photoUrl: storedPhoto == null
+        ? null
+        : ref.read(mealRepositoryProvider).photoUrl(storedPhoto),
     title: item.meal.title,
     price: price,
     kitchenLabel: kitchenLabel,
@@ -211,9 +223,11 @@ Widget discoveredMealCard({
       kitchenLabel,
       price,
     ),
-    // A Meal with no photograph shows an obviously-temporary slot rather than
-    // a blank box. Real photography is shot with the Cook; nothing generated
-    // or stock may ever stand in for it, not even to make a demo look better.
+    // A Meal with no photograph shows a quiet empty slot rather than a blank
+    // box — quiet, because a Cook may publish without a photograph and that is
+    // allowed rather than broken. Real photography is shot with the Cook;
+    // nothing generated or stock may ever stand in for it, not even to make a
+    // demo look better.
     placeholderLabel: l10n.mealNoPhotoYet,
     // MealOpened IS EMITTED HERE AND NOT AT THE CALL SITES, for the same reason
     // the consent gate sits on the funnel rather than on the entrances: call
