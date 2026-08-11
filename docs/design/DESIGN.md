@@ -88,11 +88,15 @@ Not defined yet. Deliberate: the primary usage context is bright daylight, and a
 
 ## 3. Typography
 
-**Font: IBM Plex Sans Arabic.** Weights 300–700, self-hosted (see *Loading*).
+**Font: IBM Plex Sans Arabic.** Self-hosted (see *Loading*).
+
+> **What actually shipped, 2026-08-10: four weights — 400, 500, 600, 700.** Not 300–700. The 300 and
+> lighter faces are below the weight floor this same section sets for Arabic body text, because thin
+> strokes vanish outdoors — so bundling them would have shipped weights the rules forbid using.
 
 Why it wins, and what it beat:
 
-- **IBM Plex Sans Arabic — chosen.** Drawn for screens first: large dots (nuqaṭ), open counters in ع/ه/م, and sīn teeth that don't flatten at small sizes. Five real weights, so hierarchy comes from weight rather than from size — which matters when the smallest usable size is already 13px. Clean without being cold.
+- **IBM Plex Sans Arabic — chosen.** Drawn for screens first: large dots (nuqaṭ), open counters in ع/ه/م, and sīn teeth that don't flatten at small sizes. Five real weights drawn (four bundled), so hierarchy comes from weight rather than from size — which matters when the smallest usable size is already 13px. Clean without being cold.
 - **Cairo — strong runner-up, defensible.** Egyptians see it daily, so it reads as familiar, and familiarity buys trust faster than beauty does. Rejected only because its 300/400 weights thin out in sunlight. If it is ever adopted, use 600+ exclusively.
 - **Tajawal — rejected.** Geometric and corporate; reads like a telecom bill, not a kitchen.
 - **Almarai — rejected.** Warm and likeable, but only four weights with no 500/600, so hierarchy would have to be built from size alone.
@@ -126,7 +130,22 @@ Rules: never below 13px. Never weight <400 for Arabic body text (thin strokes va
 
 ### Loading
 
-Self-host the woff2 subset (Arabic + Latin, weights 400/500/600/700) with `font-display: swap` and a `preload` on the 400 and 600 faces. Egyptian networks are slow enough that a Google Fonts round-trip is a visible blank screen; and a swap from a Latin-metric fallback to an Arabic face reflows the whole page, so keep the fallback stack Arabic-first.
+**Flutter (`apps/mobile`) — what shipped.** Four full TTF faces bundled in the app under
+`assets/fonts`, declared in `pubspec.yaml`, 968 KB raw and about 415 KB compressed in the APK. No
+`swap`, no `preload`, no subsetting: none of those concepts exist in a bundled app, the font is
+present at first frame, and there is no round-trip to be slow. The `google_fonts` package was
+rejected deliberately — it downloads at first render, which on an Egyptian mobile network is a blank
+screen followed by every line reflowing.
+
+**Web (`apps/web`) — not done, and one trap to avoid.** `apps/web/app/globals.css` is still on
+`system-ui` with a Latin-metric fallback stack, which is the exact reflow the line-height rule above
+exists to prevent. When it is addressed: self-host the woff2 subset (Arabic + Latin, weights
+400/500/600/700) with `font-display: swap` and a `preload` on the 400 and 600 faces, and keep the
+fallback stack Arabic-first.
+
+> **A subset is a Modified Version under the SIL Open Font License, and the OFL then forbids the
+> Reserved Font Name.** A subset served as "IBM Plex Sans Arabic" would be the only licence problem
+> Kafoo has. Rename it — `Kafoo Arabic`, or anything without "Plex".
 
 ---
 

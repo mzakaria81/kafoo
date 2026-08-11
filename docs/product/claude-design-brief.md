@@ -1,5 +1,20 @@
 # Brief for Claude Design
 
+> **SUPERSEDED 2026-08-10 by ADR-0013. Historical — do not brief from this file.**
+>
+> It did its job: the founder ran it, and working through the result changed his mind about what
+> Kafoo is. Kafoo is now voice-first — the assistant speaks, the person speaks back, the screen is
+> the receipt — and this brief asked for the opposite. It says "components in isolation are where
+> it is strong", treats colour and type as the foundations, and never once asks what the app
+> **says**. Under ADR-0013 a component without a spoken Egyptian-Arabic line is not finished, so
+> every prompt below would now produce half a component.
+>
+> The delivered system lives in `docs/design/`. `DESIGN.md` §10 is the voice specification.
+>
+> Kept rather than deleted because the reasoning survives even where the conclusion did not — the
+> Arabic-RTL-previews rule, the food-photography placeholder treatment, and the canonical-vocabulary
+> constraint all landed, and all three are visible in what came back.
+
 **Written**: 2026-08-09. **For**: the founder, to paste into [claude.ai/design](https://claude.ai/design).
 
 Kafoo has 27 mobile presentation files and 5 web pages, and no visual language holding them

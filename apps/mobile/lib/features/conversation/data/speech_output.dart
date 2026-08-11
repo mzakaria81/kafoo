@@ -28,7 +28,7 @@ enum SpeechVoiceMatch {
 /// founder chose the device's own voice to start — free, offline, no account,
 /// available today — with a paid Cairene voice to follow once the flows are
 /// settled and there are real sentences to audition. See
-/// `decisions/0013-speak-with-the-devices-own-voice-first.md`. Swapping is
+/// `decisions/0014-speak-with-the-devices-own-voice-first.md`. Swapping is
 /// meant to be one line in `speech_output_provider.dart`, not a refactor, which
 /// is the same shape ADR-0005 uses for model providers.
 ///

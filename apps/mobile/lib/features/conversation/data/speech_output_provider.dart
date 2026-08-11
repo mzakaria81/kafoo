@@ -10,7 +10,7 @@ part 'speech_output_provider.g.dart';
 /// account, and it sounds like a machine. A paid Cairene voice follows once the
 /// flows are settled and there are real sentences to audition — and when it
 /// does, the whole change is the constructor below.
-/// `decisions/0013-speak-with-the-devices-own-voice-first.md` is the reasoning.
+/// `decisions/0014-speak-with-the-devices-own-voice-first.md` is the reasoning.
 ///
 /// Nothing else in the app names an engine. Screens and controllers depend on
 /// [SpeechOutput], the same way feature code depends on `AiProvider` and never

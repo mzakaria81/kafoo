@@ -17,15 +17,17 @@ import 'tokens.dart';
 /// `TextTheme` sets `letterSpacing` on most roles, so every Arabic style below
 /// zeroes it explicitly rather than inheriting.
 abstract final class KafooType {
-  /// The designed face, bundled in `packages/ui/fonts/`.
+  /// The designed face, bundled in `apps/mobile/assets/fonts/` and declared in
+  /// that app's `pubspec.yaml` — four weights, 400/500/600/700.
   ///
-  /// **The `packages/kafoo_ui/` prefix is required, not decorative.** Flutter
-  /// spells a font owned by a package this way, and dropping the prefix does
-  /// not fail — it silently resolves to the platform default, which is exactly
-  /// the bug bundling the font was meant to end. Verified glyph coverage
-  /// includes the Arabic-Indic digits ٠–٩ and the U+066B/U+066C separators,
-  /// because prices are written in them.
-  static const String fontFamily = 'packages/kafoo_ui/IBMPlexSansArabic';
+  /// **App-level rather than package-level, and the name follows from that.** A
+  /// font a package owns is spelled `packages/kafoo_ui/…`; a font the app
+  /// bundles is spelled plainly, as here. Getting it wrong does not fail — it
+  /// silently falls back to the platform default, which is the whole bug
+  /// bundling the font was meant to end. Glyph coverage includes the
+  /// Arabic-Indic digits ٠–٩ and the U+066B/U+066C separators, because prices
+  /// are written in them.
+  static const String fontFamily = 'IBMPlexSansArabic';
 
   /// Reached only for a glyph the bundled face does not carry. Arabic rather
   /// than Latin on purpose: a Latin-metric fallback reflows a whole paragraph

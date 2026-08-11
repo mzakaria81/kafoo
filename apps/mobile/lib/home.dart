@@ -109,12 +109,19 @@ class _SignedInHomeState extends State<SignedInHome> {
   void _openMyMeals() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        // Resuming a draft has already seeded the conversation controller by
-        // the time this fires; all that is left is to show it.
+        // THE DRAFT IS HANDED TO THE SCREEN, not seeded before it.
+        //
+        // This used to discard the argument — `onResumeDraft: (_) =>` — on the
+        // stated grounds that `my_meals_screen.dart` had already seeded the
+        // controller. It had, into an autoDispose provider nothing was watching,
+        // which threw the seeding away before this route was built. A Cook
+        // returning to a half-finished Meal was asked the first question again
+        // with all her answers still in the database. See
+        // `MealConversationScreen.resumeFrom`.
         builder: (_) => MyMealsScreen(
-          onResumeDraft: (_) => Navigator.of(context).push(
+          onResumeDraft: (draft) => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => const MealConversationScreen(),
+              builder: (_) => MealConversationScreen(resumeFrom: draft),
             ),
           ),
         ),
@@ -125,8 +132,18 @@ class _SignedInHomeState extends State<SignedInHome> {
   void _offerAMeal() {
     // MealPublishEntry checks for a Kitchen Profile itself and asks the Cook to
     // create one if there is none (FR-017), so this does not repeat the check.
+    //
+    // It is handed the repository this screen already holds. Constructed
+    // `const` it built its own `SupabaseAccountRepository` — which works on a
+    // phone and makes the whole route untestable, because a test reaches an
+    // uninitialised Supabase before it can assert anything. Every other push
+    // from this screen already passes its dependency down; this one did not.
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const MealPublishEntry()),
+      MaterialPageRoute<void>(
+        builder: (_) => MealPublishEntry(
+          kitchenProfileRepository: widget.kitchenProfileRepository,
+        ),
+      ),
     );
   }
 

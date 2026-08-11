@@ -129,49 +129,54 @@ class _FullState extends ConsumerState<_Full> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsetsDirectional.symmetric(
-            horizontal: KafooSpacing.lg,
-          ),
-          // The receipt of the spoken greeting, and the most important element
-          // on the screen.
-          child: KafooSpokenBanner(
-            line: summary,
-            hearAgainLabel: l10n.myMealsHearAgain,
-            // Inert while muted, and on a handset with no Arabic speech data.
-            // A control that silently does nothing is worse than one that
-            // visibly cannot.
-            onHearAgain: voice.canSpeak
-                ? () => ref.read(assistantVoiceProvider.notifier).say(summary)
-                : null,
-          ),
-        ),
-        if (state.error != null)
-          Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(
-              KafooSpacing.lg,
-              KafooSpacing.row,
-              KafooSpacing.lg,
-              0,
-            ),
-            child: Text(
-              myMealsErrorMessage(l10n, form, state.error!),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: KafooColors.error),
-            ),
-          ),
+        // THE BANNER AND THE ERROR SCROLL WITH THE LIST, they do not sit
+        // above it. At 200% text scale the greeting runs to several lines, and
+        // as fixed height above a fixed talk dock it squeezed the list to a
+        // negative size — the Column overflowed and dropped its last child,
+        // which is the talk button. Inside the scroll view everything simply
+        // moves up.
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-            itemCount: state.meals.length,
+            itemCount: state.meals.length + 1,
             separatorBuilder: (_, __) =>
                 const SizedBox(height: KafooSpacing.row),
-            itemBuilder: (context, index) => MyMealRow(
-              meal: state.meals[index],
-              onResumeDraft: onResumeDraft,
-            ),
+            itemBuilder: (context, index) {
+              if (index > 0) {
+                return MyMealRow(
+                  meal: state.meals[index - 1],
+                  onResumeDraft: onResumeDraft,
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: KafooSpacing.row,
+                children: [
+                  // The receipt of the spoken greeting, and the most important
+                  // element on the screen.
+                  KafooSpokenBanner(
+                    line: summary,
+                    hearAgainLabel: l10n.myMealsHearAgain,
+                    // Inert while muted, and on a handset with no Arabic speech
+                    // data. A control that silently does nothing is worse than
+                    // one that visibly cannot.
+                    onHearAgain: voice.canSpeak
+                        ? () => ref
+                            .read(assistantVoiceProvider.notifier)
+                            .say(summary)
+                        : null,
+                  ),
+                  if (state.error != null)
+                    Text(
+                      myMealsErrorMessage(l10n, form, state.error!),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: KafooColors.error),
+                    ),
+                ],
+              );
+            },
           ),
         ),
         const _TalkDock(),
@@ -181,12 +186,36 @@ class _FullState extends ConsumerState<_Full> {
 }
 
 /// The bottom of every voice screen: the orb, and the way to do it by hand.
+///
+/// **Capped at half the screen, and it scrolls inside that cap.** At 200% text
+/// on a 320px phone the orb plus its wrapped label runs to 388 logical pixels —
+/// taller than the list it sits under — and a Column that cannot fit its
+/// children drops the LAST one, which here is the button that does the task by
+/// hand. Truncating the label instead is not an option: on a disabled control
+/// the label is the only thing carrying the reason, and a disabled control with
+/// no explanation is a dead end.
 class _TalkDock extends StatelessWidget {
   const _TalkDock();
+
+  /// Chosen so nothing changes at ordinary text sizes — the dock is about 180
+  /// logical pixels on a normal phone, well under the cap — and the whole thing
+  /// stays reachable at 200%.
+  static const double _shareOfScreen = 0.5;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * _shareOfScreen,
+      ),
+      child: SingleChildScrollView(
+        child: _dock(context, l10n),
+      ),
+    );
+  }
+
+  Widget _dock(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(
         KafooSpacing.lg,
@@ -296,9 +325,9 @@ class MyMealRow extends ConsumerWidget {
 
 /// The glance word for a Meal's status.
 ///
-/// The closed set, not the descriptive sentences in `myMealsStatus*` — those
-/// are body text ("مش متاحة دلوقتي"), and a glance word is recognised by its
-/// silhouette, so it has to be the same shape every time.
+/// The closed set. A glance word is recognised by its silhouette, so it has to
+/// be the same shape every time — which is also why «على المنيو» is now the
+/// only name for a published Meal anywhere in the app rather than one of two.
 GlanceWord glanceWordFor(MealStatus status) => switch (status) {
       MealStatus.published => GlanceWord.published,
       MealStatus.draft => GlanceWord.draft,

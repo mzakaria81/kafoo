@@ -114,6 +114,52 @@ void main() {
     expect(now, greaterThan(30));
   });
 
+  // CARRIED ACROSS FROM THE TOKEN TESTS THAT LANDED ON MAIN FIRST, because the
+  // bug it caught is not one this file's other checks can see. Every token
+  // above can be correct while the THEME wires the wrong one into a text slot:
+  // `outline` was a 1.54:1 border colour with thirteen call sites reading it as
+  // text, including the sentence telling a Cook she must approve an AI estimate
+  // before publishing. The tokens passed. The wiring was the bug.
+  group('the theme wires nothing unreadable into a text slot', () {
+    final scheme = kafooTheme().colorScheme;
+
+    test('every slot the app reads as text clears AA on the surface', () {
+      final slots = <String, Color>{
+        'onSurface': scheme.onSurface,
+        'onSurfaceVariant': scheme.onSurfaceVariant,
+        'outline': scheme.outline,
+        'error': scheme.error,
+        'primary': scheme.primary,
+        'onPrimaryContainer': scheme.onPrimaryContainer,
+        'onSecondaryContainer': scheme.onSecondaryContainer,
+        'onTertiaryContainer': scheme.onTertiaryContainer,
+        'onErrorContainer': scheme.onErrorContainer,
+      };
+      slots.forEach((name, colour) {
+        expect(
+          _contrast(colour, scheme.surface),
+          greaterThanOrEqualTo(4.5),
+          reason: 'colorScheme.$name is below AA on the surface. Grep the app '
+              'before assuming a slot is decorative — Material role names '
+              'suggest borders and the app reads several of them as text.',
+        );
+      });
+    });
+
+    test('a dialog has a background distinct from the page behind it', () {
+      // All six surfaceContainer roles were unset once, so a dialog rendered at
+      // 1.00:1 against the page — no boundary but the scrim. The confirmation
+      // gate is the one surface that must be unmistakably in front.
+      expect(scheme.surfaceContainerHigh, isNot(scheme.surface));
+    });
+
+    test('tertiary is not the reserved voice hue', () {
+      // Unset, tertiary resolves to secondary — the teal reserved for "the
+      // machine is talking".
+      expect(scheme.tertiary, isNot(KafooColors.voice));
+    });
+  });
+
   test('voice is the only cool colour in the system', () {
     // Everything else is warm. Reserving one hue for voice is what lets a Cook
     // tell "I'm hearing you" from "buy this" before reading a word.

@@ -1,18 +1,31 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../data/account_repository.dart';
 
 class CodeScreen extends StatefulWidget {
-  const CodeScreen({required this.phone, super.key});
+  const CodeScreen({
+    required this.phone,
+    this.repository = const SupabaseAccountRepository(),
+    super.key,
+  });
 
   final String phone;
+
+  /// Injected so this screen can be tested at all. It called
+  /// `Supabase.instance.client` directly until 2026-08-10, which both violated
+  /// the layering rule in `.claude/rules/dart.md` — presentation never touches
+  /// Supabase — and made the screen impossible to build under test without a
+  /// live backend. It had no test of any kind as a result, and the bug below
+  /// shipped.
+  final AccountRepository repository;
 
   @override
   State<CodeScreen> createState() => _CodeScreenState();
@@ -39,61 +52,65 @@ class _CodeScreenState extends State<CodeScreen> {
       _error = null;
     });
 
-    try {
-      final response = await Supabase.instance.client.auth.verifyOTP(
-        phone: widget.phone,
-        token: code,
-        type: OtpType.sms,
-      );
+    final result = await widget.repository.verifyPhoneSignInCode(
+      phone: widget.phone,
+      token: code,
+    );
+    if (!mounted) return;
 
-      final isNew = response.user?.createdAt != null &&
-          response.user!.createdAt == response.user!.updatedAt;
+    switch (result) {
+      case Success(value: final isNew):
+        unawaited(emitEvent(
+          EventNames.signInCompleted,
+          attributes: {'route': 'phone', 'first_time': isNew},
+        ));
+        if (isNew) unawaited(emitEvent(EventNames.accountCreated));
 
-      unawaited(emitEvent(
-        EventNames.signInCompleted,
-        attributes: {'route': 'phone', 'first_time': isNew},
-      ));
+        // POP BACK TO THE ROOT, AND THIS LINE IS THE WHOLE BUG FIX.
+        //
+        // The comment here used to read "navigation is handled by the auth
+        // state listener in main.dart", and that was wrong in a way nothing
+        // could see. The listener does fire and `_AuthGate` does swap the app's
+        // home from sign-in to the Cook's home — but this screen was PUSHED on
+        // top of that gate, and changing what a route renders does not remove
+        // the routes above it. So the Cook was signed in, correctly, behind a
+        // full-screen route that nothing dismissed. She pressed «كمّل» and the
+        // app did nothing at all.
+        //
+        // Found by the founder on a real phone on 2026-08-10, after every
+        // check in the gate passed.
+        Navigator.of(context).popUntil((route) => route.isFirst);
 
-      if (isNew) {
-        unawaited(emitEvent(EventNames.accountCreated));
-      }
-      // Navigation is handled by the auth state listener in main.dart.
-    } on AuthException catch (e) {
-      final l10n = AppLocalizations.of(context);
-      final msg = e.message.toLowerCase();
-      String errorText;
-      if (msg.contains('expired') ||
-          msg.contains('otp') && msg.contains('invalid')) {
-        errorText = l10n.codeExpired(context.addressForm);
-      } else {
-        errorText = l10n.codeWrongCode(context.addressForm);
-      }
-      unawaited(emitEvent(
-        EventNames.signInFailed,
-        attributes: {
-          'route': 'phone',
-          'reason': msg.contains('expired') ? 'expired' : 'wrong_code',
-        },
-      ));
-      if (mounted) setState(() => _error = errorText);
-    } on Exception catch (_) {
-      if (mounted) {
-        setState(() => _error = AppLocalizations.of(context)
-            .signInNetworkError(context.addressForm));
-      }
-      unawaited(emitEvent(
-        EventNames.signInFailed,
-        attributes: {'route': 'phone', 'reason': 'network'},
-      ));
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      case Failure(error: final error):
+        final l10n = AppLocalizations.of(context);
+        final form = context.addressForm;
+        final text = switch (error.messageKey) {
+          'codeExpired' => l10n.codeExpired(form),
+          'signInNetworkError' => l10n.signInNetworkError(form),
+          _ => l10n.codeWrongCode(form),
+        };
+        unawaited(emitEvent(
+          EventNames.signInFailed,
+          attributes: {
+            'route': 'phone',
+            'reason': switch (error.messageKey) {
+              'codeExpired' => 'expired',
+              'signInNetworkError' => 'network',
+              _ => 'wrong_code',
+            },
+          },
+        ));
+        setState(() {
+          _error = text;
+          _loading = false;
+        });
     }
   }
 
   Future<void> _resend() async {
     setState(() => _resending = true);
     try {
-      await Supabase.instance.client.auth.signInWithOtp(phone: widget.phone);
+      await widget.repository.sendPhoneSignInCode(widget.phone);
     } on Exception catch (_) {
       // Best-effort resend; the field stays editable.
     } finally {
@@ -106,8 +123,12 @@ class _CodeScreenState extends State<CodeScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(),
+      // SCROLLS, like every other screen on this path. Caught by this screen's
+      // own new test at 360x640 with text at 200% — the four sign-in screens were
+      // knowingly left unfixed earlier on 2026-08-10 as a scope call, and writing
+      // the missing tests is what turned one of them red.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

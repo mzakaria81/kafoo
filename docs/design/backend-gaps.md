@@ -23,7 +23,7 @@ draft, delete a draft, edit — works, and is covered by tests.
 **Closed 2026-08-11.** The device's own speech engine now reads the Meal list's
 summary aloud on arrival, reads any row on request, and the mute control is
 live and persists across launches. Money in a spoken row is said quietly, since
-homes are shared and income is private. ADR-0013 has the reasoning and the plan
+homes are shared and income is private. ADR-0014 has the reasoning and the plan
 for replacing it.
 
 **The caveat: it will be silent on some handsets.** Android ships Arabic speech
@@ -92,7 +92,7 @@ state the app is *in*, not an error it discovers.
 
 ## 5. The spoken summary uses digits where the design speaks words
 
-**What a Cook sees.** «عندك ٥ أكلة، منهم ٢ منشورة. عايزة تعملي إيه؟»
+**What a Cook sees.** «عندك ٥ أكلة، منهم ٢ على المنيو. عايزة تعملي إيه؟»
 
 **What the design says.** «عندك خمس أكلات، اتنين منشورين» — numbers spelled out,
 because the line is *spoken* and a voice does not read digits.

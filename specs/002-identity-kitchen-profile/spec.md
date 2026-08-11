@@ -8,6 +8,18 @@
 
 **Input**: User description: "E1 — identity and Kitchen Profile. A person signs in to Kafoo with their phone number via a one-time code, with email as a fallback path. One account holds both roles: everyone starts able to browse and order as a Customer, and becomes a Cook by creating a Kitchen Profile — there is no role chosen at signup and no second account. A Cook can therefore order Meals from other Cooks. A Kitchen Profile carries a display name, a story, an area, delivery terms, and a photo, and belongs to exactly one Cook. A person has at most one Kitchen Profile. Anyone may read a published Kitchen Profile; only its owning Cook may create or change it, and nobody else can read a Kitchen Profile that has not been published. This is the first stored information in Kafoo, so it is also the first proof that a person's data is unreadable by anyone else — that proof is part of the deliverable, not a follow-up. Arabic is the default language throughout. The phone number is a new category of personal data and needs a stated reason, retention period, and reader set."
 
+> **VOICE-FIRST CHANGED WHAT "DONE" MEANS HERE — ADR-0013, 2026-08-10.**
+> This epic was specified and built tap-first: the screen presents, the person reads and taps.
+> Kafoo is now voice-first — the assistant speaks, the person speaks back, and the screen is the
+> receipt of that exchange.
+>
+> **Nothing in this epic is cancelled or wrong.** Tap is a complete alternative under ADR-0013,
+> never a degraded one, so every screen here keeps its value as the tap path. What none of them has
+> is a spoken Egyptian-Arabic line, and under ADR-0013 a component without one is unfinished.
+>
+> So this epic is **functionally complete and not yet finished**. The voice layer over it is
+> separate work, not a correction of this work. `docs/design/DESIGN.md` §10 specifies it.
+
 > **Scope guard — Constitution Principle VII (Documentation Separation of Concerns).**
 > This document is the **product** perspective: WHAT the system does and WHY. It MUST remain
 > technology-agnostic.

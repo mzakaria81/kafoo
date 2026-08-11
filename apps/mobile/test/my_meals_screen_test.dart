@@ -6,7 +6,6 @@ import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
-import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/my_meals_controller.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
@@ -200,7 +199,14 @@ void main() {
       l10n.glanceUnavailable,
       l10n.glanceArchived,
     ]) {
-      await tester.scrollUntilVisible(find.text(glance), 200);
+      // Scoped to the Meal list: the talk dock scrolls inside its own cap at
+      // large text sizes, so an unscoped finder now sees two scrollables and
+      // gives up rather than choosing.
+      await tester.scrollUntilVisible(
+        find.text(glance),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text(glance), findsOneWidget);
     }
   });
@@ -590,8 +596,27 @@ void main() {
     expect(find.text(l10n.mealResumeDraft('other')), findsNothing);
   });
 
-  testWidgets('tapping it seeds the conversation and calls back',
+  testWidgets('tapping it hands the draft to the caller and seeds nothing',
       (tester) async {
+    // THIS TEST USED TO ASSERT THE BUG, AND ITS OWN SETUP SAID SO.
+    //
+    // It was called "tapping it seeds the conversation and calls back", and to
+    // make that pass it wrapped the screen in a `Consumer` that did nothing but
+    //
+    //     // Keep the controller alive so resume does not dispose it.
+    //     ref.watch(mealConversationControllerProvider);
+    //
+    // The conversation controller is autoDispose. That line is a listener the
+    // real app does not have, added so the seeding would survive long enough to
+    // be asserted. In `home.dart` nothing watches the provider at that moment,
+    // so the seeded draft was disposed before the conversation route was built
+    // and the Cook was asked the first question again — 2026-08-11, on a Meal
+    // whose answers were all still in the database.
+    //
+    // A test that props up the code under test is worse than no test: it reports
+    // green about a world it built for itself. The draft travels as an argument
+    // now, and `MealConversationScreen` seeds from it inside the route that
+    // watches the provider.
     CookMeal? callbackMeal;
     final repo = FakeMealRepository(meals: [_draft]);
     await tester.pumpWidget(
@@ -609,14 +634,9 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: Consumer(
-            builder: (context, ref, child) {
-              // Keep the controller alive so resume does not dispose it.
-              ref.watch(mealConversationControllerProvider);
-              return MyMealsScreen(
-                onResumeDraft: (meal) => callbackMeal = meal,
-              );
-            },
+          // NO Consumer keeping anything alive. This is the tree the app has.
+          home: MyMealsScreen(
+            onResumeDraft: (meal) => callbackMeal = meal,
           ),
         ),
       ),
@@ -627,20 +647,17 @@ void main() {
     await tester.tap(find.text(l10n.mealResumeDraft('other')));
     await tester.pumpAndSettle();
 
-    // Callback fired with the right CookMeal
     expect(callbackMeal, isNotNull);
-    expect(callbackMeal!.id, _draft.id);
-
-    // The conversation controller's draft now carries that Meal's id
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MyMealsScreen)),
-    );
-    final controller =
-        container.read(mealConversationControllerProvider.notifier);
-    expect(controller.currentStep, isNotNull);
     expect(
-      container.read(mealConversationControllerProvider).draft.mealId,
+      callbackMeal!.id,
       _draft.id,
+      reason: 'the whole draft travels, because the caller is what carries it '
+          'into the route that can hold it',
+    );
+    expect(
+      repo.updateDraftCalls,
+      0,
+      reason: 'resuming reads; it writes nothing',
     );
   });
 }

@@ -762,6 +762,18 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String mealPriceInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اكتبيه',
+        'other': 'اكتبه',
+      },
+    );
+    return 'مش فاهمين السعر. $_temp0 بالأرقام بس، أكبر من صفر.';
+  }
+
+  @override
   String mealPhotoError(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
@@ -904,6 +916,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealSummaryNoPhoto => 'من غير صورة';
+
+  @override
+  String mealSummaryPhotoAttached(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اخترتيها',
+        'other': 'اخترتها',
+      },
+    );
+    return 'اللي $_temp0، موجودة';
+  }
+
+  @override
+  String get publicMealPhotoLabel => 'صورة الأكلة';
+
+  @override
+  String mealConvResuming(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'بدأتيها',
+        'other': 'بدأتها',
+      },
+    );
+    return 'بنجيب الأكلة اللي $_temp0...';
+  }
 
   @override
   String mealSummaryConfirm(String addressForm) {

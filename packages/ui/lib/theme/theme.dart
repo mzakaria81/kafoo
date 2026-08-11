@@ -31,14 +31,29 @@ ThemeData kafooTheme({bool arabic = true}) {
       onSecondary: KafooColors.onPrimary,
       secondaryContainer: KafooColors.voiceTint,
       onSecondaryContainer: KafooColors.voiceDeep,
+      // Explicit, because an unset tertiary resolves to `secondary` — the voice
+      // teal, reserved to mean "the machine is talking". Any widget reaching
+      // for tertiary would have spoken in the assistant's colour.
+      tertiary: KafooColors.primaryDeep,
+      onTertiary: KafooColors.onPrimary,
+      tertiaryContainer: KafooColors.primaryTint,
+      onTertiaryContainer: KafooColors.primaryDeep,
       error: KafooColors.error,
       onError: KafooColors.onPrimary,
       errorContainer: KafooColors.errorTint,
       onErrorContainer: KafooColors.error,
       surface: KafooColors.surface,
       onSurface: KafooColors.onSurface,
+      // ALL SIX SET, because an unset surfaceContainer role resolves to
+      // `surface` and a Material dialog then renders at 1.00:1 against the page
+      // behind it — no boundary except the scrim. The confirmation gate is the
+      // one surface in Kafoo that must be unmistakably in front of everything
+      // else, so it is the worst slot to leave to a fallback.
       surfaceContainerLowest: KafooColors.surfaceRaised,
-      surfaceContainerLow: KafooColors.surfaceSunken,
+      surfaceContainerLow: KafooColors.surfaceRaised,
+      surfaceContainer: KafooColors.surfaceSunken,
+      surfaceContainerHigh: KafooColors.surfaceRaised,
+      surfaceContainerHighest: KafooColors.surfaceSunken,
       onSurfaceVariant: KafooColors.textMuted,
       outline: KafooColors.borderInput,
       outlineVariant: KafooColors.border,

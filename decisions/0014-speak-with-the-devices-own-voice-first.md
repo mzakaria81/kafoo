@@ -1,10 +1,15 @@
-# ADR-0013 — Speak with the device's own voice first, and buy one later
+# ADR-0014 — Speak with the device's own voice first, and buy one later
 
 **Status:** Accepted
 **Date:** 2026-08-11
 **Decider:** Founder
 
 ## Context
+
+**This follows ADR-0013, it does not restate it.** ADR-0013 decided that Kafoo
+is voice-first and that the screen is the receipt of what was said. This one
+decides *which engine* says it, which is a spend decision rather than a design
+one.
 
 Kafoo is voice-first. The assistant speaks, the user speaks back, and the screen
 is the receipt of that exchange — `DESIGN.md` §10 goes as far as saying a

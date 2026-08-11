@@ -8,6 +8,18 @@
 
 **Input**: User description: "E3 — Customer discovery. A Customer finds a Meal or a kitchen without holding a direct reference to it."
 
+> **VOICE-FIRST CHANGED WHAT "DONE" MEANS HERE — ADR-0013, 2026-08-10.**
+> This epic was specified and built tap-first: the screen presents, the person reads and taps.
+> Kafoo is now voice-first — the assistant speaks, the person speaks back, and the screen is the
+> receipt of that exchange.
+>
+> **Nothing in this epic is cancelled or wrong.** Tap is a complete alternative under ADR-0013,
+> never a degraded one, so every screen here keeps its value as the tap path. What none of them has
+> is a spoken Egyptian-Arabic line, and under ADR-0013 a component without one is unfinished.
+>
+> So this epic is **functionally complete and not yet finished**. The voice layer over it is
+> separate work, not a correction of this work. `docs/design/DESIGN.md` §10 specifies it.
+
 > **Scope guard — Constitution Principle VII (Documentation Separation of Concerns).**
 > This document is the **product** perspective: WHAT the system does and WHY. It MUST remain
 > technology-agnostic.
