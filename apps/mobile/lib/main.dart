@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/discovery/presentation/opened_meal.dart';
 import 'features/discovery/presentation/search_screen.dart';
+import 'features/identity/data/account_repository.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
 import 'features/kitchen_profile/data/kitchen_profile_repository.dart';
 import 'features/kitchen_profile/presentation/public_kitchen_view.dart';
@@ -94,7 +95,34 @@ Future<void> main() async {
 /// Egyptian Arabic is the default locale, not a fallback, so [locale] is fixed
 /// to `ar` and every screen below must render correctly right-to-left.
 class KafooApp extends StatelessWidget {
-  const KafooApp({super.key});
+  const KafooApp({
+    this.authState,
+    this.accountRepository = const SupabaseAccountRepository(),
+    this.kitchenProfileRepository = const SupabaseKitchenProfileRepository(),
+    super.key,
+  });
+
+  /// The auth stream the gate listens to. Null means the real one.
+  ///
+  /// **THIS EXISTS SO THE APP CAN BE BOOTED IN A TEST**, which it could not be
+  /// until 2026-08-10. `app_test.dart` said so in a comment — "KafooApp includes
+  /// _AuthGate which requires a live Supabase instance" — and skipped the root
+  /// entirely. Every widget test therefore built one screen with its own fakes,
+  /// and the gate never once ran the app as a whole.
+  ///
+  /// Five defects in a single day came out of exactly that gap, all of them
+  /// invisible to a green build and all of them obvious to a person holding a
+  /// phone: the icon font that rendered as Chinese characters, the missing
+  /// `ProviderScope`, four Cook screens with no route into them, a theme no test
+  /// rendered through, and a correct sign-in code that navigated nowhere.
+  ///
+  /// A screen tested alone proves the screen. Only the app tested whole proves
+  /// the seams, and the seams are where every one of those lived.
+  final Stream<AuthState>? authState;
+
+  /// Injected for the same reason.
+  final AccountRepository accountRepository;
+  final KitchenProfileRepository kitchenProfileRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -117,8 +145,16 @@ class KafooApp extends StatelessWidget {
       // Above the Navigator on purpose. A pushed route is not a descendant of
       // the widget that pushed it, so a scope placed inside [home] would be
       // invisible to every screen reached by pushing — which is all of them.
-      builder: (context, child) => _AddressFormLoader(child: child!),
-      home: const _AuthGate(),
+      builder: (context, child) => _AddressFormLoader(
+        authState: authState,
+        repository: kitchenProfileRepository,
+        child: child!,
+      ),
+      home: _AuthGate(
+        authState: authState,
+        accountRepository: accountRepository,
+        kitchenProfileRepository: kitchenProfileRepository,
+      ),
     );
   }
 }
@@ -127,16 +163,26 @@ class KafooApp extends StatelessWidget {
 /// Uses [Supabase.instance.client.auth.onAuthStateChange] — a stream and a
 /// builder, no state-management package (E1 deliberate decision, research.md §7).
 class _AuthGate extends StatelessWidget {
-  const _AuthGate();
+  const _AuthGate({
+    this.authState,
+    required this.accountRepository,
+    required this.kitchenProfileRepository,
+  });
+
+  final Stream<AuthState>? authState;
+  final AccountRepository accountRepository;
+  final KitchenProfileRepository kitchenProfileRepository;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+      stream: authState ?? Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         final session = snapshot.data?.session;
         if (session != null) {
-          return const SignedInHome();
+          return SignedInHome(
+            kitchenProfileRepository: kitchenProfileRepository,
+          );
         }
         // Signed out, a person sees FOOD, not a sign-in form.
         //
@@ -153,7 +199,7 @@ class _AuthGate extends StatelessWidget {
         //
         // Signing in stays one tap away, in the bar, for the Cook who came
         // here to cook.
-        return const _SignedOutHome();
+        return _SignedOutHome(accountRepository: accountRepository);
       },
     );
   }
@@ -173,7 +219,18 @@ class _AuthGate extends StatelessWidget {
 /// form. They get `other`, which is the same answer they got before this
 /// existed.
 class _AddressFormLoader extends StatefulWidget {
-  const _AddressFormLoader({required this.child});
+  const _AddressFormLoader({
+    required this.child,
+    required this.repository,
+    this.authState,
+  });
+
+  final KitchenProfileRepository repository;
+
+  /// Injected for the same reason as [KafooApp.authState] — this loader reached
+  /// `Supabase.instance` directly and was the last thing keeping the app root
+  /// out of a test.
+  final Stream<AuthState>? authState;
 
   final Widget child;
 
@@ -182,7 +239,6 @@ class _AddressFormLoader extends StatefulWidget {
 }
 
 class _AddressFormLoaderState extends State<_AddressFormLoader> {
-  static const _repository = SupabaseKitchenProfileRepository();
   late final StreamSubscription<AuthState> _auth;
   AddressForm? _form;
 
@@ -193,7 +249,9 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
     // what makes a Kitchen Profile readable at all, and signing out must drop
     // the previous Cook's form — otherwise the next person on the same device
     // is addressed in a stranger's grammar.
-    _auth = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+    _auth =
+        (widget.authState ?? Supabase.instance.client.auth.onAuthStateChange)
+            .listen((_) {
       unawaited(_load());
     });
   }
@@ -205,7 +263,7 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
   }
 
   Future<void> _load() async {
-    final result = await _repository.findMine();
+    final result = await widget.repository.findMine();
     if (!mounted) return;
     // A failed read is not worth surfacing: the consequence is that a Cook is
     // addressed in the unset form for this launch, which every Cook was until
@@ -229,7 +287,9 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
 /// Browsing, and a way in. See the note in [_AuthGate] for why this is food
 /// rather than a form.
 class _SignedOutHome extends StatelessWidget {
-  const _SignedOutHome();
+  const _SignedOutHome({required this.accountRepository});
+
+  final AccountRepository accountRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +297,9 @@ class _SignedOutHome extends StatelessWidget {
     return SearchScreen(
       entry: TextButton(
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const SignInScreen()),
+          MaterialPageRoute<void>(
+            builder: (_) => SignInScreen(repository: accountRepository),
+          ),
         ),
         style: TextButton.styleFrom(
           minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
