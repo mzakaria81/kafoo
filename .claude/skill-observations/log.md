@@ -2141,3 +2141,88 @@ quotes it by section name, and that reference is invisible to a filename search.
 working after the heading is gone. A dangling documentation pointer fails silently and only at the
 moment someone follows it, which is the moment they were already confused. Structural edits to a
 document need a reference sweep on the same footing as renaming a function.
+
+### Observation 138: A design document's stated contrast ratios were recomputed, not trusted
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Implementing the Kafoo Visual & Voice Foundations handoff into
+`packages/ui` — the palette, type scale and theme.
+**Skill:** ui-ux-pro-max
+**Type:** open-source
+**Phase/Area:** Step 1 (analyse requirements) / accessibility priority 1
+
+**Issue:** The handoff's palette table stated a WCAG contrast ratio beside every token. Recomputing
+them before encoding showed every figure ran roughly two percent high, and one — `voice-deep`,
+documented at 8.9:1 — actually measured 7.36:1. None of the discrepancies turned a pass into a
+fail, so the palette was correct and shippable. But the numbers were treated as an input to the
+implementation (a test would have asserted 8.9 and failed), and the check cost one short script.
+
+**Suggested improvement:** In `ui-ux-pro-max`'s workflow, add a step to Step 1: when a design
+document or brand guide supplies contrast ratios, recompute them from the hex values before relying
+on them, and assert the WCAG threshold in tests rather than the documented figure. Destination is
+the skill's own `SKILL.md` Step 1, not the project's CLAUDE.md — it is guidance for reading a design
+handoff, which is a task-scoped procedure.
+
+**Principle:** A number quoted in a document is a claim, not a measurement, and a claim that can be
+recomputed from data already in the same document should be. Encode the threshold that matters in
+the test, never the quoted figure — asserting the quoted figure makes the test fail when the
+document was wrong rather than when the design is.
+
+### Observation 139: Implementing a design token literally would have re-introduced a fixed accessibility bug
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Same — mapping the handoff's border tokens onto an existing web stylesheet.
+**Skill:** ui-ux-pro-max
+**Type:** open-source
+**Phase/Area:** Step 2 (generate design system) / accessibility priority 1
+
+**Issue:** The design document specified a control's border as a warm hairline measuring 1.54:1
+against the surface. WCAG 1.4.11 requires 3:1 for the visible boundary of a user interface
+component, and the codebase's stylesheet carried a long comment recording that this exact bug had
+already been found and fixed on a search input. Applying the design as written would have reverted
+that fix, and nothing in the design system, the gate, or the design document would have caught it —
+the comment in the stylesheet was the only trace. No border token anywhere in the supplied palette
+reached 3:1, so this was a gap in the design rather than a misreading of it.
+
+**Suggested improvement:** Add to `ui-ux-pro-max` Step 2: before replacing an existing token with a
+design-supplied one, read the comments and history around the value being replaced; where a design
+token contradicts a documented in-repo accessibility fix, keep the fix, borrow the nearest palette
+value that satisfies the requirement, and surface the conflict as a design decision rather than
+silently resolving it in either direction.
+
+**Principle:** A design handoff is authoritative about intent and not about what a codebase has
+already learned. Where the two conflict on an accessibility floor, the floor wins — and the conflict
+is reported upward rather than absorbed, because absorbing it silently loses the reason in both
+directions: the design never learns it has a gap, and the next implementer sees an unexplained
+deviation.
+
+### Observation 140: The skill's stack database had nothing for the task, and saying so beat improvising
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Same — queried `--stack flutter` for theming and typography guidance while
+building a `ThemeData` and type scale.
+**Skill:** ui-ux-pro-max
+**Type:** open-source
+**Phase/Area:** Step 4 (stack guidelines)
+
+**Issue:** A query for theme tokens, typography, text scale and RTL against the Flutter stack
+returned three results: two about disposing `TextEditingController`s and one generic note about text
+scaling. `stacks/flutter.csv` appears to have no coverage of theming, `ThemeData`, `TextTheme`,
+`ThemeExtension`, directional layout, or font loading — which is most of what a Flutter design
+system is. The skill documents what to do on zero results but not on results that are non-zero and
+off-topic, which is the harder case: three plausible rows read as "the database has an opinion here"
+when it does not.
+
+**Suggested improvement:** Two changes to `SKILL.md`. Extend the "If a search returns 0 results"
+section to cover low-relevance results — if the returned rows do not address the query's subject,
+say so explicitly rather than presenting them as guidance. Separately, note in Step 4 that a project
+carrying its own design system supersedes the stack database, so Step 4 is a supplement there rather
+than an input. The Flutter CSV gap itself is a content issue for the skill's data, worth recording
+but larger than a wording fix.
+
+**Principle:** A search that returns rows is not a search that returned an answer. A tool whose
+failure mode is "plausible but off-topic" needs an explicit relevance check at the call site,
+because the absence of a zero-result signal reads as confirmation.

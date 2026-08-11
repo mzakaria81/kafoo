@@ -74,10 +74,12 @@ class KafooApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: KafooColors.primary),
-        useMaterial3: true,
-      ),
+      // The palette and the type scale from DESIGN.md, not a tonal mapping of
+      // the brand colour. See the note on [kafooTheme] for what the seeded
+      // scheme was getting wrong. `arabic: true` because [locale] above is
+      // pinned to `ar` — Arabic line-heights run higher than Latin, and the two
+      // must not be unified. If the locale is ever unpinned, this follows it.
+      theme: kafooTheme(arabic: true),
       // Above the Navigator on purpose. A pushed route is not a descendant of
       // the widget that pushed it, so a scope placed inside [home] would be
       // invisible to every screen reached by pushing — which is all of them.

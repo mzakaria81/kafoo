@@ -98,7 +98,7 @@ class BrowseBody extends ConsumerWidget {
     if (state.error != null) {
       return _message(
         text: l10n.discoveryLoadError,
-        color: KafooColors.danger,
+        color: KafooColors.error,
         onRetry: () => ref.read(browseControllerProvider.notifier).refresh(),
         retryLabel: l10n.browseRetry,
       );

@@ -91,7 +91,7 @@ class _RemoveAccountScreenState extends State<RemoveAccountScreen> {
               FilledButton(
                 onPressed: _removing ? null : _remove,
                 style: FilledButton.styleFrom(
-                  backgroundColor: KafooColors.danger,
+                  backgroundColor: KafooColors.error,
                   foregroundColor: KafooColors.onPrimary,
                   minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
                 ),

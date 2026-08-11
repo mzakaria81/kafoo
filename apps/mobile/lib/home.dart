@@ -227,7 +227,7 @@ class _Entry extends StatelessWidget {
     return TextButton(
       style: TextButton.styleFrom(
         minimumSize: size,
-        foregroundColor: danger ? KafooColors.danger : null,
+        foregroundColor: danger ? KafooColors.error : null,
       ),
       onPressed: onPressed,
       child: Text(label),
