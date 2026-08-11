@@ -152,6 +152,74 @@ void main() {
       expect(analysis.allergens!.value, ['جلوتين']);
     });
 
+    test('values with no reasons at all is a failure, not a shrug', () {
+      // 2026-08-11, THE FOUNDER'S «محشي صغير». The model answered in 2.5 seconds
+      // with a 785-byte reply and his screen read «المساعد مقدرش يقدّر حاجة» —
+      // the assistant could not estimate anything. Two completely different
+      // events wearing one sentence: a model with no opinion, and a model whose
+      // answer this product cannot use.
+      //
+      // Dropping an unexplained value is correct — a calorie count with no reason
+      // behind it is one a Cook has no grounds to believe. Reporting it as
+      // silence is not: nobody could act on it, and nothing in the logs said it
+      // had happened.
+      const reply = '''
+{
+  "ingredients": ["ورق عنب", "أرز"],
+  "calories": 320,
+  "allergens": [],
+  "cuisine": "egyptian",
+  "category": "appetizer",
+  "basis": {}
+}
+''';
+
+      final result = parseMealAnalysis(reply, modelId: 'test-model');
+
+      expect(
+        result,
+        isA<Failure<MealAnalysis, AppError>>(),
+        reason: 'THE BUG: this was a Success carrying an empty analysis, which '
+            'the summary renders as "the assistant could not estimate '
+            'anything" — the one thing that had not happened.',
+      );
+      expect(
+        (result as Failure<MealAnalysis, AppError>).error.messageKey,
+        'analyzeMealInvalidResponse',
+        reason: 'a provider contract failure, which the Cook now reads as a '
+            'sentence instead of inferring from an empty section',
+      );
+    });
+
+    test('some reasons missing is still a useful answer', () {
+      // The rule working rather than failing. Two explained fields reach her;
+      // the unexplained one is dropped and the analysis is NOT an error, because
+      // there is something here worth her time.
+      const reply = '''
+{
+  "ingredients": ["ورق عنب", "أرز"],
+  "calories": 320,
+  "cuisine": "egyptian",
+  "basis": {
+    "ingredients": "من وصف الطباخ",
+    "cuisine": "محشي مصري"
+  }
+}
+''';
+
+      final analysis = _success(parseMealAnalysis(reply));
+
+      expect(analysis.isEmpty, isFalse);
+      expect(analysis.ingredients?.value, ['ورق عنب', 'أرز']);
+      expect(analysis.cuisine?.value, Cuisine.egyptian);
+      expect(
+        analysis.calories,
+        isNull,
+        reason: 'filled but unexplained, so dropped — and one dropped field is '
+            'not a broken reply',
+      );
+    });
+
     test(
         'a well-formed empty reply yields an empty analysis, inventing nothing',
         () {
