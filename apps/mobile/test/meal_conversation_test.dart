@@ -563,9 +563,14 @@ void main() {
     await controller.answer(MealStepId.description, 'عدس ورز');
     expect(ai.completers, hasLength(1));
 
-    await controller.answer(MealStepId.photo, 'meal-photos/uid/id.jpg');
+    // `{uid}/{mealId}.jpg` — the shape `SupabaseMealRepository.uploadPhoto`
+    // builds and the only shape `meals.photo_path` ever holds. This literal used
+    // to read `meal-photos/uid/id.jpg`, and `analyze-meal` required that form,
+    // so both halves agreed on a format no upload produces and every analysis of
+    // a Meal with a photograph was refused. 2026-08-11.
+    await controller.answer(MealStepId.photo, 'uid/id.jpg');
     expect(ai.completers, hasLength(2));
-    expect(ai.requests[1].variables['photo_path'], 'meal-photos/uid/id.jpg');
+    expect(ai.requests[1].variables['photo_path'], 'uid/id.jpg');
 
     const newerReply =
         '{"ingredients":["من الصورة"],"calories":900,"allergens":["جلوتين"],'
