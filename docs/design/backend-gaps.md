@@ -212,7 +212,10 @@ founder and this is one of them.
 **What it needs.** A native Egyptian speaker's masculine wording, then the same
 `addressForm` conversion the other four got — ten minutes once the word exists.
 
-**Two more waiting on the same person.** «بوق» in the too-noisy line, which a
+**Three more waiting on the same person.** «بوق» in the too-noisy line, which a
 reviewer flagged four times as reading like mockery rather than blaming the
-room; and the delete-a-draft cancel button, which borrows the wording written
-for retiring a Meal.
+room. The delete-a-draft cancel button, which borrows the wording written for
+retiring a Meal. And the confirmation gate's «لأ، استنى», which is masculine
+only — deliberately, because it is the Cook speaking *to* the assistant and the
+assistant is masculine in Arabic, but that reading wants a native speaker's
+confirmation before the gate is wired to a screen where anyone reads it.
