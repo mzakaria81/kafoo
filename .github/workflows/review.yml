@@ -197,9 +197,24 @@ jobs:
             phantom deletions as findings instead.
 
             Then dispatch EXACTLY these subagents, in this order, using the Task tool,
-            one Task call each, all in a single message so they run concurrently:
+            one Task call each, all in a single message so they run concurrently, and
+            **every one of them with `run_in_background: false`**:
 
                 ${{ steps.select.outputs.reviewers }}
+
+            **`run_in_background: false` IS THE WHOLE JOB, NOT A DETAIL.** A backgrounded
+            subagent returns its findings as a notification on a LATER turn. There is no
+            later turn here — nobody is sitting at this job, so ending the turn ends the
+            run. On 2026-08-11 this job dispatched all three reviewers, wrote "All three
+            are running concurrently", and stopped: three reviews paid for, three sets of
+            findings discarded, and a half-ticked checklist as the only trace. Foreground
+            calls in one message still run concurrently — the results simply arrive before
+            the turn can end, which is the only property that matters in CI.
+
+            **Do not end your turn while a reviewer is still running**, whatever the reason
+            and however long it takes. If a Task call somehow returns nothing, say so in
+            the comment as a reviewer that could not be run. Silence is the one outcome
+            this job must never produce.
 
             These are chosen by `scripts/select-reviewers.sh` from the changed paths.
             The selection is not yours to revise. Do not add a reviewer that is not on
