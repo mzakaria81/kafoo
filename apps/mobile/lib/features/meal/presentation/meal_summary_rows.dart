@@ -43,7 +43,7 @@ class SummaryRow extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.labelMedium
-                ?.copyWith(color: theme.colorScheme.outline),
+                ?.copyWith(color: KafooColors.textMuted),
           ),
           const SizedBox(height: KafooSpacing.xs),
           if (editing && controller != null && onCommit != null)
@@ -129,13 +129,13 @@ class PhotoRow extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.labelMedium
-                ?.copyWith(color: theme.colorScheme.outline),
+                ?.copyWith(color: KafooColors.textMuted),
           ),
           const SizedBox(height: KafooSpacing.xs),
           Text(
             photoPath ?? noPhotoLabel,
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: photoPath == null ? theme.colorScheme.outline : null,
+              color: photoPath == null ? KafooColors.textMuted : null,
             ),
           ),
         ],

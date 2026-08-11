@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #F5EFE7; }
+a { color: #9A3412; }
+a:hover { color: #C2410C; }
+@keyframes kafooRing { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes kafooPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes kafooBlink { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes kafooWave { 0%,100% { height: 12px; } 50% { height: 36px; } }
+@keyframes kafooSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+</style>
+</helmet>
+<div dir="rtl" style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; background: #FFFBF7; color: #1C1917; max-width: 1240px; margin: 0 auto; padding: 56px 40px 96px">
+
+<div style="border-bottom: 1px solid #E7DED3; padding-bottom: 32px">
+  <div style="font-size: 14px; font-weight: 600; letter-spacing: 0.06em; color: #0F766E; margin-bottom: 12px">كافو · أساسيات الصوت</div>
+  <h1 style="font-size: 40px; font-weight: 700; line-height: 1.35; margin: 0 0 16px; max-width: 780px; text-wrap: pretty">الصوت هو التطبيق. الشاشة إيصال.</h1>
+  <p style="font-size: 18px; line-height: 1.75; color: #57534E; margin: 0; max-width: 720px; text-wrap: pretty">الأساسيات الأولى كانت مبنية على إن الناس بتقرا وبتدوس. ده كان غلط. تحت ده التصحيح: تسع حالات صوتية، زرار كلام واحد، مجموعة كلمات مقفولة تتعرف بشكلها، وبوابة تأكيد بالصوت لأي حاجة ماتترجعش.</p>
+</div>
+
+<section style="padding-top: 48px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">القاعدة اللي كل حاجة بتحتها</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px">
+    <sc-for list="{{ principles }}" as="p" hint-placeholder-count="5">
+      <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 17px; font-weight: 600; line-height: 1.5; text-wrap: pretty">{{ p.title }}</div>
+        <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">{{ p.body }}</p>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">١ — زرار الكلام</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">دوس واستمر وانت بتتكلم، أو دوسة واحدة تثبّت التسجيل لو الكلام طويل. مفيش «استماع دايم» — المطبخ فيه دوشة وناس، والميكروفون المفتوح دايماً بيخوّف الناس بحق.</p>
+  <div style="display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start">
+    <div style="width: 390px; background: #1C1917; border-radius: 32px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px">
+      <div style="font-size: 15px; font-weight: 600; color: #99E2DA; letter-spacing: 0.04em">{{ demo.name }}</div>
+      <div style="position: relative; width: 176px; height: 176px; display: flex; align-items: center; justify-content: center">
+        <sc-if value="{{ demo.ring }}" hint-placeholder-val="{{ false }}">
+          <span style="{{ demo.ringStyle }}"></span>
+        </sc-if>
+        <button onClick="{{ nextDemo }}" style="{{ demo.orbStyle }}">
+          <sc-if value="{{ demo.wave }}" hint-placeholder-val="{{ false }}">
+            <span style="display: flex; align-items: center; gap: 4px; height: 40px">
+              <span style="width: 5px; border-radius: 999px; background: #FFFBF7; height: 12px; animation: kafooWave 0.9s ease-in-out infinite"></span>
+              <span style="width: 5px; border-radius: 999px; background: #FFFBF7; height: 12px; animation: kafooWave 0.9s ease-in-out infinite 0.15s"></span>
+              <span style="width: 5px; border-radius: 999px; background: #FFFBF7; height: 12px; animation: kafooWave 0.9s ease-in-out infinite 0.3s"></span>
+              <span style="width: 5px; border-radius: 999px; background: #FFFBF7; height: 12px; animation: kafooWave 0.9s ease-in-out infinite 0.45s"></span>
+              <span style="width: 5px; border-radius: 999px; background: #FFFBF7; height: 12px; animation: kafooWave 0.9s ease-in-out infinite 0.6s"></span>
+            </span>
+          </sc-if>
+          <sc-if value="{{ demo.dots }}" hint-placeholder-val="{{ false }}">
+            <span style="display: flex; align-items: center; gap: 8px">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #FFFBF7; animation: kafooBlink 1.1s ease-in-out infinite"></span>
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #FFFBF7; animation: kafooBlink 1.1s ease-in-out infinite 0.2s"></span>
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #FFFBF7; animation: kafooBlink 1.1s ease-in-out infinite 0.4s"></span>
+            </span>
+          </sc-if>
+          <sc-if value="{{ demo.mic }}" hint-placeholder-val="{{ true }}">
+            <span style="width: 22px; height: 36px; border-radius: 12px; background: #FFFBF7"></span>
+          </sc-if>
+        </button>
+      </div>
+      <div style="font-size: 24px; font-weight: 600; line-height: 1.45; color: #FFFBF7; text-align: center; text-wrap: pretty">{{ demo.screen }}</div>
+      <div style="display: flex; gap: 12px; align-items: flex-start; background: rgba(15,118,110,0.18); border: 1px solid #0F766E; border-radius: 14px; padding: 12px 16px; width: 100%; box-sizing: border-box">
+        <span style="width: 22px; height: 22px; border-radius: 50%; background: #0F766E; flex: none; margin-top: 2px"></span>
+        <span style="font-size: 15px; line-height: 1.75; color: #CCFBF1; text-wrap: pretty">{{ demo.spoken }}</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.7; color: #A8A29E; text-align: center">دوس على الزرار تشوف الحالة اللي بعدها</div>
+    </div>
+
+    <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 16px">
+      <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 17px; font-weight: 600; line-height: 1.5">مقاسات الزرار</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">٨٨ نقطة قطر — أكبر بكتير من الـ ٤٨ المطلوبة، عشان يتلقط بالإبهام من غير نظر ومن غير دقة، وإيد الطباخة ممكن تكون مبلولة.</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">مكانه تحت في النص، على بعد ٢٤ من حرف الشاشة السفلي. في النص مش على اليمين، لأن الشمال والشمين بيتبدلوا بين الإيدين والزرار ده مش ماشي مع اتجاه القراية.</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">حواليه ٢٤ فاضي على الأقل — مفيش أي زرار تاني في الدايرة دي، عشان مايتضغطش بالغلط وهي بتدوّر عليه بإيدها.</div>
+      </div>
+      <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 17px; font-weight: 600; line-height: 1.5">وقت الرد</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">أول علامة إن التطبيق سمعها لازم تظهر في أقل من ١٥٠ مللي — حتة (اهتزاز + الدايرة تكبر). سكوت نص ثانية معناه عندها إن الزرار ماشتغلش، فبتدوس تاني وبتقطع كلامها.</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">لو الرد هيأخد أكتر من ٤٠٠ مللي، حالة «بيفكر» لازم تبان قبلها. مفيش لحظة فاضية أبداً.</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">كل حالة ليها اهتزاز مختلف: نبضة قصيرة = بدأ يسمع، نبضتين = سمعك، نبضة طويلة = فيه مشكلة. الدوشة في المطبخ بتغطي الصوت، والاهتزاز بيوصل.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٢ — الحالات التسعة</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 760px; text-wrap: pretty">كل حالة عندها أربع حاجات لازم تتكتب مع بعض: شكل على الشاشة، جملة بتتنطق بصوت عالي، اهتزاز، وطريق بديل بالضغط. الحالة اللي جملتها المنطوقة ماكتوبتش تبقى مش خالصة.</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px">
+    <sc-for list="{{ states }}" as="s" hint-placeholder-count="9">
+      <div style="border: 1px solid #E7DED3; border-radius: 16px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column">
+        <div style="{{ s.headStyle }}">
+          <span style="{{ s.dotStyle }}"></span>
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 18px; font-weight: 700; line-height: 1.45">{{ s.name }}</div>
+            <div style="font-size: 13px; line-height: 1.6; color: #57534E" dir="ltr">{{ s.key }}</div>
+          </div>
+        </div>
+        <div style="padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 8px; align-items: flex-start">
+            <span style="{{ s.tagVisual }}">شكل</span>
+            <span style="font-size: 15px; line-height: 1.75; color: #44403C; flex: 1; text-wrap: pretty">{{ s.visual }}</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: flex-start">
+            <span style="{{ s.tagSpoken }}">صوت</span>
+            <span style="font-size: 15px; line-height: 1.75; color: #115E59; font-weight: 500; flex: 1; text-wrap: pretty">{{ s.spoken }}</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: flex-start">
+            <span style="{{ s.tagFallback }}">بديل</span>
+            <span style="font-size: 15px; line-height: 1.75; color: #44403C; flex: 1; text-wrap: pretty">{{ s.fallback }}</span>
+          </div>
+          <div style="font-size: 13px; line-height: 1.7; color: #78716C; padding-top: 4px; border-top: 1px solid #F0E9E1">اهتزاز: {{ s.haptic }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٣ — الكلمات اللي تتعرف بشكلها</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 24px; max-width: 760px; text-wrap: pretty">إحنا بنفترض إن الطباخة ممكن ماتكونش بتقرا بسهولة. الحل مش إننا نشيل الكلام — الحل إن الكلام الكبير يبقى مجموعة مقفولة صغيرة، كل كلمة ليها نفس المقاس ونفس اللون ونفس المكان في كل شاشة، فتتعرف من شكلها زي ما اللوجو بيتعرف. مفيش كلمة كبيرة جديدة تتضاف من غير ما تتحط هنا.</p>
+  <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+    <div style="display: flex; flex-wrap: wrap; gap: 16px">
+      <sc-for list="{{ glanceWords }}" as="w" hint-placeholder-count="9">
+        <div style="{{ w.chipStyle }}">
+          <span style="{{ w.wordStyle }}">{{ w.word }}</span>
+          <span style="font-size: 13px; line-height: 1.6; color: #57534E" dir="ltr">{{ w.role }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font-size: 15px; line-height: 1.8; color: #44403C; margin-top: 24px; padding-top: 16px; border-top: 1px solid #F0E9E1; text-wrap: pretty">اللون بيقول نفس اللي الكلمة بتقوله، مش حاجة زيادة — لأن لو الكلمة ماتقريتش، اللون لوحده لازم يوصّل نفس المعنى. وعشان كده كلمة الحالة بتتنطق بصوت عالي كل مرة الشاشة تفتح.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 24px">
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+      <div style="font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 12px">الأرقام هي أكبر حاجة على أي شاشة</div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px">
+        <span style="font-size: 64px; font-weight: 700; line-height: 1.2">١٢٠</span>
+        <span style="font-size: 24px; font-weight: 600; color: #57534E">جنيه</span>
+      </div>
+      <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">الأرقام بيقراها كل الناس تقريباً، حتى اللي مابيقراش كلام. فالسعر والعدد والوقت ياخدوا أكبر مقاس في الشاشة — ٤٨ لـ ٦٤ نقطة — بأرقام عربية هندية، وبدون أي اختصار (مفيش «١.٢ ألف»).</p>
+    </div>
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+      <div style="font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 12px">اسم الأكلة مش حمّال معنى</div>
+      <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0 0 12px; text-wrap: pretty">اسم الأكلة موجود على الشاشة، بس مافيش قرار متعلق بقراءته. اللي بيفرّق الصف عن اللي جمبه: صورته، سعره الكبير، وكلمة حالته الملونة. الاسم بيتنطق مع الصف لما يتفتح أو يتضغط عليه.</p>
+      <div style="font-size: 15px; line-height: 1.8; color: #9F1239; font-weight: 500; text-wrap: pretty">القاعدة: لو المعلومة الوحيدة اللي بتفرّق بين خيارين مكتوبة بخط صغير، الشاشة دي فشلت.</div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٤ — بوابة التأكيد</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 760px; text-wrap: pretty">المساعد بيتصرف لوحده في الحاجات اللي بترجع (بحث، فلتر، مسودة). أي حاجة ماترجعش — نشر أكلة، تأكيد طلب، إلغاء — بيقراها بصوته الأول ويستنى «أيوة». مفيش تأكيد بالسكوت، ومفيش وقت بينتهي فيؤكد لوحده.</p>
+  <div style="display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start">
+    <div style="width: 390px; background: #1C1917; border-radius: 32px; padding: 32px 24px; display: flex; flex-direction: column; gap: 24px">
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <span style="width: 22px; height: 22px; border-radius: 50%; background: #0F766E; flex: none; margin-top: 4px; animation: kafooPulse 1.6s ease-in-out infinite"></span>
+        <span style="font-size: 18px; line-height: 1.75; color: #CCFBF1; text-wrap: pretty">«هقفل الكلام كده: محشي ورق عنب بالزيت، مية وعشرين جنيه، يكفي أربع أفراد. أنشرها للعملاء؟»</span>
+      </div>
+      <div style="background: #FFFBF7; border-radius: 20px; padding: 24px; display: flex; flex-direction: column">
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: center">
+          <div style="{{ photoStyle }}">
+            <span style="font-size: 12px; font-weight: 700; line-height: 1.4; color: #9F1239; text-align: center">صورة مؤقتة<br />مش هتنزل</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <span style="font-size: 56px; font-weight: 700; line-height: 1.2; color: #1C1917">١٢٠</span>
+            <span style="font-size: 22px; font-weight: 600; color: #57534E">جنيه</span>
+          </div>
+          <span style="font-size: 32px; font-weight: 700; line-height: 1.4; color: #15803D">تنشر؟</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <button style="font-family: inherit; font-size: 24px; font-weight: 700; line-height: 1.4; color: #FFFFFF; background: #15803D; border: 0; border-radius: 16px; padding: 20px 24px; min-height: 72px; width: 100%; cursor: pointer">أيوة، انشريها</button>
+        <button style="font-family: inherit; font-size: 20px; font-weight: 600; line-height: 1.4; color: #FFFBF7; background: transparent; border: 1.5px solid #78716C; border-radius: 16px; padding: 16px 24px; min-height: 56px; width: 100%; cursor: pointer">لأ، استنى</button>
+      </div>
+      <div style="font-size: 13px; line-height: 1.7; color: #A8A29E; text-align: center; text-wrap: pretty">تقدر تقول «أيوة» أو «لأ» بصوتك، أو تدوس. الاتنين شغالين دايماً.</div>
+    </div>
+    <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 16px">
+      <sc-for list="{{ gateRules }}" as="g" hint-placeholder-count="5">
+        <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 20px 24px">
+          <div style="font-size: 16px; font-weight: 600; line-height: 1.5; margin-bottom: 8px">{{ g.title }}</div>
+          <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">{{ g.body }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٥ — لما ما يسمعش صح</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 24px; max-width: 760px; text-wrap: pretty">التعرّف على العربي المصري بيغلط في الأسامي وفي كلام البيت. النزول للبديل بيحصل على تلات درجات، وماينزلش لتحت بدري ولا بيفضل يلف في نفس المكان.</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+    <sc-for list="{{ ladder }}" as="l" hint-placeholder-count="3">
+      <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="{{ l.numStyle }}">{{ l.num }}</span>
+          <span style="font-size: 17px; font-weight: 600; line-height: 1.5">{{ l.title }}</span>
+        </div>
+        <div style="font-size: 15px; line-height: 1.75; color: #115E59; font-weight: 500; text-wrap: pretty">{{ l.spoken }}</div>
+        <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">{{ l.body }}</p>
+      </div>
+    </sc-for>
+  </div>
+  <div style="margin-top: 24px; border-right: 3px solid #9F1239; background: #FEF2F2; border-radius: 0 12px 12px 0; padding: 20px 24px">
+    <p style="font-size: 16px; line-height: 1.75; color: #9F1239; margin: 0; font-weight: 500; text-wrap: pretty">ممنوع نلوم اللي بيتكلم. «معلش، مافهمتش» مقبولة. «كلامك مش واضح» أو «حاول تتكلم بشكل أوضح» ممنوعة — الغلطة غلطة التطبيق، مش غلطتها.</p>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٦ — الصوت شغّال دايماً، والخصوصية</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+    <sc-for list="{{ privacy }}" as="p" hint-placeholder-count="4">
+      <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+        <div style="font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 8px">{{ p.title }}</div>
+        <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">{{ p.body }}</p>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 600; line-height: 1.45; margin: 0 0 8px">٧ — إيه اللي اتغيّر في الأساسيات القديمة</h2>
+  <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; overflow: hidden">
+    <sc-for list="{{ changes }}" as="c" hint-placeholder-count="6">
+      <div style="display: grid; grid-template-columns: 170px 1fr; gap: 24px; padding: 20px 24px; border-bottom: 1px solid #F0E9E1; align-items: start">
+        <div style="font-size: 16px; font-weight: 600; line-height: 1.5">{{ c.area }}</div>
+        <div style="font-size: 15px; line-height: 1.8; color: #44403C; text-wrap: pretty">{{ c.body }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240}}">
+class Component extends DCLogic {
+  state = { demo: 0 };
+
+  renderVals() {
+    const orb = (bg, border) => ({
+      width: "88px", height: "88px", borderRadius: "50%", background: bg,
+      border: border || "0", display: "flex", alignItems: "center", justifyContent: "center",
+      cursor: "pointer", position: "relative", zIndex: 2, padding: 0, flex: "none",
+      boxShadow: "0 0 0 12px rgba(15,118,110,0.18)"
+    });
+    const ring = { position: "absolute", width: "88px", height: "88px", borderRadius: "50%",
+      border: "2px solid #0F766E", animation: "kafooRing 1.8s ease-out infinite", zIndex: 1 };
+    const demos = [
+      { key: "idle", name: "ساكن", screen: "قوليلي عايزة تعملي إيه", spoken: "«أنا معاك. دوسي واتكلمي.»",
+        orbStyle: orb("#0F766E"), mic: true },
+      { key: "listening", name: "بيسمع", screen: "بسمعك...", spoken: "(مفيش كلام — بس اهتزاز قصير واحد)",
+        orbStyle: orb("#0F766E"), wave: true, ring: true, ringStyle: ring },
+      { key: "thinking", name: "بيفكر", screen: "ثانية واحدة...", spoken: "(سكوت مسموح لحد ثانيتين، وبعدها «لسه معاك»)",
+        orbStyle: orb("#115E59"), dots: true },
+      { key: "speaking", name: "بيتكلم", screen: "لقيتلك تلات مطابخ قريبين", spoken: "«لقيتلك تلات مطابخ قريبين منك بيعملوا محشي النهاردة.»",
+        orbStyle: orb("#0F766E", "3px solid #CCFBF1"), wave: true },
+      { key: "not-heard", name: "ماسمعتكش", screen: "معلش، مافهمتش", spoken: "«معلش، مافهمتش. قوليها تاني؟»",
+        orbStyle: orb("#9A3412"), mic: true },
+      { key: "noisy", name: "الدنيا دوشة", screen: "الدوشة عالية شوية", spoken: "«الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.»",
+        orbStyle: orb("#9A3412"), wave: true },
+      { key: "offline", name: "مفيش نت", screen: "محفوظ، هيتبعت بعدين", spoken: "«مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.»",
+        orbStyle: orb("transparent", "2px dashed #0F766E"), mic: true }
+    ];
+    const d = demos[this.state.demo % demos.length];
+    const tag = (fg, bg, bd) => ({ fontSize: "12px", fontWeight: 700, lineHeight: 1.4, color: fg,
+      background: bg, border: "1px solid " + bd, borderRadius: "6px", padding: "3px 8px", flex: "none", minWidth: "38px", textAlign: "center" });
+    const head = (bg, bd) => ({ display: "flex", alignItems: "center", gap: "12px",
+      padding: "16px 20px", background: bg, borderBottom: "1px solid " + bd });
+    const dot = (c, anim) => ({ width: "14px", height: "14px", borderRadius: "50%", background: c,
+      flex: "none", animation: anim || "none" });
+    const glance = (word, role, color, bg, bd, dashed) => ({
+      word, role,
+      chipStyle: { display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
+        background: bg, border: (dashed ? "1.5px dashed " : "1.5px solid ") + bd,
+        borderRadius: "14px", padding: "16px 20px", minWidth: "150px" },
+      wordStyle: { fontSize: "32px", fontWeight: 700, lineHeight: 1.4, color }
+    });
+    return {
+      demo: d,
+      nextDemo: () => this.setState(s => ({ demo: s.demo + 1 })),
+      photoStyle: { width: "100%", height: "120px", borderRadius: "14px",
+        background: "repeating-linear-gradient(45deg, #F0E9E1 0 10px, #FAF5F0 10px 20px)",
+        border: "1.5px dashed #C7B9A8", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" },
+      principles: [
+        { title: "الشاشة بتأكّد، مش بتعلّم", body: "كل حاجة على الشاشة اتقالت بالصوت الأول. الشاشة مابتقدّمش معلومة جديدة — بتثبّت اللي اتسمع، عشان اللي مايقراش يكون عارف بالفعل." },
+        { title: "المساعد بيرد بكلامه هو", body: "مفيش نص للكلام اللي اتقال. المساعد بيقول اللي فهمه بأسلوبه («تمام، محشي بمية وعشرين») — ده بيوضّح الفهم الغلط أسرع من نص حرفي مكتوب صغير." },
+        { title: "التصرف يرجع، والقرار يتأكد", body: "بحث وفلتر ومسودة: يتصرف فوراً ويقول إنه عمل كده. نشر وطلب وإلغاء: يقرا بصوته ويستنى «أيوة»." },
+        { title: "كل حالة عندها صوت وشكل واهتزاز", body: "المطبخ فيه دوشة، والشارع فيه شمس. الحالة الواحدة لازم توصل بتلات طرق مختلفة، وأي واحدة فيهم لوحدها تكفي." },
+        { title: "الضغط بديل كامل، مش تعويض ناقص", body: "أي حاجة تتعمل بالصوت لازم تتعمل بالضغط. الناس بتبطّل تتكلم في الأتوبيس، وسط الناس، ولما الواحد يبقى تعبان." }
+      ],
+      states: [
+        { key: "idle", name: "ساكن — العرض", headStyle: head("#F0FDFA", "#99E2DA"), dotStyle: dot("#0F766E"),
+          visual: "الزرار تركوازي مليان، جواه شكل ميكروفون، وتحته سطر واحد بيقول تقدر تقول إيه دلوقتي.",
+          spoken: "«أنا معاك. دوسي واتكلمي.» — مرة واحدة أول ما الشاشة تفتح، وماتتكررش.",
+          fallback: "زرار «اعمليها بإيدك» صغير تحت الزرار الكبير، موجود دايماً.",
+          haptic: "مفيش", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "listening", name: "بيسمع", headStyle: head("#F0FDFA", "#99E2DA"), dotStyle: dot("#0F766E", "kafooPulse 1.4s ease-in-out infinite"),
+          visual: "دواير بتكبر وتختفي حوالين الزرار + خمس أعمدة بتتحرك مع صوتها الحقيقي. الحركة لازم تكون مربوطة بالصوت الفعلي مش حركة وهمية.",
+          spoken: "مفيش كلام — التطبيق بيسكت وهو بيسمع.",
+          fallback: "لو سابت الزرار بالغلط، التسجيل يكمّل تاني ثانية قبل ما يقف.",
+          haptic: "نبضة قصيرة واحدة عند البداية", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "thinking", name: "بيفكر", headStyle: head("#F0FDFA", "#99E2DA"), dotStyle: dot("#115E59", "kafooBlink 1.2s ease-in-out infinite"),
+          visual: "تلات نقط بتنور ورا بعضها جوه الزرار. لازم تظهر قبل ٤٠٠ مللي من آخر كلمة.",
+          spoken: "سكوت. لو عدّى ثانيتين: «لسه معاك، ثانية.»",
+          fallback: "تقدر تقاطع في أي وقت بدوسة على الزرار — ماينفعش نقفل عليها.",
+          haptic: "مفيش", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "speaking", name: "بيتكلم", headStyle: head("#F0FDFA", "#99E2DA"), dotStyle: dot("#0F766E"),
+          visual: "حلقة فاتحة حوالين الزرار + الجملة اللي بيقولها ظاهرة كبيرة على الشاشة في نفس الوقت.",
+          spoken: "الرد بالعربي المصري، أقصر من ٣ جمل. لو أطول من كده، الرد نفسه غلط.",
+          fallback: "دوسة واحدة توقفه فوراً وتفتح السمع — قطع كلامه مسموح ومتوقع.",
+          haptic: "نبضتين قصيرين قبل ما يبدأ يتكلم", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "not-heard", name: "ماسمعتكش", headStyle: head("#FFF7ED", "#F0C9A8"), dotStyle: dot("#9A3412"),
+          visual: "الزرار بيبقى طوبي غامق — لون مختلف عن التركوازي، عشان الفرق يبان من غير قراية.",
+          spoken: "«معلش، مافهمتش. قوليها تاني؟» ومرة تانية بس، وبعدها ننزل درجة.",
+          fallback: "بعد محاولتين، الطريق البديل بالضغط يفتح لوحده بدون سؤال.",
+          haptic: "نبضة طويلة واحدة", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "correcting", name: "بيصحّح", headStyle: head("#FFF7ED", "#F0C9A8"), dotStyle: dot("#C2410C"),
+          visual: "الحاجة اللي اتغيرت بس هي اللي تكبر وتتحرك حركة صغيرة — السعر القديم يختفي والجديد يظهر مكانه كبير.",
+          spoken: "«تمام، غيّرتها لمية وأربعين. حاجة تانية؟» — يعيد الرقم الجديد بالكلام، دايماً.",
+          fallback: "«ارجع للي قبله» بالصوت أو بضغطة، لحد ما تقفل الشاشة.",
+          haptic: "نبضتين قصيرين", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "interrupted", name: "اتقطع", headStyle: head("#F0FDFA", "#99E2DA"), dotStyle: dot("#0F766E"),
+          visual: "الكلام بيقف في نصه على الشاشة، والزرار بيرجع لحالة السمع فوراً — مفيش رسالة ومفيش لوم.",
+          spoken: "مفيش. بيسكت ويسمع.",
+          fallback: "اللي كان بيقوله بيفضل مكتوب على الشاشة عشان ترجعله لو عايزة.",
+          haptic: "نبضة قصيرة", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "offline", name: "مفيش نت — محفوظ", headStyle: head("#FEF2F2", "#F3B8C4"), dotStyle: dot("#9F1239"),
+          visual: "الزرار بيبقى فاضي بحدود متقطعة تركوازية، وجمبه علامة إن فيه كلام مستني يتبعت.",
+          spoken: "«مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.» — الطمأنينة تيجي قبل المشكلة.",
+          fallback: "الكلام المسجل بيتخزن على الموبايل ويتبعت لوحده، وهي تقدر تقفل التطبيق.",
+          haptic: "نبضة طويلة", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") },
+        { key: "noisy", name: "الدنيا دوشة", headStyle: head("#FFF7ED", "#F0C9A8"), dotStyle: dot("#9A3412"),
+          visual: "الأعمدة كلها عالية وثابتة — شكل بيقول «الصوت كتير» من غير قراية.",
+          spoken: "«الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.» نصيحة عملية، مش شكوى.",
+          fallback: "لو الدوشة فضلت، يعرض الطريق البديل بالضغط على طول.",
+          haptic: "نبضة طويلة", tagVisual: tag("#44403C", "#FAF5F0", "#D6CCC0"), tagSpoken: tag("#115E59", "#F0FDFA", "#99E2DA"), tagFallback: tag("#9A3412", "#FFF7ED", "#F0C9A8") }
+      ],
+      glanceWords: [
+        glance("منشورة", "published", "#15803D", "#F0FDF4", "#BBF7D0"),
+        glance("مسودة", "draft", "#57534E", "#FAF5F0", "#D6CCC0", true),
+        glance("مش متاحة", "unavailable", "#9A3412", "#FFF7ED", "#F0C9A8"),
+        glance("أرشيف", "archived", "#78716C", "#FFFFFF", "#E7DED3"),
+        glance("طلب جديد", "new order", "#0F766E", "#F0FDFA", "#99E2DA"),
+        glance("وصل", "delivered", "#15803D", "#F0FDF4", "#BBF7D0"),
+        glance("اتلغى", "cancelled", "#9F1239", "#FEF2F2", "#F3B8C4"),
+        glance("محفوظ", "saved / queued", "#115E59", "#F0FDFA", "#99E2DA", true),
+        glance("مفيش نت", "offline", "#9F1239", "#FEF2F2", "#F3B8C4", true)
+      ],
+      gateRules: [
+        { title: "اللي بيتصرف فيه لوحده", body: "البحث، الفلتر، فتح صفحة، كتابة مسودة، تعديل مسودة. كلها بترجع، وكلها بيقول إنه عملها بصوته: «عرضتلك المطابخ القريبة»." },
+        { title: "اللي لازم له «أيوة»", body: "نشر أكلة، تأكيد طلب، إلغاء طلب، تغيير سعر أكلة منشورة، أرشفة. القاعدة: أي حاجة عميل هيشوفها أو فلوس هتتحرك بسببها." },
+        { title: "شكل التأكيد", body: "رقم كبير + كلمة واحدة من المجموعة المقفولة + الجملة المنطوقة مكتوبة. وزرارين: «أيوة» أخضر ٧٢ نقطة، و«لأ» بحدود بس. الأخضر أكبر لأنه الأكثر استخداماً، بس الاتنين واضحين." },
+        { title: "مفيش تأكيد بالسكوت", body: "لو ماردّتش، مايحصلش حاجة. الشاشة تفضل مستنية، والسؤال يتقال تاني مرة واحدة بعد ٨ ثواني، وبعدها يسكت ويستنى." },
+        { title: "بعد التنفيذ", body: "يقول اللي حصل («تمام، الأكلة منشورة») ويسيب «ارجع» ظاهر دقيقتين — حتى في الحاجات اللي ماترجعش، الرجوع الفوري لازم يكون موجود." }
+      ],
+      ladder: [
+        { num: "١", numStyle: { fontSize: "18px", fontWeight: 700, color: "#FFFFFF", background: "#0F766E", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" },
+          title: "يسأل تاني بالصوت", spoken: "«معلش، مافهمتش. قوليها تاني؟»",
+          body: "مرة واحدة بس. تكرار نفس السؤال تالت مرة بيخلي الناس تحس إن التطبيق أهبل." },
+        { num: "٢", numStyle: { fontSize: "18px", fontWeight: 700, color: "#FFFFFF", background: "#9A3412", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" },
+          title: "يسأل سؤال أضيق", spoken: "«الأكلة اسمها محشي ورق عنب؟ قولي أيوة أو لأ.»",
+          body: "سؤال بإجابة من كلمتين أسهل بكتير على التعرّف من سؤال مفتوح، وبيخلص الموضوع من غير كتابة." },
+        { num: "٣", numStyle: { fontSize: "18px", fontWeight: 700, color: "#FFFFFF", background: "#9F1239", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" },
+          title: "ينزل للضغط لوحده", spoken: "«خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.»",
+          body: "بيعرض الخيارات كصور وأرقام كبيرة تتضغط. مايطلبش منها تكتب أبداً — الكتابة آخر حاجة، ومش مفروضة عليها." }
+      ],
+      privacy: [
+        { title: "الصوت شغال من غير طلب", body: "التطبيق بيقرا نفسه بصوت عالي بشكل افتراضي، لأن ده الطريق الأساسي مش إضافة. أول مرة يتفتح بيقول كده بنفسه." },
+        { title: "زرار الكتم موجود على كل شاشة", body: "٤٨ نقطة، فوق على جهة الشمال، بشكل واضح (سماعة عليها خط). الكتم بيتفضل محفوظ لحد ما تشيله — مايرجعش لوحده." },
+        { title: "الفلوس بتتقال بصوت واطي", body: "المبالغ والعناوين بتتقال بصوت أقل شوية، ولو في سماعة بتتوجّه ليها. البيت فيه ناس تانية، والدخل حاجة خاصة." },
+        { title: "التسجيل بيبان وهو شغال", body: "طول ما الميكروفون شغال فيه علامة واضحة على الشاشة. مفيش سمع في الخفا خالص — ولا حتى لكلمة تنبيه." }
+      ],
+      changes: [
+        { area: "الحالات التسعة", body: "أضفنا تسع حالات صوتية كعناصر حقيقية. قبل كده كان فيه لون تركوازي وبس، واللون مش حالة." },
+        { area: "مقاس الكلمة", body: "كلمة الحالة طلعت من ١٣ نقطة (شارة صغيرة) لـ ٢٠–٣٢ نقطة من مجموعة مقفولة. لو الكلمة مش هتتقرا، خلّيها كبيرة وثابتة عشان تتعرف بشكلها." },
+        { area: "مقاس الرقم", body: "السعر طلع من ١٨–٢٤ نقطة لـ ٤٨–٦٤. الأرقام هي اللي بتتقري فعلاً." },
+        { area: "أكبر مساحة ضغط", body: "زرار الكلام ٨٨ نقطة، وزرار «أيوة» ٧٢. الـ ٤٨ نقطة بقت الحد الأدنى للحاجات الصغيرة، مش لأهم حاجة في الشاشة." },
+        { area: "الجملة المنطوقة", body: "بقت جزء من تعريف أي عنصر. العنصر اللي مالوش جملة منطوقة يبقى ناقص — زي عنصر مالوش حالة موقوفة." },
+        { area: "خانة الإدخال", body: "نزلت من عنصر أساسي لآخر طريق بديل. الكتابة بالعربي على كيبورد موبايل هي أصعب حاجة نطلبها من الطباخة." }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

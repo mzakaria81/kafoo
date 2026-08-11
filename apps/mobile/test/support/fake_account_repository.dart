@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/identity/data/account_repository.dart';
 
@@ -87,6 +88,59 @@ class FakeAccountRepository implements AccountRepository {
   }) async {
     if (fails) return const Failure(AppError(messageKey: 'codeWrongCode'));
     return const Success(null);
+  }
+
+  /// Numbers a code was requested for, in order. Records that the SEND
+  /// happened, which is the half a resend test needs.
+  final List<String> sentTo = <String>[];
+
+  /// Codes offered to [verifyPhoneSignInCode], in order.
+  final List<String> verified = <String>[];
+
+  /// When set, [sendPhoneSignInCode] fails with this error.
+  ///
+  /// An [AppError] rather than a bare key string, so the key a test uses is a
+  /// literal the gate can see. Holding the key in a local variable and passing
+  /// that variable put a variable name where the gate expects a quoted string —
+  /// the "error keys are localized" check reads whatever token follows the named
+  /// argument, so it dutifully reported a missing translation for a string
+  /// called "key". The check was right; the shape was wrong.
+  ///
+  /// **And the first version of this very comment broke it again**, by quoting
+  /// the offending line verbatim: the check greps source, comments included, so
+  /// prose about a defect reproduced the defect. Do not name that token here.
+  AppError? failSendWith;
+
+  /// When set, [verifyPhoneSignInCode] fails with this error.
+  AppError? failVerifyWith;
+
+  /// What a successful verify reports: true means this created a new identity.
+  bool verifyReturnsNewAccount = false;
+
+  /// Held open to observe the loading state. Without it every call resolves in
+  /// the same microtask and a spinner never renders, so a test of one would pass
+  /// while asserting nothing.
+  Completer<void>? gate;
+
+  @override
+  Future<Result<void, AppError>> sendPhoneSignInCode(String phone) async {
+    if (gate != null) await gate!.future;
+    sentTo.add(phone);
+    final failure = failSendWith;
+    if (failure != null) return Failure(failure);
+    return const Success(null);
+  }
+
+  @override
+  Future<Result<bool, AppError>> verifyPhoneSignInCode({
+    required String phone,
+    required String token,
+  }) async {
+    if (gate != null) await gate!.future;
+    verified.add(token);
+    final failure = failVerifyWith;
+    if (failure != null) return Failure(failure);
+    return Success(verifyReturnsNewAccount);
   }
 
   @override

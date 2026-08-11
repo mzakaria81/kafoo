@@ -52,6 +52,23 @@ abstract interface class AccountRepository {
     required String token,
   });
 
+  /// Sends a sign-in code to an Egyptian mobile number.
+  ///
+  /// **This route DOES create a new identity when the number is unknown**, and
+  /// that is the difference from [sendEmailSignInCode]. Signing up and signing
+  /// in are the same act for a Cook holding a phone; email exists only to reach
+  /// an identity that already has one.
+  Future<Result<void, AppError>> sendPhoneSignInCode(String phone);
+
+  /// Verifies a code sent by [sendPhoneSignInCode], signing the person in.
+  ///
+  /// Returns whether this created a NEW identity, so the caller can emit
+  /// `AccountCreated` without a second round trip.
+  Future<Result<bool, AppError>> verifyPhoneSignInCode({
+    required String phone,
+    required String token,
+  });
+
   /// Moves this identity to a new phone number, keeping everything attached to
   /// it. The previous number stops reaching the identity once confirmed.
   Future<Result<void, AppError>> changePhoneNumber(String phone);
@@ -152,6 +169,66 @@ class SupabaseAccountRepository implements AccountRepository {
       );
       return const Success(null);
     } on AuthException catch (e) {
+      return Failure(AppError(messageKey: 'codeWrongCode', cause: e));
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'signInNetworkError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<void, AppError>> sendPhoneSignInCode(String phone) async {
+    try {
+      await _client.auth.signInWithOtp(phone: phone);
+      return const Success(null);
+    } on AuthException catch (e) {
+      // Literal keys in separate branches, never a ternary inside
+      // `messageKey:`. The gate greps for the string that follows it and cannot
+      // read a variable — so a computed key reports as a missing translation,
+      // which is the correct refusal: nothing could verify it had one.
+      //
+      // Rate limiting is the one auth failure with its own sentence, because
+      // "wait a bit and try again" is actionable and "try again" is not.
+      if (e.statusCode == '429' || e.message.toLowerCase().contains('rate')) {
+        return Failure(AppError(messageKey: 'signInRateLimited', cause: e));
+      }
+      // Anything else: the code was not sent and we do not guess why. An
+      // unknown number, a number that cannot receive SMS, and a messaging
+      // provider that is down are indistinguishable from here.
+      return Failure(AppError(messageKey: 'signInCodeNotSent', cause: e));
+    } on Object catch (e) {
+      return Failure(AppError(messageKey: 'signInNetworkError', cause: e));
+    }
+  }
+
+  @override
+  Future<Result<bool, AppError>> verifyPhoneSignInCode({
+    required String phone,
+    required String token,
+  }) async {
+    try {
+      final response = await _client.auth.verifyOTP(
+        phone: phone,
+        token: token,
+        type: OtpType.sms,
+      );
+      // Equal timestamps mean the row was created by this call rather than
+      // found by it. Cheaper than a second read and exact enough for an
+      // analytics attribute.
+      final user = response.user;
+      final isNew = user != null && user.createdAt == user.updatedAt;
+      return Success(isNew);
+    } on AuthException catch (e) {
+      // Literal keys in separate branches, never a ternary inside `messageKey:`.
+      // The gate greps for the string that follows it and cannot read a
+      // variable, so a computed key reports as a missing translation — which is
+      // the right refusal, because nothing could verify it had one.
+      final msg = e.message.toLowerCase();
+      if (msg.contains('expired') ||
+          (msg.contains('otp') && msg.contains('invalid'))) {
+        // Different words from a wrong code on purpose: "expired" tells a Cook
+        // to ask for a new one, "wrong" tells her to check her fingers.
+        return Failure(AppError(messageKey: 'codeExpired', cause: e));
+      }
       return Failure(AppError(messageKey: 'codeWrongCode', cause: e));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'signInNetworkError', cause: e));

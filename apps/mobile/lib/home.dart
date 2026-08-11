@@ -125,8 +125,18 @@ class _SignedInHomeState extends State<SignedInHome> {
   void _offerAMeal() {
     // MealPublishEntry checks for a Kitchen Profile itself and asks the Cook to
     // create one if there is none (FR-017), so this does not repeat the check.
+    //
+    // It is handed the repository this screen already holds. Constructed
+    // `const` it built its own `SupabaseAccountRepository` — which works on a
+    // phone and makes the whole route untestable, because a test reaches an
+    // uninitialised Supabase before it can assert anything. Every other push
+    // from this screen already passes its dependency down; this one did not.
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const MealPublishEntry()),
+      MaterialPageRoute<void>(
+        builder: (_) => MealPublishEntry(
+          kitchenProfileRepository: widget.kitchenProfileRepository,
+        ),
+      ),
     );
   }
 

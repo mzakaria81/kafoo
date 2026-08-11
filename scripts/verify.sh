@@ -755,6 +755,89 @@ run "every screen has a route into it" bash -c '
   done
   exit $status'
 
+# THE APP IS TESTED AS A WHOLE, NOT ONLY AS PARTS.
+#
+# Every other test in `apps/mobile/test/` builds one screen and hands it fakes. That proves the
+# screen and says nothing about the joins between screens — and on 2026-08-10 FIVE defects reached
+# the founder's phone in a single day, every one of them through a fully green gate, every one of
+# them living in a join rather than inside a widget:
+#
+#   icons rendered as Chinese characters · the app threw on its first frame with no ProviderScope ·
+#   four Cook screens had no route into them · the design system was rendered by no test at all ·
+#   a correct sign-in code signed the Cook in and navigated nowhere
+#
+# `journey_test.dart` boots `KafooApp` and walks real paths, which is the only level at which any of
+# those is visible. This check does not pretend to know whether a given change NEEDED a new journey
+# — that is judgement, and `.claude/rules/dart.md` states the rule for a person to follow. What it
+# refuses is the decay: the file being deleted, or quietly rewritten into more per-screen tests,
+# which is exactly how this gap opened in the first place.
+run "the app has journey tests" bash -c '
+  f=apps/mobile/test/journey_test.dart
+  [ -d apps/mobile/test ] || { echo "   no mobile tests yet — skipping"; exit 0; }
+  status=0
+  if [ ! -f "$f" ]; then
+    echo "   FAIL: $f is missing."
+    echo "   It is the only test that boots the whole app. Five defects shipped green without it."
+    exit 1
+  fi
+  # It must boot the app root. A journey file full of single screens is the gap wearing the name.
+  grep -q "KafooApp(" "$f" || {
+    echo "   FAIL: $f does not construct KafooApp."
+    echo "   A journey test that builds screens one at a time is what every other test already does."
+    status=1; }
+  # It must assert a DEPARTURE, not only an arrival. findsOneWidget on the destination is half a
+  # transition; findsNothing on the screen left behind is the half that catches a route nobody popped,
+  # which is precisely the sign-in bug the founder found.
+  grep -q "findsNothing" "$f" || {
+    echo "   FAIL: $f never asserts findsNothing."
+    echo "   Arriving somewhere is half a transition. The half that catches an undismissed screen is"
+    echo "   asserting the screen left behind is GONE."
+    status=1; }
+  # And it must actually drive the app rather than call into it.
+  grep -qE "tester\.(tap|enterText)" "$f" || {
+    echo "   FAIL: $f never taps or types. Drive the app the way a person does."
+    status=1; }
+  journeys=$(grep -c "testWidgets(" "$f")
+  echo "   ${journeys} journey(s), booting the app root"
+  exit $status'
+
+# THE ARABIC FONT IS DECLARED IN BOTH PLACES IT HAS TO BE.
+#
+# `KafooType.fontFamily` names a family in Dart; `apps/mobile/pubspec.yaml` is what actually bundles
+# it. Nothing connects the two. Rename, move or drop the pubspec block and the build SUCCEEDS while
+# every screen reverts to whatever Arabic face the handset happens to carry — the exact state the
+# design system exists to end.
+#
+# The test called "carries the bundled Arabic font" cannot catch it. It asserts the theme's family
+# equals `KafooType.fontFamily` — the constant against itself. It reads as coverage and is not.
+# `dart analyze` never opens pubspec, and widget tests never load real fonts. Same shape as the icon
+# font below and the Info.plist strings: invisible to everything except a person holding a phone.
+#
+# Written first INSIDE the android check above, where its quoting broke that block and the gate died
+# on an unbound variable — so it is its own check now, with no literal apostrophe in it.
+run "the Arabic font is bundled" bash -c '
+  [ -f apps/mobile/pubspec.yaml ] || { echo "   no mobile app — skipping"; exit 0; }
+  [ -f packages/ui/lib/theme/tokens.dart ] || { echo "   no design tokens yet — skipping"; exit 0; }
+  status=0
+  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/tokens.dart | head -1 |
+           grep -oE "[A-Za-z]+$")
+  if [ -z "$family" ]; then
+    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/tokens.dart."
+    status=1
+  elif ! grep -qE "^[[:space:]]+- family: ${family}$" apps/mobile/pubspec.yaml; then
+    echo "   FAIL: apps/mobile/pubspec.yaml does not declare the font family [${family}]."
+    echo "   Dart names the family, the pubspec bundles it, and nothing else connects them. Without"
+    echo "   the declaration the app builds clean and every Arabic glyph comes from the handset."
+    status=1
+  fi
+  declared=$(grep -cE "asset: assets/fonts/[A-Za-z0-9-]+[.]ttf" apps/mobile/pubspec.yaml || true)
+  [ "$declared" -gt 0 ] || { echo "   FAIL: no font assets declared."; status=1; }
+  for asset in $(grep -oE "assets/fonts/[A-Za-z0-9-]+[.]ttf" apps/mobile/pubspec.yaml); do
+    [ -f "apps/mobile/${asset}" ] || {
+      echo "   FAIL: ${asset} is declared in pubspec.yaml but is not on disk."; status=1; }
+  done
+  exit $status'
+
 # THE THINGS THAT ARE ONLY WRONG ON A REAL PHONE.
 #
 # Every other check in this file reads Dart, SQL or ARB. None of them opens the Android manifest or

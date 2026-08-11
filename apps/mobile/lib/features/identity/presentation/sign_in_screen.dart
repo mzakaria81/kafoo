@@ -2,19 +2,28 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
-import 'package:kafoo_domain/egyptian_phone.dart';
+import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../data/account_repository.dart';
 import 'code_screen.dart';
 import 'email_sign_in_screen.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  const SignInScreen({
+    this.repository = const SupabaseAccountRepository(),
+    super.key,
+  });
+
+  /// Injected so a journey test can drive sign-in without a live backend. This
+  /// screen reached `Supabase.instance.client` directly until 2026-08-10, which
+  /// the layering rule forbids and which is why neither half of sign-in could
+  /// be tested end to end.
+  final AccountRepository repository;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -71,48 +80,54 @@ class _SignInScreenState extends State<SignInScreen> {
       attributes: {'route': 'phone'},
     ));
 
-    try {
-      await Supabase.instance.client.auth.signInWithOtp(phone: phone);
-      if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => CodeScreen(phone: phone),
-        ),
-      );
-    } on AuthException catch (e) {
-      // AN ANSWER FROM THE SERVER IS PROOF THE NETWORK WORKS. This branch used
-      // to report every refusal as "no internet connection", which contradicted
-      // itself: the only way to be refused is to have been heard. It said so on
-      // the first build anybody installed, in front of the founder.
-      //
-      // The wording does not guess WHY the code was not sent — an unknown
-      // number, a number that cannot receive SMS, and a messaging provider that
-      // is down are indistinguishable from here, and inventing a reason would be
-      // the same failure one layer along.
-      final l10n = AppLocalizations.of(context);
-      if (e.message.contains('rate') || e.statusCode == '429') {
-        _showError(l10n.signInRateLimited(context.addressForm));
-      } else {
-        _showError(l10n.signInCodeNotSent(context.addressForm));
-      }
-    } on Exception catch (_) {
-      // Nothing came back at all. This is the one case where the network really
-      // is the likely cause, so it keeps the network message.
-      if (!mounted) return;
-      _showError(
-        AppLocalizations.of(context).signInNetworkError(context.addressForm),
-      );
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final result = await widget.repository.sendPhoneSignInCode(phone);
+    if (!mounted) return;
+
+    switch (result) {
+      case Success():
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => CodeScreen(
+              phone: phone,
+              repository: widget.repository,
+            ),
+          ),
+        );
+      case Failure(error: final error):
+        // AN ANSWER FROM THE SERVER IS PROOF THE NETWORK WORKS. This branch used
+        // to report every refusal as "no internet connection", which
+        // contradicted itself: the only way to be refused is to have been heard.
+        // It said so on the first build anybody installed, in front of the
+        // founder.
+        //
+        // The wording does not guess WHY the code was not sent — an unknown
+        // number, a number that cannot receive SMS, and a messaging provider
+        // that is down are indistinguishable from here, and inventing a reason
+        // would be the same failure one layer along.
+        final l10n = AppLocalizations.of(context);
+        final form = context.addressForm;
+        _showError(switch (error.messageKey) {
+          'signInRateLimited' => l10n.signInRateLimited(form),
+          // Nothing came back at all — the one case where the network really is
+          // the likely cause, so it keeps the network message.
+          'signInNetworkError' => l10n.signInNetworkError(form),
+          _ => l10n.signInCodeNotSent(form),
+        });
     }
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
+      // by the same shape as its siblings once the design system's type scale landed, and an overflowing
+      // Column resolves it by clipping its LAST child — the button that submits.
+      // A Cook using large text on a cheap Android handset had no reachable
+      // control at all.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

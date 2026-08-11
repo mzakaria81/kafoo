@@ -182,7 +182,7 @@ class MyMealRow extends ConsumerWidget {
           Text(
             mealStatusLabel(l10n, meal.status),
             style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.outline,
+              color: KafooColors.textMuted,
             ),
           ),
           const SizedBox(height: KafooSpacing.xs),

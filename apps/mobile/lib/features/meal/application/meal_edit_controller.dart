@@ -98,8 +98,27 @@ class MealEditController extends _$MealEditController {
 
     switch (result) {
       case Success(value: final updated):
+        // The repository answers with a CookMeal, because the table it reads
+        // holds half-answered drafts as well. This screen is only reachable for
+        // a Meal that is already complete — `my_meals_screen.dart` offers the
+        // control only when `asMeal` is non-null — and editing a title, a
+        // description or a price cannot empty one of the other required
+        // answers. So `asMeal` is non-null here.
+        //
+        // It is still checked rather than forced. A `!` would turn a row that
+        // somehow lost a required field into a crash on a screen a Cook is
+        // typing into; the save error says the true thing, that this write
+        // cannot be shown as saved.
+        final complete = updated.asMeal;
+        if (complete == null) {
+          state = state.copyWith(
+            error: const AppError(messageKey: 'mealSaveError'),
+            feedback: null,
+          );
+          return false;
+        }
         state = state.copyWith(
-          meal: updated,
+          meal: complete,
           error: null,
           feedback: 'mealEditSaved',
         );

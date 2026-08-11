@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&family=Almarai:wght@400;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #F5EFE7; }
+a { color: #9A3412; }
+a:hover { color: #C2410C; }
+</style>
+</helmet>
+<div dir="rtl" style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; background: #FFFBF7; color: #1C1917; max-width: 1120px; margin: 0 auto; padding: 56px 40px 96px; position: relative">
+
+<sc-if value="{{ sunlight }}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; background: rgba(255,255,255,0.42); pointer-events: none; z-index: 50; mix-blend-mode: normal"></div>
+</sc-if>
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid #E7DED3; padding-bottom: 32px">
+  <div style="max-width: 640px">
+    <div style="font-size: 14px; font-weight: 600; letter-spacing: 0.06em; color: #C2410C; margin-bottom: 12px">كافو · الأساسيات البصرية</div>
+    <h1 style="font-size: 40px; font-weight: 700; line-height: 1.35; margin: 0 0 16px">الألوان والخط والمسافات</h1>
+    <p style="font-size: 18px; line-height: 1.75; color: #57534E; margin: 0; text-wrap: pretty">دي الأساسيات بس — مفيش شاشات لسه. كل حاجة هنا متظبطة للعربي المصري من اليمين للشمال، وللموبايلات المتوسطة تحت شمس الضهر.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end">
+    <button onClick="{{ toggleSun }}" style="font-family: inherit; font-size: 14px; font-weight: 600; color: #1C1917; background: #FFFFFF; border: 1px solid #D6CCC0; border-radius: 10px; padding: 12px 16px; cursor: pointer" style-hover="border-color: #C2410C">{{ sunLabel }}</button>
+    <span style="font-size: 13px; line-height: 1.6; color: #78716C">معاينة الشاشة في الشمس</span>
+  </div>
+</div>
+
+<section style="padding-top: 48px">
+  <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px">
+    <h2 style="font-size: 24px; font-weight: 700; line-height: 1.45; margin: 0">١ — الألوان</h2>
+    <span style="font-size: 14px; color: #78716C">التوصية: نسيب الأساسي زي ما هو، ونغيّر لون الخطأ</span>
+  </div>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">الـ <strong dir="ltr" style="font-weight: 600; color: #1C1917">#C2410C</strong> بتاعك صح — طوبي دافي، بيحسّس بأكل بيتي مش بسلسلة مطاعم، وعدّى الـ AA. المشكلة الوحيدة إن لون الخطأ <strong dir="ltr" style="font-weight: 600; color: #1C1917">#B91C1C</strong> قريب منه أوي؛ تحت الشمس الاتنين بيبانوا نفس اللون، فالزباين ممكن ما يفرقوش بين زرار عادي ورسالة غلط.</p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 16px">
+    <sc-for list="{{ colors }}" as="c" hint-placeholder-count="8">
+      <div style="border: 1px solid #E7DED3; border-radius: 14px; overflow: hidden; background: #FFFFFF">
+        <div style="{{ c.swatch }}">
+          <span dir="ltr" style="font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.92); color: #1C1917; padding: 4px 8px; border-radius: 6px">{{ c.hex }}</span>
+        </div>
+        <div style="padding: 16px">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+            <span style="font-size: 16px; font-weight: 600; line-height: 1.5">{{ c.ar }}</span>
+            <span style="font-size: 13px; color: #78716C" dir="ltr">{{ c.token }}</span>
+          </div>
+          <div style="font-size: 14px; line-height: 1.7; color: #57534E; margin-bottom: 12px; text-wrap: pretty">{{ c.note }}</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{ c.checks }}" as="k" hint-placeholder-count="2">
+              <span style="font-size: 13px; font-weight: 600; line-height: 1.6; padding: 4px 8px; border-radius: 6px; background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0">{{ k }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 24px">
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 16px">الأساسي على السطح</div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <button style="font-family: inherit; font-size: 18px; font-weight: 600; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 16px 24px; cursor: pointer; line-height: 1.5">اطلب دلوقتي</button>
+        <button style="font-family: inherit; font-size: 18px; font-weight: 600; color: #9A3412; background: #FFF7ED; border: 1.5px solid #F0C9A8; border-radius: 12px; padding: 16px 24px; cursor: pointer; line-height: 1.5">شوف المطبخ</button>
+        <a href="#type" style="font-size: 16px; font-weight: 600; color: #9A3412; line-height: 1.75">اعرف الطباخة أكتر</a>
+      </div>
+    </div>
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+      <div style="font-size: 14px; font-weight: 600; color: #57534E; margin-bottom: 16px">الحالات</div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; gap: 12px; align-items: flex-start; background: #FEF2F2; border: 1px solid #FBD5DC; border-radius: 12px; padding: 16px">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #9F1239; margin-top: 8px; flex: none"></span>
+          <span style="font-size: 16px; line-height: 1.75; color: #9F1239; font-weight: 500">معلش، الطلب مانفعش يتبعت. جرّب تاني.</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: flex-start; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 16px">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #15803D; margin-top: 8px; flex: none"></span>
+          <span style="font-size: 16px; line-height: 1.75; color: #15803D; font-weight: 500">تمام، طلبك وصل للحاجة سميحة.</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center; background: #F0FDFA; border: 1px solid #99E2DA; border-radius: 12px; padding: 16px">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #0F766E; flex: none"></span>
+          <span style="font-size: 16px; line-height: 1.75; color: #0F766E; font-weight: 500">بسمعك... اتكلم عادي.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 24px; border-right: 3px solid #C2410C; background: #FFF7ED; border-radius: 0 12px 12px 0; padding: 20px 24px">
+    <div style="font-size: 16px; font-weight: 600; line-height: 1.6; margin-bottom: 8px">الحاجة الوحيدة اللي هغيّرها</div>
+    <p style="font-size: 16px; line-height: 1.75; color: #44403C; margin: 0; text-wrap: pretty">لون الخطأ من <span dir="ltr" style="font-weight: 600">#B91C1C</span> لـ <span dir="ltr" style="font-weight: 600">#9F1239</span> — أحمر مايل للنبيتي، بعيد عن الطوبي في العين، ونسبة تباينه 7.9:1 بدل 6.3:1، يعني بيفضل واضح لما الشمس تغسل الشاشة.</p>
+  </div>
+</section>
+
+<section id="type" style="padding-top: 64px">
+  <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px">
+    <h2 style="font-size: 24px; font-weight: 700; line-height: 1.45; margin: 0">٢ — الخط والمقاسات</h2>
+    <span style="font-size: 14px; color: #78716C">التوصية: IBM Plex Sans Arabic</span>
+  </div>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">القرار الأهم عندك. جرّبت الخمسة على نفس الجملة وبنفس المقاس — دي المقارنة زي ما هتبان على موبايل متوسط في الشمس.</p>
+
+  <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; overflow: hidden; margin-bottom: 32px">
+    <sc-for list="{{ fonts }}" as="f" hint-placeholder-count="5">
+      <div style="display: grid; grid-template-columns: 180px 1fr; gap: 24px; padding: 24px; border-bottom: 1px solid #F0E9E1; align-items: center">
+        <div>
+          <div style="font-size: 16px; font-weight: 600; line-height: 1.5" dir="ltr">{{ f.name }}</div>
+          <div style="font-size: 13px; line-height: 1.7; color: #78716C; margin-top: 4px; text-wrap: pretty">{{ f.verdict }}</div>
+        </div>
+        <div>
+          <div style="{{ f.styleA }}">محشي ورق عنب من مطبخ الحاجة سميحة</div>
+          <div style="{{ f.styleB }}">جاهز خلال 45 دقيقة · التوصيل لحد باب البيت · 120 جنيه</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 40px">
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+      <div style="font-size: 16px; font-weight: 600; line-height: 1.6; margin-bottom: 12px">ليه Plex عربي</div>
+      <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">خط اتصمّم للشاشات الصغيرة الأول: النقط كبيرة، والعيون (زي في «ع» و«ه») مفتوحة، والسِن ماحصلش تسطيح — يعني الكلمة تفضل مقروءة وهي 14px تحت الشمس. وعنده 5 أوزان حقيقية، فتقدر تعمل ترتيب بصري من غير ما تكبّر المقاس.</p>
+    </div>
+    <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+      <div style="font-size: 16px; font-weight: 600; line-height: 1.6; margin-bottom: 12px">لو عايز بديل واحد</div>
+      <p style="font-size: 15px; line-height: 1.8; color: #44403C; margin: 0; text-wrap: pretty">خد Cairo. مش أحسن، بس المصريين شايفينه كل يوم فبيدّي إحساس بالمألوف والأمان — والمألوف ده بيبني ثقة أسرع من الجمال. استخدمه من وزن 600 وطالع بس؛ الأوزان الرفيعة بتضيع في الشمس.</p>
+    </div>
+  </div>
+
+  <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; overflow: hidden">
+    <div style="display: grid; grid-template-columns: 210px 1fr; gap: 24px; padding: 16px 24px; background: #FAF5F0; border-bottom: 1px solid #E7DED3; font-size: 13px; font-weight: 600; color: #57534E">
+      <span>المقاس / الوزن / ارتفاع السطر</span>
+      <span>العينة</span>
+    </div>
+    <sc-for list="{{ scale }}" as="s" hint-placeholder-count="9">
+      <div style="display: grid; grid-template-columns: 210px 1fr; gap: 24px; padding: 24px; border-bottom: 1px solid #F0E9E1; align-items: center">
+        <div>
+          <div style="font-size: 15px; font-weight: 600; line-height: 1.5">{{ s.ar }}</div>
+          <div style="font-size: 13px; line-height: 1.7; color: #78716C; margin-top: 4px" dir="ltr">{{ s.spec }}</div>
+          <div style="font-size: 13px; line-height: 1.7; color: #78716C; text-wrap: pretty">{{ s.use }}</div>
+        </div>
+        <div style="{{ s.style }}">{{ s.sample }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top: 24px; border-right: 3px solid #0F766E; background: #F0FDFA; border-radius: 0 12px 12px 0; padding: 20px 24px">
+    <p style="font-size: 16px; line-height: 1.75; color: #134E4A; margin: 0; text-wrap: pretty">ارتفاع السطر في العربي أعلى من اللاتيني بـ 15% تقريباً عند نفس المقاس، عشان النقط والهمزات اللي فوق وتحت السطر مايلزقوش في بعض. عشان كده جسم النص 1.75 مش 1.5. وأصغر مقاس مسموح بيه 13px — وده للكلام الثانوي بس، مش للأسعار ولا للأزرار.</p>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px">
+    <h2 style="font-size: 24px; font-weight: 700; line-height: 1.45; margin: 0">٣ — المسافات</h2>
+    <span style="font-size: 14px; color: #78716C">التوصية: سيبها زي ما هي وزوّد 12 و48</span>
+  </div>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 32px; max-width: 720px; text-wrap: pretty">السُلّم بتاعك (4 / 8 / 16 / 24 / 32) صح ومفيش سبب تغيّره. الناقص حاجتين بس: 12 عشان المسافة اللي بين عناصر الصف الواحد (صورة الأكلة والاسم مثلاً) — 8 ضيقة و16 واسعة؛ و48 عشان الفصل بين الأقسام الكبيرة.</p>
+  <div style="border: 1px solid #E7DED3; border-radius: 14px; background: #FFFFFF; padding: 24px">
+    <sc-for list="{{ spacing }}" as="sp" hint-placeholder-count="7">
+      <div style="display: grid; grid-template-columns: 96px 1fr; gap: 24px; align-items: center; padding: 12px 0; border-bottom: 1px solid #F0E9E1">
+        <div style="display: flex; align-items: baseline; gap: 8px">
+          <span style="font-size: 16px; font-weight: 600" dir="ltr">{{ sp.px }}</span>
+          <span style="font-size: 13px; color: #78716C">{{ sp.tag }}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <div style="{{ sp.bar }}"></div>
+          <span style="font-size: 14px; line-height: 1.7; color: #57534E; text-wrap: pretty">{{ sp.use }}</span>
+        </div>
+      </div>
+    </sc-for>
+    <div style="font-size: 14px; line-height: 1.75; color: #57534E; padding-top: 16px; text-wrap: pretty">أقل مساحة ضغط 48×48 نقطة — إيد كبيرة، موبايل في إيد واحدة، ومستخدم ماشي في الشارع.</div>
+  </div>
+</section>
+
+<section style="padding-top: 64px">
+  <h2 style="font-size: 24px; font-weight: 700; line-height: 1.45; margin: 0 0 8px">الثلاثة مع بعض</h2>
+  <p style="font-size: 16px; line-height: 1.75; color: #57534E; margin: 0 0 24px; max-width: 720px">مش شاشة — دي بس عشان تشوف اللون والخط والمسافة وهما شغالين مع بعض.</p>
+  <div style="display: flex; gap: 24px; flex-wrap: wrap">
+    <div style="width: 340px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; padding: 24px; box-shadow: 0 1px 3px rgba(28,25,23,0.06)">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: #F0C9A8; flex: none"></div>
+        <div>
+          <div style="font-size: 16px; font-weight: 600; line-height: 1.5">مطبخ الحاجة سميحة</div>
+          <div style="font-size: 13px; line-height: 1.6; color: #57534E">المعادي · على بعد 1.2 كم</div>
+        </div>
+      </div>
+      <div style="height: 140px; border-radius: 16px; background: #F0E9E1; margin-bottom: 16px"></div>
+      <div style="font-size: 20px; font-weight: 600; line-height: 1.5; margin-bottom: 4px">محشي ورق عنب بالزيت</div>
+      <div style="font-size: 14px; line-height: 1.7; color: #57534E; margin-bottom: 16px">بيتلف بإيدها من الصبح · يكفي 4 أفراد</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px">
+        <div style="font-size: 24px; font-weight: 700; line-height: 1.4">120 <span style="font-size: 15px; font-weight: 500; color: #57534E">جنيه</span></div>
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 12px 24px; min-height: 48px; cursor: pointer">ضيفه للطلب</button>
+      </div>
+    </div>
+    <div style="width: 340px; background: #1C1917; border-radius: 24px; padding: 32px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center">
+      <div style="font-size: 20px; font-weight: 600; line-height: 1.6; color: #FFFBF7">قوللي عايز إيه النهاردة</div>
+      <div style="width: 96px; height: 96px; border-radius: 50%; background: #0F766E; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 12px rgba(15,118,110,0.22)">
+        <div style="width: 20px; height: 32px; border-radius: 10px; background: #FFFBF7"></div>
+      </div>
+      <div style="font-size: 16px; line-height: 1.75; color: #D6CCC0; text-wrap: pretty">«عايز محشي لأربع أفراد يوصل الساعة تلاتة»</div>
+      <div style="font-size: 14px; font-weight: 600; color: #FDBA74">اضغط واتكلم</div>
+    </div>
+  </div>
+</section>
+
+<sc-if value="{{ showEnglish }}" hint-placeholder-val="{{ true }}">
+<section dir="ltr" style="padding-top: 64px; margin-top: 64px; border-top: 1px solid #E7DED3; text-align: left">
+  <h2 style="font-size: 24px; font-weight: 700; line-height: 1.35; margin: 0 0 8px">English mirror</h2>
+  <p style="font-size: 16px; line-height: 1.6; color: #57534E; margin: 0 0 24px; max-width: 640px; text-wrap: pretty">Same tokens, Latin line-heights (0.15 lower than the Arabic), IBM Plex Sans as the Latin companion. Arabic is the source of truth; this only exists because the Next.js site needs it.</p>
+  <div style="display: flex; gap: 24px; flex-wrap: wrap; font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif">
+    <div style="width: 340px; background: #FFFBF7; border: 1px solid #E7DED3; border-radius: 24px; padding: 24px">
+      <div style="font-size: 20px; font-weight: 600; line-height: 1.35; margin-bottom: 4px">Stuffed vine leaves</div>
+      <div style="font-size: 14px; line-height: 1.5; color: #57534E; margin-bottom: 16px">Rolled by hand this morning · Serves 4</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px">
+        <div style="font-size: 24px; font-weight: 700">120 <span style="font-size: 15px; font-weight: 500; color: #57534E">EGP</span></div>
+        <button style="font-family: inherit; font-size: 16px; font-weight: 600; color: #FFFFFF; background: #C2410C; border: 0; border-radius: 12px; padding: 12px 24px; min-height: 48px; cursor: pointer">Add to order</button>
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 8px; justify-content: center">
+      <div style="font-size: 40px; font-weight: 700; line-height: 1.2">Food from your neighbours</div>
+      <div style="font-size: 16px; line-height: 1.6; color: #57534E">Body copy sits at 16/1.6 in Latin — the same 16px runs at 1.75 in Arabic.</div>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120},&quot;showEnglish&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;primaryColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C2410C&quot;,&quot;options&quot;:[&quot;#C2410C&quot;,&quot;#9A3412&quot;,&quot;#B45309&quot;,&quot;#A3431A&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Palette&quot;},&quot;errorColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#9F1239&quot;,&quot;options&quot;:[&quot;#9F1239&quot;,&quot;#B91C1C&quot;,&quot;#991B1B&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Palette&quot;}}">
+class Component extends DCLogic {
+  state = { sunlight: false };
+
+  renderVals() {
+    const primary = this.props.primaryColor ?? "#C2410C";
+    const error = this.props.errorColor ?? "#9F1239";
+    const sw = (bg) => ({ background: bg, height: '96px', display: 'flex', alignItems: 'flex-end', padding: '12px' });
+    const fs = (fam) => ({ fontFamily: fam });
+    const bar = (w) => ({ width: w, height: '20px', borderRadius: '4px', background: primary, flex: 'none' });
+    return {
+      sunlight: this.state.sunlight,
+      sunLabel: this.state.sunlight ? "اطفي الشمس" : "شغّل معاينة الشمس",
+      toggleSun: () => this.setState(s => ({ sunlight: !s.sunlight })),
+      showEnglish: this.props.showEnglish ?? true,
+      colors: [
+        { token: "primary", ar: "الطوبي الأساسي", hex: primary, swatch: sw(primary), checks: ["على السطح ✓ AA ‏5.1:1", "أبيض فوقه ✓ AA ‏5.2:1"],
+          note: "لون الفلفل الأحمر والفخار — دافي ومصري، ومش بيقول «تطبيق»." },
+        { token: "primary-deep", ar: "طوبي غامق", hex: "#9A3412", swatch: sw("#9A3412"), checks: ["✓ AAA ‏7.2:1"],
+          note: "للنص والروابط الملونة، لأن الأساسي بيبقى واطي شوية كحروف رفيعة." },
+        { token: "surface", ar: "السطح", hex: "#FFFBF7", swatch: sw("#FFFBF7"), checks: ["أساس كل الحسابات"],
+          note: "أبيض مدفّي بدرجة واحدة — بيقلّل وهج الشمس من غير ما يبان مصفرّ." },
+        { token: "text", ar: "النص", hex: "#1C1917", swatch: sw("#1C1917"), checks: ["✓ AAA ‏17.1:1"],
+          note: "أسود مايل للبني بدل الأسود الصافي، عشان ما يقطعش مع الدفا." },
+        { token: "text-muted", ar: "نص ثانوي", hex: "#57534E", swatch: sw("#57534E"), checks: ["✓ AAA ‏7.5:1"],
+          note: "بدّلت الرمادي الفاتح بده: أي رمادي أفتح بيختفي في الشمس." },
+        { token: "voice", ar: "الصوت", hex: "#0F766E", swatch: sw("#0F766E"), checks: ["✓ AA ‏5.4:1", "أبيض فوقه ✓ AA ‏5.5:1"],
+          note: "أخضر مزرق للحالات الصوتية — الجزء الوحيد البارد، عشان «بسمعك» ما تتلخبطش مع «اطلب»." },
+        { token: "error", ar: "الخطأ (الجديد)", hex: error, swatch: sw(error), checks: ["✓ AAA ‏7.9:1"],
+          note: "بديل #B91C1C — نبيتي بعيد عن الطوبي، بيتقري كـ«غلط» من نظرة واحدة." },
+        { token: "success", ar: "التمام", hex: "#15803D", swatch: sw("#15803D"), checks: ["✓ AA ‏4.9:1"],
+          note: "أخضر ورقي غامق — الأفتح منه بيسقط تحت 4.5:1." },
+        { token: "border", ar: "الحدود", hex: "#E7DED3", swatch: sw("#E7DED3"), checks: ["زخرفي"],
+          note: "خط فاصل دافي؛ استخدمه بدل الظلال، الظل ما بيبانش في الشمس." }
+      ],
+      fonts: [
+        { name: "IBM Plex Sans Arabic", styleA: { fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontSize: "26px", lineHeight: 1.7, fontWeight: 600 }, styleB: { fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontSize: "15px", lineHeight: 1.7, color: "#57534E", marginTop: "4px" },
+          verdict: "الاختيار. نقط كبيرة، عيون مفتوحة، 5 أوزان، وأوضح واحد فيهم عند 14px." },
+        { name: "Cairo", styleA: { fontFamily: "'Cairo', sans-serif", fontSize: "26px", lineHeight: 1.7, fontWeight: 600 }, styleB: { fontFamily: "'Cairo', sans-serif", fontSize: "15px", lineHeight: 1.7, color: "#57534E", marginTop: "4px" },
+          verdict: "البديل الآمن. مألوف جداً للمصريين، بس أوزانه الرفيعة بتضيع في الشمس." },
+        { name: "Tajawal", styleA: { fontFamily: "'Tajawal', sans-serif", fontSize: "26px", lineHeight: 1.7, fontWeight: 600 }, styleB: { fontFamily: "'Tajawal', sans-serif", fontSize: "15px", lineHeight: 1.7, color: "#57534E", marginTop: "4px" },
+          verdict: "هندسي ونضيف — وده مشكلة: بيحسّس بشركة اتصالات مش بمطبخ." },
+        { name: "Almarai", styleA: { fontFamily: "'Almarai', sans-serif", fontSize: "26px", lineHeight: 1.7, fontWeight: 600 }, styleB: { fontFamily: "'Almarai', sans-serif", fontSize: "15px", lineHeight: 1.7, color: "#57534E", marginTop: "4px" },
+          verdict: "دافي وحلو، بس 4 أوزان بس ومفيش 500/600 — الترتيب البصري بيبقى صعب." },
+        { name: "Noto Sans Arabic", styleA: { fontFamily: "'Noto Sans Arabic', sans-serif", fontSize: "26px", lineHeight: 1.7, fontWeight: 600 }, styleB: { fontFamily: "'Noto Sans Arabic', sans-serif", fontSize: "15px", lineHeight: 1.7, color: "#57534E", marginTop: "4px" },
+          verdict: "شغّال في كل حتة، بس بلا شخصية — احتفظ بيه كخط احتياطي بس." }
+      ],
+      scale: [
+        { ar: "عنوان كبير", spec: "40 / 700 / 1.35", use: "شاشة الترحيب فقط", sample: "أكل بيتي من جيران بيتك",
+          style: { color: "#1C1917", fontSize: "40px", fontWeight: 700, lineHeight: 1.35 } },
+        { ar: "عنوان شاشة", spec: "32 / 700 / 1.4", use: "أول سطر في الصفحة", sample: "إيه اللي نفسك فيه النهاردة؟",
+          style: { color: "#1C1917", fontSize: "32px", fontWeight: 700, lineHeight: 1.4 } },
+        { ar: "عنوان قسم", spec: "24 / 600 / 1.45", use: "«أقرب مطابخ ليك»", sample: "أقرب المطابخ ليك",
+          style: { color: "#1C1917", fontSize: "24px", fontWeight: 600, lineHeight: 1.45 } },
+        { ar: "اسم الأكلة", spec: "20 / 600 / 1.5", use: "عنوان الكارت والسعر", sample: "كشري بالعدس والحمص",
+          style: { color: "#1C1917", fontSize: "20px", fontWeight: 600, lineHeight: 1.5 } },
+        { ar: "نص كبير", spec: "18 / 400 / 1.75", use: "رد المساعد الصوتي", sample: "تمام، لقيت 3 مطابخ قريبة منك بتعمل محشي النهاردة.",
+          style: { color: "#1C1917", fontSize: "18px", fontWeight: 400, lineHeight: 1.75 } },
+        { ar: "جسم النص", spec: "16 / 400 / 1.75", use: "الافتراضي لكل حاجة", sample: "الحاجة سميحة بتطبخ من بيتها في المعادي من 12 سنة، وبتبعت الطلب سخن مع ابنها.",
+          style: { color: "#1C1917", fontSize: "16px", fontWeight: 400, lineHeight: 1.75 } },
+        { ar: "نص صغير", spec: "14 / 400 / 1.7", use: "تفاصيل تحت العنوان", sample: "جاهز خلال 45 دقيقة · التوصيل 15 جنيه",
+          style: { color: "#1C1917", fontSize: "14px", fontWeight: 400, lineHeight: 1.7 } },
+        { ar: "زرار / تسمية", spec: "14 / 600 / 1.4", use: "الأزرار والتبويبات", sample: "أضف للطلب",
+          style: { color: "#1C1917", fontSize: "14px", fontWeight: 600, lineHeight: 1.4 } },
+        { ar: "أصغر مقاس", spec: "13 / 400 / 1.6", use: "الحد الأدنى — ثانوي بس", sample: "الأسعار شاملة الضريبة",
+          style: { color: "#1C1917", fontSize: "13px", fontWeight: 400, lineHeight: 1.6 } }
+      ],
+      spacing: [
+        { px: "4", tag: "شعرة", bar: bar("4px"), use: "بين السطر وتحته مباشرة" },
+        { px: "8", tag: "لزق", bar: bar("8px"), use: "بين أيقونة وكلمتها" },
+        { px: "12", tag: "جديد", bar: bar("12px"), use: "بين عناصر الصف الواحد — الناقص الأهم" },
+        { px: "16", tag: "الافتراضي", bar: bar("16px"), use: "حشوة الكروت والمسافة بينها" },
+        { px: "24", tag: "", bar: bar("24px"), use: "هوامش الشاشة على الموبايل" },
+        { px: "32", tag: "", bar: bar("32px"), use: "بين مجموعتين مختلفتين" },
+        { px: "48", tag: "جديد", bar: bar("48px"), use: "بين الأقسام الكبيرة، وأقل مساحة ضغط" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
