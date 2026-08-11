@@ -221,12 +221,22 @@ class FakeMealRepository implements MealRepository {
   /// to Cooks who have Meals.
   Duration myMealsDelay = Duration.zero;
 
+  /// The failure `myMeals` returns, when a test needs a specific one.
+  ///
+  /// `failOperations` gives every call the same generic error, which is fine
+  /// for "does it write" but useless for "does it say the right thing": the
+  /// screen titles a connection failure «مفيش نت» and everything else
+  /// differently, and one shared error cannot tell the two apart.
+  AppError? myMealsError;
+
   @override
   Future<Result<List<CookMeal>, AppError>> myMeals() async {
     myMealsCalls++;
     if (myMealsDelay > Duration.zero) {
       await Future<void>.delayed(myMealsDelay);
     }
+    final specific = myMealsError;
+    if (specific != null) return Failure(specific);
     if (failOperations) {
       return const Failure(AppError(messageKey: 'mealLoadError'));
     }

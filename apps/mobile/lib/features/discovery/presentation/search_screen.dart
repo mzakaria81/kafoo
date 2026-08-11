@@ -263,7 +263,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _note(l10n.searchUnavailable, KafooColors.danger),
+          _note(l10n.searchUnavailable, KafooColors.error),
           Expanded(child: _browse()),
         ],
       );
@@ -284,7 +284,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         children: [
           _note(l10n.searchFoundNothing, KafooColors.onSurface),
           if (outcome.notUnderstood)
-            _note(l10n.searchExclusionNotUnderstood, KafooColors.danger),
+            _note(l10n.searchExclusionNotUnderstood, KafooColors.error),
           Expanded(child: _browse()),
         ],
       );
@@ -314,7 +314,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // prevent: the results look exactly like results for a request with no
           // exclusion in it.
           if (outcome.notUnderstood) ...[
-            _note(l10n.searchExclusionNotUnderstood, KafooColors.danger),
+            _note(l10n.searchExclusionNotUnderstood, KafooColors.error),
             const SizedBox(height: KafooSpacing.sm),
           ],
           if (outcome.area case final area?) ...[
@@ -359,6 +359,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           for (final result in outcome.results.results)
             discoveredMealCard(
               l10n: l10n,
+              ref: ref,
               item: result.item,
               source: MealOpenSource.search,
               onOpen: _openFrom(outcome, result),

@@ -873,12 +873,12 @@ run "the app has journey tests" bash -c '
 # on an unbound variable — so it is its own check now, with no literal apostrophe in it.
 run "the Arabic font is bundled" bash -c '
   [ -f apps/mobile/pubspec.yaml ] || { echo "   no mobile app — skipping"; exit 0; }
-  [ -f packages/ui/lib/theme/tokens.dart ] || { echo "   no design tokens yet — skipping"; exit 0; }
+  [ -f packages/ui/lib/theme/typography.dart ] || { echo "   no type scale yet — skipping"; exit 0; }
   status=0
-  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/tokens.dart | head -1 |
+  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/typography.dart | head -1 |
            grep -oE "[A-Za-z]+$")
   if [ -z "$family" ]; then
-    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/tokens.dart."
+    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/typography.dart."
     status=1
   elif ! grep -qE "^[[:space:]]+- family: ${family}$" apps/mobile/pubspec.yaml; then
     echo "   FAIL: apps/mobile/pubspec.yaml does not declare the font family [${family}]."
@@ -931,6 +931,7 @@ run "android release build sanity" bash -c '
     echo "   renders them out of a CJK fallback. Every icon becomes a Chinese character."
     status=1
   fi
+
   exit $status'
 
 echo ""

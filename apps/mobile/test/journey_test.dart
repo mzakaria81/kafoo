@@ -444,6 +444,42 @@ void main() {
     expect(find.text(l10n.mealConvPromptPrice('other')), findsNothing);
   });
 
+  testWidgets('«أضيف بإيدي» reaches the Meal creation flow, not the way out',
+      (tester) async {
+    // 2026-08-11, found in review: the button promised the creation flow and
+    // called `maybePop`. It closed the Meal list and put a Cook back on Home
+    // with nothing started — and because Home is what sits underneath, the
+    // screen it left looked like a screen it had arrived at.
+    //
+    // THE DEPARTURE IS HALF THE ASSERTION. `findsOneWidget` on the destination
+    // passes for a route that was pushed on top of a list nobody popped; only
+    // `findsNothing` on the list proves the Cook actually went somewhere.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      // No Kitchen Profile: the creation flow's first screen then asks her to
+      // make one, which is a stable thing to assert on and is the branch a new
+      // Cook actually meets.
+      kitchen: FakeKitchenProfileRepository(),
+      meals: FakeMealRepository(),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The empty list's own version of the button.
+    await tester.tap(find.text(l10n.myMealsEmptyByHand('other')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealNeedsKitchenTitle), findsOneWidget);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
+  });
+
   testWidgets('a Cook comes back to a half-finished Meal and carries on',
       (tester) async {
     // 2026-08-11: he saved a Meal half-answered, came back, tapped «كمّل الأكلة
@@ -484,6 +520,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The row's actions moved into a bottom sheet when the Meal list became
+    // voice-first: a row led by a 34px price and a glance word cannot also
+    // carry four text buttons. The handover this test guards is unchanged —
+    // only the gesture that reaches it.
+    await tester.tap(find.byIcon(Icons.more_horiz).first);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l10n.mealResumeDraft('other')));

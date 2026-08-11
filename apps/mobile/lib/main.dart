@@ -141,7 +141,11 @@ class KafooApp extends StatelessWidget {
       // terracotta seed and used none of the values anybody had chosen, in
       // whatever font the handset happened to install. See ADR-0013 and
       // `docs/design/DESIGN.md`.
-      theme: kafooTheme(),
+      //
+      // `arabic: true` because [locale] above is pinned to `ar` — Arabic
+      // line-heights run higher than Latin and the two must not be unified. If
+      // the locale is ever unpinned, this follows it.
+      theme: kafooTheme(arabic: true),
       // Above the Navigator on purpose. A pushed route is not a descendant of
       // the widget that pushed it, so a scope placed inside [home] would be
       // invisible to every screen reached by pushing — which is all of them.

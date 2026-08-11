@@ -6,8 +6,10 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/money.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../meal/data/meal_repository.dart';
 import '../application/browse_controller.dart';
 
 /// What a Customer sees having said nothing.
@@ -98,7 +100,7 @@ class BrowseBody extends ConsumerWidget {
     if (state.error != null) {
       return _message(
         text: l10n.discoveryLoadError,
-        color: KafooColors.danger,
+        color: KafooColors.error,
         onRetry: () => ref.read(browseControllerProvider.notifier).refresh(),
         retryLabel: l10n.browseRetry,
       );
@@ -130,15 +132,16 @@ class BrowseBody extends ConsumerWidget {
             entry!,
             const SizedBox(height: KafooSpacing.md),
           ],
-          for (final item in state.onOffer) _card(l10n, item),
+          for (final item in state.onOffer) _card(l10n, ref, item),
         ],
       ),
     );
   }
 
-  Widget _card(AppLocalizations l10n, DiscoveredMeal item) =>
+  Widget _card(AppLocalizations l10n, WidgetRef ref, DiscoveredMeal item) =>
       discoveredMealCard(
         l10n: l10n,
+        ref: ref,
         item: item,
         source: MealOpenSource.browse,
         onOpen: onOpen,
@@ -187,6 +190,7 @@ abstract final class MealOpenSource {
 /// is emitted here rather than at the call sites.
 Widget discoveredMealCard({
   required AppLocalizations l10n,
+  required WidgetRef ref,
   required DiscoveredMeal item,
   required String source,
   void Function(DiscoveredMeal item)? onOpen,
@@ -196,9 +200,18 @@ Widget discoveredMealCard({
   // typed — `numeric(10,2)`, never a double — and this card was rendering it
   // bare as "35" while the Meal one tap deeper said "٣٥ جنيه". Money a
   // Customer reads is never a naked number.
-  final price = l10n.publicMealPriceValue(item.meal.price);
+  final price = mealPriceLabel(l10n, item.meal.price);
+
+  // THE COOK'S PHOTOGRAPH, WHICH THIS CARD NEVER SHOWED. `photo_path` comes
+  // back from discovery and was dropped on the floor here, so every Meal in
+  // Discover rendered an empty slot — including the ones whose Cooks had
+  // photographed their food.
+  final storedPhoto = item.meal.photoPath;
 
   return MealCard(
+    photoUrl: storedPhoto == null
+        ? null
+        : ref.read(mealRepositoryProvider).photoUrl(storedPhoto),
     title: item.meal.title,
     price: price,
     kitchenLabel: kitchenLabel,
@@ -210,6 +223,12 @@ Widget discoveredMealCard({
       kitchenLabel,
       price,
     ),
+    // A Meal with no photograph shows a quiet empty slot rather than a blank
+    // box — quiet, because a Cook may publish without a photograph and that is
+    // allowed rather than broken. Real photography is shot with the Cook;
+    // nothing generated or stock may ever stand in for it, not even to make a
+    // demo look better.
+    placeholderLabel: l10n.mealNoPhotoYet,
     // MealOpened IS EMITTED HERE AND NOT AT THE CALL SITES, for the same reason
     // the consent gate sits on the funnel rather than on the entrances: call
     // sites keep being added, and the one that forgets is invisible — a number

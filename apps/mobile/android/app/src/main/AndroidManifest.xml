@@ -64,5 +64,16 @@
         <intent>
             <action android:name="android.speech.RecognitionService"/>
         </intent>
+        <!-- The same trap, one layer over: the text-to-speech engine is another
+             package too, and Android 11 hides it as well. Missing, flutter_tts
+             finds no languages at all on a phone with a working engine — and
+             Kafoo concludes the handset has no Arabic voice and goes quiet,
+             which is exactly the failure the speech recogniser had.
+
+             There is no permission for speaking, so nothing else would hint at
+             this one. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
     </queries>
 </manifest>

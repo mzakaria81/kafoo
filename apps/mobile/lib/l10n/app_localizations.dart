@@ -1100,12 +1100,6 @@ abstract class AppLocalizations {
   /// **'مسودة'**
   String get myMealsStatusDraft;
 
-  /// Status word for a Meal on offer and visible to Customers.
-  ///
-  /// In ar, this message translates to:
-  /// **'على المنيو'**
-  String get myMealsStatusPublished;
-
   /// Status word for a Meal temporarily off the menu.
   ///
   /// In ar, this message translates to:
@@ -1460,6 +1454,312 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{addressForm, select, feminine{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.} other{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.}}'**
   String convVoiceNeedsArabic(String addressForm);
+
+  /// Marks a MOCK image slot in an unshipped state — it says out loud that it will not ship. Never use it for a real Meal that simply has no photograph: a Cook may publish without one, so that state is permanent and allowed, and mealNoPhotoYet is the truthful label for it.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكان صورة مؤقت — مش هينزل في النسخة النهائية'**
+  String get photoPlaceholder;
+
+  /// Said once when a voice screen opens. The invitation, not an instruction.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أنا معاكي. دوسي واتكلمي.} other{أنا معاك. دوس واتكلم.}}'**
+  String voiceIdle(String addressForm);
+
+  /// Said if thinking runs past two seconds. Silence longer than that reads as a broken app.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{لسه معاكي، ثانية.} other{لسه معاك، ثانية.}}'**
+  String voiceStillHere(String addressForm);
+
+  /// First rung of the recognition failure ladder, said once. The failure belongs to the app: never say the speech was unclear, never ask anyone to speak more clearly.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{معلش، مافهمتش. قوليها تاني؟} other{معلش، مافهمتش. قولها تاني؟}}'**
+  String voiceNotHeard(String addressForm);
+
+  /// Said when the microphone level is high and flat. Blames the room, which is where the problem is.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.} other{الدوشة عالية — قرّب الموبايل من بوقك وقول تاني.}}'**
+  String voiceTooNoisy(String addressForm);
+
+  /// Said when the connection drops during a voice exchange. IT DOES NOT PROMISE THAT HER WORDS WERE SAVED. Kafoo queues the transcript, not audio, and on-device Arabic recognition is frequently unavailable offline — so there may be no words to keep. Telling her they are saved and then losing them is worse than telling her the truth immediately. Currently unused; wired to TalkOrbState.offlineQueued when the offline path is built.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت يرجع.'**
+  String get voiceOfflineQueued;
+
+  /// Last rung of the failure ladder. Offers photos and numerals to tap. NEVER offers a keyboard — typing Arabic on a phone is the hardest thing this product could ask of a Cook, and it is never a consequence of failure.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.} other{خلاص، هوريك الاختيارات وانت دوس على اللي عايزه.}}'**
+  String voiceTapFallback(String addressForm);
+
+  /// The label under the 88dp talk button, and its accessible name.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}'**
+  String voiceTalkButton(String addressForm);
+
+  /// Press to silence the assistant. Describes the RESULT of pressing, because a speaker glyph does not say which way it is about to go.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسكت صوت المساعد'**
+  String get voiceMuteSilence;
+
+  /// Press to let the assistant talk again.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجّع صوت المساعد'**
+  String get voiceMuteRestore;
+
+  /// Announced while the microphone is open. Recording is always indicated; there is no silent listening, so this cannot be switched off.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيسجل دلوقتي'**
+  String get voiceRecording;
+
+  /// The confirming answer at a read-back gate. 72dp and solid green — larger because agreeing is the common case, never because Kafoo wants the yes.
+  ///
+  /// In ar, this message translates to:
+  /// **'أيوة'**
+  String get gateAnswerYes;
+
+  /// The refusing answer at a read-back gate. 56dp and outline only, never hidden, greyed, or slower to reach.
+  ///
+  /// In ar, this message translates to:
+  /// **'لأ، استنى'**
+  String get gateAnswerNo;
+
+  /// Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe. Takes an address form: it speaks to the Cook directly, and a feminine-only imperative addresses every male Cook in the wrong grammar.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{لو مقولتيش حاجة، مفيش حاجة هتحصل.} other{لو مقولتش حاجة، مفيش حاجة هتحصل.}}'**
+  String gateSilenceFootnote(String addressForm);
+
+  /// What a screen reader says while the Meal list is a skeleton. Required by KafooSkeletonList: without it a blind Cook hears nothing during the one state where she most needs to be told to wait.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحمّل أكلاتك…'**
+  String get myMealsLoading;
+
+  /// Status word for a Meal on offer and visible to Customers. ONE WORD FOR ONE THING: this is the only key for it, used both as the glance word on the Meal list and as the status label everywhere else. It replaced a second key holding a second word, which is how a Cook came to meet two names for the same status. It is the longest member of the eleven-word glance set — a phrase where the others are single words — because the founder chose the wording a Cook already uses over the one that reads fastest.
+  ///
+  /// In ar, this message translates to:
+  /// **'على المنيو'**
+  String get glancePublished;
+
+  /// Glance word for a draft Meal, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة'**
+  String get glanceDraft;
+
+  /// Glance word for a Meal that is not on offer today, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش متاحة'**
+  String get glanceUnavailable;
+
+  /// Glance word for a retired Meal, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرشيف'**
+  String get glanceArchived;
+
+  /// Glance word for a lost connection, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش نت'**
+  String get glanceOffline;
+
+  /// Glance word for work held safely until the connection returns, from the closed set.
+  ///
+  /// In ar, this message translates to:
+  /// **'محفوظ'**
+  String get glanceSaved;
+
+  /// The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{عندك {total} أكلة، منهم {published} على المنيو. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} على المنيو. عايز تعمل إيه؟}}'**
+  String myMealsSpokenSummary(String addressForm, int total, int published);
+
+  /// Re-says the assistant's greeting. The greeting is an event, said once on arrival; this is how a Cook hears it again without the screen nagging her. Inert while muted and on a handset with no Arabic speech data — a control that silently does nothing is worse than one that visibly cannot.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمعها تاني'**
+  String get myMealsHearAgain;
+
+  /// Reads one Meal row aloud, quietly, because the row carries a price and income is private. Inert on a handset with no Arabic speech data.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمعي الأكلة دي'**
+  String get myMealsHearRow;
+
+  /// Opens the actions for one Meal.
+  ///
+  /// In ar, this message translates to:
+  /// **'حاجات تانية للأكلة دي'**
+  String get myMealsRowActions;
+
+  /// The tap alternative beside the talk button. Tap is a complete alternative to voice, never a degraded one.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أو ضيفي أكلة بإيدك} other{أو ضيف أكلة بإيدك}}'**
+  String myMealsAddByHand(String addressForm);
+
+  /// The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end. Takes an address form: it speaks to the Cook directly, and a feminine-only imperative addresses every male Cook in the wrong grammar.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{الكلام لسه مش شغال — ضيفي بإيدك دلوقتي} other{الكلام لسه مش شغال — ضيف بإيدك دلوقتي}}'**
+  String voiceNotReadyYet(String addressForm);
+
+  /// The whole of the empty Meal list: an invitation to speak, not a form.
+  ///
+  /// In ar, this message translates to:
+  /// **'احكيلي عن أكلة'**
+  String get myMealsEmptyInvitation;
+
+  /// Spoken invitation on the empty Meal list.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{قوليلي اسم الأكلة وأنا هكمل معاكي.} other{قوللي اسم الأكلة وأنا هكمل معاك.}}'**
+  String myMealsEmptySpoken(String addressForm);
+
+  /// The tap alternative on the empty Meal list.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أو اكتبيها بإيدك} other{أو اكتبها بإيدك}}'**
+  String myMealsEmptyByHand(String addressForm);
+
+  /// Reassurance FIRST on a failed load. A Cook on a dropped connection needs to know her work survived before she is told anything went wrong. It reassures her about her MEALS, not about anything she said — this panel appears when a list fails to load, where she has spoken nothing and nothing is queued. Takes no address form because the sentence does not inflect.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلاتك كلها في أمان. المشكلة في النت بس.'**
+  String get myMealsOfflineReassurance;
+
+  /// Labels the stale Meal list shown at reduced opacity under a failure. Showing the last good data beats showing nothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر نسخة محفوظة · {time}'**
+  String myMealsCachedAt(String time);
+
+  /// Reloads the Meal list after a failure.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{جربي تاني} other{جرب تاني}}'**
+  String myMealsRetry(String addressForm);
+
+  /// The verdict word on the publish confirmation gate, 32px/700 in the success colour.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنشر؟'**
+  String get publishGateQuestion;
+
+  /// Read back in full before publishing. Not a summary — the read-back is what the Cook is agreeing to.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name} بـ {price} جنيه، هتتنشر وتبقى على المنيو دلوقتي.'**
+  String publishGateReadback(String name, String price);
+
+  /// The confirming answer on the publish gate. 72dp, solid green.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أيوة، انشريها} other{أيوة، انشرها}}'**
+  String publishGateYes(String addressForm);
+
+  /// Second rung of the recognition failure ladder. A two-word answer is recognised far more reliably than open speech.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{الأكلة اسمها {guess}؟ قولي أيوة أو لأ.} other{الأكلة اسمها {guess}؟ قول أيوة أو لأ.}}'**
+  String recognitionNarrowQuestion(String addressForm, String guess);
+
+  /// Escape from the tapped options at the bottom of the failure ladder. Never leads to a keyboard as a consequence of failure.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش حاجة من دول'**
+  String get recognitionNoneOfThese;
+
+  /// The currency word beside a price, set one step smaller than the numeral. Separate from publicMealPriceValue so the number can be the largest thing on the screen and the word can be quiet beside it.
+  ///
+  /// In ar, this message translates to:
+  /// **'جنيه'**
+  String get publicMealPriceUnit;
+
+  /// How a Meal row in the Cook's list reads aloud. Composed from an ARB entry so the separator follows the locale rather than an Arabic comma reaching an English voice.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name}، {status}، {price}'**
+  String mealRowSemanticLabel(String name, String status, String price);
+
+  /// The verdict question at the read-back gate for retiring a Meal. A verdict, not a sentence: it is the largest word on the gate and is read at a glance.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{تشيليها خالص؟} other{تشيلها خالص؟}}'**
+  String mealRetireQuestion(String addressForm);
+
+  /// The verdict question at the read-back gate for deleting a draft.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{تمسحي المسودة؟} other{تمسح المسودة؟}}'**
+  String mealDeleteDraftQuestion(String addressForm);
+
+  /// The verdict question when the Meal coming off the menu is the Cook's last one on offer. It names the real consequence — nobody can find her kitchen — rather than the mechanical one.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{تقفلي المطبخ؟} other{تقفل المطبخ؟}}'**
+  String mealLastOnOfferQuestion(String addressForm);
+
+  /// Shown when the Meal list failed because the phone could not reach the network — and ONLY then. A Cook whose load failed for any other reason must not be sent to check her WiFi.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش لاقيين النت. {addressForm, select, feminine{جربي} other{جرب}} تاني لما يرجع.'**
+  String mealOfflineError(String addressForm);
+
+  /// The title on a failed Meal-list load that was NOT a connection problem. «مفيش نت» is reserved for an actual dropped connection.
+  ///
+  /// In ar, this message translates to:
+  /// **'في حاجة مش مظبوطة'**
+  String get myMealsFailedTitle;
+
+  /// Reassurance FIRST on any failed load. True whatever went wrong — the failure was reading, not writing. The offline variant adds that the connection is the cause, which must not be claimed when it is not.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلاتك كلها في أمان.'**
+  String get myMealsFailedReassurance;
+
+  /// The empty photo slot on a REAL Meal. A Cook may publish without a photograph, so this state is permanent and allowed rather than temporary — photoPlaceholder's 'will not ship' sentence is for a mock and is false here. Kafoo's Meal photos are shot with the Cook; no generated or stock image may ever stand in, so the slot stays obviously empty rather than being filled.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش صورة للأكلة دي لسه'**
+  String get mealNoPhotoYet;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، شلتها من المنيو.'**
+  String get mealSpokenTakenOffMenu;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، رجّعتها على المنيو.'**
+  String get mealSpokenBackOnMenu;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، اتشالت خلاص.'**
+  String get mealSpokenRetired;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، مسحت المسودة.'**
+  String get mealSpokenDraftDeleted;
 }
 
 class _AppLocalizationsDelegate

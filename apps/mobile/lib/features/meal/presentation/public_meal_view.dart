@@ -4,6 +4,7 @@ import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/money.dart';
 import 'meal_enum_labels.dart';
 
 /// The public face of a Meal, as seen by a Customer.
@@ -103,7 +104,7 @@ class PublicMealView extends StatelessWidget {
               // 3. Price.
               _PublicMealDetail(
                 label: l10n.mealSummaryLabelPrice,
-                value: l10n.publicMealPriceValue(meal.price),
+                value: mealPriceLabel(l10n, meal.price),
               ),
 
               // 4. Description.

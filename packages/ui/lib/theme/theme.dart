@@ -1,292 +1,229 @@
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
+import 'typography.dart';
 
-/// Kafoo's Material theme, built from the tokens.
+/// Kafoo's [ThemeData].
 ///
-/// This exists so a screen gets the design system without asking for it. Before
-/// 2026-08-10 `main.dart` built its theme from `ColorScheme.fromSeed`, which
-/// derived twenty-odd colours from one terracotta seed and used none of the
-/// values anybody had chosen — so every screen rendered in Material's
-/// interpretation of Kafoo rather than Kafoo, in whatever font the handset
-/// happened to pick.
+/// This replaced `ColorScheme.fromSeed(seedColor: KafooColors.primary)`, and
+/// the difference is not cosmetic. A seeded scheme keeps the seed and derives
+/// every other colour from it by tonal mapping — so the surface, the error red,
+/// and every container shade were Material's guesses, not the palette. Two of
+/// those guesses actively contradict decisions the palette had already made:
+/// the surface came out pure white rather than the warmed `#FFFBF7` that cuts
+/// glare, and the error red came out in the same hue family as the terracotta
+/// primary, which is exactly the collision `KafooColors.error` exists to avoid.
 ///
-/// **Nothing here invents a value.** Every colour and size comes from
-/// `docs/design/DESIGN.md`, and where Material needs a slot the design does not
-/// name, the nearest named token fills it rather than a new colour appearing.
-ThemeData kafooTheme() {
-  const colors = ColorScheme(
-    brightness: Brightness.light,
-    primary: KafooColors.primary,
-    onPrimary: KafooColors.onPrimary,
-    primaryContainer: KafooColors.primaryTint,
-    onPrimaryContainer: KafooColors.primaryDeep,
-    secondary: KafooColors.voice,
-    onSecondary: KafooColors.onPrimary,
-    secondaryContainer: KafooColors.voiceTint,
-    onSecondaryContainer: KafooColors.voiceDeep,
-    // Explicit, because an unset tertiary resolves to `secondary` — the voice
-    // teal, which ADR-0013 reserves to mean "the machine is talking". Any widget
-    // reaching for tertiary would have spoken in the assistant's colour.
-    tertiary: KafooColors.primaryDeep,
-    onTertiary: KafooColors.onPrimary,
-    tertiaryContainer: KafooColors.primaryTint,
-    onTertiaryContainer: KafooColors.primaryDeep,
-    error: KafooColors.danger,
-    onError: KafooColors.onPrimary,
-    errorContainer: KafooColors.dangerTint,
-    onErrorContainer: KafooColors.danger,
-    surface: KafooColors.surface,
-    onSurface: KafooColors.onSurface,
-    // Material's name for "secondary text on a surface". Kafoo's textMuted is
-    // deliberately darker than the greys Material would pick, because anything
-    // lighter stops being readable in sunlight.
-    onSurfaceVariant: KafooColors.textMuted,
-    // All six surfaceContainer roles were unset, so every one resolved to
-    // `surface` and an M3 Dialog rendered at 1.00:1 against the page behind it —
-    // no boundary at all except the scrim. ADR-0013 makes the confirmation gate
-    // the one surface in Kafoo that must be unmistakably in front of everything
-    // else, so a dialog with no edge is the worst possible slot to leave to a
-    // fallback.
-    surfaceContainerLowest: KafooColors.surfaceRaised,
-    surfaceContainerLow: KafooColors.surfaceRaised,
-    surfaceContainer: KafooColors.surfaceSunken,
-    surfaceContainerHigh: KafooColors.surfaceRaised,
-    surfaceContainerHighest: KafooColors.surfaceSunken,
-    // TEXT-SAFE, AND THAT IS THE WHOLE POINT. This slot held `borderStrong`
-    // for one afternoon — a 1.54:1 border colour — while THIRTEEN call sites in
-    // the app read `colorScheme.outline` as a text colour. The old seeded theme
-    // gave them 4.28:1; the border value gave them 1.54:1, which in a bright
-    // kitchen is absent rather than faint.
-    //
-    // What went invisible: the "this is an AI estimate" notice beside allergens,
-    // the sentence telling a Cook she must approve those estimates before
-    // publishing, and her own Meal's draft/published status. Health-adjacent
-    // guesses presented as fact, which business-rules.md calls out by name.
-    //
-    // So this slot is a text colour and must stay one. Anything drawing an
-    // actual border names `KafooColors.border`, `borderStrong` or
-    // `borderMeaningful` directly, and the token test asserts every ColorScheme
-    // slot used as text clears AA.
-    outline: KafooColors.textSubtle,
-    outlineVariant: KafooColors.border,
-    shadow: KafooColors.onSurface,
-    scrim: KafooColors.darkSurface,
-    inverseSurface: KafooColors.darkSurface,
-    onInverseSurface: KafooColors.surface,
-    inversePrimary: KafooColors.primaryTint,
-  );
-
-  final text = _textTheme();
+/// There is one theme, not a light/dark pair. Dark mode is deliberately
+/// undefined: the primary usage context is bright daylight and a dark theme
+/// built without that testing would be guesswork.
+ThemeData kafooTheme({bool arabic = true}) {
+  final textTheme = kafooTextTheme(arabic: arabic);
 
   return ThemeData(
     useMaterial3: true,
-    colorScheme: colors,
-    // Pinned, so the tap-target floor cannot move with the platform.
-    // adaptivePlatformDensity yields 48dp on a phone and 40dp on a desktop
-    // target — which is what `apps/mobile/web/` renders as in a browser.
-    visualDensity: VisualDensity.standard,
+    colorScheme: const ColorScheme.light(
+      primary: KafooColors.primary,
+      onPrimary: KafooColors.onPrimary,
+      primaryContainer: KafooColors.primaryTint,
+      onPrimaryContainer: KafooColors.primaryDeep,
+      secondary: KafooColors.voice,
+      onSecondary: KafooColors.onPrimary,
+      secondaryContainer: KafooColors.voiceTint,
+      onSecondaryContainer: KafooColors.voiceDeep,
+      // Explicit, because an unset tertiary resolves to `secondary` — the voice
+      // teal, reserved to mean "the machine is talking". Any widget reaching
+      // for tertiary would have spoken in the assistant's colour.
+      tertiary: KafooColors.primaryDeep,
+      onTertiary: KafooColors.onPrimary,
+      tertiaryContainer: KafooColors.primaryTint,
+      onTertiaryContainer: KafooColors.primaryDeep,
+      error: KafooColors.error,
+      onError: KafooColors.onPrimary,
+      errorContainer: KafooColors.errorTint,
+      onErrorContainer: KafooColors.error,
+      surface: KafooColors.surface,
+      onSurface: KafooColors.onSurface,
+      // ALL SIX SET, because an unset surfaceContainer role resolves to
+      // `surface` and a Material dialog then renders at 1.00:1 against the page
+      // behind it — no boundary except the scrim. The confirmation gate is the
+      // one surface in Kafoo that must be unmistakably in front of everything
+      // else, so it is the worst slot to leave to a fallback.
+      surfaceContainerLowest: KafooColors.surfaceRaised,
+      surfaceContainerLow: KafooColors.surfaceRaised,
+      surfaceContainer: KafooColors.surfaceSunken,
+      surfaceContainerHigh: KafooColors.surfaceRaised,
+      surfaceContainerHighest: KafooColors.surfaceSunken,
+      onSurfaceVariant: KafooColors.textMuted,
+      outline: KafooColors.borderInput,
+      outlineVariant: KafooColors.border,
+      scrim: KafooElevation.scrim,
+    ),
     scaffoldBackgroundColor: KafooColors.surface,
+    textTheme: textTheme,
     fontFamily: KafooType.fontFamily,
     fontFamilyFallback: KafooType.fontFamilyFallback,
-    textTheme: text,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: KafooColors.surface,
-      foregroundColor: KafooColors.onSurface,
-      surfaceTintColor: Colors.transparent,
+
+    // Structure comes from a border, not a shadow: a soft shadow is nearly
+    // invisible on a mid-range panel in direct sun, and a card whose only edge
+    // is a shadow has no edge outdoors.
+    cardTheme: CardThemeData(
+      color: KafooColors.surfaceRaised,
       elevation: 0,
-      // A hairline, not a shadow. Structure that matters has to survive
-      // sunlight, and a shadow does not.
-      shape: Border(
-        bottom: BorderSide(color: KafooColors.border),
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(KafooRadius.card),
+        side: const BorderSide(color: KafooColors.border),
       ),
-      centerTitle: false,
     ),
     dividerTheme: const DividerThemeData(
       color: KafooColors.border,
       thickness: 1,
       space: 1,
     ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        // 18/400 is "body large": a primary button is read at arm's length or
-        // glanced at while cooking.
-        textStyle: KafooType.bodyLarge.copyWith(fontWeight: FontWeight.w600),
-        minimumSize: _minTarget,
+
+    // Padding, never a fixed height, so a button grows with scaled text instead
+    // of clipping it. `minimumSize` sets the floor; `tapTargetSize` keeps the
+    // 48dp target even where the visual is smaller.
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: KafooColors.primary,
+        foregroundColor: KafooColors.onPrimary,
+        disabledBackgroundColor: KafooColors.disabledFill,
+        disabledForegroundColor: KafooColors.textDisabled,
+        elevation: 0,
+        minimumSize: const Size(0, KafooSpacing.minTapTarget),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: KafooSpacing.lg,
+          vertical: KafooSpacing.md,
+        ),
+        textStyle: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(KafooRadius.control),
         ),
-        disabledBackgroundColor: KafooColors.disabledFill,
-        disabledForegroundColor: KafooColors.textDisabled,
-        // The sub-AA label is deliberate and WCAG exempts it. The fill is 1.17:1
-        // against the page, though, so without this outline there is no
-        // button-shaped thing at all — just faint letters, and "you cannot use
-        // this yet" reads identically to "there is nothing here".
-        disabledIconColor: KafooColors.textDisabled,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        // primaryDeep, not primary: a label at 14–16px in terracotta sits too
-        // light against the surface, and thin Arabic strokes make it worse.
         foregroundColor: KafooColors.primaryDeep,
-        textStyle: KafooType.label,
-        minimumSize: _minTarget,
+        disabledForegroundColor: KafooColors.textDisabled,
+        minimumSize: const Size(0, KafooSpacing.minTapTarget),
+        textStyle: textTheme.labelLarge,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(KafooRadius.control),
         ),
-        disabledForegroundColor: KafooColors.textDisabled,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: KafooColors.primaryDeep,
         backgroundColor: KafooColors.primaryTint,
+        foregroundColor: KafooColors.primaryDeep,
+        disabledForegroundColor: KafooColors.textDisabled,
+        minimumSize: const Size(0, KafooSpacing.minTapTarget),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: KafooSpacing.lg,
+          vertical: KafooSpacing.md,
+        ),
+        textStyle: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
         side: const BorderSide(color: KafooColors.primaryBorder, width: 1.5),
-        textStyle: KafooType.label,
-        minimumSize: _minTarget,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(KafooRadius.control),
         ),
       ),
     ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: KafooColors.onSurface,
+        minimumSize: const Size.square(KafooSpacing.minTapTarget),
+      ),
+    ),
+
+    // Helper text always occupies its row, so an error message replaces it
+    // rather than pushing the form down — a jumping form makes people lose
+    // their place mid-entry.
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: KafooColors.surfaceRaised,
-      // 16, and never smaller: below it iOS zooms on focus, and proof-reading
-      // your own words in sunlight gets hard.
-      // All three agree at 16 on purpose. Material paints a floated label at
-      // 0.75x, so a 16px label became an effective 12px once the field had
-      // content — below the 13px floor this design system declares, on the one
-      // remaining clue about what the field is for. floatingLabelStyle is set
-      // explicitly to escape that multiplier.
-      hintStyle: KafooType.body.copyWith(color: KafooColors.textSubtle),
-      labelStyle: KafooType.body.copyWith(color: KafooColors.textMuted),
-      floatingLabelStyle: KafooType.label.copyWith(
-        fontSize: 14,
-        color: KafooColors.textMuted,
-      ),
-      helperStyle: KafooType.bodySmall.copyWith(color: KafooColors.textMuted),
-      errorStyle: KafooType.bodySmall.copyWith(color: KafooColors.danger),
-      // borderMeaningful, not borderStrong: at 1.54:1 an empty field has no
-      // visible edge in sunlight, and typing is what a Cook falls back to when
-      // speech fails her. A boundary that is the only marker of an interactive
-      // region has to clear 3:1.
-      border: _inputBorder(KafooColors.borderMeaningful),
-      enabledBorder: _inputBorder(KafooColors.borderMeaningful),
-      focusedBorder: _inputBorder(KafooColors.primary, width: 2),
-      errorBorder: _inputBorder(KafooColors.dangerBorder, width: 1.5),
-      focusedErrorBorder: _inputBorder(KafooColors.danger, width: 2),
+      helperMaxLines: 2,
+      errorMaxLines: 2,
       contentPadding: const EdgeInsetsDirectional.symmetric(
         horizontal: KafooSpacing.md,
-        vertical: KafooSpacing.rowGap,
+        vertical: 14,
       ),
+      hintStyle: textTheme.bodyMedium?.copyWith(color: KafooColors.textSubtle),
+      helperStyle: textTheme.labelSmall?.copyWith(color: KafooColors.textMuted),
+      // THE SAME METRICS AS THE HELPER, AND THAT IS THE WHOLE POINT. An error
+      // message replaces the helper text in its row; if the two rows are
+      // different heights the form shifts the moment validation fires, and
+      // somebody loses their place mid-entry. Left to Material's default this
+      // was 3 logical pixels taller.
+      errorStyle: textTheme.labelSmall?.copyWith(color: KafooColors.error),
+      labelStyle: textTheme.labelLarge?.copyWith(color: KafooColors.textMuted),
+      border: _inputBorder(KafooColors.borderInput),
+      enabledBorder: _inputBorder(KafooColors.borderInput),
+      focusedBorder: _inputBorder(KafooColors.primary),
+      errorBorder: _inputBorder(KafooColors.error),
+      focusedErrorBorder: _inputBorder(KafooColors.error),
+      disabledBorder: _inputBorder(KafooColors.border),
     ),
-    chipTheme: ChipThemeData(
-      backgroundColor: KafooColors.surfaceRaised,
-      selectedColor: KafooColors.primary,
-      side: const BorderSide(color: KafooColors.borderStrong, width: 1.5),
-      // WidgetStateProperty, because only ChoiceChip consults
-      // secondaryLabelStyle. FilterChip and InputChip take labelStyle — and a
-      // non-null labelStyle makes them skip their own colour defaults — so a
-      // selected filter chip was painted with NO colour at all over the
-      // terracotta fill. Nobody could read which dietary filter was on. No chip
-      // exists in the app yet; the trap was armed for whoever added the first.
-      labelStyle: WidgetStateTextStyle.resolveWith(
-        (states) => KafooType.label.copyWith(
-          color: states.contains(WidgetState.selected)
-              ? KafooColors.onPrimary
-              : KafooColors.onSurface,
-        ),
-      ),
-      shape: const StadiumBorder(),
-    ),
-    cardTheme: CardThemeData(
-      color: KafooColors.surfaceRaised,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(KafooRadius.card),
-        side: const BorderSide(color: KafooColors.border),
-      ),
-    ),
-    dialogTheme: DialogThemeData(
-      backgroundColor: KafooColors.surfaceRaised,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(KafooRadius.card),
-        side: const BorderSide(color: KafooColors.borderMeaningful),
-      ),
-      titleTextStyle: KafooType.section.copyWith(color: KafooColors.onSurface),
-      contentTextStyle: KafooType.body.copyWith(color: KafooColors.onSurface),
-    ),
+
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: KafooColors.surface,
-      surfaceTintColor: Colors.transparent,
       modalBarrierColor: KafooElevation.scrim,
+      showDragHandle: true,
+      dragHandleColor: KafooColors.borderStrong,
+      dragHandleSize: Size(44, 4),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(KafooRadius.sheet),
         ),
       ),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: KafooColors.primary,
+
+    appBarTheme: AppBarTheme(
+      backgroundColor: KafooColors.surface,
+      foregroundColor: KafooColors.onSurface,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: textTheme.titleLarge,
+      shape: const Border(bottom: BorderSide(color: KafooColors.border)),
     ),
-    snackBarTheme: SnackBarThemeData(
-      backgroundColor: KafooColors.darkSurface,
-      contentTextStyle: KafooType.body.copyWith(color: KafooColors.surface),
-      behavior: SnackBarBehavior.floating,
+
+    // A chip is 40dp visually and 48dp to a finger. A row of 48dp-tall chips
+    // looks like a row of buttons and dominates a screen it should merely
+    // qualify — so the target is padded around the visual, not drawn as one.
+    chipTheme: ChipThemeData(
+      backgroundColor: KafooColors.surfaceRaised,
+      selectedColor: KafooColors.primary,
+      disabledColor: KafooColors.surfaceSunken,
+      labelStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
+      secondaryLabelStyle: textTheme.labelLarge
+          ?.copyWith(fontSize: 15, color: KafooColors.onPrimary),
+      side: const BorderSide(color: KafooColors.borderStrong, width: 1.5),
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: KafooSpacing.md,
+        vertical: 10,
+      ),
+      shape: const StadiumBorder(),
+    ),
+
+    // A chip is 40dp visually and 48dp to a finger; so is a small icon button.
+    // Where the visual is smaller than the target, the target is padded around
+    // it rather than the visual being grown to match.
+    materialTapTargetSize: MaterialTapTargetSize.padded,
+
+    // Nothing bounces or springs; a kitchen is calm.
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeForwardsPageTransitionsBuilder(),
+      },
     ),
   );
 }
 
-/// The button minimum.
-///
-/// **Not `Size.fromHeight`, which is `Size(double.infinity, 48)`.** That threw
-/// "BoxConstraints forces an infinite width" for any button inside an unbounded
-/// Row — so «أيوة» beside «لأ» on a confirmation gate would have been a red
-/// screen — and it forced every button in the app to full width whether the
-/// screen wanted that or not. A caller that wants full width says so with
-/// `SizedBox(width: double.infinity)` or `Expanded`.
-///
-/// It is a default, not a guarantee: a parent `SizedBox(height: 36)` still wins,
-/// because ConstrainedBox clamps a minimum against the incoming maximum. The
-/// real check is the rendered-geometry assertion in the accessibility sweep.
-const _minTarget = Size(64, KafooSpacing.minTapTarget);
-
-OutlineInputBorder _inputBorder(Color color, {double width = 1.5}) =>
-    OutlineInputBorder(
+OutlineInputBorder _inputBorder(Color color) => OutlineInputBorder(
       borderRadius: BorderRadius.circular(KafooRadius.control),
-      borderSide: BorderSide(color: color, width: width),
-    );
-
-/// Maps Kafoo's scale onto Material's slots.
-///
-/// The mapping is not one-to-one and cannot be: Material has fifteen slots
-/// covering three sizes of five roles, and Kafoo has nine roles chosen for one
-/// product. Each assignment below picks the Kafoo style whose *use* matches the
-/// slot's use, so a widget reaching for `titleLarge` gets something sensible
-/// rather than a Material default in the wrong font.
-TextTheme _textTheme() => const TextTheme(
-      displayLarge: KafooType.display,
-      displayMedium: KafooType.display,
-      displaySmall: KafooType.screenTitle,
-      headlineLarge: KafooType.screenTitle,
-      headlineMedium: KafooType.section,
-      headlineSmall: KafooType.section,
-      titleLarge: KafooType.section,
-      titleMedium: KafooType.mealName,
-      titleSmall: KafooType.label,
-      bodyLarge: KafooType.bodyLarge,
-      bodyMedium: KafooType.body,
-      bodySmall: KafooType.bodySmall,
-      labelLarge: KafooType.label,
-      labelMedium: KafooType.label,
-      labelSmall: KafooType.caption,
-    ).apply(
-      bodyColor: KafooColors.onSurface,
-      displayColor: KafooColors.onSurface,
-      fontFamily: KafooType.fontFamily,
-      fontFamilyFallback: KafooType.fontFamilyFallback,
+      borderSide: BorderSide(color: color, width: 1.5),
     );
