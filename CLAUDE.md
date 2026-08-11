@@ -192,14 +192,20 @@ seen to fail, before the policy it tests exists.
    packages; not `flutter analyze`, which misses RLS coverage, credentials, vocabulary, ARB parity
    and the Edge Function type-check.
 2. New tables have RLS policies and a test proving a non-owner cannot read the row.
-3. New user-facing strings exist in both `ar` and `en`.
-4. New AI behaviour has at least one golden-case test in `packages/ai/test/`.
-5. Analytics event emitted if the change touches a tracked business action.
-6. `docs/product/domain-model.md` updated in the same commit if the domain changed. Not optional — a
+3. **A change that moves a person between screens has a journey test** in
+   `apps/mobile/test/journey_test.dart` — one that boots the whole app and walks the path, asserting
+   both the arrival and the departure. Five defects reached the founder's phone on 2026-08-10 with
+   the gate fully green, and every one lived in the step *between* screens rather than inside one.
+   Two passing widget tests either side of a broken transition is the exact shape to distrust.
+   `.claude/rules/dart.md` has what a journey test must do.
+4. New user-facing strings exist in both `ar` and `en`.
+5. New AI behaviour has at least one golden-case test in `packages/ai/test/`.
+6. Analytics event emitted if the change touches a tracked business action.
+7. `docs/product/domain-model.md` updated in the same commit if the domain changed. Not optional — a
    feature without updated domain docs is half-shipped. Update whatever else the change made stale:
    `event-model.md`, an ADR, this file. Documentation drift is part of the change.
-7. The feature's `quickstart.md` lets someone with none of your context verify it by hand.
-8. `/ship-check` run.
+8. The feature's `quickstart.md` lets someone with none of your context verify it by hand.
+9. `/ship-check` run.
 
 **On gate failure:** diagnose, fix, re-run until green — **except** a failing RLS or
 committed-credentials check, which is a stop-and-report, never something to iterate against. The

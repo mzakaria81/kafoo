@@ -755,6 +755,52 @@ run "every screen has a route into it" bash -c '
   done
   exit $status'
 
+# THE APP IS TESTED AS A WHOLE, NOT ONLY AS PARTS.
+#
+# Every other test in `apps/mobile/test/` builds one screen and hands it fakes. That proves the
+# screen and says nothing about the joins between screens — and on 2026-08-10 FIVE defects reached
+# the founder's phone in a single day, every one of them through a fully green gate, every one of
+# them living in a join rather than inside a widget:
+#
+#   icons rendered as Chinese characters · the app threw on its first frame with no ProviderScope ·
+#   four Cook screens had no route into them · the design system was rendered by no test at all ·
+#   a correct sign-in code signed the Cook in and navigated nowhere
+#
+# `journey_test.dart` boots `KafooApp` and walks real paths, which is the only level at which any of
+# those is visible. This check does not pretend to know whether a given change NEEDED a new journey
+# — that is judgement, and `.claude/rules/dart.md` states the rule for a person to follow. What it
+# refuses is the decay: the file being deleted, or quietly rewritten into more per-screen tests,
+# which is exactly how this gap opened in the first place.
+run "the app has journey tests" bash -c '
+  f=apps/mobile/test/journey_test.dart
+  [ -d apps/mobile/test ] || { echo "   no mobile tests yet — skipping"; exit 0; }
+  status=0
+  if [ ! -f "$f" ]; then
+    echo "   FAIL: $f is missing."
+    echo "   It is the only test that boots the whole app. Five defects shipped green without it."
+    exit 1
+  fi
+  # It must boot the app root. A journey file full of single screens is the gap wearing the name.
+  grep -q "KafooApp(" "$f" || {
+    echo "   FAIL: $f does not construct KafooApp."
+    echo "   A journey test that builds screens one at a time is what every other test already does."
+    status=1; }
+  # It must assert a DEPARTURE, not only an arrival. findsOneWidget on the destination is half a
+  # transition; findsNothing on the screen left behind is the half that catches a route nobody popped,
+  # which is precisely the sign-in bug the founder found.
+  grep -q "findsNothing" "$f" || {
+    echo "   FAIL: $f never asserts findsNothing."
+    echo "   Arriving somewhere is half a transition. The half that catches an undismissed screen is"
+    echo "   asserting the screen left behind is GONE."
+    status=1; }
+  # And it must actually drive the app rather than call into it.
+  grep -qE "tester\.(tap|enterText)" "$f" || {
+    echo "   FAIL: $f never taps or types. Drive the app the way a person does."
+    status=1; }
+  journeys=$(grep -c "testWidgets(" "$f")
+  echo "   ${journeys} journey(s), booting the app root"
+  exit $status'
+
 # THE ARABIC FONT IS DECLARED IN BOTH PLACES IT HAS TO BE.
 #
 # `KafooType.fontFamily` names a family in Dart; `apps/mobile/pubspec.yaml` is what actually bundles
