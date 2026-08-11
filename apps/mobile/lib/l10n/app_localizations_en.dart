@@ -797,6 +797,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String mealPriceInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'We could not read that price. Please write it in digits only, greater than zero.',
+        'other':
+            'We could not read that price. Please write it in digits only, greater than zero.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String mealPhotoError(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
@@ -944,6 +958,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealSummaryNoPhoto => 'No photo';
+
+  @override
+  String mealSummaryPhotoAttached(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'The one you chose is attached',
+        'other': 'The one you chose is attached',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publicMealPhotoLabel => 'Photo of the Meal';
+
+  @override
+  String mealConvResuming(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Loading the Meal you started...',
+        'other': 'Loading the Meal you started...',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String mealSummaryConfirm(String addressForm) {
@@ -1149,9 +1190,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myMealsStatusDraft => 'Draft';
-
-  @override
-  String get myMealsStatusPublished => 'On the menu';
 
   @override
   String get myMealsStatusUnavailable => 'Not available right now';
@@ -1610,4 +1648,374 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get photoPlaceholder => 'Temporary image slot — will not ship';
+
+  @override
+  String voiceIdle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'I\'m listening. Press and talk.',
+        'other': 'I\'m listening. Press and talk.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceStillHere(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Still here, one second.',
+        'other': 'Still here, one second.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceNotHeard(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Sorry, I didn\'t catch that. Say it again?',
+        'other': 'Sorry, I didn\'t catch that. Say it again?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTooNoisy(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'It\'s loud here — hold the phone closer and say it again.',
+        'other': 'It\'s loud here — hold the phone closer and say it again.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceOfflineQueued =>
+      'No connection. What is on the screen is saved, but speech will not be captured until it is back.';
+
+  @override
+  String voiceTapFallback(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'No problem — here are the options, tap the one you want.',
+        'other': 'No problem — here are the options, tap the one you want.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTalkButton(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Press and talk',
+        'other': 'Press and talk',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceMuteSilence(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Silence the assistant',
+        'other': 'Silence the assistant',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceMuteRestore(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Restore the assistant\'s voice',
+        'other': 'Restore the assistant\'s voice',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceRecording => 'Recording now';
+
+  @override
+  String get gateAnswerYes => 'Yes';
+
+  @override
+  String get gateAnswerNo => 'No, wait';
+
+  @override
+  String gateSilenceFootnote(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'If you say nothing, nothing happens.',
+        'other': 'If you say nothing, nothing happens.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsLoading => 'Loading your Meals…';
+
+  @override
+  String get glancePublished => 'On the menu';
+
+  @override
+  String get glanceDraft => 'Draft';
+
+  @override
+  String get glanceUnavailable => 'Off menu';
+
+  @override
+  String get glanceArchived => 'Archived';
+
+  @override
+  String get glanceOffline => 'No connection';
+
+  @override
+  String get glanceSaved => 'Saved';
+
+  @override
+  String myMealsSpokenSummary(String addressForm, int total, int published) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'You have $total Meals, $published of them on the menu. What would you like to do?',
+        'other':
+            'You have $total Meals, $published of them on the menu. What would you like to do?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsHearAgain(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Hear it again',
+        'other': 'Hear it again',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsHearRow(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Hear this Meal',
+        'other': 'Hear this Meal',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsRowActions => 'More for this Meal';
+
+  @override
+  String myMealsAddByHand(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Or add a Meal by hand',
+        'other': 'Or add a Meal by hand',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceNotReadyYet(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Speech is not working yet — add it by hand for now',
+        'other': 'Speech is not working yet — add it by hand for now',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsEmptyInvitation => 'Tell me about a Meal';
+
+  @override
+  String myMealsEmptySpoken(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Tell me the Meal\'s name and I\'ll take it from there.',
+        'other': 'Tell me the Meal\'s name and I\'ll take it from there.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsEmptyByHand(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Or write it by hand',
+        'other': 'Or write it by hand',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsOfflineReassurance =>
+      'Your Meals are all safe. It is the connection that is the problem.';
+
+  @override
+  String myMealsCachedAt(String time) {
+    return 'Last saved copy · $time';
+  }
+
+  @override
+  String myMealsRetry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Try again',
+        'other': 'Try again',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publishGateQuestion => 'Publish?';
+
+  @override
+  String publishGateReadback(String name, String price) {
+    return '$name at $price EGP will be published and go on the menu now.';
+  }
+
+  @override
+  String publishGateYes(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Yes, publish it',
+        'other': 'Yes, publish it',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recognitionNarrowQuestion(String addressForm, String guess) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Is the Meal called $guess? Say yes or no.',
+        'other': 'Is the Meal called $guess? Say yes or no.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recognitionNoneOfThese => 'None of these';
+
+  @override
+  String get publicMealPriceUnit => 'EGP';
+
+  @override
+  String mealRowSemanticLabel(String name, String status, String price) {
+    return '$name, $status, $price';
+  }
+
+  @override
+  String mealRetireQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Retire it for good?',
+        'other': 'Retire it for good?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealDeleteDraftQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Delete the draft?',
+        'other': 'Delete the draft?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealLastOnOfferQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Close the kitchen?',
+        'other': 'Close the kitchen?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealOfflineError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'No connection. Try again when it is back.',
+        'other': 'No connection. Try again when it is back.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsFailedTitle => 'Something is not right';
+
+  @override
+  String get myMealsFailedReassurance => 'Your Meals are all safe.';
+
+  @override
+  String get mealNoPhotoYet => 'No photo for this Meal yet';
+
+  @override
+  String get mealSpokenTakenOffMenu => 'Done — it is off the menu.';
+
+  @override
+  String get mealSpokenBackOnMenu => 'Done — it is back on the menu.';
+
+  @override
+  String get mealSpokenRetired => 'Done — it is retired.';
+
+  @override
+  String get mealSpokenDraftDeleted => 'Done — the draft is deleted.';
 }

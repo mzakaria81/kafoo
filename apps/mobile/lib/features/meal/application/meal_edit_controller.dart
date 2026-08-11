@@ -69,11 +69,27 @@ class MealEditController extends _$MealEditController {
   ///
   /// Returns true on success, false on no-change or failure.
   /// An empty or unchanged value writes nothing and emits nothing.
-  Future<bool> commit(MealEditField field, String value) async {
-    final trimmed = value.trim();
+  Future<bool> commit(MealEditField field, String rawValue) async {
+    var trimmed = rawValue.trim();
     if (trimmed.isEmpty) {
       state = state.copyWith(feedback: 'mealEditNoChange');
       return false;
+    }
+
+    // The same normalisation the conversation does, and for the same reason: a
+    // price typed on an Arabic keyboard is Arabic-Indic digits, which
+    // `numeric(10,2)` refuses. `parseMealPrice` is the one home for that rule —
+    // a second copy here would be a second place to get it wrong.
+    if (field == MealEditField.price) {
+      final price = parseMealPrice(trimmed);
+      if (price == null) {
+        state = state.copyWith(
+          error: const AppError(messageKey: 'mealPriceInvalid'),
+          feedback: null,
+        );
+        return false;
+      }
+      trimmed = price;
     }
 
     final currentValue = switch (field) {

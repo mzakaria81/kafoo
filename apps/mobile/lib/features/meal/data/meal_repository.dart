@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:kafoo_domain/domain.dart';
@@ -79,6 +80,22 @@ abstract interface class MealRepository {
     required String mealId,
     required Uint8List bytes,
   });
+
+  /// A URL the app can render for a photo stored at [photoPath].
+  ///
+  /// **THE SUMMARY SHOWED THE PATH ITSELF UNTIL 2026-08-11.** A Cook who had
+  /// just taken a photograph of her food was shown the text
+  /// `7a38f558-…/69d0e03e-….jpg` where the photograph should have been, on the
+  /// screen where she checks the Meal before putting it on offer. Nothing
+  /// resolved a URL anywhere in the app, so there was nothing for the row to
+  /// render — `public_meal_view.dart` takes a `photoUrl` and no caller had ever
+  /// supplied one either.
+  ///
+  /// Synchronous and non-failing because `meal-photos` is a PUBLIC bucket
+  /// (`create_meals.sql`), so this is string construction rather than a request.
+  /// It stays on the repository regardless: this layer is the only one that may
+  /// know how Supabase addresses storage.
+  String photoUrl(String photoPath);
 
   /// Every Meal belonging to the signed-in Cook, at every status.
   ///
@@ -300,6 +317,10 @@ class SupabaseMealRepository implements MealRepository {
   }
 
   @override
+  String photoUrl(String photoPath) =>
+      _client.storage.from(_bucket).getPublicUrl(photoPath);
+
+  @override
   Future<Result<List<CookMeal>, AppError>> myMeals() async {
     try {
       final uid = _uid;
@@ -314,8 +335,37 @@ class SupabaseMealRepository implements MealRepository {
         rows.cast<Map<String, dynamic>>().map(_cookMealFromRow).toList(),
       );
     } on Object catch (e) {
-      return Failure(AppError(messageKey: 'mealLoadError', cause: e));
+      // OFFLINE IS A DIFFERENT SENTENCE FROM BROKEN. Everything landed on
+      // `mealLoadError`, and the screen above titles that «مفيش نت» and
+      // reassures «المشكلة في النت بس» — so a Cook whose read was refused by a
+      // policy, or whose row would not parse, was sent to check her WiFi. The
+      // one thing worse than an error is an error that sends someone to fix
+      // something that is not broken.
+      // Written out twice rather than as one constructor with a computed key:
+      // the gate that checks every messageKey has an Arabic sentence reads the
+      // token after `messageKey:`, so anything but a literal there reads as a
+      // key nobody wrote a string for.
+      return Failure(
+        _looksOffline(e)
+            ? AppError(messageKey: 'mealOfflineError', cause: e)
+            : AppError(messageKey: 'mealLoadError', cause: e),
+      );
     }
+  }
+
+  /// Whether a thrown error is the phone failing to reach the network.
+  ///
+  /// Matched on type and message rather than on a status code, because the
+  /// client wraps a socket failure differently on each platform and none of the
+  /// wrappers is exported.
+  static bool _looksOffline(Object error) {
+    if (error is SocketException) return true;
+    final text = error.toString().toLowerCase();
+    return text.contains('socketexception') ||
+        text.contains('failed host lookup') ||
+        text.contains('connection closed') ||
+        text.contains('connection refused') ||
+        text.contains('network is unreachable');
   }
 
   @override

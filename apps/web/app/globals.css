@@ -1,22 +1,101 @@
 /* Tokens mirror packages/ui/lib/theme/tokens.dart. Two surfaces, one design —
    a value invented here rather than taken from there is the drift ADR-0008
-   Amendment 1 warns about, in its smallest form. */
+   Amendment 1 warns about, in its smallest form. Every hex below has a
+   counterpart in that file and a row in DESIGN.md; if you need one that has
+   neither, it does not exist yet — say so rather than adding it here. */
 :root {
   --kafoo-primary: #c2410c;
+  --kafoo-primary-deep: #9a3412;
+  --kafoo-primary-tint: #fff7ed;
+  --kafoo-primary-border: #f0c9a8;
+
   --kafoo-surface: #fffbf7;
+  --kafoo-surface-raised: #ffffff;
+  --kafoo-surface-sunken: #faf5f0;
+
   --kafoo-on-surface: #1c1917;
-  --kafoo-danger: #b91c1c;
-  /* The visible boundary of a control needs 3:1 against its background — WCAG
-     1.4.11. rgba(0,0,0,0.3) measured 2.10:1, which is the only thing marking
-     where the search box is, on a phone in sunlight. This measures 4.0:1.
-     A token rather than a literal so the app can adopt the same value; there is
-     no border colour in packages/ui/lib/theme/tokens.dart yet either. */
-  --kafoo-border: rgba(0, 0, 0, 0.55);
+  --kafoo-on-primary: #ffffff;
+  --kafoo-text-muted: #57534e;
+  --kafoo-text-subtle: #78716c;
+  --kafoo-text-disabled: #a8a29e;
+  --kafoo-disabled-fill: #f0e9e1;
+
+  /* The one cool colour in the system, so a Customer can tell "I'm hearing
+     you" from "buy this" before reading a word. */
+  --kafoo-voice: #0f766e;
+  --kafoo-voice-deep: #115e59;
+  --kafoo-voice-tint: #f0fdfa;
+  --kafoo-voice-border: #99e2da;
+
+  /* Replaced #b91c1c, which sat in the same hue family as the terracotta
+     primary: in sunlight the two washed out to the same colour and a normal
+     button became indistinguishable from an error. */
+  --kafoo-error: #9f1239;
+  --kafoo-error-tint: #fef2f2;
+  --kafoo-error-border: #f3b8c4;
+
+  --kafoo-success: #15803d;
+  --kafoo-success-tint: #f0fdf4;
+  /* Borrowed deep terracotta — the palette has no dedicated warning hue. */
+  --kafoo-warning: #9a3412;
+
+  /* Decorative structure only: a card edge, a divider. 1.29:1 against the
+     surface, which is below the 3:1 WCAG 1.4.11 asks of a control boundary —
+     see --kafoo-border-input. */
+  --kafoo-border: #e7ded3;
+  --kafoo-border-strong: #d6ccc0;
+  /* THE VISIBLE BOUNDARY OF A CONTROL, AND IT IS NOT THE DESIGN'S VALUE.
+     DESIGN.md gives input borders as border-strong, which measures 1.54:1 here
+     and is the only thing marking where the search box is on a phone in
+     sunlight. This surface had already fixed that exact bug once, and taking
+     the documented value literally would have put it back. #78716c is the
+     palette's own text-subtle at 4.66:1 — borrowed, pending a design decision
+     about what a control's edge looks like outdoors. */
+  --kafoo-border-input: #78716c;
+
+  --kafoo-dark-surface: #1c1917;
+  --kafoo-quoted-text: #ccfbf1;
+
   --kafoo-space-xs: 4px;
   --kafoo-space-sm: 8px;
+  /* Between elements inside one row. 8 makes a Meal row cramped, 16 makes it
+     fall apart into pieces. */
+  --kafoo-space-row: 12px;
   --kafoo-space-md: 16px;
   --kafoo-space-lg: 24px;
+  --kafoo-space-xl: 32px;
+  /* Deliberately the same number as the tap target: the rhythm of the page and
+     the size of a finger are one unit, so spacing can never accidentally
+     shrink a target. */
+  --kafoo-space-section: 48px;
   --kafoo-tap-target: 48px;
+
+  --kafoo-radius-control: 12px;
+  --kafoo-radius-thumbnail: 14px;
+  --kafoo-radius-panel: 16px;
+  --kafoo-radius-card: 24px;
+  --kafoo-radius-sheet: 26px;
+  --kafoo-radius-pill: 999px;
+
+  /* Shadow colour is always the text brown at low alpha, never neutral grey —
+     a grey shadow on a warm surface goes visibly cold. Structure that carries
+     meaning uses a border instead; shadows disappear in sunlight. */
+  --kafoo-shadow-lifted: 0 1px 3px rgba(28, 25, 23, 0.06);
+  --kafoo-shadow-floating: 0 8px 24px rgba(28, 25, 23, 0.12);
+  --kafoo-scrim: rgba(28, 25, 23, 0.55);
+  --kafoo-focus-ring: 0 0 0 3px rgba(194, 65, 12, 0.18);
+
+  /* Bundled on mobile (packages/ui/fonts/), NOT self-hosted here yet, so this
+     surface renders in the system stack while the app renders in Plex. Closing
+     it means adding a public/ directory and an asset route to the Workers
+     build — see docs/design/README.md. The fallback stack is Arabic-first on
+     purpose: swapping in from a Latin-metric fallback reflows the whole page. */
+  --kafoo-font: 'IBM Plex Sans Arabic', 'Noto Sans Arabic', system-ui,
+    -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  /* Arabic stacks marks above and below the baseline, so it needs ~0.15 more
+     leading than Latin at the same size. Do not unify the two. */
+  --kafoo-line-height: 1.75;
+  --kafoo-line-height-latin: 1.6;
 }
 
 * { box-sizing: border-box; }
@@ -25,9 +104,16 @@ body {
   margin: 0;
   background: var(--kafoo-surface);
   color: var(--kafoo-on-surface);
-  font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
-  line-height: 1.6;
+  font-family: var(--kafoo-font);
+  font-size: 16px;
+  line-height: var(--kafoo-line-height);
 }
+
+:lang(en) { line-height: var(--kafoo-line-height-latin); }
+
+/* Arabic is cursive; positive tracking severs the joins and produces
+   broken-looking words. */
+:lang(ar), :lang(ar) * { letter-spacing: 0; }
 
 main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
 
@@ -38,18 +124,19 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
   gap: var(--kafoo-space-md);
   padding: var(--kafoo-space-md);
   margin-block-end: var(--kafoo-space-md);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--kafoo-space-sm);
+  background: var(--kafoo-surface-raised);
+  border: 1px solid var(--kafoo-border);
+  border-radius: var(--kafoo-radius-card);
   text-decoration: none;
   color: inherit;
   min-block-size: var(--kafoo-tap-target);
 }
 
 .card:hover { border-color: var(--kafoo-primary); }
-.card img { inline-size: 72px; block-size: 72px; object-fit: cover; border-radius: var(--kafoo-space-sm); }
-.card h2 { margin: 0 0 var(--kafoo-space-xs); font-size: 1.05rem; }
-.card p { margin: 0; font-size: 0.9rem; }
-.price { color: var(--kafoo-primary); font-weight: 600; }
+.card img { inline-size: 72px; block-size: 72px; object-fit: cover; border-radius: var(--kafoo-radius-thumbnail); }
+.card h2 { margin: 0 0 var(--kafoo-space-xs); font-size: 1.25rem; font-weight: 600; }
+.card p { margin: 0; font-size: 0.875rem; color: var(--kafoo-text-muted); }
+.price { color: var(--kafoo-primary-deep); font-size: 1.125rem; font-weight: 700; }
 .empty { padding: var(--kafoo-space-lg); text-align: center; }
 
 .bar {
@@ -91,8 +178,8 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
   font: inherit;
   color: inherit;
   background: transparent;
-  border: 1px solid var(--kafoo-border);
-  border-radius: var(--kafoo-space-sm);
+  border: 1px solid var(--kafoo-border-input);
+  border-radius: var(--kafoo-radius-control);
 }
 .search button {
   min-block-size: var(--kafoo-tap-target);
@@ -102,13 +189,13 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
   color: var(--kafoo-surface);
   background: var(--kafoo-primary);
   border: none;
-  border-radius: var(--kafoo-space-sm);
+  border-radius: var(--kafoo-radius-control);
 }
 
 /* A sentence Kafoo says about the results. `em` rather than `px` so it keeps
    inheriting the reader's own text size. */
 .note { padding: var(--kafoo-space-sm) 0; }
-.note.danger { color: var(--kafoo-danger); }
+.note.danger { color: var(--kafoo-error); }
 .fine { font-size: 0.85em; }
 
 /* BOTH ANSWERS THE SAME WEIGHT, AND THAT IS THE RULE RATHER THAN THE STYLE. A
@@ -125,7 +212,7 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
   color: inherit;
   background: transparent;
   border: 1px solid var(--kafoo-primary);
-  border-radius: var(--kafoo-space-sm);
+  border-radius: var(--kafoo-radius-control);
 }
 
 .consent, .empty-area { padding: var(--kafoo-space-md) 0; }
@@ -138,4 +225,10 @@ main { max-width: 720px; margin: 0 auto; padding: var(--kafoo-space-md); }
 
 /* A programmatically focused element must be visible to a sighted keyboard user.
    There was no focus style at all, so moving focus would have landed invisibly. */
-:focus-visible { outline: 2px solid var(--kafoo-primary); outline-offset: 2px; }
+/* A 3px halo, not a colour-only change — a colour shift alone is invisible in
+   sunlight. */
+:focus-visible {
+  outline: 2px solid var(--kafoo-primary);
+  outline-offset: 2px;
+  box-shadow: var(--kafoo-focus-ring);
+}

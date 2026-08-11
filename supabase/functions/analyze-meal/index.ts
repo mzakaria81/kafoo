@@ -84,10 +84,33 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-/// photo_path must be exactly meal-photos/{callerUid}/{mealId}.jpg.
+/// photo_path must be exactly {callerUid}/{mealId}.jpg — the object path inside `meal-photos`.
 ///
-/// Compared segment-by-segment rather than with startsWith or a loose regex, because a crafted
-/// path like meal-photos/{uid}/../{other}/x.jpg would otherwise slip through. Any ".." is rejected.
+/// **IT REQUIRED A BUCKET SEGMENT UNTIL 2026-08-11, AND NOTHING IN KAFOO EVER SENT ONE.** It
+/// demanded `meal-photos/{uid}/{mealId}.jpg`; `SupabaseMealRepository.uploadPhoto` builds
+/// `{uid}/{mealId}.jpg`, stores that in `meals.photo_path`, and sends that. So every analysis that
+/// included a photograph was refused 403 `photo_path_forbidden` — and because the app's transport
+/// turned a non-2xx reply into a thrown exception nobody caught, the Cook saw «تقديرات المساعد»
+/// spinning forever and could not finish putting her Meal on offer.
+///
+/// The bucket-qualified form is the format nothing produces: storage's own API takes the object path
+/// (`from('meal-photos').upload(path)`), the database stores the object path, and `getPublicUrl`
+/// needs the object path. This function names the bucket itself, three lines below, so asking the
+/// caller to state it added a way to disagree and nothing else.
+///
+/// **Every test on both sides hand-typed the bucket-qualified string.** Four cases here and one in
+/// `meal_conversation_test.dart` were written to the contract rather than from a real upload, so the
+/// suites proved the two halves agreed with the same wrong idea.
+///
+/// The checks that matter are unchanged: no "..", the folder must be the caller's own, and the file
+/// must be named after the Meal being analysed. Compared segment-by-segment rather than with
+/// startsWith or a loose regex, because a crafted path like {uid}/../{other}/x.jpg would otherwise
+/// slip through.
+///
+/// A later simplification, deliberately not taken today: the only legitimate path is derivable from
+/// two facts the function already holds — the verified caller and the meal id — so `photo_path`
+/// carries no information and could be dropped from the request entirely. That is an app change, a
+/// parser change and a new APK; this is a four-line fix to the half that is wrong.
 function parsePhotoPath(
   photoPath: string,
   callerUid: string,
@@ -96,10 +119,9 @@ function parsePhotoPath(
   if (photoPath.includes('..')) return { error: 'forbidden' };
 
   const segments = photoPath.split('/');
-  if (segments.length !== 3) return { error: 'forbidden' };
+  if (segments.length !== 2) return { error: 'forbidden' };
 
-  const [bucket, uid, file] = segments;
-  if (bucket !== 'meal-photos') return { error: 'forbidden' };
+  const [uid, file] = segments;
   if (uid !== callerUid) return { error: 'forbidden' };
   if (file !== `${mealId}.jpg`) return { error: 'forbidden' };
 
@@ -415,6 +437,42 @@ export async function handleAnalyzeMeal(
     model_id: result.response.modelId,
     used_photo: usedPhoto,
   };
+
+  // WHICH FIELDS THE MODEL FILLED, AND WHICH IT EXPLAINED. NAMES ONLY.
+  //
+  // On 2026-08-11 this function answered a Cook in 2.5 seconds with a 785-byte
+  // analysis and her screen said the assistant could not estimate anything. The
+  // app drops any field with no `basis` sentence — correctly, since an
+  // unexplained calorie count is one a Cook has no grounds to believe — and
+  // dropped every one of them. Nothing anywhere recorded that, so a working call
+  // and a useless one were indistinguishable in the logs, and the cause had to
+  // be reasoned about instead of read.
+  //
+  // FIELD NAMES AND COUNTS, NEVER CONTENT. The Cook's words, the model's
+  // sentences and the photograph stay out of the log: this is a demo database
+  // real people sign into, `docs/ops/demo-environment.md` says who can read it,
+  // and a diagnostic is not a reason to start storing what somebody cooks. The
+  // names alone answer the only question that was hard — did the model fill
+  // fields without explaining them.
+  const filled = (['ingredients', 'calories', 'allergens', 'cuisine', 'category'] as const)
+    .filter((field) => {
+      const value = payload[field];
+      if (value === null || value === undefined) return false;
+      return Array.isArray(value) ? value.length > 0 : true;
+    });
+  const explained = Object.entries(analysis.basis ?? {})
+    .filter(([, sentence]) => typeof sentence === 'string' && sentence.trim().length > 0)
+    .map(([field]) => field);
+  console.log(
+    JSON.stringify({
+      event: 'analyze_meal_shape',
+      filled,
+      explained,
+      // The case the app reads as "the assistant said nothing usable".
+      unexplained: filled.filter((field) => !explained.includes(field)),
+      used_photo: usedPhoto,
+    }),
+  );
 
   return sseResponse(payload);
 }

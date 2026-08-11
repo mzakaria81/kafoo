@@ -108,14 +108,28 @@ class SummaryRow extends StatelessWidget {
 class PhotoRow extends StatelessWidget {
   const PhotoRow({
     required this.label,
-    required this.photoPath,
+    required this.photoUrl,
     required this.noPhotoLabel,
+    required this.photoSemanticsLabel,
     super.key,
   });
 
   final String label;
-  final String? photoPath;
+
+  /// A URL to render, or null when the Cook added no photograph.
+  ///
+  /// **A URL, NOT A STORAGE PATH, AND THAT IS THE FIX.** This took
+  /// `photoPath` and rendered it as text, so a Cook who had just photographed
+  /// her food saw `7a38f558-.../69d0e03e-....jpg` on the screen where she checks
+  /// the Meal before putting it on offer. The path is an address inside a
+  /// bucket; it was never something to show a person.
+  final String? photoUrl;
+
   final String noPhotoLabel;
+
+  /// Spoken in place of the photograph. Confirms it is attached, which is the
+  /// question the Cook is on this screen to answer.
+  final String photoSemanticsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -132,12 +146,14 @@ class PhotoRow extends StatelessWidget {
                 ?.copyWith(color: KafooColors.textMuted),
           ),
           const SizedBox(height: KafooSpacing.xs),
-          Text(
-            photoPath ?? noPhotoLabel,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: photoPath == null ? KafooColors.textMuted : null,
+          if (photoUrl case final url?)
+            MealPhoto(url: url, semanticsLabel: photoSemanticsLabel)
+          else
+            Text(
+              noPhotoLabel,
+              style: theme.textTheme.bodyLarge
+                  ?.copyWith(color: KafooColors.textMuted),
             ),
-          ),
         ],
       ),
     );

@@ -1,147 +1,112 @@
-# EV — the voice system: plan
+# EV — the voice system: what is built, and what the paid voice adds
 
-**Status:** awaiting founder approval. No code written.
-**Epic:** EV in `specs/ROADMAP.md`, sequenced first by the founder on 2026-08-10.
-**Depends on:** ADR-0013, `docs/design/DESIGN.md` §10, `docs/ops/measuring-spoken-arabic.md`.
+**Rewritten 2026-08-11, against `main` at `3bfa2b4`** (#459, "Read the assistant's answer instead of
+stringifying the stream it arrives on").
 
-## Why this exists at all
+**This document previously planned a module that already existed.** It was written from a branch cut
+at `ea3f14e`, and #457 and #459 merged the voice layer while it was being written. The rule that
+would have caught it now lives in `coordination/README.md` under "Pull `main` before you plan". What
+follows is the honest version: what is on `main`, what this branch actually contributes, and what is
+still open.
 
-ADR-0013 made Kafoo voice-first on 2026-08-10 and **nothing in the repository speaks.**
-`voice_input.dart` transcribes; there is no text-to-speech anywhere, no haptic vocabulary, and no
-confirmation gate. Twenty-seven presentation files will each need a spoken line.
+## Built and merged — do not rebuild
 
-The roadmap already states the consequence: *"the voice system is a dependency, not a feature… it
-cannot be built per-screen without producing nine slightly different versions of each state."* This
-plan is how it becomes one place instead of twenty-seven.
+| Thing | Where |
+|---|---|
+| The nine voice states, each with its haptic | `packages/domain/lib/voice.dart` |
+| `assistantIsSpeaking` / `microphoneIsLive`, so the recogniser never hears the assistant | same |
+| The confirmation gate — silence never confirms, one reprompt, no method that resolves by time | same |
+| The recognition failure ladder, three rungs, cannot loop or climb back | same |
+| Talk-button timings — the 150 ms acknowledgement and the 400 ms thinking state | same |
+| The undo window, two minutes | same |
+| Eleven glance words as a closed enum, with colour and a dashed flag | `packages/ui/lib/widgets/glance_word.dart` |
+| The gate as a widget | `packages/ui/lib/widgets/confirmation_gate.dart` |
+| Glance-word type styles, 20 px in a row and 32 px as a verdict | `packages/ui/lib/theme/typography.dart` |
+| The assistant's voice behind a seam, with the device's own voice as the first adapter | `apps/mobile/lib/features/conversation/data/speech_output.dart` |
+| The spoken Arabic lines, in both locale files | `apps/mobile/lib/l10n/app_{ar,en}.arb` |
 
-## What the module is
+`main`'s gate is **safer in shape** than the one this branch wrote and deleted: it has no method that
+resolves by the passage of time at all, where the deleted version had an `onSilenceElapsed` that was
+correct but existed. Its offline line is also already honest — it says what is and is not kept rather
+than promising «محفوظ» over words nobody captured.
 
-**Not "a thing that speaks a sentence."** That is shallow — every screen would still have to remember
-to also buzz the phone and also draw the state, which is the twenty-seven-copies problem with an extra
-step in it.
+## What this branch contributes
 
-The module owns a **state**. A screen says *"I am thinking"* or *"this Meal is published"*, and the
-module produces all three channels at once: what is drawn, what is said, what is felt. §10.1's fourth
-principle — every state reaches the user three ways, any one sufficient alone — becomes structurally
-true rather than remembered, because there is no way to ask for one channel only.
+`speech_output.dart` states the reason the seam exists: *"the founder chose the device's own voice to
+start — free, offline, no account, available today — with a paid Cairene voice to follow once the
+flows are settled and there are real sentences to audition."*
 
-Two things sit behind the same interface:
+**That follow-on is this work.** It is the second adapter the seam was built for.
 
-- **The nine voice states** (§10.2) — idle, listening, thinking, speaking, didn't-catch, correcting,
-  interrupted, offline, too-noisy.
-- **The confirmation gate** (§10.6) — read the action back in full, wait for «أيوة», repeat once
-  after eight seconds, never let silence confirm, keep an undo for two minutes.
+- **`docs/ops/measuring-spoken-arabic.md`** — the runbook for whether a service speaks Egyptian at
+  all. The mirror of `measuring-transcription.md`, and unlike it needs no handset, which makes it the
+  cheapest unknown on the voice-first path.
+- **Two runs against ElevenLabs**, recorded rather than summarised: what a free tier refuses, the 25
+  Egyptian voices in the shared library, a fourteen-voice shortlist, and the plan tiers compared.
+- **The voices, chosen by ear by the founder**: **Ghozlan — Soft Clear Conversational**
+  (`xPcC3nehhziQaOrIeAwv`) and **Ahmad — Conversational AI Voice** (`ihycSANIrpHfhWoaq1g3`).
+- **The finding that changes the cost argument:** Egyptian pronunciation comes from the model reading
+  Egyptian text, not from an Egyptian voice — the line judged perfect Egyptian was generated with a
+  stock American voice. **A paid plan buys timbre and warmth, not correctness.** The risk moves to how
+  a line is *written*, which is why every fixed line must be heard before it ships.
+- **997 characters** for the entire spoken vocabulary in both voices — 2.5% of one month's allowance
+  on the $6 Starter plan, spent again only when the wording changes. **The fixed lines are effectively
+  free**, which is what justifies generating them before the app ships rather than fetching them live.
 
-**The gate is the main reason to build this.** It is a trust rule from
-`.claude/rules/business-rules.md`, and it belongs in one module with one test rather than in
-twenty-seven `if` statements that each remember it slightly differently.
+## The paid adapter: what building it means
 
-## Where the voice comes from
-
-Three sources behind one seam. Three is what justifies the seam existing — one adapter would be
-indirection.
+Not a new module. A second adapter behind the seam that already exists in `speech_output.dart`.
 
 | Source | Used for | Cost |
 |---|---|---|
-| **Bundled recordings** | Every fixed line. The default path. | Nothing at run time. Generated once. |
-| **A live ElevenLabs call** | Only genuinely variable text — a Meal title, a price, a Message read aloud. | Per character. |
-| **The phone's own voice** | Offline fallback for variable text only. | Nothing. |
+| **Bundled recordings** | Every fixed line. The default. | Nothing at run time. |
+| **A live ElevenLabs call** | Only variable text — a Meal title, a price, a Message read aloud. | Per character. |
+| **The device's own voice** | Offline fallback for variable text. Already built. | Nothing. |
 
-Fixed lines are never fetched live. They are generated before the app ships, listened to, and
-bundled — the same decision `apps/mobile/pubspec.yaml` already made about the Arabic font, and for the
-same stated reason: on an Egyptian mobile connection a first-render download is a Cook watching the
-screen fill in twice.
+Fixed lines are never fetched live, for the reason `pubspec.yaml` already gives about the Arabic font:
+on an Egyptian mobile connection a first-render download is a Cook watching the screen fill in twice.
 
-**Measured, not estimated:** the whole spoken vocabulary in both voices came to **997 characters** —
-2.5% of one month's allowance on the $6 plan, spent again only when the wording changes. The fixed
-lines are effectively free.
+**Two constraints keep a later voice change cheap, and they are constraints rather than hopes:**
 
-## The chosen voices, and what changing one costs
+1. **Audio assets are named by the line, never by the voice** — `assets/spoken/<voice>/<lineKey>.mp3`.
+   Swapping a voice replaces one folder. No Dart, no ARB, no test changes.
+2. **The two voice ids live in exactly one file** — the generator's configuration. A voice id in
+   application code is a defect.
 
-| Role | Voice | Id |
-|---|---|---|
-| Female — the voice most Cooks hear | Ghozlan — Soft Clear Conversational | `xPcC3nehhziQaOrIeAwv` |
-| Male | Ahmad — Conversational AI Voice | `ihycSANIrpHfhWoaq1g3` |
+Replacing Ghozlan then costs about 500 characters, one script run and one app release. The cost that
+remains is a product one rather than an engineering one: a voice people have grown used to changes
+under them, so it is better done before many Cooks are using Kafoo than after.
 
-**Changing a voice later must stay cheap, and that is a design constraint rather than a hope.** Two
-rules make it so:
+**Asset budget: 2 MB across both voices**, at 48–64 kbps mono. Today's §10 vocabulary lands near
+1.2 MB. The Arabic font is 968 KB and was argued over properly; audio deserves the same scrutiny
+rather than a silent APK increase.
 
-1. **Audio assets are named by the line, never by the voice.** `assets/spoken/<voice>/<lineKey>.mp3`.
-   Swapping the female voice replaces one folder. No Dart changes, no ARB changes, no test changes.
-2. **The two voice ids live in exactly one file** — the generator's configuration — and nowhere else.
-   A voice id appearing in application code is a defect.
+## Two ideas from the deleted duplicate, kept here rather than lost
 
-So the real cost of replacing Ghozlan is: about 500 characters of allowance, one script run, and **one
-app release**. The engineering cost is near zero; the cost that is actually real is that the new voice
-reaches a Cook only when she updates the app, and a voice people have grown used to changing under
-them is a product decision rather than a technical one.
+Neither is a defect in what `main` built. Both are modelling choices worth weighing if that file is
+touched again — recorded so the thinking is not thrown away with the code.
 
-**A Cook switching between the male and female voice is free and instant**, because §10.11 requires
-the choice per account, so both voices ship bundled either way.
+- **Declared silence with a required reason.** `main` models silence implicitly, via
+  `assistantIsSpeaking`. The deleted version made it a sealed type where a silent state had to carry a
+  written reason, so *forgetting* a spoken line and *choosing* not to have one were different things
+  and only the second compiled. The rule «a state missing its spoken line is not implemented» is
+  §10.2's, and the type was one way to make it mechanical.
+- **A gate test that fires a thousand reprompts.** `main` has one test named "silence never confirms",
+  and given its gate has no time-based method the property largely holds by construction. The deleted
+  suite exhausted it — and that mattered, because the deliberately-broken first implementation
+  *passed* the single-silence test and was only caught by the thousandth. If a time-based method is
+  ever added to that gate, this test shape is what should arrive with it.
 
-**Asset budget: 2 MB for the bundled audio**, both voices together, at 48–64 kbps mono. Today's §10
-specifies about thirty distinct lines, which lands near 1.2 MB. The font is 968 KB and was argued
-over; this deserves the same scrutiny. If the vocabulary grows past the budget, that is a
-conversation, not a silent APK increase.
+## Still open
 
-## Where the spoken lines live
-
-**In the ARB files, beside the visible strings**, paired by name: `mealPublished` for what the screen
-shows, `spokenMealPublished` for what the assistant says. Arabic written first, as always.
-
-This keeps `CLAUDE.md`'s no-hardcoded-strings rule intact instead of carving an exception for the
-newest surface, and it makes the pairing checkable: the gate can refuse a component that registers a
-state with no spoken line. It roughly doubles the string count, which is the price.
-
-**The writing is now known to carry the pronunciation.** The line judged perfect Egyptian was
-produced by a stock American voice — so the model reading Egyptian *text* is doing that work. What
-decides whether a line is said correctly is how it is written, which is why every fixed line is heard
-before it ships and why the gender trap below is a real defect class.
-
-## First slice
-
-Over **E2's Meal conversation**, as the founder sequenced it — it already asks one question at a time
-and already has a `VoiceButton`, and publishing is the irreversible action, so this one flow exercises
-the confirmation gate. A slice over search would be easier and would leave the gate shipping unproven.
-
-**In:** the module and its interface; the nine states; the confirmation gate; bundled audio in both
-voices; the generator; the haptic vocabulary; the ARB pairs for every line in §10.
-
-**Out, deliberately:**
-
-- **Messaging** (§10.12) — no entity, no table, no policies, and message content is a new category of
-  personal data. Its own epic (EM).
-- **The voice settings screen** (§10.11) — a screen, so it needs founder approval separately. The
-  voice choice is stored and honoured; choosing it in the UI comes after.
-- **Amplitude bars driven by the real microphone level** (§10.2) — §10 rightly says a fake animation
-  that moves while the mic is broken destroys trust in every other state, and a real one cannot be
-  verified without a handset.
-- **Always-on read-aloud on every screen** — the module exists first; adopting it across the other
-  twenty-six presentation files is separate, reviewable work.
-
-## Tests, in the order the constitution requires
-
-1. **The gate test first, and seen to fail.** Silence does not confirm; no timeout resolves it; the
-   question repeats exactly once after eight seconds and then waits. This is the negative test that
-   must fail before the gate exists.
-2. **A state cannot be produced with a channel missing.** The type makes a silent state
-   unconstructible, and a test proves the constructor rejects it.
-3. **Every §10 state has a spoken ARB key in both locales**, asserted by the gate rather than by
-   review.
-4. **A journey test** — boot the app, walk the publish path by tapping and speaking, assert the gate
-   was answered before the Meal changed status. `.claude/rules/dart.md` requires this for anything that
-   moves a person between screens.
-5. **Golden audio is not tested by machine.** Whether a line sounds Egyptian is a listening
-   judgement, recorded in `docs/ops/measuring-spoken-arabic.md`. Do not write a test that pretends
-   otherwise.
-
-## Open, and not blocking
-
-- **Four listening verdicts** on the generated lines. Only the gender line «نفسك في إيه؟» can produce
-  a defect; the rest are wording quality. These change line *content*, not the architecture, so the
-  module can be built while they are outstanding.
-- **ADR-0009** — where the voice conversation reaches the model. Deliberately unanswered first, by the
-  founder's decision. The seam is what makes that survivable: a different source behind the door, not
-  twenty-seven edits.
+- **Four listening verdicts** on the generated lines. Only «نفسك في إيه؟» can produce a defect:
+  written Arabic omits the vowel marks, so it is spelled identically for a woman and a man and a
+  speech engine guesses masculine. The rest are wording quality. These change line content, not
+  architecture.
+- **The generator** that renders the fixed lines into bundled audio, and the commercial-licence and
+  voice-cloning terms to confirm before any audio enters the app.
+- **ADR-0009** — where the voice conversation reaches the model. Unanswered first by the founder's
+  decision; the seam is what makes that survivable.
 - **§10.13** — how a Cook hears a bad Review, and whether a Customer's Order placement is
-  spoken-confirmed. Founder calls, both outside this slice.
+  spoken-confirmed. Founder calls.
+- **Messaging (EM)** — no entity, no table, and message content is a new category of personal data.

@@ -21,11 +21,15 @@ Widget _app(Widget child, {double textScale = 1.0}) => MaterialApp(
       ),
     );
 
+// `placeholderLabel` became required when the card gained a photo slot: a Meal
+// with no photograph now draws a hatched placeholder that says so out loud, and
+// an optional label would have let a caller ship a silent one.
 const _card = MealCard(
   title: 'محشي ورق عنب بالزيت',
   price: '١٢٠ جنيه',
   kitchenLabel: 'مطبخ أم علي',
   semanticsLabel: 'محشي ورق عنب بالزيت، ١٢٠ جنيه، من مطبخ أم علي',
+  placeholderLabel: 'مكان صورة مؤقت — مش هينزل في النسخة النهائية',
 );
 
 void main() {
@@ -44,7 +48,12 @@ void main() {
           'thing on this card, so it cannot be the smallest.',
     );
     expect(price, greaterThan(sizeOf('مطبخ أم علي')));
-    expect(price, KafooType.numeralRow.fontSize);
+    // 24, not the 34 of a list row: DESIGN.md §6.2 sets the browsing card's
+    // price at 24/700 where §10 sets a Cook's row at 34/700. Both are above the
+    // 18px floor every price has, and both outrank the Meal name beside them,
+    // which is the rule this test is actually about.
+    expect(price, 24);
+    expect(price, greaterThanOrEqualTo(18));
   });
 
   testWidgets('it does not clip at 200% on a small phone', (tester) async {
@@ -71,10 +80,14 @@ void main() {
 
   testWidgets('the price uses a token colour, not a derived one',
       (tester) async {
-    // primaryDeep rather than colorScheme.primary: a price is text at a weight
-    // where terracotta sits too light against the warm surface.
+    // It was primaryDeep and is now onSurface: DESIGN.md §6.2 gives the card's
+    // price no colour of its own, which means plain text. What has not changed
+    // is the rule — a token, never a colour Material derived from the seed, and
+    // never the terracotta, which at this weight sits too light on the warm
+    // surface to be read outdoors.
     await tester.pumpWidget(_app(_card));
     final style = tester.widget<Text>(find.text('١٢٠ جنيه')).style!;
-    expect(style.color, KafooColors.primaryDeep);
+    expect(style.color, KafooColors.onSurface);
+    expect(style.fontWeight, FontWeight.w700);
   });
 }

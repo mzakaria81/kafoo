@@ -328,7 +328,7 @@ Deno.test('case 2: photo_path under a different uid -> 403, storage never called
     post({
       said: 'كشري',
       meal_id: MEAL_ID,
-      photo_path: `meal-photos/${OTHER_UID}/${MEAL_ID}.jpg`,
+      photo_path: `${OTHER_UID}/${MEAL_ID}.jpg`,
     }),
     deps,
   );
@@ -348,7 +348,7 @@ Deno.test('case 2b: photo_path with .. is rejected without fetch', async () => {
     post({
       said: 'كشري',
       meal_id: MEAL_ID,
-      photo_path: `meal-photos/${CALLER_UID}/../${OTHER_UID}/x.jpg`,
+      photo_path: `${CALLER_UID}/../${OTHER_UID}/x.jpg`,
     }),
     deps,
   );
@@ -488,6 +488,60 @@ Deno.test('case 10: photo_path omitted -> 200, used_photo false, words alone', a
   assertEquals(payload.model_id, 'test-model');
 });
 
+/// The exact string the app sends, built the way the app builds it.
+///
+/// `SupabaseMealRepository.uploadPhoto` does `final path = '$uid/$mealId.jpg'`, stores that in
+/// `meals.photo_path` and sends that. Until 2026-08-11 this function demanded
+/// `meal-photos/{uid}/{mealId}.jpg` and refused it — so every analysis of a Meal with a photograph
+/// answered 403, which the app turned into an endless spinner and a Cook who could not publish.
+///
+/// Four cases in this file and one in `meal_conversation_test.dart` hand-typed the bucket-qualified
+/// form. Both suites were green, and both were describing a caller that does not exist. This case is
+/// named after the app so the next person to change the format has to read why.
+function pathTheAppSends(uid: string, mealId: string): string {
+  return `${uid}/${mealId}.jpg`;
+}
+
+Deno.test('the photo path the app actually sends is accepted', async () => {
+  const calls = emptyCalls();
+  const photoBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  const deps = makeDeps(calls, okComplete, { photoBytes });
+
+  const res = await handleAnalyzeMeal(
+    post({
+      said: 'عملت كشري',
+      meal_id: MEAL_ID,
+      photo_path: pathTheAppSends(CALLER_UID, MEAL_ID),
+    }),
+    deps,
+  );
+
+  assertEquals(res.status, 200, 'THE BUG: this answered 403 photo_path_forbidden');
+  assertEquals(calls.storageDownloads.length, 1);
+  const payload = await readSsePayload(res);
+  assertEquals(payload.used_photo, true);
+});
+
+Deno.test('a bucket-qualified path is refused, because nothing sends one', async () => {
+  // The format this function used to require. Keeping it as an explicit refusal rather than deleting
+  // the case: if somebody "fixes" the app to prepend the bucket, this fails and says why.
+  const calls = emptyCalls();
+  const deps = makeDeps(calls, okComplete);
+
+  const res = await handleAnalyzeMeal(
+    post({
+      said: 'عملت كشري',
+      meal_id: MEAL_ID,
+      photo_path: `meal-photos/${CALLER_UID}/${MEAL_ID}.jpg`,
+    }),
+    deps,
+  );
+
+  assertEquals(res.status, 403);
+  assertEquals(calls.storageDownloads.length, 0);
+  assertEquals(calls.providerCalls.length, 0);
+});
+
 Deno.test('happy path with photo: used_photo true and image reaches provider', async () => {
   const calls = emptyCalls();
   const photoBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -497,7 +551,7 @@ Deno.test('happy path with photo: used_photo true and image reaches provider', a
     post({
       said: 'عملت كشري',
       meal_id: MEAL_ID,
-      photo_path: `meal-photos/${CALLER_UID}/${MEAL_ID}.jpg`,
+      photo_path: `${CALLER_UID}/${MEAL_ID}.jpg`,
     }),
     deps,
   );
@@ -525,7 +579,7 @@ Deno.test('photo download failure falls back to words with used_photo false', as
     post({
       said: 'عملت كشري',
       meal_id: MEAL_ID,
-      photo_path: `meal-photos/${CALLER_UID}/${MEAL_ID}.jpg`,
+      photo_path: `${CALLER_UID}/${MEAL_ID}.jpg`,
     }),
     deps,
   );
@@ -547,7 +601,7 @@ Deno.test('case 11: no write of any kind is attempted', async () => {
     post({
       said: 'كشري',
       meal_id: MEAL_ID,
-      photo_path: `meal-photos/${CALLER_UID}/${MEAL_ID}.jpg`,
+      photo_path: `${CALLER_UID}/${MEAL_ID}.jpg`,
     }),
     deps,
   );

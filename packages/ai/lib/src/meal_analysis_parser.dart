@@ -30,20 +30,78 @@ Result<MealAnalysis, AppError> parseMealAnalysis(
   final root = decoded;
   final basis = _basisMap(root['basis']);
 
-  return Success(
-    MealAnalysis(
-      ingredients:
-          _stringListSuggestion(root['ingredients'], basis['ingredients']),
-      calories: _caloriesSuggestion(root['calories'], basis['calories']),
-      allergens: _stringListSuggestion(root['allergens'], basis['allergens']),
-      cuisine: _cuisineSuggestion(root['cuisine'], basis['cuisine']),
-      category: _categorySuggestion(root['category'], basis['category']),
-      description: _stringSuggestion(root['description'], basis['description']),
-      modelId: modelId,
-      usedPhoto: usedPhoto,
-    ),
+  final analysis = MealAnalysis(
+    ingredients:
+        _stringListSuggestion(root['ingredients'], basis['ingredients']),
+    calories: _caloriesSuggestion(root['calories'], basis['calories']),
+    allergens: _stringListSuggestion(root['allergens'], basis['allergens']),
+    cuisine: _cuisineSuggestion(root['cuisine'], basis['cuisine']),
+    category: _categorySuggestion(root['category'], basis['category']),
+    description: _stringSuggestion(root['description'], basis['description']),
+    modelId: modelId,
+    usedPhoto: usedPhoto,
   );
+
+  // A REPLY FULL OF VALUES AND EMPTY OF REASONS IS A BROKEN REPLY, NOT AN
+  // OPINIONLESS ONE.
+  //
+  // On 2026-08-11 the founder analysed «محشي صغير / ورق عنب وأرز», the model
+  // answered in 2.5 seconds with a 785-byte reply, and the summary said «المساعد
+  // مقدرش يقدّر حاجة» — the assistant could not estimate anything. Those are two
+  // very different events wearing one sentence, and the app could not tell them
+  // apart because both arrive here as `Success` carrying an empty analysis.
+  //
+  // Every field is dropped when it has no basis sentence, and that rule is
+  // right: a calorie count with no reason behind it is a number a Cook has no
+  // grounds to believe (FR-013). Dropping SILENTLY is what was wrong. If the
+  // model filled fields and explained none of them, it did not decline to
+  // answer — it answered in a shape this product cannot use, which is a provider
+  // contract failure and belongs in the error channel where somebody will see
+  // it.
+  //
+  // NARROWED TO "FILLED FIELDS, NO REASONS AT ALL", and the narrowing was the
+  // tests' doing rather than mine. The first version fired whenever an empty
+  // analysis came from a reply with any value in it, which turned red two
+  // deliberate tests pinning a different rule — `calories: 850.5` and
+  // `calories: -10` are each dropped for being an invalid VALUE, with a perfectly
+  // good basis sentence beside them, and one bad field poisoning the whole reply
+  // is the opposite of what those tests exist to protect.
+  //
+  // So the condition is the shape that actually reached the founder: values, and
+  // an empty `basis` map. A reply with some reasons is a reply this product can
+  // work with, and a value dropped for being invalid is the field-level rule
+  // doing its job.
+  //
+  // The narrower rule leaves one ambiguous case unreported — values, one basis
+  // sentence, and every field dropped anyway. `analyze_meal_shape` in the Edge
+  // Function logs it, which is the right place for a case too rare to have
+  // earned a sentence in Egyptian Arabic.
+  if (analysis.isEmpty && basis.isEmpty && _hasAnyValue(root)) {
+    return const Failure(AppError(messageKey: 'analyzeMealInvalidResponse'));
+  }
+
+  return Success(analysis);
 }
+
+/// Whether the reply offered a value for any field this parser reads.
+///
+/// The question is deliberately "did the model say anything", not "was it
+/// valid" — an invalid value that was dropped for being invalid is also a reply
+/// worth reporting rather than reading as silence.
+bool _hasAnyValue(Map<String, dynamic> root) => const [
+      'ingredients',
+      'calories',
+      'allergens',
+      'cuisine',
+      'category',
+      'description',
+    ].any((field) {
+      final value = root[field];
+      if (value == null) return false;
+      if (value is Iterable) return value.isNotEmpty;
+      if (value is String) return value.trim().isNotEmpty;
+      return true;
+    });
 
 /// [basis] is a requirement, not decoration. A value with no sentence explaining
 /// it is something the Cook has no reason to believe, so it is dropped rather

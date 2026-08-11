@@ -224,10 +224,26 @@ class EstimateRow extends StatelessWidget {
       controller: controller,
       autofocus: true,
       keyboardType: _isCalories ? TextInputType.number : TextInputType.text,
-      inputFormatters:
-          _isCalories ? [FilteringTextInputFormatter.digitsOnly] : null,
+      // ARABIC DIGITS ARE DIGITS. `FilteringTextInputFormatter.digitsOnly`
+      // allows `[0-9]` and nothing else, so on an Arabic keyboard this field
+      // deleted every character as the Cook typed it: she pressed ٩٥٠ and the
+      // box stayed empty. Not an error, not a rejection — her keystrokes simply
+      // did not appear, on a field whose whole purpose is correcting a number
+      // the AI Assistant guessed.
+      //
+      // The filter still exists, because a calorie count is a number and letters
+      // in it are a mistake. It now recognises the digits of the default locale.
+      // `normalizeArabicDigits` converts them on commit.
+      inputFormatters: _isCalories ? [_digits] : null,
       textInputAction: TextInputAction.done,
       onSubmitted: (_) => onCommit(),
     );
   }
 }
+
+/// Digits, in the three scripts a phone set to Arabic can produce them in:
+/// Latin, Arabic-Indic (\u0660-\u0669) and Extended Arabic-Indic
+/// (\u06F0-\u06F9).
+final FilteringTextInputFormatter _digits = FilteringTextInputFormatter.allow(
+  RegExp('[0-9\\u0660-\\u0669\\u06F0-\\u06F9]'),
+);

@@ -130,6 +130,51 @@ The reason for two is `.claude/rules/business-rules.md`, which calls a synthetic
 real marketplace product-fatal rather than untidy. "The tool would not do that" is a weaker sentence
 than a statement that cannot.
 
+## How a session reaches this database — read yes, write never
+
+**A session can now READ the demo database directly, and could not until 2026-08-11.** That gap cost
+a day. `analyze-meal` was refusing every analysis of a Meal with a photograph — 403
+`photo_path_forbidden`, because it demanded `meal-photos/{uid}/{mealId}.jpg` and the app has only ever
+sent `{uid}/{mealId}.jpg`. The function logs said so on the first request. Nobody could read them, so
+it was found by reading code on both sides and comparing by eye, hours later, after one wrong guess
+about a missing model key had already been reported to the founder as the likely cause.
+
+`.mcp.json` now declares a second server, `supabase-demo`, pinned to `pzyngffppwfsvdsnslkb` and
+`--read-only`. It carries `list_tables`, `list_migrations`, `list_edge_functions`, `get_advisors` and
+`query_logs` against the demo project. Use `query_logs` FIRST when the demo build misbehaves.
+
+Three things about that entry are deliberate:
+
+- **The ref is written in, not taken from `SUPABASE_PROJECT_REF`.** That variable names the project
+  the repository belongs to, and `scripts/verify.sh` fails when it disagrees with
+  `supabase/project-ref` — pointing it at the branch to read the branch would turn the gate red. A
+  project ref is not a secret either; it is in the URL inside every APK, and it is quoted in
+  `docs/ops/measuring-discovery.md`.
+- **Read-only, and that is not a formality.** The first server has been read-only since it was added.
+  Nothing about diagnosing a demo build needs a write, and an agent holding a write credential
+  against a live project is a different risk class from an agent that can look.
+- **`.claude/hooks/guard-hard-blocks.py` still blocks the shell route, and should.** Its
+  `LIVE_PROJECT` rule refuses any `supabase` command carrying `--project-ref` or `--linked`, which
+  catches read-only subcommands like `secrets list` as collateral. That is the correct trade: the
+  rule matches on how a command ADDRESSES a project rather than on what it does to it, because an
+  allowlist of safe verbs is exactly the shape that leaks the first time somebody adds a verb.
+  The read-only window belongs in the MCP server, where it cannot become a write.
+
+**Two things a session therefore cannot do, both on purpose:**
+
+**Set or read a secret.** Nothing in the read-only surface exposes secret names, let alone values. A
+missing `GEMINI_API_KEY` on this branch has to be checked and fixed by a person, in the dashboard
+under Project Settings → Edge Functions → Secrets, or with
+`supabase secrets set GEMINI_API_KEY=<key> --project-ref pzyngffppwfsvdsnslkb` from a human's
+terminal.
+
+**Deploy.** Function code and migrations reach this branch when the `demo/environment` git branch is
+updated, and that is the only path. It is slower than a command and better: every change to the
+database the founder's phone talks to is a reviewed commit with a message, rather than something
+somebody ran once. Bring it forward the way `3b66492` did — merge `main` into `demo/environment` and
+push. **Say what it will change before pushing it**: the branch redeploys its functions and applies
+every migration it has not seen.
+
 ## Turning it off
 
 Delete the branch in the Supabase dashboard. The cost stops that day. The demo APK then points at a

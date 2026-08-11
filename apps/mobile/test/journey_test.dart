@@ -354,6 +354,202 @@ void main() {
     expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
   });
 
+  testWidgets('a Cook prices her Meal in the digits her keyboard produces',
+      (tester) async {
+    // THE SECOND JOURNEY BROKEN IN THE FOUNDER'S HAND ON 2026-08-11, on the very
+    // next question after the one above. He typed «١٢٠» and read «مقدرناش نحفظ
+    // الأكلة» — we could not save the Meal.
+    //
+    // «١٢٠» is one hundred and twenty in Arabic-Indic digits, which is what an
+    // Arabic keyboard produces. `price` is `numeric(10,2)` and the answer was
+    // sent as the text the Cook typed, so Postgres refused it: `invalid input
+    // syntax for type numeric`. Every Cook typing in Arabic, every price.
+    //
+    // **This journey WOULD have caught it**, unlike the one above, and the
+    // difference is worth naming: the bug was in what the app SENDS, not in how
+    // it reads the reply, and a fake records what it was sent. The reason no test
+    // saw it is that every existing test typed `'35'` — the price question, in
+    // the one product whose default locale is Egyptian Arabic, was only ever
+    // answered the way a developer answers it.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final meals = FakeMealRepository();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_fieldOn(MealConversationScreen), 'عدس ورز ومكرونة');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The photo is the one question a Cook may decline, and declining must not
+    // cost her the conversation.
+    expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.mealConvPhotoSkip('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The price, typed the way she types it.
+    expect(find.text(l10n.mealConvPromptPrice('other')), findsOneWidget);
+    await tester.enterText(_fieldOn(MealConversationScreen), '١٢٠');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(l10n.mealSaveError('other')),
+      findsNothing,
+      reason: 'THE BUG. Arabic-Indic digits reached a numeric column as text.',
+    );
+    expect(
+      find.text(l10n.mealPriceInvalid('other')),
+      findsNothing,
+      reason:
+          '«١٢٠» IS a price. The new message exists for words and zero, and '
+          'showing it here would be the same refusal wearing better copy.',
+    );
+    expect(
+      meals.updateDraftArgs.last.price,
+      '120',
+      reason: 'What the database is sent, which is the whole defect. Latin '
+          'digits, no currency word, unrounded, and the same string the '
+          'conversation now holds in memory.',
+    );
+    // The departure. With the write reported as failed she stayed on the price
+    // question with «١٢٠» still in the box, tapping «كمّل» and getting the same
+    // sentence — which is exactly what the screenshot showed.
+    expect(find.text(l10n.mealConvPromptPrice('other')), findsNothing);
+  });
+
+  testWidgets('«أضيف بإيدي» reaches the Meal creation flow, not the way out',
+      (tester) async {
+    // 2026-08-11, found in review: the button promised the creation flow and
+    // called `maybePop`. It closed the Meal list and put a Cook back on Home
+    // with nothing started — and because Home is what sits underneath, the
+    // screen it left looked like a screen it had arrived at.
+    //
+    // THE DEPARTURE IS HALF THE ASSERTION. `findsOneWidget` on the destination
+    // passes for a route that was pushed on top of a list nobody popped; only
+    // `findsNothing` on the list proves the Cook actually went somewhere.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      // No Kitchen Profile: the creation flow's first screen then asks her to
+      // make one, which is a stable thing to assert on and is the branch a new
+      // Cook actually meets.
+      kitchen: FakeKitchenProfileRepository(),
+      meals: FakeMealRepository(),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The empty list's own version of the button.
+    await tester.tap(find.text(l10n.myMealsEmptyByHand('other')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealNeedsKitchenTitle), findsOneWidget);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
+  });
+
+  testWidgets('a Cook comes back to a half-finished Meal and carries on',
+      (tester) async {
+    // 2026-08-11: he saved a Meal half-answered, came back, tapped «كمّل الأكلة
+    // دي» and was asked the FIRST question again. Every answer he had given was
+    // still in the database and none of it was on screen.
+    //
+    // `my_meals_screen.dart` seeded the conversation controller and then pushed
+    // the conversation route. The controller is autoDispose, so a `ref.read`
+    // with nothing watching it created the provider, took the seeding, and threw
+    // it away before the route existed — the pushed screen then WATCHED the
+    // provider and got a brand new empty one.
+    //
+    // NOTHING WAS WRONG INSIDE EITHER SCREEN. Both had passing widget tests. The
+    // defect lived entirely in the handover, which is why it needed this file.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final meals = FakeMealRepository(
+      meals: const [
+        CookMeal(
+          id: 'draft-1',
+          cookId: 'c1',
+          title: 'كشري',
+          description: 'عدس ورز ومكرونة',
+          photoPath: 'c1/draft-1.jpg',
+          status: MealStatus.draft,
+          nutritionSource: NutritionSource.ai,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The row's actions moved into a bottom sheet when the Meal list became
+    // voice-first: a row led by a 34px price and a glance word cannot also
+    // carry four text buttons. The handover this test guards is unchanged —
+    // only the gesture that reaches it.
+    await tester.tap(find.byIcon(Icons.more_horiz).first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.mealResumeDraft('other')));
+    await tester.pumpAndSettle();
+
+    // Dish, description and photo were answered. Price was not.
+    expect(
+      find.text(l10n.mealConvPromptPrice('other')),
+      findsOneWidget,
+      reason: 'THE BUG. She was asked the dish question again, and retyping an '
+          'answer the app already has is how a Cook concludes it lost her work.',
+    );
+    expect(
+      find.text(l10n.mealConvPromptDish),
+      findsNothing,
+      reason: 'the question she already answered must not come back',
+    );
+    expect(
+      find.text(l10n.mealConvPromptDescription('other')),
+      findsNothing,
+    );
+  });
+
   testWidgets('the signed-in journey survives 200% text on a small phone',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);
@@ -378,5 +574,54 @@ void main() {
     final leave = find.text(l10n.removeAccountEntry('other'));
     expect(leave, findsOneWidget);
     await tester.ensureVisible(leave);
+  });
+
+  testWidgets('the Meal conversation survives 200% text on a small phone',
+      (tester) async {
+    // THE 200% JOURNEY STOPPED AT THE HOME SCREEN, which is the screen with the
+    // most headroom. The Meal conversation is the one with a RECORDED history of
+    // clipping: at 360x640 with text at 200% its Column overflowed by 182 logical
+    // pixels, and an overflowing Column resolves it by clipping its LAST child —
+    // «كمّل», the button that submits the answer. A Cook using large text on a
+    // cheap Android handset had no reachable control at all.
+    //
+    // A `SingleChildScrollView` fixed it and nothing walked into the screen to
+    // prove it, so the fix was correct by inspection only. Raised by
+    // accessibility-reviewer on PR #455.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(MediaQuery(
+      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+      child: _app(
+        auth: auth.stream,
+        account: FakeAccountRepository(),
+        kitchen: FakeKitchenProfileRepository(existing: _profile),
+        meals: FakeMealRepository(),
+      ),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    final newMeal = find.text(l10n.newMealEntry);
+    await tester.ensureVisible(newMeal);
+    await tester.tap(newMeal);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(l10n.mealConvPromptDish), findsOneWidget);
+
+    // The control that submits her answer. `ensureVisible` is the assertion: it
+    // throws when the widget cannot be brought on screen, which is exactly what
+    // a clipped last child does.
+    final submit =
+        _buttonOn(MealConversationScreen, l10n.convContinue('other'));
+    expect(submit, findsOneWidget);
+    await tester.ensureVisible(submit);
+    expect(tester.takeException(), isNull);
   });
 }

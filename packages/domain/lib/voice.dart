@@ -1,303 +1,248 @@
-/// The nine voice states, their three channels, and the eleven glance words.
+/// The voice system's rules, with no screen and no speaker attached.
 ///
-/// No Flutter, no Supabase. This file is the domain statement of
-/// `docs/design/DESIGN.md` §10 — what Kafoo says, shows and does at each moment
-/// of a spoken exchange. It holds no strings a person reads or hears: a spoken
-/// line is named by its ARB key, because `CLAUDE.md` forbids a user-facing
-/// string outside the locale files and a spoken sentence is no exception.
-///
-/// **Why the states live here rather than in widgets.** ADR-0013 made the
-/// assistant's voice the primary surface, and `specs/ROADMAP.md` records the
-/// consequence: the voice system "cannot be built per-screen without producing
-/// nine slightly different versions of each state." Declared once, in the
-/// domain, a tenth state cannot appear by accident and a missing channel cannot
-/// pass review — `voice_test.dart` fails on both.
+/// Kafoo is voice-first: the assistant speaks, the user speaks back, and the
+/// screen is the receipt of that exchange. Everything in this file is the part
+/// of that which must be true regardless of how it looks or which engine says
+/// it — so it can be tested without a phone, a microphone, or a voice.
 library;
 
-/// What Kafoo is doing, from the point of view of the person in front of it.
+/// What the phone does in your hand, alongside what it shows and says.
 ///
-/// §10.2: "all nine are components". Each defines four things — visual
-/// treatment, the spoken line, the haptic, and the tap fallback. The first three
-/// are declared in [voiceStates]; the fourth belongs to whatever screen renders
-/// the state, because tap is a complete alternative rather than one shape.
-enum VoiceState {
-  /// The orb at rest, inviting. Spoken once on arrival.
-  idle,
-
-  /// The person is talking. Rings expand and the bars follow the real input
-  /// level — §10.2 is explicit that a fake animation destroys trust in every
-  /// other state.
-  listening,
-
-  /// Kafoo is working. Visible before 400 ms, per the performance budget.
-  thinking,
-
-  /// Kafoo is talking. The sentence is shown large as it is said, because the
-  /// screen is the receipt of what was heard.
-  speaking,
-
-  /// Recognition failed. Never blames the speaker — §10.7.
-  didNotCatch,
-
-  /// A value changed. Only the changed value animates, and it is always repeated
-  /// aloud.
-  correcting,
-
-  /// The person talked over Kafoo. Speech stops mid-sentence and listening
-  /// resumes, with no message about it at all.
-  interrupted,
-
-  /// No network. What may be *promised* here is constrained — see
-  /// [VoiceAnnouncement.spokenAlternative].
-  offline,
-
-  /// Too much noise to work with. Asks the person to come closer, never to speak
-  /// more clearly.
-  tooNoisy,
-}
-
-/// What the assistant says in a state — or why it deliberately says nothing.
-///
-/// **A sealed type rather than a nullable string, and that is the enforcement.**
-/// Several states are silent on purpose: Kafoo must not talk over somebody who
-/// is mid-sentence. So the rule cannot be "every state speaks". It is that
-/// silence is *declared*, with a reason — which makes forgetting a spoken line
-/// a different thing from choosing not to have one, and only the second is
-/// allowed.
-sealed class SpokenLine {
-  /// Creates a spoken line.
-  const SpokenLine();
-}
-
-/// The assistant speaks the sentence at [lineKey].
-final class Says extends SpokenLine {
-  /// Creates a spoken line naming an ARB key.
-  const Says(this.lineKey);
-
-  /// The ARB key of the sentence, in `spoken*` form.
-  ///
-  /// Never the sentence itself. The Arabic lives in `app_ar.arb` beside the
-  /// visible strings, paired by name — `mealPublished` is what the screen shows
-  /// and `spokenMealPublished` is what the assistant says. They are different
-  /// sentences: one is a label, the other is speech.
-  final String lineKey;
-
-  @override
-  String toString() => 'Says($lineKey)';
-}
-
-/// The assistant deliberately says nothing, [because] of this.
-final class Silent extends SpokenLine {
-  /// Creates a declared silence.
-  const Silent(this.because);
-
-  /// Why this state is silent. Required, and asserted non-empty by the tests:
-  /// an unexplained silence is indistinguishable from a forgotten line.
-  final String because;
-
-  @override
-  String toString() => 'Silent($because)';
-}
-
-/// What the phone does in the hand.
-///
-/// §10.1: a kitchen is noisy, a street is bright, a phone may be face-down, so
-/// every state must also be felt. The vocabulary is closed for the same reason
-/// the glance words are — a pattern nobody recognises is worse than none.
-enum Haptic {
-  /// Nothing. Declared rather than absent.
+/// Every voice state reaches the user three ways — visual, spoken, haptic —
+/// and any one of them alone has to be enough. A kitchen is noisy, a street is
+/// bright, and a phone may be face-down.
+enum VoiceHaptic {
   none,
 
-  /// One short pulse. Something began.
-  shortPulse,
+  /// One short pulse.
+  short,
 
-  /// Two short pulses. Kafoo is about to speak, or a value just changed.
-  twoShortPulses,
+  /// Two short pulses.
+  twoShort,
 
-  /// One long pulse. Something went wrong or stopped.
-  longPulse,
+  /// One long pulse.
+  long,
 }
 
-/// Everything one state does, on all three channels at once.
+/// The nine states of the voice system.
 ///
-/// **A screen asks for a state, never for a channel.** That is what makes
-/// §10.1's "every state reaches the user three ways" structural rather than
-/// remembered: there is no way to request only the sentence, so there is no way
-/// to ship a state that is visible and mute.
-final class VoiceAnnouncement {
-  /// Creates an announcement. Every channel is required, including silence and
-  /// [Haptic.none].
-  const VoiceAnnouncement({
-    required this.spoken,
-    required this.haptic,
-    this.spokenAfter,
-    this.speakAfter,
-    this.spokenAlternative,
+/// Each one owes four things: a visual treatment, a spoken line in Egyptian
+/// Arabic, a haptic, and a tap fallback. The haptic lives here because it is
+/// the same on every screen. The spoken line lives in the ARB files, because it
+/// is a string and Kafoo has no strings outside localization. The visual lives
+/// in the design system.
+enum VoiceState {
+  /// «أنا معاك. دوسي واتكلمي.» — said once on arrival.
+  idle(VoiceHaptic.none),
+
+  /// Expanding rings and five amplitude bars, driven by the real microphone
+  /// level. The assistant is silent; the user is talking.
+  listening(VoiceHaptic.short),
+
+  /// Three blinking dots. Silent, and after two seconds «لسه معاك، ثانية.»
+  thinking(VoiceHaptic.none),
+
+  /// The reply, at most three sentences, shown as well as said.
+  speaking(VoiceHaptic.twoShort),
+
+  /// «معلش، مافهمتش. قوليها تاني؟» — the failure belongs to the app.
+  notHeard(VoiceHaptic.long),
+
+  /// Only the changed value animates, and the new value is always repeated
+  /// aloud.
+  correcting(VoiceHaptic.twoShort),
+
+  /// Speech stopped mid-sentence because the user started talking. No message,
+  /// no apology — just back to listening.
+  interrupted(VoiceHaptic.short),
+
+  /// «مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت
+  /// يرجع.»
+  ///
+  /// **It does not promise that her words were kept.** Kafoo queues the
+  /// transcript rather than the audio, and on-device Arabic recognition is
+  /// frequently unavailable offline, so there may be nothing to keep. This
+  /// comment quoted the older sentence — the one `.claude/rules/` names as the
+  /// thing never to say — and whoever wires this state up reads it here.
+  offlineQueued(VoiceHaptic.long),
+
+  /// «الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.»
+  tooNoisy(VoiceHaptic.long);
+
+  const VoiceState(this.haptic);
+
+  /// What the phone does in your hand when this state begins.
+  final VoiceHaptic haptic;
+
+  /// Whether the assistant's own voice is audible in this state.
+  ///
+  /// The microphone must not be recording the assistant, and the assistant must
+  /// not be talking over the user.
+  bool get assistantIsSpeaking =>
+      this == VoiceState.speaking || this == VoiceState.correcting;
+
+  /// Whether the microphone is live.
+  ///
+  /// Recording is always visibly indicated; there is no silent listening, not
+  /// even for a wake word. This is what a recording indicator reads.
+  bool get microphoneIsLive =>
+      this == VoiceState.listening || this == VoiceState.tooNoisy;
+}
+
+/// How much of the interface an action can undo by itself.
+enum VoiceActionRisk {
+  /// Search, filter, navigation, drafting. Happens immediately and is announced
+  /// aloud — asking permission for a reversible action teaches people to say
+  /// yes without listening, which is exactly what must not happen at a gate.
+  reversible,
+
+  /// Publishing a Meal, accepting or rejecting an Order, cancelling an Order,
+  /// changing the price of a published Meal, sending a Message, posting a
+  /// Review. Read back in full, then waits.
+  irreversible,
+}
+
+/// The read-back that stands between the assistant and anything irreversible.
+///
+/// **Silence never confirms.** There is deliberately no method on this class
+/// that resolves a gate by the passage of time: no timeout accepts, no default
+/// answer exists, and a gate that is never answered stays open forever. The
+/// question repeats once after [repromptAfter] and then waits.
+///
+/// The same gate answers to voice and to tap, always, at the same time — a
+/// Cook with a sleeping baby taps, a Cook with flour on her hands speaks.
+class ConfirmationGate {
+  ConfirmationGate({
+    required this.spokenReadback,
+    this.repromptAfter = const Duration(seconds: 8),
   });
 
-  /// What is said the moment the state begins.
-  final SpokenLine spoken;
+  /// The whole thing, in Egyptian Arabic, as it will be said out loud. Not a
+  /// summary — the read-back is what the person is agreeing to.
+  final String spokenReadback;
 
-  /// What the phone does.
-  final Haptic haptic;
-
-  /// A line said only if the state is still current after [speakAfter].
+  /// How long before the question is asked a second time.
   ///
-  /// Exists for exactly one case in §10.2 — thinking is silent, and after two
-  /// seconds says «لسه معاك، ثانية.» A second field rather than a timer, for the
-  /// same reason [ConfirmationGate.onSilenceElapsed] takes an event: the rule is
-  /// testable and the clock belongs to the caller.
-  final SpokenLine? spokenAfter;
+  /// Once. A third identical prompt makes the app feel like it is nagging, and
+  /// nagging is how people learn to say yes to make it stop.
+  final Duration repromptAfter;
 
-  /// How long before [spokenAfter] is said.
-  final Duration? speakAfter;
+  bool _reprompted = false;
+  bool? _answer;
 
-  /// The line to say instead of [spoken] when the state's usual promise is not
-  /// true.
+  /// Whether the question has already been repeated.
+  bool get hasReprompted => _reprompted;
+
+  /// Whether an explicit answer has been given.
+  bool get isAnswered => _answer != null;
+
+  /// True only after an explicit yes. Never true through inaction.
+  bool get isConfirmed => _answer ?? false;
+
+  /// Repeats the question. Returns false if it has already been repeated once,
+  /// or if the gate has been answered.
+  bool reprompt() {
+    if (_reprompted || isAnswered) return false;
+    _reprompted = true;
+    return true;
+  }
+
+  /// Answers the gate. [confirmed] comes from «أيوة» or «لأ», spoken or tapped.
   ///
-  /// **One state needs this and the reason is a founder decision, not a
-  /// nicety.** The offline state's natural line is «مفيش نت. كلامك محفوظ
-  /// وهيتبعت أول ما النت يرجع.» — *no network, your words are saved.* On a
-  /// handset with no `ar-EG` speech there is nothing to save, because the thing
-  /// that makes transcripts needs the network that just went away
-  /// (`docs/ops/measuring-transcription.md`). `business-rules.md` is explicit:
-  /// never say «كلامك محفوظ» over words that were not captured, because losing a
-  /// Cook's sentence after telling her it was safe is worse than telling her the
-  /// truth immediately. So the state carries both sentences and the caller picks
-  /// by what actually happened.
-  final SpokenLine? spokenAlternative;
+  /// Answering twice does nothing: the first answer stands, so a repeated «أيوة»
+  /// while the action is already running cannot publish a second Meal.
+  void answer({required bool confirmed}) => _answer ??= confirmed;
 }
 
-/// The nine states, declared once — §10.2's table, in code.
+/// How long an executed action stays undoable.
 ///
-/// Adding a tenth state means adding a row here, and `voice_test.dart` fails
-/// until it exists. That is the point: the table is the specification, and a
-/// state that is not in it cannot be announced.
-const Map<VoiceState, VoiceAnnouncement> voiceStates = {
-  VoiceState.idle: VoiceAnnouncement(
-    spoken: Says('spokenIdleInvitation'),
-    // Nothing has happened. A buzz on arrival would be Kafoo tapping somebody
-    // on the shoulder for no reason.
-    haptic: Haptic.none,
-  ),
-  VoiceState.listening: VoiceAnnouncement(
-    spoken: Silent(
-      'the person is talking, and talking over them is the defect this state '
-      'exists to avoid',
-    ),
-    haptic: Haptic.shortPulse,
-  ),
-  VoiceState.thinking: VoiceAnnouncement(
-    spoken: Silent('there is nothing to say yet, and filler would be noise'),
-    haptic: Haptic.none,
-    spokenAfter: Says('spokenStillWithYou'),
-    speakAfter: Duration(seconds: 2),
-  ),
-  VoiceState.speaking: VoiceAnnouncement(
-    spoken: Says('spokenReply'),
-    // BEFORE the sentence, not with it: the buzz is what tells somebody looking
-    // away that words are coming, in time to listen to them.
-    haptic: Haptic.twoShortPulses,
-  ),
-  VoiceState.didNotCatch: VoiceAnnouncement(
-    spoken: Says('spokenDidNotCatch'),
-    haptic: Haptic.longPulse,
-  ),
-  VoiceState.correcting: VoiceAnnouncement(
-    // §10.2: "repeats the new value aloud, always." A correction the person
-    // cannot see confirmed is a correction they cannot trust.
-    spoken: Says('spokenCorrected'),
-    haptic: Haptic.twoShortPulses,
-  ),
-  VoiceState.interrupted: VoiceAnnouncement(
-    spoken: Silent(
-      'the person cut in deliberately; announcing it would be arguing with them',
-    ),
-    haptic: Haptic.shortPulse,
-  ),
-  VoiceState.offline: VoiceAnnouncement(
-    spoken: Says('spokenOfflineQueued'),
-    haptic: Haptic.longPulse,
-    spokenAlternative: Says('spokenOfflineNotCaptured'),
-  ),
-  VoiceState.tooNoisy: VoiceAnnouncement(
-    spoken: Says('spokenTooNoisy'),
-    haptic: Haptic.longPulse,
-  ),
-};
+/// DESIGN.md keeps an undo visible for two minutes *even for nominally
+/// irreversible actions*. The gate is what stops a mistake; this is what
+/// forgives one that got through, and the two are not the same protection.
+const Duration voiceUndoWindow = Duration(minutes: 2);
 
-/// What a glance word means, so the colour can carry it without the word.
+/// Which rung of the recognition failure ladder the conversation is on.
 ///
-/// §10.4: "Colour must carry the same meaning as the word, redundantly — if the
-/// word is not read, the colour alone must land." The meaning is named here and
-/// mapped to a token in `packages/ui/`, so the domain does not know about
-/// colours and the design system does not decide what a word means.
-enum GlanceMeaning {
-  /// Live, arrived, done. Reads as green.
-  good,
+/// Egyptian Arabic recognition will fail on names and household words. The
+/// ladder descends exactly three rungs and never climbs back, because a second
+/// identical prompt is a nuisance and a third makes the app feel stupid.
+enum RecognitionRung {
+  /// «معلش، مافهمتش. قوليها تاني؟» — asked once, and only once.
+  askAgain,
 
-  /// Paused or not yet real. Reads as muted.
-  quiet,
+  /// «الأكلة اسمها محشي ورق عنب؟ قولي أيوة أو لأ.» A two-word answer is
+  /// recognised far more reliably than open speech.
+  narrowQuestion,
 
-  /// Needs attention. Reads as the assistant's own colour.
-  attention,
-
-  /// Stopped or failed. Reads as red.
-  bad,
+  /// «خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.» Photographs, large
+  /// numerals and glance words.
+  ///
+  /// **Never a keyboard.** Typing Arabic on a phone is the hardest thing this
+  /// product could ask of a Cook; it stays available as a choice she makes and
+  /// is never the consequence of the app failing to understand her.
+  tapFallback,
 }
 
-/// The closed set of Arabic words that may appear at glance size — §10.4, §10.12.
+/// Walks the recognition failure ladder.
 ///
-/// **Eleven, and a twelfth is a change to this enum before it is a change to any
-/// screen.** These are recognised by silhouette rather than read, which only
-/// works if the shape is already familiar: §10.4 is blunt that "an unrecognised
-/// shape is worse than no word."
-///
-/// §10.4 named nine. §10.12 added `sent` and `read` for message delivery,
-/// because a Cook needs to know her words arrived and cannot be asked to read
-/// small text to find out.
-enum GlanceWord {
-  /// منشورة — the Meal is on offer.
-  published(GlanceMeaning.good),
+/// It cannot loop, and that is the whole point of it being a class rather than
+/// a counter at a call site. A conversation that re-asks after reaching the tap
+/// fallback has started the ladder over, which is how a Cook ends up repeating
+/// herself four times to an app that never understood her the first three.
+class RecognitionLadder {
+  RecognitionRung _rung = RecognitionRung.askAgain;
+  bool _exhausted = false;
 
-  /// مسودة — started, not finished.
-  draft(GlanceMeaning.quiet),
+  /// The rung the conversation is on now.
+  RecognitionRung get rung => _rung;
 
-  /// مش متاحة — off the menu today.
-  unavailable(GlanceMeaning.quiet),
+  /// Whether the ladder has reached the bottom. From here the only move is to
+  /// show tappable options.
+  bool get isExhausted => _exhausted;
 
-  /// أرشيف — retired, still readable in history.
-  archived(GlanceMeaning.quiet),
-
-  /// طلب جديد — an Order needs an answer.
-  newOrder(GlanceMeaning.attention),
-
-  /// وصل — it got there.
-  arrived(GlanceMeaning.good),
-
-  /// اتلغى — it was cancelled.
-  cancelled(GlanceMeaning.bad),
-
-  /// محفوظ — held safely. Only ever said when it is true.
-  saved(GlanceMeaning.attention),
-
-  /// مفيش نت — no network.
-  noNetwork(GlanceMeaning.bad),
-
-  /// اتبعت — the Message left.
-  sent(GlanceMeaning.attention),
-
-  /// اتقرت — the other person read it.
-  read(GlanceMeaning.good);
-
-  const GlanceWord(this.meaning);
-
-  /// What this word means, for the colour to carry redundantly.
-  final GlanceMeaning meaning;
-
-  /// The ARB key holding the Arabic word.
+  /// Records another failure and returns the rung to use next.
   ///
-  /// A key rather than the word, for the same reason as [Says.lineKey]: the
-  /// Arabic belongs in the locale files. `glanceCancelled` rather than «اتلغى».
-  String get lineKey => 'glance${name[0].toUpperCase()}${name.substring(1)}';
+  /// Calling it after the bottom rung keeps returning the bottom rung.
+  RecognitionRung descend() {
+    _rung = switch (_rung) {
+      RecognitionRung.askAgain => RecognitionRung.narrowQuestion,
+      RecognitionRung.narrowQuestion ||
+      RecognitionRung.tapFallback =>
+        RecognitionRung.tapFallback,
+    };
+    if (_rung == RecognitionRung.tapFallback) _exhausted = true;
+    return _rung;
+  }
+
+  /// Starts over, because the user was understood.
+  ///
+  /// Only success resets the ladder. Another failure never does.
+  void succeeded() {
+    _rung = RecognitionRung.askAgain;
+    _exhausted = false;
+  }
+}
+
+/// The timing the talk button has to hold to, whatever is happening underneath.
+///
+/// These are not animation preferences. Half a second of silence after a press
+/// reads as "the button didn't work", so the user presses again and cuts off
+/// their own speech — and the recording they lost is the one they had just
+/// finished composing in their head.
+abstract final class VoiceTiming {
+  /// The press must be acknowledged — haptic and visible growth — within this.
+  static const Duration acknowledge = Duration(milliseconds: 150);
+
+  /// Thinking must be visible before this, even if recognition takes seconds.
+  static const Duration thinkingVisible = Duration(milliseconds: 400);
+
+  /// A release shorter than this does not end recording; it continues for one
+  /// more second, because thumbs slip.
+  static const Duration releaseGrace = Duration(milliseconds: 300);
+
+  /// How much longer recording continues after a slipped thumb.
+  static const Duration slipExtension = Duration(seconds: 1);
+
+  /// How long thinking runs before «لسه معاك، ثانية.»
+  static const Duration stillHereAfter = Duration(seconds: 2);
 }

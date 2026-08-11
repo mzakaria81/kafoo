@@ -771,6 +771,35 @@ run "every screen has a route into it" bash -c '
 # — that is judgement, and `.claude/rules/dart.md` states the rule for a person to follow. What it
 # refuses is the decay: the file being deleted, or quietly rewritten into more per-screen tests,
 # which is exactly how this gap opened in the first place.
+# EVERY ERROR KEY THE MEAL FEATURE PRODUCES HAS A SENTENCE.
+#
+# `meal_error_text.dart` maps a key to what the Cook reads. Its default is the SAVE error, so a key
+# with no case does not crash and does not look wrong in review — it quietly tells her the Meal was
+# not saved, whatever actually happened. Two of today's defects were exactly that shape: a message
+# that was written, and a message that was wrong about which thing failed.
+#
+# The doc comment in that file claimed `meal_error_text_test.dart` enforced this. No such file
+# existed. Raised by localization-reviewer on PR #455, and the honest fix is to make the claim true
+# rather than to soften it — so this is the check, and the comment now points here.
+#
+# A test could not do this: it would need its own list of keys, which is the same list drifting in a
+# second place. Reading the keys out of the source is what makes it enforcement.
+run "meal error keys have a sentence" bash -c '
+  dir=apps/mobile/lib/features/meal
+  text=$dir/presentation/meal_error_text.dart
+  [ -d "$dir" ] || { echo "   no meal feature — skipping"; exit 0; }
+  [ -f "$text" ] || { echo "   FAIL: $text is missing" >&2; exit 1; }
+  status=0
+  keys=$(grep -rhoE "messageKey: .[a-zA-Z]+." "$dir" | sed -E "s/.*: .([a-zA-Z]+)./\1/" | sort -u)
+  for key in $keys; do
+    grep -q "'"'"'${key}'"'"' =>" "$text" || {
+      echo "   FAIL: ${key} is produced in the Meal feature and has no case in" >&2
+      echo "         meal_error_text.dart, so a Cook seeing it reads the SAVE error instead." >&2
+      status=1; }
+  done
+  echo "   $(echo "$keys" | wc -l | tr -d " ") key(s), each with its own sentence"
+  exit $status'
+
 run "the app has journey tests" bash -c '
   f=apps/mobile/test/journey_test.dart
   [ -d apps/mobile/test ] || { echo "   no mobile tests yet — skipping"; exit 0; }
@@ -797,6 +826,33 @@ run "the app has journey tests" bash -c '
   grep -qE "tester\.(tap|enterText)" "$f" || {
     echo "   FAIL: $f never taps or types. Drive the app the way a person does."
     status=1; }
+  # AND SOMEWHERE IN IT, A NUMBER IS TYPED THE WAY AN EGYPTIAN COOK TYPES ONE.
+  #
+  # 2026-08-11: the founder answered the price question with «١٢٠» and was told his Meal could not be
+  # saved. `price` is `numeric(10,2)`, an Arabic keyboard produces Arabic-Indic digits, and Postgres
+  # refuses them. Every Cook, every price, every time — and 290 passing tests, every one of which had
+  # typed `'35'`.
+  #
+  # That is the failure this arm exists for, and it is not really about digits. `ar` is this product'"'"'s
+  # DEFAULT locale, so a suite that only ever types Latin input is testing a user who does not exist.
+  # The check is deliberately crude — one Arabic-Indic digit anywhere in the walked journey — because
+  # the alternative it is guarding against is zero.
+  # SCOPED TO WHAT IS TYPED, and it took three tries to get there — worth recording, because each
+  # wrong version LOOKED like it worked:
+  #
+  #   1. Any Arabic-Indic digit in the file. Passed on the comment explaining the bug.
+  #   2. Same, with comment lines stripped. Passed on the `reason:` string quoting «١٢٠» in prose.
+  #   3. Inside an `enterText(...)`, as a bracket range in `grep -E`. Passed on «كشري» — a bracket
+  #      range over Arabic code points collates loosely outside the C locale and swallows the letters.
+  #
+  # Hence `grep -P` with explicit code points and `(*UTF)`. Each earlier version was green on this
+  # exact file with the fix mutated away, which is the only test of a gate check that counts.
+  tr "\n" " " < "$f" \
+    | grep -qP "(*UTF)enterText\([^;]*[\x{0660}-\x{0669}\x{06F0}-\x{06F9}]" || {
+    echo "   FAIL: no journey types an Arabic-Indic digit into the app."
+    echo "   ar is the default locale. A journey that only types Latin numerals is walking a user"
+    echo "   this product does not have — and «١٢٠» in the price box is what broke on 2026-08-11."
+    status=1; }
   journeys=$(grep -c "testWidgets(" "$f")
   echo "   ${journeys} journey(s), booting the app root"
   exit $status'
@@ -817,12 +873,12 @@ run "the app has journey tests" bash -c '
 # on an unbound variable — so it is its own check now, with no literal apostrophe in it.
 run "the Arabic font is bundled" bash -c '
   [ -f apps/mobile/pubspec.yaml ] || { echo "   no mobile app — skipping"; exit 0; }
-  [ -f packages/ui/lib/theme/tokens.dart ] || { echo "   no design tokens yet — skipping"; exit 0; }
+  [ -f packages/ui/lib/theme/typography.dart ] || { echo "   no type scale yet — skipping"; exit 0; }
   status=0
-  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/tokens.dart | head -1 |
+  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/typography.dart | head -1 |
            grep -oE "[A-Za-z]+$")
   if [ -z "$family" ]; then
-    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/tokens.dart."
+    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/typography.dart."
     status=1
   elif ! grep -qE "^[[:space:]]+- family: ${family}$" apps/mobile/pubspec.yaml; then
     echo "   FAIL: apps/mobile/pubspec.yaml does not declare the font family [${family}]."
@@ -875,6 +931,7 @@ run "android release build sanity" bash -c '
     echo "   renders them out of a CJK fallback. Every icon becomes a Chinese character."
     status=1
   fi
+
   exit $status'
 
 echo ""

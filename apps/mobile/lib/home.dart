@@ -109,14 +109,26 @@ class _SignedInHomeState extends State<SignedInHome> {
   void _openMyMeals() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        // Resuming a draft has already seeded the conversation controller by
-        // the time this fires; all that is left is to show it.
+        // THE DRAFT IS HANDED TO THE SCREEN, not seeded before it.
+        //
+        // This used to discard the argument — `onResumeDraft: (_) =>` — on the
+        // stated grounds that `my_meals_screen.dart` had already seeded the
+        // controller. It had, into an autoDispose provider nothing was watching,
+        // which threw the seeding away before this route was built. A Cook
+        // returning to a half-finished Meal was asked the first question again
+        // with all her answers still in the database. See
+        // `MealConversationScreen.resumeFrom`.
         builder: (_) => MyMealsScreen(
-          onResumeDraft: (_) => Navigator.of(context).push(
+          onResumeDraft: (draft) => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => const MealConversationScreen(),
+              builder: (_) => MealConversationScreen(resumeFrom: draft),
             ),
           ),
+          // «أضيف بإيدي» — the tap alternative to speaking, and it has to
+          // actually reach the creation flow. It closed the list instead until
+          // 2026-08-11. Routed through the same entry the Home button uses, so
+          // the missing-Kitchen-Profile check happens once and in one place.
+          onAddByHand: _offerAMeal,
         ),
       ),
     );
@@ -237,7 +249,7 @@ class _Entry extends StatelessWidget {
     return TextButton(
       style: TextButton.styleFrom(
         minimumSize: size,
-        foregroundColor: danger ? KafooColors.danger : null,
+        foregroundColor: danger ? KafooColors.error : null,
       ),
       onPressed: onPressed,
       child: Text(label),
