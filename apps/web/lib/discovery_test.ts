@@ -690,9 +690,41 @@ test('every tap target reaches the token', () => {
 test('a control boundary is visible, not a hairline', () => {
   // WCAG 1.4.11 wants 3:1 for the visual boundary of a control. The literal it
   // replaced measured 2.10:1 and was the only thing marking the search box.
+  //
+  // NOW MEASURED RATHER THAN NAMED. This asserted the token `--kafoo-border`,
+  // which was a dark 3:1 value when it was written. Adopting DESIGN.md's
+  // palette made `--kafoo-border` a pale hairline for panel edges — correct for
+  // a panel, far below 3:1 for a control — and `--kafoo-border-input` became
+  // the boundary a control uses. A test naming a token cannot see that; a test
+  // computing the ratio can, and would have failed on the day the meaning of
+  // the name changed underneath it.
   assert.ok(!css.includes('rgba(0, 0, 0, 0.3)'), 'the 2.10:1 border is back');
-  assert.match(css, /--kafoo-border:/);
-  assert.match(css, /\.search input \{[^}]*border: 1px solid var\(--kafoo-border\)/);
+  assert.match(css, /\.search input \{[^}]*border: 1px solid var\(--kafoo-border-input\)/);
+
+  const value = (name: string) => {
+    const found = css.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(found, `${name} is not defined as a hex value`);
+    return found![1];
+  };
+  const luminance = (hex: string) => {
+    const channel = (pair: string) => {
+      const v = parseInt(pair, 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return (
+      0.2126 * channel(hex.slice(1, 3)) +
+      0.7152 * channel(hex.slice(3, 5)) +
+      0.0722 * channel(hex.slice(5, 7))
+    );
+  };
+  const border = luminance(value('--kafoo-border-input'));
+  const surface = luminance(value('--kafoo-surface'));
+  const [hi, lo] = border > surface ? [border, surface] : [surface, border];
+  const ratio = (hi + 0.05) / (lo + 0.05);
+  assert.ok(
+    ratio >= 3,
+    `the search box boundary measures ${ratio.toFixed(2)}:1 against the page, under the 3:1 floor. In sunlight that is an input with no edge.`,
+  );
 });
 
 test('focus is moved rather than destroyed', () => {
