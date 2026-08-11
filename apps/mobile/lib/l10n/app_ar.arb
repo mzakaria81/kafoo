@@ -1748,5 +1748,21 @@
   "mealNoPhotoYet": "مفيش صورة للأكلة دي لسه",
   "@mealNoPhotoYet": {
     "description": "The empty photo slot on a REAL Meal. A Cook may publish without a photograph, so this state is permanent and allowed rather than temporary — photoPlaceholder's 'will not ship' sentence is for a mock and is false here. Kafoo's Meal photos are shot with the Cook; no generated or stock image may ever stand in, so the slot stays obviously empty rather than being filled."
+  },
+  "mealSpokenTakenOffMenu": "تمام، شلتها من المنيو.",
+  "@mealSpokenTakenOffMenu": {
+    "description": "Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence."
+  },
+  "mealSpokenBackOnMenu": "تمام، رجّعتها على المنيو.",
+  "@mealSpokenBackOnMenu": {
+    "description": "Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence."
+  },
+  "mealSpokenRetired": "تمام، اتشالت خلاص.",
+  "@mealSpokenRetired": {
+    "description": "Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence."
+  },
+  "mealSpokenDraftDeleted": "تمام، مسحت المسودة.",
+  "@mealSpokenDraftDeleted": {
+    "description": "Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence."
   }
 }

@@ -52,7 +52,11 @@ Future<void> showMyMealRowSheet({
     if (editable != null && onEdit != null)
       _RowAction(
         label: l10n.mealEditTitle(form),
-        onSelected: () async => onEdit(editable),
+        // Navigation, not a write. The screen it opens speaks for itself.
+        onSelected: () async {
+          onEdit(editable);
+          return true;
+        },
       ),
     if (meal.status == MealStatus.published)
       _RowAction(
@@ -65,19 +69,23 @@ Future<void> showMyMealRowSheet({
         question: l10n.mealLastOnOfferQuestion(form),
         confirmLabel: l10n.mealLastOnOfferConfirm(form),
         cancelLabel: l10n.mealLastOnOfferCancel(form),
+        spokenDone: l10n.mealSpokenTakenOffMenu,
         onSelected: () => controller.setStatus(meal, MealStatus.unavailable),
       ),
     if (meal.status == MealStatus.unavailable)
       _RowAction(
         label: l10n.mealMakeAvailable(form),
+        spokenDone: l10n.mealSpokenBackOnMenu,
         onSelected: () => controller.setStatus(meal, MealStatus.published),
       ),
     if (meal.status == MealStatus.draft) ...[
       _RowAction(
         label: l10n.mealResumeDraft(form),
+        // Navigation. The conversation greets her when it opens.
         onSelected: () async {
           ref.read(mealConversationControllerProvider.notifier).resume(meal);
           onResumeDraft?.call(meal);
+          return true;
         },
       ),
       _RowAction(
@@ -86,6 +94,7 @@ Future<void> showMyMealRowSheet({
         question: l10n.mealDeleteDraftQuestion(form),
         confirmLabel: l10n.mealDeleteDraftConfirm(form),
         cancelLabel: l10n.mealRetireCancel(form),
+        spokenDone: l10n.mealSpokenDraftDeleted,
         destructive: true,
         onSelected: () => controller.deleteDraft(meal),
       ),
@@ -99,6 +108,7 @@ Future<void> showMyMealRowSheet({
         question: l10n.mealRetireQuestion(form),
         confirmLabel: l10n.mealRetireConfirm(form),
         cancelLabel: l10n.mealRetireCancel(form),
+        spokenDone: l10n.mealSpokenRetired,
         destructive: true,
         onSelected: () => controller.setStatus(meal, MealStatus.archived),
       ),
@@ -156,7 +166,21 @@ Future<void> _run(
     if (confirmed != true) return;
   }
   navigator.pop();
-  await action.onSelected();
+  final succeeded = await action.onSelected();
+
+  // ANNOUNCED, NOT SILENT. The rule is that a reversible action executes
+  // immediately and is said out loud, and a gated one is announced once it has
+  // executed. Taking a Meal off the menu and putting it back happened without a
+  // word — on a screen that greets a Cook aloud and reads her Meals to her,
+  // which makes the silence at the moment something actually changed louder,
+  // not quieter.
+  //
+  // Only on success. Announcing a change that did not happen is worse than
+  // saying nothing, and the screen already shows the failure in words.
+  final done = action.spokenDone;
+  if (succeeded && done != null) {
+    await ref.read(assistantVoiceProvider.notifier).say(done);
+  }
 }
 
 /// The read-back gate for one destructive action.
@@ -272,6 +296,7 @@ class _RowAction {
   _RowAction({
     required this.label,
     required this.onSelected,
+    this.spokenDone,
     this.warning,
     this.question,
     this.confirmLabel,
@@ -280,7 +305,14 @@ class _RowAction {
   });
 
   final String label;
-  final Future<void> Function() onSelected;
+
+  /// Returns whether it actually happened. A write that failed must not be
+  /// announced as done.
+  final Future<bool> Function() onSelected;
+
+  /// Said aloud after [onSelected] succeeds. Null for an action that navigates
+  /// rather than writes — the screen it opens does its own talking.
+  final String? spokenDone;
 
   /// The sentence read back aloud and shown as quoted speech. Non-null makes
   /// this action pass through the gate.

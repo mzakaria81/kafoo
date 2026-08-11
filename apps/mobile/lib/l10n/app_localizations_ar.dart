@@ -1913,4 +1913,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mealNoPhotoYet => 'مفيش صورة للأكلة دي لسه';
+
+  @override
+  String get mealSpokenTakenOffMenu => 'تمام، شلتها من المنيو.';
+
+  @override
+  String get mealSpokenBackOnMenu => 'تمام، رجّعتها على المنيو.';
+
+  @override
+  String get mealSpokenRetired => 'تمام، اتشالت خلاص.';
+
+  @override
+  String get mealSpokenDraftDeleted => 'تمام، مسحت المسودة.';
 }

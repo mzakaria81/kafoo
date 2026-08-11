@@ -1736,6 +1736,30 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مفيش صورة للأكلة دي لسه'**
   String get mealNoPhotoYet;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، شلتها من المنيو.'**
+  String get mealSpokenTakenOffMenu;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، رجّعتها على المنيو.'**
+  String get mealSpokenBackOnMenu;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، اتشالت خلاص.'**
+  String get mealSpokenRetired;
+
+  /// Said aloud after the action succeeds. The rule is that a reversible action executes immediately and is ANNOUNCED — and a gated one is announced after it executes too. This screen greets a Cook out loud and reads her Meals to her, so going silent the moment something actually changed is the app looking away at the one point it should speak. Spoken only on success: announcing a change that did not happen is worse than silence.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، مسحت المسودة.'**
+  String get mealSpokenDraftDeleted;
 }
 
 class _AppLocalizationsDelegate

@@ -478,6 +478,73 @@ void main() {
     });
   });
 
+  group('an action that changed something says so', () {
+    // The rule: a reversible action executes immediately and is ANNOUNCED, and
+    // a gated one is announced once it has executed. Taking a Meal off the menu
+    // and putting it back happened without a word — on a screen that greets a
+    // Cook aloud and reads her Meals to her.
+    testWidgets('taking a Meal off the menu is announced', (tester) async {
+      final speech = FakeSpeechOutput();
+      // Two Meals, so this is an ordinary reversible change rather than the
+      // gated last-one-on-offer case.
+      await tester.pumpWidget(
+        _app(
+          FakeMealRepository(meals: [_published, _publishedSecond]),
+          speech: speech,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        contains(l10n.mealSpokenTakenOffMenu),
+      );
+    });
+
+    testWidgets('putting it back on is announced too', (tester) async {
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_unavailable]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealMakeAvailable('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        contains(l10n.mealSpokenBackOnMenu),
+      );
+    });
+
+    testWidgets('a change that failed is not announced as done',
+        (tester) async {
+      // Announcing something that did not happen is worse than silence, and the
+      // screen already puts the failure on the screen in words.
+      final speech = FakeSpeechOutput();
+      final repo = FakeMealRepository(meals: [_unavailable]);
+      await tester.pumpWidget(_app(repo, speech: speech));
+      await tester.pumpAndSettle();
+      // Set AFTER the first load: the same flag fails reads, and a screen with
+      // no list on it has no row to open.
+      repo.failOperations = true;
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealMakeAvailable('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        isNot(contains(l10n.mealSpokenBackOnMenu)),
+      );
+    });
+  });
+
   testWidgets('shows every status, including drafts', (tester) async {
     final repo = FakeMealRepository(
       meals: [_draft, _published, _unavailable, _archived],

@@ -1970,4 +1970,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealNoPhotoYet => 'No photo for this Meal yet';
+
+  @override
+  String get mealSpokenTakenOffMenu => 'Done — it is off the menu.';
+
+  @override
+  String get mealSpokenBackOnMenu => 'Done — it is back on the menu.';
+
+  @override
+  String get mealSpokenRetired => 'Done — it is retired.';
+
+  @override
+  String get mealSpokenDraftDeleted => 'Done — the draft is deleted.';
 }
