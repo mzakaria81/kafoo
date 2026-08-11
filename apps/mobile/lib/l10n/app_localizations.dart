@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'مقدرناش نحفظ الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
   String mealSaveError(String addressForm);
 
+  /// Shown when the price the Cook typed is not a price the database can hold — words, zero, or more precision than numeric(10,2). Arabic-Indic digits are NOT this case: parseMealPrice accepts them, which is the whole point of it existing.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش فاهمين السعر. {addressForm, select, feminine{اكتبيه} other{اكتبه}} أرقام بس، أكبر من صفر.'**
+  String mealPriceInvalid(String addressForm);
+
   /// Shown when uploading a Meal photo fails. The Cook can proceed without a photo.
   ///
   /// In ar, this message translates to:

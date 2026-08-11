@@ -245,8 +245,34 @@ class MealConversationController extends _$MealConversationController {
   ///
   /// Returns true when the answer was accepted, false when a write failed.
   /// The caller should clear the text field only on success.
-  Future<bool> answer(MealStepId step, String value) async {
+  Future<bool> answer(MealStepId step, String raw) async {
     state = state.copyWith(error: null);
+
+    // THE PRICE IS NORMALISED BEFORE ANYTHING ELSE SEES IT, and that is the fix
+    // for the second defect to reach the founder's phone on 2026-08-11. He typed
+    // «١٢٠» — the digits an Arabic keyboard produces — and the answer went to a
+    // `numeric(10,2)` column as that exact text. Postgres refuses it, and the
+    // refusal surfaced as «مقدرناش نحفظ الأكلة»: every Cook, every price.
+    //
+    // Here rather than in `_persistAnswer`, so the value written to the database
+    // and the value `_recordAnswer` keeps in memory are the same string. Two
+    // representations of one price is how a summary comes to disagree with the
+    // row it is summarising.
+    final String value;
+    if (step == MealStepId.price) {
+      final price = parseMealPrice(raw);
+      if (price == null) {
+        // Not a save failure — a question the Cook can answer again, and the
+        // only failure in this flow she can actually do anything about.
+        state = state.copyWith(
+          error: const AppError(messageKey: 'mealPriceInvalid'),
+        );
+        return false;
+      }
+      value = price;
+    } else {
+      value = raw;
+    }
 
     if (state.draft.mealId == null) {
       final result = await _repository.createDraft(title: value);

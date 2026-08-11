@@ -962,6 +962,83 @@ void main() {
       );
     });
 
+    testWidgets('a calorie correction typed in Arabic digits is not discarded',
+        (tester) async {
+      // «٩٥٠» is nine hundred and fifty on an Arabic keyboard, and
+      // `int.tryParse` returns null for it. The correction was therefore thrown
+      // away in silence: the row closed, the AI Assistant's 850 came back, and
+      // the Cook could publish a figure she believed she had changed. Same cause
+      // as the price defect the founder hit on 2026-08-11, quieter symptom.
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+          matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), '٩٥٠');
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      final calCall =
+          repo.updateDraftArgs.where((c) => c.calories != null).last;
+      expect(
+        calCall.calories,
+        950,
+        reason: 'her number, in the digits she typed it in — not the estimate',
+      );
+    });
+
+    testWidgets('the calorie field accepts Arabic digits and refuses letters',
+        (tester) async {
+      // The mechanism, pinned at the field itself.
+      // `FilteringTextInputFormatter.digitsOnly` allows `[0-9]` and nothing
+      // else, so «٩٥٠» was deleted keystroke by keystroke and the box stayed
+      // empty — no error, no rejection, just a field that would not accept the
+      // digits of the app's own default locale. The filter is still a filter:
+      // letters in a calorie count remain a mistake.
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+          matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
+        ),
+      );
+
+      final field = find.byType(TextField);
+      await tester.enterText(field, '٩٥٠');
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(field).controller?.text,
+        '٩٥٠',
+        reason: 'THE BUG. This was empty: her keystrokes were filtered out.',
+      );
+
+      await tester.enterText(field, 'كتير');
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(field).controller?.text,
+        isEmpty,
+        reason: 'a calorie count is a number, and letters are still refused',
+      );
+    });
+
     testWidgets('approving allergens sends the AI list unchanged',
         (tester) async {
       await _tallSurface(tester);

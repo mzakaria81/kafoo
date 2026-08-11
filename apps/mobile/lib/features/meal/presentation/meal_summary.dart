@@ -12,6 +12,7 @@ import '../../analytics/event_names.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/meal_estimate_fields.dart';
 import 'meal_enum_labels.dart';
+import 'meal_error_text.dart';
 import 'meal_estimate_display.dart';
 import 'meal_estimate_rows.dart';
 import 'meal_summary_rows.dart';
@@ -86,10 +87,14 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
 
   Future<void> _commitEstimateEdit(String field) async {
     final controller = ref.read(mealConversationControllerProvider.notifier);
+    final raw = _editController.text.trim();
     final Object? value = switch (field) {
       MealEstimateFields.cuisine => _editCuisine,
       MealEstimateFields.category => _editCategory,
-      MealEstimateFields.calories => int.tryParse(_editController.text.trim()),
+      // `int.tryParse('٣٥٠')` is null. An Arabic keyboard produces those digits,
+      // so a Cook correcting the calorie estimate the way she types numbers had
+      // her correction thrown away — see `normalizeArabicDigits`.
+      MealEstimateFields.calories => int.tryParse(normalizeArabicDigits(raw)),
       MealEstimateFields.ingredients => _parseList(_editController.text),
       MealEstimateFields.allergens => _parseList(_editController.text),
       _ => null,
@@ -278,7 +283,7 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
             if (state.error != null && !_publishFailed) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealSaveError(context.addressForm),
+                mealErrorText(context, state.error!),
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.error),
               ),

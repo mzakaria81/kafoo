@@ -797,6 +797,33 @@ run "the app has journey tests" bash -c '
   grep -qE "tester\.(tap|enterText)" "$f" || {
     echo "   FAIL: $f never taps or types. Drive the app the way a person does."
     status=1; }
+  # AND SOMEWHERE IN IT, A NUMBER IS TYPED THE WAY AN EGYPTIAN COOK TYPES ONE.
+  #
+  # 2026-08-11: the founder answered the price question with «١٢٠» and was told his Meal could not be
+  # saved. `price` is `numeric(10,2)`, an Arabic keyboard produces Arabic-Indic digits, and Postgres
+  # refuses them. Every Cook, every price, every time — and 290 passing tests, every one of which had
+  # typed `'35'`.
+  #
+  # That is the failure this arm exists for, and it is not really about digits. `ar` is this product'"'"'s
+  # DEFAULT locale, so a suite that only ever types Latin input is testing a user who does not exist.
+  # The check is deliberately crude — one Arabic-Indic digit anywhere in the walked journey — because
+  # the alternative it is guarding against is zero.
+  # SCOPED TO WHAT IS TYPED, and it took three tries to get there — worth recording, because each
+  # wrong version LOOKED like it worked:
+  #
+  #   1. Any Arabic-Indic digit in the file. Passed on the comment explaining the bug.
+  #   2. Same, with comment lines stripped. Passed on the `reason:` string quoting «١٢٠» in prose.
+  #   3. Inside an `enterText(...)`, as a bracket range in `grep -E`. Passed on «كشري» — a bracket
+  #      range over Arabic code points collates loosely outside the C locale and swallows the letters.
+  #
+  # Hence `grep -P` with explicit code points and `(*UTF)`. Each earlier version was green on this
+  # exact file with the fix mutated away, which is the only test of a gate check that counts.
+  tr "\n" " " < "$f" \
+    | grep -qP "(*UTF)enterText\([^;]*[\x{0660}-\x{0669}\x{06F0}-\x{06F9}]" || {
+    echo "   FAIL: no journey types an Arabic-Indic digit into the app."
+    echo "   ar is the default locale. A journey that only types Latin numerals is walking a user"
+    echo "   this product does not have — and «١٢٠» in the price box is what broke on 2026-08-11."
+    status=1; }
   journeys=$(grep -c "testWidgets(" "$f")
   echo "   ${journeys} journey(s), booting the app root"
   exit $status'

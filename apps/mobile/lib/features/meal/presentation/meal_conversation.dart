@@ -14,6 +14,7 @@ import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../../conversation/presentation/voice_button.dart';
 import '../application/meal_conversation_controller.dart';
+import 'meal_error_text.dart';
 import 'meal_fallback_question.dart';
 import 'meal_summary.dart';
 
@@ -248,6 +249,14 @@ class _MealConversationScreenState
                 TextField(
                   controller: _answerController,
                   maxLines: step.id == MealStepId.description ? 4 : 1,
+                  // A number pad for the one question that is a number. It
+                  // reduces how often the price arrives as Arabic-Indic digits;
+                  // it does not remove the need to handle them, because on many
+                  // Egyptian handsets the number pad IS Arabic-Indic. The
+                  // parsing in `parseMealPrice` is the fix — this is a courtesy.
+                  keyboardType: step.id == MealStepId.price
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : null,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _acceptAnswer(),
                 ),
@@ -267,7 +276,7 @@ class _MealConversationScreenState
               if (state.error != null) ...[
                 const SizedBox(height: KafooSpacing.sm),
                 Text(
-                  _errorText(l10n, state.error!),
+                  mealErrorText(context, state.error!),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -315,14 +324,4 @@ class _MealConversationScreenState
       ),
     );
   }
-
-  /// Both keys already existed for the repository (T033); this screen adds no
-  /// error vocabulary of its own. The default is the save error rather than a
-  /// generic one, because every failure this screen can currently reach is a
-  /// failure to write the draft.
-  String _errorText(AppLocalizations l10n, AppError error) =>
-      switch (error.messageKey) {
-        'mealPhotoError' => l10n.mealPhotoError(context.addressForm),
-        _ => l10n.mealSaveError(context.addressForm),
-      };
 }

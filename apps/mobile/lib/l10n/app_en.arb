@@ -655,6 +655,15 @@
       }
     }
   },
+  "mealPriceInvalid": "{addressForm, select, feminine{We could not read that price. Please write it in digits only, greater than zero.} other{We could not read that price. Please write it in digits only, greater than zero.}}",
+  "@mealPriceInvalid": {
+    "description": "Shown when the price the Cook typed is not a price the database can hold — words, zero, or more precision than numeric(10,2). Arabic-Indic digits are NOT this case: parseMealPrice accepts them, which is the whole point of it existing.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
   "mealPhotoError": "{addressForm, select, feminine{The photo could not be uploaded. You can continue without one.} other{The photo could not be uploaded. You can continue without one.}}",
   "@mealPhotoError": {
     "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo.",

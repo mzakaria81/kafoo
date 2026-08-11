@@ -797,6 +797,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String mealPriceInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'We could not read that price. Please write it in digits only, greater than zero.',
+        'other':
+            'We could not read that price. Please write it in digits only, greater than zero.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String mealPhotoError(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

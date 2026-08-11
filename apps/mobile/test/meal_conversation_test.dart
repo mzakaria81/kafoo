@@ -343,6 +343,61 @@ void main() {
     expect(repo.updateDraftArgs[1].description, isNull);
   });
 
+  group('the price as the Cook types it', () {
+    // 2026-08-11: «١٢٠» from an Arabic keyboard reached a `numeric(10,2)` column
+    // as that text and Postgres refused it. The Cook read «مقدرناش نحفظ الأكلة»
+    // about a Meal that was fine. `parseMealPrice` holds the rule;
+    // `packages/domain/test/meal_price_test.dart` covers its cases. These two
+    // pin the two things the CONTROLLER owns: what it sends, and what it does
+    // when the answer is not a price at all.
+
+    test('Arabic-Indic digits reach the database as digits Postgres reads',
+        () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo);
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      await controller.answer(MealStepId.dish, 'كشري');
+      controller.declinePhoto();
+      final ok = await controller.answer(MealStepId.price, '١٢٠ جنيه');
+
+      expect(ok, isTrue);
+      expect(repo.updateDraftArgs.last.price, '120');
+      // The same string in memory as in the row. Two representations of one
+      // price is how a summary comes to disagree with what it summarises.
+      expect(container.read(mealConversationControllerProvider).draft.price,
+          '120');
+    });
+
+    test('an answer that is not a price is refused without a write', () async {
+      final repo = FakeMealRepository();
+      final container = _container(repo: repo);
+      addTearDown(container.dispose);
+      final controller =
+          container.read(mealConversationControllerProvider.notifier);
+
+      await controller.answer(MealStepId.dish, 'كشري');
+      controller.declinePhoto();
+      final ok = await controller.answer(MealStepId.price, 'مية وعشرين');
+
+      expect(ok, isFalse);
+      expect(
+        repo.updateDraftArgs.where((c) => c.price != null),
+        isEmpty,
+        reason: 'Nothing is sent. The database would refuse it with a message '
+            'the Cook cannot act on, so the refusal happens here instead.',
+      );
+      expect(
+        container.read(mealConversationControllerProvider).error?.messageKey,
+        'mealPriceInvalid',
+        reason: 'NOT mealSaveError. She can fix this one, and only if the '
+            'sentence tells her what to fix.',
+      );
+    });
+  });
+
   test('MealDrafted emits exactly once with no attributes', () async {
     final repo = FakeMealRepository();
     final events = <({String name, Map<String, Object> attributes})>[];

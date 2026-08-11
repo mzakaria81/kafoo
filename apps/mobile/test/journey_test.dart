@@ -354,6 +354,96 @@ void main() {
     expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
   });
 
+  testWidgets('a Cook prices her Meal in the digits her keyboard produces',
+      (tester) async {
+    // THE SECOND JOURNEY BROKEN IN THE FOUNDER'S HAND ON 2026-08-11, on the very
+    // next question after the one above. He typed «١٢٠» and read «مقدرناش نحفظ
+    // الأكلة» — we could not save the Meal.
+    //
+    // «١٢٠» is one hundred and twenty in Arabic-Indic digits, which is what an
+    // Arabic keyboard produces. `price` is `numeric(10,2)` and the answer was
+    // sent as the text the Cook typed, so Postgres refused it: `invalid input
+    // syntax for type numeric`. Every Cook typing in Arabic, every price.
+    //
+    // **This journey WOULD have caught it**, unlike the one above, and the
+    // difference is worth naming: the bug was in what the app SENDS, not in how
+    // it reads the reply, and a fake records what it was sent. The reason no test
+    // saw it is that every existing test typed `'35'` — the price question, in
+    // the one product whose default locale is Egyptian Arabic, was only ever
+    // answered the way a developer answers it.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final meals = FakeMealRepository();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_fieldOn(MealConversationScreen), 'عدس ورز ومكرونة');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The photo is the one question a Cook may decline, and declining must not
+    // cost her the conversation.
+    expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.mealConvPhotoSkip('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The price, typed the way she types it.
+    expect(find.text(l10n.mealConvPromptPrice('other')), findsOneWidget);
+    await tester.enterText(_fieldOn(MealConversationScreen), '١٢٠');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(l10n.mealSaveError('other')),
+      findsNothing,
+      reason: 'THE BUG. Arabic-Indic digits reached a numeric column as text.',
+    );
+    expect(
+      find.text(l10n.mealPriceInvalid('other')),
+      findsNothing,
+      reason:
+          '«١٢٠» IS a price. The new message exists for words and zero, and '
+          'showing it here would be the same refusal wearing better copy.',
+    );
+    expect(
+      meals.updateDraftArgs.last.price,
+      '120',
+      reason: 'What the database is sent, which is the whole defect. Latin '
+          'digits, no currency word, unrounded, and the same string the '
+          'conversation now holds in memory.',
+    );
+    // The departure. With the write reported as failed she stayed on the price
+    // question with «١٢٠» still in the box, tapping «كمّل» and getting the same
+    // sentence — which is exactly what the screenshot showed.
+    expect(find.text(l10n.mealConvPromptPrice('other')), findsNothing);
+  });
+
   testWidgets('the signed-in journey survives 200% text on a small phone',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);

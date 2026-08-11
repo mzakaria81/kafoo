@@ -108,6 +108,19 @@ What a journey test must do, and these are not negotiable:
 - **Assert the arrival AND the departure.** `findsOneWidget` on the destination is half of it;
   `findsNothing` on the screen left behind is the half that catches a route nobody popped.
 
+**TYPE WHAT AN EGYPTIAN COOK TYPES, INCLUDING THE NUMBERS.** `ar` is the default locale, so an
+Arabic keyboard is the default keyboard and «١٢٠» is the default way to write a price. On 2026-08-11 a
+Cook could not put a Meal on offer at all: the price went to a `numeric(10,2)` column as Arabic-Indic
+digits, Postgres refused it, and she was told the Meal could not be saved. Every price, every Cook.
+290 tests passed, and every one of them had typed `'35'`.
+
+The same cause had a second, quieter symptom on the summary — `FilteringTextInputFormatter.digitsOnly`
+allows `[0-9]` and nothing else, so the calorie field deleted her keystrokes as she made them. No
+error, no rejection, an empty box.
+
+A test that only supplies Latin input is testing a user this product does not have. `verify.sh`
+checks that at least one journey types an Arabic-Indic digit; the rule is broader than the check.
+
 **When a journey breaks in somebody's hand, the fix lands as a failing journey test first.** That is
 the whole point: the gate can only refuse what somebody taught it to see, and a person holding a
 phone is currently better at this than every check in the repository.

@@ -12,6 +12,7 @@ import '../../analytics/event_names.dart';
 import '../../conversation/presentation/conversation_question.dart';
 import '../application/meal_conversation_controller.dart';
 import 'meal_enum_labels.dart';
+import 'meal_error_text.dart';
 
 /// One fallback question — cuisine or category — when the AI Assistant could
 /// not supply that value. Exactly one at a time (SC-002); choices are a
@@ -80,7 +81,7 @@ class MealFallbackQuestion extends ConsumerWidget {
               const SizedBox(height: KafooSpacing.lg),
               if (error != null) ...[
                 Text(
-                  l10n.mealSaveError(context.addressForm),
+                  mealErrorText(context, error!),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.error,
                   ),

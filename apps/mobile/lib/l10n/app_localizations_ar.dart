@@ -762,6 +762,18 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String mealPriceInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اكتبيه',
+        'other': 'اكتبه',
+      },
+    );
+    return 'مش فاهمين السعر. $_temp0 أرقام بس، أكبر من صفر.';
+  }
+
+  @override
   String mealPhotoError(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

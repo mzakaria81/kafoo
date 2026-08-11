@@ -144,6 +144,50 @@ void main() {
     expect(repo.updateDraftArgs.last.carriesAnalysedField, isFalse);
   });
 
+  group('re-pricing a published Meal in Arabic digits', () {
+    // The same defect as the conversation's price question, on the screen a Cook
+    // reaches AFTER her Meal is on offer — which is the one where getting it
+    // wrong costs her a sale rather than a first attempt. 2026-08-11.
+
+    Future<void> commitPrice(WidgetTester tester, String typed) async {
+      await tester.tap(find.text(l10n.convEdit('other')).at(2));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), typed);
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('«١٤٠» is written as 140', (tester) async {
+      final repo = FakeMealRepository(existing: _published);
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      await commitPrice(tester, '١٤٠');
+
+      expect(repo.updateDraftArgs.last.price, '140');
+      expect(find.text(l10n.mealSaveError('other')), findsNothing);
+      expect(find.text(l10n.mealPriceInvalid('other')), findsNothing);
+    });
+
+    testWidgets('a price the column cannot hold says so, and writes nothing',
+        (tester) async {
+      final repo = FakeMealRepository(existing: _published);
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      await commitPrice(tester, 'ببلاش');
+
+      expect(repo.updateDraftArgs, isEmpty);
+      // THE MESSAGE, not just the refusal. This screen hardcoded
+      // `mealSaveError` for every error its controller produced until
+      // `mealErrorText` replaced it — so a Cook could not tell a price she can
+      // retype from a network she cannot.
+      expect(find.text(l10n.mealPriceInvalid('other')), findsOneWidget);
+      expect(find.text(l10n.mealSaveError('other')), findsNothing);
+    });
+  });
+
   testWidgets(
       'a price change and a title change are distinguishable in the analytics',
       (tester) async {
