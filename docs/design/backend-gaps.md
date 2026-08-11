@@ -9,7 +9,7 @@ look finished and quietly lost the list below.
 This is that list. Each entry says what a person sees today, what is missing
 behind it, and what it costs to close.
 
-**Four of the eleven are closed.** 1, 8, 9 and 10 are done; the rest are listed
+**Four of the twelve are closed.** 1, 8, 9 and 10 are done; the rest are listed
 below with what each still needs.
 
 **Nothing here blocks the screen from shipping.** Everything a Cook can already
@@ -195,3 +195,27 @@ and the seam are done; this is per-screen wiring, one screen at a time.
 from six places. Nothing has yet proved the speaking and listening engines can
 share a phone's audio without fighting over it, because no screen does both
 today. The first one that does needs a real-device test before it ships.
+
+## 12. One label still speaks to only one gender
+
+**What a Cook sees.** The empty Meal list opens with «احكيلي عن أكلة» — "tell me
+about a Meal." It is a feminine-only imperative, so a male Cook meets the wrong
+grammar on the first screen he sees after signing up with no Meals.
+
+**Why it is not fixed here.** Four labels on the same screen family had this
+defect and were converted; this one was left because the masculine form of that
+verb is not derivable by pattern-matching, and a confident guess produces
+something that reads as slightly wrong to a native speaker and passes every
+check in this repository. Three Arabic wording questions are queued for the
+founder and this is one of them.
+
+**What it needs.** A native Egyptian speaker's masculine wording, then the same
+`addressForm` conversion the other four got — ten minutes once the word exists.
+
+**Three more waiting on the same person.** «بوق» in the too-noisy line, which a
+reviewer flagged four times as reading like mockery rather than blaming the
+room. The delete-a-draft cancel button, which borrows the wording written for
+retiring a Meal. And the confirmation gate's «لأ، استنى», which is masculine
+only — deliberately, because it is the Cook speaking *to* the assistant and the
+assistant is masculine in Arabic, but that reading wants a native speaker's
+confirmation before the gate is wired to a screen where anyone reads it.

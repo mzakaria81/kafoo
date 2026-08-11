@@ -136,8 +136,9 @@ class _FullState extends ConsumerState<_Full> {
               // persists until reversed.
               KafooMuteButton(
                 muted: voice.muted,
-                label:
-                    voice.muted ? l10n.voiceMuteRestore : l10n.voiceMuteSilence,
+                label: voice.muted
+                    ? l10n.voiceMuteRestore(form)
+                    : l10n.voiceMuteSilence(form),
                 onChanged: (muted) => ref
                     .read(assistantVoiceProvider.notifier)
                     .setMuted(muted: muted),
@@ -161,6 +162,7 @@ class _FullState extends ConsumerState<_Full> {
               if (index > 0) {
                 return MyMealRow(
                   meal: state.meals[index - 1],
+                  addressForm: form,
                   onResumeDraft: onResumeDraft,
                 );
               }
@@ -172,7 +174,7 @@ class _FullState extends ConsumerState<_Full> {
                   // element on the screen.
                   KafooSpokenBanner(
                     line: summary,
-                    hearAgainLabel: l10n.myMealsHearAgain,
+                    hearAgainLabel: l10n.myMealsHearAgain(form),
                     // Inert while muted, and on a handset with no Arabic speech
                     // data. A control that silently does nothing is worse than
                     // one that visibly cannot.
@@ -272,9 +274,24 @@ class _TalkDock extends StatelessWidget {
 
 /// One Meal in the Cook's list.
 class MyMealRow extends ConsumerWidget {
-  const MyMealRow({required this.meal, this.onResumeDraft, super.key});
+  const MyMealRow({
+    required this.meal,
+    required this.addressForm,
+    this.onResumeDraft,
+    super.key,
+  });
 
   final CookMeal meal;
+
+  /// Passed down rather than read here.
+  ///
+  /// The Cook's form of address arrives asynchronously and can land after the
+  /// list is already on screen. Read inside the row, every visible row would
+  /// rebuild the moment it did — and a Cook using a screen reader, halfway
+  /// through hearing one, would have it torn down and started again. Read once
+  /// at the screen and handed down, only the screen rebuilds.
+  final String addressForm;
+
   final void Function(CookMeal meal)? onResumeDraft;
 
   /// The dish name, or what to call a draft that has none.
@@ -314,7 +331,7 @@ class MyMealRow extends ConsumerWidget {
         price == null ? l10n.myMealsNoPriceYet : mealPriceLabel(l10n, price),
       ),
       placeholderLabel: l10n.mealNoPhotoYet,
-      hearLabel: l10n.myMealsHearRow,
+      hearLabel: l10n.myMealsHearRow(addressForm),
       // Read aloud, quietly: the row carries a price, homes are shared, and
       // income is private.
       onHear: ref.watch(assistantVoiceProvider).canSpeak

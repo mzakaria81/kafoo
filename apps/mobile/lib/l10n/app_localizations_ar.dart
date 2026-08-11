@@ -1673,10 +1673,28 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get voiceMuteSilence => 'اسكت صوت المساعد';
+  String voiceMuteSilence(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسكتي صوت المساعد',
+        'other': 'اسكت صوت المساعد',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get voiceMuteRestore => 'رجّع صوت المساعد';
+  String voiceMuteRestore(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'رجّعي صوت المساعد',
+        'other': 'رجّع صوت المساعد',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voiceRecording => 'بيسجل دلوقتي';
@@ -1734,10 +1752,28 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get myMealsHearAgain => 'اسمعها تاني';
+  String myMealsHearAgain(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسمعيها تاني',
+        'other': 'اسمعها تاني',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get myMealsHearRow => 'اسمعي الأكلة دي';
+  String myMealsHearRow(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسمعي الأكلة دي',
+        'other': 'اسمع الأكلة دي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsRowActions => 'حاجات تانية للأكلة دي';

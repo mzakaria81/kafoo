@@ -12,6 +12,7 @@ import 'package:kafoo_mobile/features/meal/application/my_meals_controller.dart'
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
+import 'package:kafoo_mobile/l10n/address_form.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -103,6 +104,7 @@ Widget _app(
   FakeMealRepository repo, {
   void Function(CookMeal meal)? onResumeDraft,
   SpeechOutput? speech,
+  String? form,
 }) =>
     ProviderScope(
       overrides: [
@@ -118,7 +120,12 @@ Widget _app(
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: MyMealsScreen(onResumeDraft: onResumeDraft),
+        home: form == null
+            ? MyMealsScreen(onResumeDraft: onResumeDraft)
+            : AddressFormScope(
+                form: form,
+                child: MyMealsScreen(onResumeDraft: onResumeDraft),
+              ),
       ),
     );
 
@@ -241,7 +248,7 @@ void main() {
       await tester.pumpAndSettle();
       final greeting = speech.spoken.single.line;
 
-      await tester.tap(find.byTooltip(l10n.myMealsHearAgain));
+      await tester.tap(find.byTooltip(l10n.myMealsHearAgain('other')));
       await tester.pumpAndSettle();
 
       expect(speech.spoken.where((s) => s.line == greeting), hasLength(2));
@@ -590,6 +597,108 @@ void main() {
       expect(
         speech.spoken.map((s) => s.line),
         isNot(contains(l10n.mealSpokenBackOnMenu)),
+      );
+    });
+  });
+
+  group('the voice controls speak to whoever is holding the phone', () {
+    // «اسمعها تاني» and «اسمعي الأكلة دي» sat a few centimetres apart and
+    // addressed opposite genders — so one button was aimed at the Cook and the
+    // one beside it at somebody else. `address_form_test.dart` exists because a
+    // conversion nothing renders in the feminine is one nobody can trust, and
+    // these four labels had no such coverage.
+    testWidgets('a woman hears every control conjugated for her',
+        (tester) async {
+      await tester.pumpWidget(
+        _app(
+          FakeMealRepository(meals: [_published]),
+          form: 'feminine',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(l10n.myMealsHearAgain('feminine')), findsOneWidget);
+      expect(find.byTooltip(l10n.myMealsHearRow('feminine')), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')),
+        findsWidgets,
+      );
+      // And not the masculine of any of them, on the same screen. Presence
+      // alone would pass on a label that had quietly gone back to one
+      // hardcoded string.
+      expect(find.byTooltip(l10n.myMealsHearAgain('other')), findsNothing);
+      expect(find.byTooltip(l10n.myMealsHearRow('other')), findsNothing);
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('other')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('including the label the mute button swaps to', (tester) async {
+      // The restore label only exists once the assistant is silenced, so no
+      // test had ever rendered it in either gender.
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(
+          FakeMealRepository(meals: [_published]),
+          speech: speech,
+          form: 'feminine',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('feminine')),
+        findsWidgets,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('other')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('and a man hears every one conjugated for him', (tester) async {
+      // The fake engine, same as the feminine case: muting goes through the
+      // voice layer, and without it the toggle has nothing to act on.
+      await tester.pumpWidget(
+        _app(
+          FakeMealRepository(meals: [_published]),
+          speech: FakeSpeechOutput(),
+          form: 'other',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(l10n.myMealsHearAgain('other')), findsOneWidget);
+      expect(find.byTooltip(l10n.myMealsHearRow('other')), findsOneWidget);
+      expect(find.byTooltip(l10n.myMealsHearAgain('feminine')), findsNothing);
+      expect(find.byTooltip(l10n.myMealsHearRow('feminine')), findsNothing);
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('other')),
+        findsWidgets,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteSilence('feminine')),
+        findsNothing,
+      );
+
+      // And the label it swaps to. Only the feminine side of this was covered,
+      // so a male Cook silencing the assistant had no test proving the button
+      // he then looks at speaks to him.
+      await tester.tap(find.bySemanticsLabel(l10n.voiceMuteSilence('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('other')),
+        findsWidgets,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.voiceMuteRestore('feminine')),
+        findsNothing,
       );
     });
   });
