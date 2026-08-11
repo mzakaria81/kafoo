@@ -289,6 +289,18 @@ class _MealSummaryScreenState extends ConsumerState<MealSummaryScreen> {
                   onCategoryChanged: (value) =>
                       setState(() => _editCategory = value),
                 ),
+            // The AI Assistant's own failure, kept separate from a save failure
+            // above it: one means her answers did not reach the database, the
+            // other means the estimates did not arrive. Reading them as the same
+            // sentence would send her looking for the wrong problem.
+            if (state.analysisError case final failure?) ...[
+              const SizedBox(height: KafooSpacing.md),
+              Text(
+                mealErrorText(context, failure, fromAnalysis: true),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.error),
+              ),
+            ],
             if (state.error != null && !_publishFailed) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(

@@ -331,6 +331,36 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('a failed estimate says so instead of failing silently',
+      (tester) async {
+    // Raised by accessibility-reviewer on PR #455, and verified by grep before it
+    // was believed: `analysisError` had ZERO consumers in the whole UI layer.
+    //
+    // So this morning's fix for «تقديرات المساعد» spinning forever traded a hang
+    // for a SILENT failure. The flag came down, the fallback questions appeared,
+    // and nothing said why the AI Assistant had not answered — she could not tell
+    // "the model had no opinion about my food" from "the assistant is down". A
+    // smaller problem than the hang, and still one CLAUDE.md forbids: every state
+    // reaches the Cook, or it did not happen.
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+
+    // An empty stub answers every prompt with a Failure, which is exactly the
+    // shape a provider outage takes.
+    await _reachSummary(tester, repo, ai: _stubAi(), l10n: l10n);
+
+    expect(
+      find.text(l10n.analyzeMealUnknownError('other')),
+      findsOneWidget,
+      reason: 'THE GAP. A localized error was written and rendered by nobody.',
+    );
+    expect(
+      find.text(l10n.mealSaveError('other')),
+      findsNothing,
+      reason: 'and it must not read as a save failure — her answers ARE saved',
+    );
+  });
+
   testWidgets('a declined photo reads as a choice, not an empty row',
       (tester) async {
     final repo = FakeMealRepository();

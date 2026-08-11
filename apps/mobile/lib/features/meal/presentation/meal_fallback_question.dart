@@ -21,11 +21,23 @@ class MealFallbackQuestion extends ConsumerWidget {
   const MealFallbackQuestion({
     required this.step,
     this.error,
+    this.analysisError,
     super.key,
   });
 
   final MealFallbackStepId step;
   final AppError? error;
+
+  /// Why the AI Assistant did not supply this answer, when it failed rather
+  /// than simply returning nothing.
+  ///
+  /// **THIS SCREEN IS WHERE A FAILED ANALYSIS LANDS HER**, so it is where the
+  /// reason belongs. The question itself already says Kafoo is asking because it
+  /// could not work the answer out; without this she cannot tell "the model had
+  /// no opinion about my food" from "the assistant is down". Separate from
+  /// [error], which is a failure to SAVE her answer — a different problem with a
+  /// different fix.
+  final AppError? analysisError;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,6 +88,15 @@ class MealFallbackQuestion extends ConsumerWidget {
                   color: KafooColors.textMuted,
                 ),
               ),
+              if (analysisError case final failure?) ...[
+                const SizedBox(height: KafooSpacing.xs),
+                Text(
+                  mealErrorText(context, failure, fromAnalysis: true),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
               const SizedBox(height: KafooSpacing.md),
               ConversationQuestion(prompt: prompt, hint: hint),
               const SizedBox(height: KafooSpacing.lg),

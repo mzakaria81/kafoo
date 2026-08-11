@@ -258,6 +258,7 @@ class _MealConversationScreenState
         return MealFallbackQuestion(
           step: fallback,
           error: state.error,
+          analysisError: state.analysisError,
         );
       }
       // Rendered in place rather than pushed as a route.
