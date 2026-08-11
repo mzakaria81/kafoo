@@ -224,3 +224,31 @@ Two rules for whoever does:
 - **Audio never enters the repository from a test run.** Generated clips are throwaway. The only
   audio that should ever be committed is the reviewed, final, bundled set — and that is a separate
   decision with the vendor's redistribution terms attached to it.
+
+## Founder's choice, 2026-08-11
+
+| Role | Voice | Id |
+|---|---|---|
+| The assistant's female voice — the one most Cooks hear | Ghozlan — Soft Clear Conversational | `xPcC3nehhziQaOrIeAwv` |
+| The assistant's male voice | Ahmad — Conversational AI Voice | `ihycSANIrpHfhWoaq1g3` |
+
+Chosen by ear from the fourteen samples, which is the only way this decision can be made. §10.11's
+two-voice setting now has both of its values.
+
+**The pronunciation finding is separate from the voice choice, and it is the more surprising one.**
+«مية وعشرين جنيه» was judged *perfect Egyptian* — hard **g** in «جنيه», Egyptian numeral — and that
+clip was generated with **Sarah, a stock American voice**, on `eleven_multilingual_v2`. So the
+Egyptian pronunciation came from the model reading Egyptian text, not from an Egyptian voice.
+
+Two consequences, and the second is the one to hold on to:
+
+- **A paid plan buys timbre and warmth, not correctness.** It is still worth buying — a Cook should
+  not hear an American-sounding woman — but the reason is not that the free path mispronounces
+  Egyptian.
+- **The pronunciation risk moves from the voice to the text.** If the model is doing this work, then
+  what decides whether a line is said correctly is how the line is *written* — which is exactly why
+  the gender trap below matters, and why the fixed lines must be listened to before they ship.
+
+Not yet verified in the chosen voices. The free tier cannot call a library voice from code, so the
+lines in "the corpus" above were all read by the stock voice. Re-run them in Ghozlan and Ahmad before
+anything is bundled — in the vendor's studio at no cost, or from code once the plan allows it.
