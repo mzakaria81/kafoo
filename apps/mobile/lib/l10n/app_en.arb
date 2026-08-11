@@ -1409,5 +1409,87 @@
   "photoPlaceholder": "Temporary image slot — will not ship",
   "@photoPlaceholder": {
     "description": "Marks an image slot that has no photograph in it. Kafoo's Meal photos are shot with the Cook in her Kitchen; no generated or stock food image may ever stand in for one, so the empty slot has to be obviously unshippable rather than merely blank."
+  },
+  "voiceIdle": "{addressForm, select, feminine{I'm listening. Press and talk.} other{I'm listening. Press and talk.}}",
+  "@voiceIdle": {
+    "description": "Said once when a voice screen opens. The invitation, not an instruction.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceStillHere": "{addressForm, select, feminine{Still here, one second.} other{Still here, one second.}}",
+  "@voiceStillHere": {
+    "description": "Said if thinking runs past two seconds. Silence longer than that reads as a broken app.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceNotHeard": "{addressForm, select, feminine{Sorry, I didn't catch that. Say it again?} other{Sorry, I didn't catch that. Say it again?}}",
+  "@voiceNotHeard": {
+    "description": "First rung of the recognition failure ladder, said once. The failure belongs to the app: never say the speech was unclear, never ask anyone to speak more clearly.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceTooNoisy": "{addressForm, select, feminine{It's loud here — hold the phone closer and say it again.} other{It's loud here — hold the phone closer and say it again.}}",
+  "@voiceTooNoisy": {
+    "description": "Said when the microphone level is high and flat. Blames the room, which is where the problem is.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceOfflineQueued": "No connection. What you said is saved and will send when it's back.",
+  "@voiceOfflineQueued": {
+    "description": "Said when a recording cannot be sent. Reassurance first: what was said survived."
+  },
+  "voiceTapFallback": "{addressForm, select, feminine{No problem — here are the options, tap the one you want.} other{No problem — here are the options, tap the one you want.}}",
+  "@voiceTapFallback": {
+    "description": "Last rung of the failure ladder. Offers photos and numerals to tap. NEVER offers a keyboard — typing Arabic on a phone is the hardest thing this product could ask of a Cook, and it is never a consequence of failure.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceTalkButton": "{addressForm, select, feminine{Press and talk} other{Press and talk}}",
+  "@voiceTalkButton": {
+    "description": "The label under the 88dp talk button, and its accessible name.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceMuteSilence": "Silence the assistant",
+  "@voiceMuteSilence": {
+    "description": "Press to silence the assistant. Describes the RESULT of pressing, because a speaker glyph does not say which way it is about to go."
+  },
+  "voiceMuteRestore": "Let the assistant talk",
+  "@voiceMuteRestore": {
+    "description": "Press to let the assistant talk again."
+  },
+  "voiceRecording": "Recording now",
+  "@voiceRecording": {
+    "description": "Announced while the microphone is open. Recording is always indicated; there is no silent listening, so this cannot be switched off."
+  },
+  "gateAnswerYes": "Yes",
+  "@gateAnswerYes": {
+    "description": "The confirming answer at a read-back gate. 72dp and solid green — larger because agreeing is the common case, never because Kafoo wants the yes."
+  },
+  "gateAnswerNo": "No, wait",
+  "@gateAnswerNo": {
+    "description": "The refusing answer at a read-back gate. 56dp and outline only, never hidden, greyed, or slower to reach."
+  },
+  "gateSilenceFootnote": "If you say nothing, nothing happens.",
+  "@gateSilenceFootnote": {
+    "description": "Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe."
   }
 }

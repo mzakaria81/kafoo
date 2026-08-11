@@ -1613,4 +1613,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get photoPlaceholder => 'Temporary image slot — will not ship';
+
+  @override
+  String voiceIdle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'I\'m listening. Press and talk.',
+        'other': 'I\'m listening. Press and talk.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceStillHere(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Still here, one second.',
+        'other': 'Still here, one second.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceNotHeard(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Sorry, I didn\'t catch that. Say it again?',
+        'other': 'Sorry, I didn\'t catch that. Say it again?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTooNoisy(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'It\'s loud here — hold the phone closer and say it again.',
+        'other': 'It\'s loud here — hold the phone closer and say it again.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceOfflineQueued =>
+      'No connection. What you said is saved and will send when it\'s back.';
+
+  @override
+  String voiceTapFallback(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'No problem — here are the options, tap the one you want.',
+        'other': 'No problem — here are the options, tap the one you want.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTalkButton(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Press and talk',
+        'other': 'Press and talk',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceMuteSilence => 'Silence the assistant';
+
+  @override
+  String get voiceMuteRestore => 'Let the assistant talk';
+
+  @override
+  String get voiceRecording => 'Recording now';
+
+  @override
+  String get gateAnswerYes => 'Yes';
+
+  @override
+  String get gateAnswerNo => 'No, wait';
+
+  @override
+  String get gateSilenceFootnote => 'If you say nothing, nothing happens.';
 }

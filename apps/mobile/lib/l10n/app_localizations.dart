@@ -1442,6 +1442,84 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مكان صورة مؤقت — مش هينزل في النسخة النهائية'**
   String get photoPlaceholder;
+
+  /// Said once when a voice screen opens. The invitation, not an instruction.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أنا معاكي. دوسي واتكلمي.} other{أنا معاك. دوس واتكلم.}}'**
+  String voiceIdle(String addressForm);
+
+  /// Said if thinking runs past two seconds. Silence longer than that reads as a broken app.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{لسه معاكي، ثانية.} other{لسه معاك، ثانية.}}'**
+  String voiceStillHere(String addressForm);
+
+  /// First rung of the recognition failure ladder, said once. The failure belongs to the app: never say the speech was unclear, never ask anyone to speak more clearly.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{معلش، مافهمتش. قوليها تاني؟} other{معلش، مافهمتش. قولها تاني؟}}'**
+  String voiceNotHeard(String addressForm);
+
+  /// Said when the microphone level is high and flat. Blames the room, which is where the problem is.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.} other{الدوشة عالية — قرّب الموبايل من بوقك وقول تاني.}}'**
+  String voiceTooNoisy(String addressForm);
+
+  /// Said when a recording cannot be sent. Reassurance first: what was said survived.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.'**
+  String get voiceOfflineQueued;
+
+  /// Last rung of the failure ladder. Offers photos and numerals to tap. NEVER offers a keyboard — typing Arabic on a phone is the hardest thing this product could ask of a Cook, and it is never a consequence of failure.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.} other{خلاص، هوريك الاختيارات وانت دوس على اللي عايزه.}}'**
+  String voiceTapFallback(String addressForm);
+
+  /// The label under the 88dp talk button, and its accessible name.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}'**
+  String voiceTalkButton(String addressForm);
+
+  /// Press to silence the assistant. Describes the RESULT of pressing, because a speaker glyph does not say which way it is about to go.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسكت صوت المساعد'**
+  String get voiceMuteSilence;
+
+  /// Press to let the assistant talk again.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجّع صوت المساعد'**
+  String get voiceMuteRestore;
+
+  /// Announced while the microphone is open. Recording is always indicated; there is no silent listening, so this cannot be switched off.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيسجل دلوقتي'**
+  String get voiceRecording;
+
+  /// The confirming answer at a read-back gate. 72dp and solid green — larger because agreeing is the common case, never because Kafoo wants the yes.
+  ///
+  /// In ar, this message translates to:
+  /// **'أيوة'**
+  String get gateAnswerYes;
+
+  /// The refusing answer at a read-back gate. 56dp and outline only, never hidden, greyed, or slower to reach.
+  ///
+  /// In ar, this message translates to:
+  /// **'لأ، استنى'**
+  String get gateAnswerNo;
+
+  /// Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe.
+  ///
+  /// In ar, this message translates to:
+  /// **'لو مقولتيش حاجة، مفيش حاجة هتحصل.'**
+  String get gateSilenceFootnote;
 }
 
 class _AppLocalizationsDelegate

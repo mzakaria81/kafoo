@@ -1559,4 +1559,98 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get photoPlaceholder => 'مكان صورة مؤقت — مش هينزل في النسخة النهائية';
+
+  @override
+  String voiceIdle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أنا معاكي. دوسي واتكلمي.',
+        'other': 'أنا معاك. دوس واتكلم.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceStillHere(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'لسه معاكي، ثانية.',
+        'other': 'لسه معاك، ثانية.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceNotHeard(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'معلش، مافهمتش. قوليها تاني؟',
+        'other': 'معلش، مافهمتش. قولها تاني؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTooNoisy(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.',
+        'other': 'الدوشة عالية — قرّب الموبايل من بوقك وقول تاني.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceOfflineQueued =>
+      'مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.';
+
+  @override
+  String voiceTapFallback(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.',
+        'other': 'خلاص، هوريك الاختيارات وانت دوس على اللي عايزه.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTalkButton(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'دوسي واتكلمي',
+        'other': 'دوس واتكلم',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceMuteSilence => 'اسكت صوت المساعد';
+
+  @override
+  String get voiceMuteRestore => 'رجّع صوت المساعد';
+
+  @override
+  String get voiceRecording => 'بيسجل دلوقتي';
+
+  @override
+  String get gateAnswerYes => 'أيوة';
+
+  @override
+  String get gateAnswerNo => 'لأ، استنى';
+
+  @override
+  String get gateSilenceFootnote => 'لو مقولتيش حاجة، مفيش حاجة هتحصل.';
 }

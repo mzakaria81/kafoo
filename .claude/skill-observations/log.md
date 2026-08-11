@@ -2284,3 +2284,32 @@ replace, so the newest instruction and the stalest one carry identical authority
 resolution belongs in the artefact being built, not only in the reader's head — otherwise the next
 person reads the same document, reaches the earlier section first, and reverts the change as a
 correction.
+
+### Observation 143: A stopgap that half-works is worse than a gap that is named
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Building the speaking half of Kafoo's voice-first components, with no
+text-to-speech engine chosen and the choice blocked on a founder cost decision.
+**Skill:** ui-ux-pro-max
+**Type:** open-source
+**Phase/Area:** Before Delivering App UI
+
+**Issue:** With no speech engine available, the first implementation routed every assistant line
+through the platform screen-reader announcement API. It compiles, it needs no new dependency, and it
+genuinely speaks — but only for someone who already has a screen reader switched on, which is not
+the target user, and the widgets already carried semantics labels those readers announce. So it
+added a second redundant path whose main effect was to make a missing subsystem look present. The
+deprecation of the API forced a second look; the right answer was to delete it and ship a class
+named `UnvoicedSpeechOutput` that says nothing and says so, keeping the real interface and the real
+mute preference around it.
+
+**Suggested improvement:** Add to `ui-ux-pro-max`'s pre-delivery guidance in
+`references/pro-rules.md`: when a capability the design depends on is blocked on an external
+decision, ship the seam and a null implementation *named for its emptiness*, rather than a partial
+substitute that appears to work. Name the blocking decision in the same place.
+
+**Principle:** A convincing stopgap costs more than an obvious hole, because the hole gets scheduled
+and the stopgap gets forgotten. The value of a placeholder is proportional to how visibly incomplete
+it is — which is the same reasoning behind an unshippable image placeholder, applied to behaviour
+rather than to pixels.

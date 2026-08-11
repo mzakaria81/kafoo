@@ -16,3 +16,4 @@ export 'meal_analysis.dart';
 export 'meal_step.dart';
 export 'result.dart';
 export 'search_consent.dart';
+export 'voice.dart';

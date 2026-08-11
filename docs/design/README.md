@@ -70,18 +70,54 @@ the app's ARB files, so labels, semantics and the placeholder warning are
 parameters — and the required ones are the rules a caller is not allowed to
 skip.
 
+## The voice system
+
+`DESIGN.md` §10 is where the design puts most of its weight, and its rules now
+live in three places.
+
+**The rules, with no screen attached** — `packages/domain/lib/voice.dart`. The
+nine states and their haptics, the read-back gate, the three-rung recognition
+ladder, and the timing the talk button has to hold to. All pure Dart, so it is
+tested without a phone, a microphone, or a voice. Two rules in particular are
+enforced structurally rather than stated:
+
+- **Silence never confirms.** `ConfirmationGate` has no timeout, no default and
+  no auto-resolve — there is no code path that turns an unanswered gate into a
+  yes. A test pumps five minutes past the question and asserts nothing moved.
+- **The failure ladder never loops.** Ask again once, then a narrower yes/no
+  question, then tappable photos and numerals — and the fourth failure stays on
+  the third rung rather than starting over. The bottom rung is never a keyboard.
+
+**The controls** — `KafooTalkButton`, `KafooMuteButton` and
+`KafooConfirmationGate` in `packages/ui`. The orb is 88dp; the press is
+acknowledged on pointer-down rather than on release; the amplitude bars are a
+required parameter with no default, so a caller cannot get a plausible
+animation without deciding where the microphone level comes from. A bar that
+moves while the microphone is muted or broken would make every other voice
+state untrustworthy.
+
+**The words** — the ARB files, thirteen new entries, Arabic first and gendered
+through the existing `addressForm` select where they address the user directly.
+
+### What still has no voice
+
+**No text-to-speech engine is wired up, and that is a decision rather than an
+oversight.** `apps/mobile/lib/features/conversation/data/speech_output.dart`
+defines the seam every spoken line goes through and ships
+`UnvoicedSpeechOutput` behind it — named for its emptiness so the gap cannot be
+mistaken for a working voice system. It carries the real mute preference, which
+persists until reversed.
+
+Choosing the engine costs money and is the founder's call: an on-device engine
+is free and sounds like a machine; a cloud Egyptian voice sounds like a person
+and is billed per sentence. `DESIGN.md` §10.13 leaves the casting open for the
+same reason.
+
 ## What is not built yet
 
-**The voice half of every component.** `DESIGN.md` §6 is explicit: "Every
-component is undefined until its spoken line is written." These six have their
-visual states, their haptic-free tap fallbacks and their screen-reader labels;
-none has an assistant line, because Kafoo has no text-to-speech service yet —
-`voice_input.dart` is speech-*to*-text only. By the design's own definition
-these are half-finished, and building the speaking side is the next piece of
-work, not a polish item.
-
-§10's nine voice states, the talk button, the confirmation gate and the
-messaging surface do not exist yet either.
+The messaging surface (§10.12) — dictation, the verbatim send gate, and both
+sides of a Cook ↔ Customer thread. And no screen yet assembles the components
+above; the Cook's Meal List v2 is the canonical one to build from them.
 
 `DESIGN.md`'s own "Known gaps" list — loading/skeleton, status badge versus
 glance word, the app bar, the warning colour, assistant voice casting, how a
