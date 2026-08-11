@@ -17,15 +17,49 @@ device locale to resolve, nothing to fake.
 So this should be run before any decision about paying for voices, and before the speaking module is
 built — it is the cheapest unknown on the whole voice-first path.
 
-**It does not need an API key and must never be run with one pasted anywhere.** The vendor's own web
-studio is the instrument. A key belongs in `.env` and in the deployment secret store, and nowhere
-else, ever.
+**It can be run entirely in the vendor's web studio, with no key at all** — type a sentence, pick a
+voice, listen. That is the version to reach for first, and it is the only version that works on a
+free plan for the voices that matter (see the findings below).
+
+It can also be driven from a key held in the session environment, which is how the first run
+generated its clips. If you do that: **the key comes from the environment and is never written down**
+— not into a script, not into a file, not into a commit, not pasted into a chat. `.env` and the
+deployment secret store, nowhere else, ever.
+
+## What was found on the first run, 2026-08-11
+
+Run once against ElevenLabs with the founder's own key, on the **free** tier. Four findings, and the
+first one changes what the free tier is good for.
+
+**The free tier refuses library voices through the API.** Verbatim: *"Free users cannot use library
+voices via the API. Please upgrade your subscription to use this voice."* The account's own voice
+list holds 21 stock voices and **every one is American, British or Australian** — not one Arabic
+voice among them. So on a free plan the API can only read Arabic in an English voice, which is
+useless for judging accent.
+
+**There are 25 Egyptian-accented voices, and they are all library voices.** Found by searching the
+shared voice library for Arabic: 100 Arabic voices, 25 of them tagged Egyptian, in both genders.
+Their sample recordings are free to fetch and need no plan at all, which is how the first listening
+pass was assembled. Auditioning them costs nothing; **calling them from Kafoo costs a paid plan.**
+
+**Voice cloning is off on free.** `can_use_instant_voice_cloning` and
+`can_use_professional_voice_cloning` both return false, and the voice limit is 3. So recording a
+Cairo voice actor — the fallback if none of the 25 passes — also needs a paid plan.
+
+**`eleven_v3` supports Arabic and accepts written direction.** Square-bracket instructions in the
+text (`[warmly]`, `[thoughtful]`) produce a performed line, which is the cheap way to get warmth into
+a fixed sentence without a model improvising it.
+
+Cost of the whole first run: **513 characters** of the 10,000 free monthly allowance, for 21
+generated clips, plus 14 voice samples that cost nothing.
 
 ## What you need
 
 - A free account on the text-to-speech service being evaluated. At the time of writing that means
   ElevenLabs' **Creative** tier (the studio), **not** its Agents product — see
   `decisions/` for why an assistant that composes its own words is the wrong shape for Kafoo.
+  **Free is enough to audition and to test wording; it is not enough to call an Egyptian voice from
+  code.** Read the findings above before assuming otherwise.
 - **Headphones, and then a second pass on a phone speaker held at arm's length.** A Cook hears this
   from a phone propped against a bowl, not from studio monitors.
 - Somebody who speaks Cairene. **This is the one requirement that cannot be substituted.** Every
@@ -146,3 +180,47 @@ Two questions to answer from the vendor's terms, not from this document:
    it. That release is a document Kafoo has to keep.
 
 Neither is an engineering question, and both block shipping rather than testing.
+
+## The Egyptian shortlist, 2026-08-11
+
+Fourteen of the 25, dropping every voice described as a news presenter, a salesperson, or
+"authoritative" / "commanding" — §10 asks for a neighbour, not a broadcast. Six are marked as the
+warm conversational ones. Ids are stable and can be pasted straight into the vendor's studio.
+
+**The Cook's voice is the one to choose first.** ADR-0010 exists because a Cook is addressed as a
+woman, so the female voice is what most users hear most of the time.
+
+| Voice | Gender | Described as | Id | Shortlisted |
+|---|---|---|---|---|
+| Fatima — Expressive Egyptian | female | pleasant | `I3u6waC588j43py1kDN2` | ★ |
+| Ghozlan — Soft Clear Conversational | female | husky | `xPcC3nehhziQaOrIeAwv` | ★ |
+| Heba — Soothing and Gracious | female | casual | `JHdGl5PsEzushIzzVSd1` | ★ |
+| Sawsan — Dignified and Warm | female | raspy | `mS4cERRqrNy5Kmlx8Udf` | |
+| Ghozlan — Professional Support Agent | female | pleasant | `kQ2VDreF7XEea8InkZmA` | |
+| Nadia — Sweet and Melodic | female | upbeat | `80le32Uz2DfWFo4Foz0p` | |
+| Farida — Lively and Radiant | female | cute | `6aXW46RTUz6Y2lkBGQ1a` | |
+| Fatima — Smooth Audiobook Narrator | female | pleasant | `vWDp3PLsTWjIhBxxUKh9` | |
+| Mr. Momen — Warm, Mature, Calm | male | confident | `x6fvBLXv9YxzoVJQ0wp6` | ★ |
+| Hany — Calm & Friendly | male | calm | `1hEuyycI7VQwusZo3Qbe` | ★ |
+| Ashraf — Warm and Genial | male | casual | `QfMIySsRuJWjZPZCnDQp` | ★ |
+| Ahmad — Conversational AI Voice | male | confident | `ihycSANIrpHfhWoaq1g3` | |
+| Tarek — Pleasant and Professional | male | casual | `ckGEQg6YnSVooU5uDRsF` | |
+| Samy — Storyteller | male | calm | `HB30Rk1hky9f5uvxWktR` | |
+
+The eleven not listed: five described as news, sales, authoritative or commanding; the rest were
+duplicates of a shortlisted speaker or described in terms §10 has no use for.
+
+## Re-running this
+
+The generator lives nowhere in the repository on purpose — it is a throwaway script, and a committed
+one would invite somebody to run it in CI against a paid key. Rebuild it from this document: read the
+corpus above, POST each line to the vendor's text-to-speech endpoint, and write the clips somewhere
+outside the repository.
+
+Two rules for whoever does:
+
+- **The key comes from the environment and is never written down.** Not into a file, not into a
+  script, not into a commit, not into a chat. `.env` and the deployment secret store, nowhere else.
+- **Audio never enters the repository from a test run.** Generated clips are throwaway. The only
+  audio that should ever be committed is the reviewed, final, bundled set — and that is a separate
+  decision with the vendor's redistribution terms attached to it.
