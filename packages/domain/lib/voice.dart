@@ -56,7 +56,14 @@ enum VoiceState {
   /// no apology — just back to listening.
   interrupted(VoiceHaptic.short),
 
-  /// «مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.»
+  /// «مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت
+  /// يرجع.»
+  ///
+  /// **It does not promise that her words were kept.** Kafoo queues the
+  /// transcript rather than the audio, and on-device Arabic recognition is
+  /// frequently unavailable offline, so there may be nothing to keep. This
+  /// comment quoted the older sentence — the one `.claude/rules/` names as the
+  /// thing never to say — and whoever wires this state up reads it here.
   offlineQueued(VoiceHaptic.long),
 
   /// «الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.»

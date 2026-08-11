@@ -335,6 +335,32 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    testWidgets('backing out of it is a no, and the voice stops',
+        (tester) async {
+      // THE PATH FOUND BY HAND TWICE AND BY NO TEST. A back gesture skips the
+      // buttons entirely, so the answer path and the hush that goes with it
+      // were never reached — the assistant kept reading a warning aloud over a
+      // screen that had already closed.
+      final speech = FakeSpeechOutput();
+      final repo = FakeMealRepository(meals: [_published]);
+      await tester.pumpWidget(_app(repo, speech: speech));
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealRetire('other')));
+      await tester.pumpAndSettle();
+      expect(find.byType(KafooConfirmationGate), findsOneWidget);
+
+      // The system back gesture, not a button.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(KafooConfirmationGate), findsNothing);
+      expect(speech.stopped, isTrue);
+      // And nothing was written. Backing out is never a yes.
+      expect(repo.setStatusArgs, isEmpty);
+    });
+
     testWidgets('answering stops it mid-sentence', (tester) async {
       final speech = FakeSpeechOutput();
       await tester.pumpWidget(

@@ -1910,4 +1910,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get myMealsFailedReassurance => 'أكلاتك كلها في أمان.';
+
+  @override
+  String get mealNoPhotoYet => 'مفيش صورة للأكلة دي لسه';
 }

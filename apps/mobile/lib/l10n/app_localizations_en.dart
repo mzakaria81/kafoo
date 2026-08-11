@@ -1967,4 +1967,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myMealsFailedReassurance => 'Your Meals are all safe.';
+
+  @override
+  String get mealNoPhotoYet => 'No photo for this Meal yet';
 }

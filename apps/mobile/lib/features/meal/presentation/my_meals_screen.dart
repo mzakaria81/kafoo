@@ -303,7 +303,7 @@ class MyMealRow extends ConsumerWidget {
         statusText,
         price == null ? l10n.myMealsNoPriceYet : mealPriceLabel(l10n, price),
       ),
-      placeholderLabel: l10n.photoPlaceholder,
+      placeholderLabel: l10n.mealNoPhotoYet,
       hearLabel: l10n.myMealsHearRow,
       // Read aloud, quietly: the row carries a price, homes are shared, and
       // income is private.

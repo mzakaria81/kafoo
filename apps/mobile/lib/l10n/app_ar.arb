@@ -1435,7 +1435,7 @@
   },
   "photoPlaceholder": "مكان صورة مؤقت — مش هينزل في النسخة النهائية",
   "@photoPlaceholder": {
-    "description": "Marks an image slot that has no photograph in it. Kafoo's Meal photos are shot with the Cook in her Kitchen; no generated or stock food image may ever stand in for one, so the empty slot has to be obviously unshippable rather than merely blank."
+    "description": "Marks a MOCK image slot in an unshipped state — it says out loud that it will not ship. Never use it for a real Meal that simply has no photograph: a Cook may publish without one, so that state is permanent and allowed, and mealNoPhotoYet is the truthful label for it."
   },
   "voiceIdle": "{addressForm, select, feminine{أنا معاكي. دوسي واتكلمي.} other{أنا معاك. دوس واتكلم.}}",
   "@voiceIdle": {
@@ -1744,5 +1744,9 @@
   "myMealsFailedReassurance": "أكلاتك كلها في أمان.",
   "@myMealsFailedReassurance": {
     "description": "Reassurance FIRST on any failed load. True whatever went wrong — the failure was reading, not writing. The offline variant adds that the connection is the cause, which must not be claimed when it is not."
+  },
+  "mealNoPhotoYet": "مفيش صورة للأكلة دي لسه",
+  "@mealNoPhotoYet": {
+    "description": "The empty photo slot on a REAL Meal. A Cook may publish without a photograph, so this state is permanent and allowed rather than temporary — photoPlaceholder's 'will not ship' sentence is for a mock and is false here. Kafoo's Meal photos are shot with the Cook; no generated or stock image may ever stand in, so the slot stays obviously empty rather than being filled."
   }
 }

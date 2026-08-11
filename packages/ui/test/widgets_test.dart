@@ -399,14 +399,14 @@ void main() {
           failure: true,
           title: 'مفيش نت',
           body: 'هنجرب تاني أول ما يرجع',
-          reassurance: 'اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع',
+          reassurance: 'أكلاتك كلها في أمان',
           cachedLabel: 'آخر نسخة محفوظة · ٩:٤٠ الصبح',
           cachedContent: const Text('محشي ورق عنب'),
           primaryAction: KafooButton(label: 'جربي تاني', onPressed: () {}),
         )),
       );
       expect(
-        find.text('اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع'),
+        find.text('أكلاتك كلها في أمان'),
         findsOneWidget,
       );
       final cached = tester.widget<Opacity>(
@@ -484,6 +484,34 @@ void main() {
       expect(find.bySemanticsLabel('على المنيو'), findsNothing);
       expect(find.bySemanticsLabel('١٢٠'), findsNothing);
       handle.dispose();
+    });
+  });
+
+  group('KafooFilterChip', () {
+    testWidgets('an unavailable chip does not clip the reason it gives',
+        (tester) async {
+      // The label on a disabled chip IS the explanation, and half an
+      // explanation is the dead end a disabled control is not allowed to be.
+      await tester.pumpWidget(
+        _host(
+          const KafooFilterChip(
+            label: 'مقفول دلوقتي — بيفتح الساعة ٤ العصر',
+            selected: false,
+            // Null is what an unavailable chip gets: it is inert, and the
+            // label is the only place the reason can live.
+            onSelected: null,
+            unavailable: true,
+          ),
+          textScale: 2,
+          size: const Size(320, 640),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      final text =
+          tester.widget<Text>(find.text('مقفول دلوقتي — بيفتح الساعة ٤ العصر'));
+      expect(text.maxLines, isNull, reason: 'the reason is capped at one line');
+      expect(text.overflow, isNot(TextOverflow.ellipsis));
     });
   });
 

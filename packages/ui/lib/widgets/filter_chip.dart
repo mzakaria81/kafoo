@@ -42,7 +42,13 @@ class KafooFilterChip extends StatelessWidget {
     final theme = Theme.of(context);
 
     return FilterChip(
-      label: Text(label, maxLines: 1),
+      // NO LINE CAP. An unavailable chip's label carries the REASON it cannot
+      // be chosen, and a disabled control with half its explanation is the dead
+      // end the design forbids. At 200% text scale a one-line cap clipped it
+      // mid-word, silently, in text styled like ordinary prose rather than an
+      // error — nobody would notice the second half was gone. A chip that grows
+      // taller is the cheaper outcome.
+      label: Text(label),
       selected: selected,
       onSelected: enabled ? onSelected : null,
       showCheckmark: false,

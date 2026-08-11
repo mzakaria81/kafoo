@@ -242,10 +242,13 @@ class _GateState extends ConsumerState<_Gate> {
       // skipped the answer path entirely, so the assistant kept reading a
       // warning aloud over a screen that had already closed.
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) {
-          _gate.answer(confirmed: false);
-          _stopTalking();
-        }
+        // Guarded, because this fires on EVERY pop — including the one a tap on
+        // yes or no causes. Both calls happen to be idempotent today; the guard
+        // is here so that adding anything that is not, an analytics event or a
+        // haptic, does not silently fire twice on every ordinary answer.
+        if (!didPop || _gate.isAnswered) return;
+        _gate.answer(confirmed: false);
+        _stopTalking();
       },
       child: Scaffold(
         backgroundColor: KafooColors.darkSurface,
