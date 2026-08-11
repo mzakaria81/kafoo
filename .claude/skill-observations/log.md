@@ -2141,3 +2141,59 @@ quotes it by section name, and that reference is invisible to a filename search.
 working after the heading is gone. A dangling documentation pointer fails silently and only at the
 moment someone follows it, which is the moment they were already confused. Structural edits to a
 document need a reference sweep on the same footing as renaming a function.
+
+### Observation 138: A vendored skill's cross-references can point at skills that do not exist
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Installing `improve-codebase-architecture` from a public skills repository at a
+user's request, then running it.
+**Skill:** task-observer (references/skill-authoring.md — vendoring and install checks)
+**Type:** open-source
+**Phase/Area:** Installing a third-party skill
+
+**Issue:** The requested skill instructed the agent to "run the `/grilling` skill" as a whole phase
+of its process. That skill is not published anywhere in the source repository — probing every
+plausible category path returned 404. It also called `/domain-modeling`, which exists upstream but
+was deliberately not installed here because it would have created a second glossary file. Copying
+the skill verbatim would have produced a session that reaches phase 3, tries to load a skill that
+cannot resolve, and either silently skips the phase or improvises it while believing it is
+following a documented procedure. Nothing in the install would have failed.
+
+**Suggested improvement:** In the vendoring reference, add an install step: extract every
+`/skill-name` and relative-path reference out of the skill body and resolve each one. Record the
+outcome of each in the vendoring manifest — installed, deliberately omitted, or does not exist
+upstream — and patch the body so an unresolvable reference is replaced with the local equivalent
+rather than left as an instruction. This belongs in the vendoring procedure's own reference file,
+not in the always-loaded instruction file: it only applies while installing a skill.
+
+**Principle:** A skill bundle is a dependency with undeclared dependencies of its own. Its
+cross-references are written as prose, so nothing resolves them at install time and nothing fails at
+run time — the agent simply cannot find the named skill and carries on. Resolve every reference a
+vendored file makes before trusting the file, exactly as you would for an import.
+
+### Observation 139: Vendored skills carry environment assumptions that fail silently in a headless session
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Same install. The skill's deliverable is an HTML report.
+**Skill:** task-observer (references/skill-authoring.md — vendoring and install checks)
+**Type:** open-source
+**Phase/Area:** Adapting a vendored skill to the environment it will actually run in
+
+**Issue:** The skill specified writing the report to the OS temp directory and opening it with
+`xdg-open`. The session had no display, so the file would have been written where nobody could
+reach it and the "open it for the user" step would have reported success having shown nothing. A
+second assumption was subtler: the skill's scaffold loads Tailwind and Mermaid from CDNs, which the
+hosting surface used here blocks outright — the page would have rendered blank rather than erroring.
+Both were caught by reading the skill before running it, not by anything mechanical.
+
+**Suggested improvement:** Add to the vendoring install step: read the skill's *output* instructions
+specifically, and check every assumption they make about the machine — a display, a browser, a
+clipboard, a shell command, an outbound network fetch at render time. Substitute the local
+equivalent and record it in the patch table. Output steps are where environment assumptions cluster,
+because that is where a skill stops manipulating files and starts addressing a human.
+
+**Principle:** A skill's process steps usually port between environments; its delivery step usually
+does not. Delivery failures are the ones that fail quietly — the work is done, the artefact exists,
+and only the human never sees it. Audit the last step of a borrowed procedure harder than the middle.
