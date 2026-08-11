@@ -15,29 +15,34 @@ draft, delete a draft, edit — works, and is covered by tests.
 
 ---
 
-## 1. The assistant has no voice
+## 1. ~~The assistant has no voice~~ — CLOSED, with a caveat
 
-**What a Cook sees.** The talk button, 88dp at the bottom of the screen, drawn
-exactly as designed and greyed out. Its label reads «الكلام لسه مش شغال — ضيفي
-بإيدك دلوقتي». The «اسمعي الأكلة دي» button on each row and the «اسمعها تاني»
-button on the spoken banner are drawn and inert for the same reason.
+**Closed 2026-08-11.** The device's own speech engine now reads the Meal list's
+summary aloud on arrival, reads any row on request, and the mute control is
+live and persists across launches. Money in a spoken row is said quietly, since
+homes are shared and income is private. ADR-0013 has the reasoning and the plan
+for replacing it.
 
-**What is missing.** A text-to-speech engine. `SpeechOutput` is the seam every
-spoken line goes through; the only implementation is `UnvoicedSpeechOutput`,
-which is named for its emptiness.
+**The caveat: it will be silent on some handsets.** Android ships Arabic speech
+data separately from the engine, so plenty of Egyptian phones have no Arabic
+voice installed at all. When that happens Kafoo reports it rather than dropping
+lines quietly — the «اسمعها تاني» and «اسمعي الأكلة دي» controls render inert,
+the same way they did before the engine landed. How often this actually happens
+is unknown until Kafoo runs on real handsets, and it is worth measuring early.
 
-**What it costs.** This is a founder decision, not an engineering one. An
-on-device engine is free, ships immediately, and sounds like a machine reading
-a form. A cloud Egyptian voice sounds like a person and is billed per sentence —
-and since the app reads itself aloud by default, that bill grows with usage.
-`DESIGN.md` §10.13 leaves the voice casting open for the same reason.
-
-**Blocks:** every spoken line in the product, which by the design's own
-definition means every component is unfinished until this lands.
+**Still open:** the voice sounds like a machine. That is the accepted trade —
+a paid Cairene voice replaces it once the flows are settled and there are real
+sentences to audition, which is the condition `DESIGN.md` §10.13 has been
+waiting on. Swapping is one line in `speech_output_provider.dart`.
 
 ## 2. Nothing listens on this screen
 
-**What a Cook sees.** The same disabled talk button.
+**Speaking and listening are two gaps, and only the first is closed.** The
+assistant now talks; nothing on this screen hears an answer.
+
+**What a Cook sees.** The talk button, 88dp at the bottom, drawn exactly as
+designed and greyed out, its label reading «الكلام لسه مش شغال — ضيفي بإيدك
+دلوقتي».
 
 **What is missing.** Speech recognition is wired into the Meal *conversation*
 (`voice_input.dart`) but not into the Meal list, and the list is where the
@@ -150,11 +155,13 @@ for one thing.
 reword the descriptive strings to contain it — "منشورة على المنيو" rather than a
 second name. Small, and a vocabulary decision rather than a code one.
 
-## 10. The mute control does nothing yet
+## 10. ~~The mute control does nothing~~ — CLOSED
 
-**What a Cook sees.** The 48dp speaker button, top inline-end of the Meal list,
-which the design requires on every screen.
+**Closed 2026-08-11.** It silences the assistant, stops a sentence already in
+progress, and the answer survives the next launch. Pressing it mid-sentence had
+to be immediate: anything slower means a Cook pressed it in a room with people
+in it and the app kept talking.
 
-**What is missing.** It is not yet connected to `UnvoicedSpeechOutput`, because
-there is nothing to mute. The preference itself is real and persists across
-launches — that part is built and tested.
+**Still open:** the speech-rate control (بالراحة / عادي / سريع) and the two-voice
+setting from `DESIGN.md` §10.11. Both need a settings screen, which is a new
+screen and therefore a decision rather than an implementation.

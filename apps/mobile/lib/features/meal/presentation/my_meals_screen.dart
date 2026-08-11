@@ -6,6 +6,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/money.dart';
+import '../../conversation/application/assistant_voice.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
 import 'meal_edit_screen.dart';
@@ -20,10 +21,11 @@ import 'my_meals_states.dart';
 /// the price is the largest thing in every row, and the talk button owns the
 /// bottom of the screen.
 ///
-/// **Some of it is drawn and inert, on purpose.** The talk button and the
-/// "hear this Meal" controls have no engine behind them yet, so they render
-/// exactly as designed and disabled, with the reason in their labels. Hiding
-/// them would hide the gap; `docs/design/backend-gaps.md` is the list.
+/// **The assistant speaks here; it does not listen here yet.** The device's own
+/// voice reads the summary and any row on request, and the mute control is
+/// live. The talk button is still drawn and inert, because *recognition* on
+/// this screen is separate work — speaking and listening are two gaps and only
+/// one is closed. `docs/design/backend-gaps.md` is the list.
 class MyMealsScreen extends ConsumerWidget {
   const MyMealsScreen({this.onResumeDraft, super.key});
 
@@ -57,18 +59,47 @@ class MyMealsScreen extends ConsumerWidget {
   }
 }
 
-class _Full extends ConsumerWidget {
+class _Full extends ConsumerStatefulWidget {
   const _Full({required this.state, this.onResumeDraft});
 
   final MyMealsState state;
   final void Function(CookMeal meal)? onResumeDraft;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Full> createState() => _FullState();
+}
+
+class _FullState extends ConsumerState<_Full> {
+  /// Said once, on arrival — not on every rebuild.
+  ///
+  /// The greeting is an event. A screen that re-reads its own summary every
+  /// time a Meal changes status turns the assistant into a nag; re-saying it on
+  /// request is what «اسمعها تاني» is for.
+  bool _greeted = false;
+
+  void _greet(String line) {
+    if (_greeted || !mounted) return;
+    _greeted = true;
+    ref.read(assistantVoiceProvider.notifier).say(line);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final onResumeDraft = widget.onResumeDraft;
     final l10n = AppLocalizations.of(context);
     final form = context.addressForm;
+    final voice = ref.watch(assistantVoiceProvider);
     final published =
         state.meals.where((m) => m.status == MealStatus.published).length;
+    final summary =
+        l10n.myMealsSpokenSummary(form, state.meals.length, published);
+
+    if (voice.canSpeak) {
+      // After this frame, not during it: speaking from inside build would fire
+      // while the tree is still being laid out.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _greet(summary));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,11 +119,15 @@ class _Full extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              // Every screen carries the mute control, top inline-end.
+              // Every screen carries the mute control, top inline-end, and it
+              // persists until reversed.
               KafooMuteButton(
-                muted: false,
-                label: l10n.voiceMuteSilence,
-                onChanged: (_) {},
+                muted: voice.muted,
+                label:
+                    voice.muted ? l10n.voiceMuteRestore : l10n.voiceMuteSilence,
+                onChanged: (muted) => ref
+                    .read(assistantVoiceProvider.notifier)
+                    .setMuted(muted: muted),
               ),
             ],
           ),
@@ -104,9 +139,14 @@ class _Full extends ConsumerWidget {
           // The receipt of the spoken greeting, and the most important element
           // on the screen.
           child: KafooSpokenBanner(
-            line:
-                l10n.myMealsSpokenSummary(form, state.meals.length, published),
+            line: summary,
             hearAgainLabel: l10n.myMealsHearAgain,
+            // Inert while muted, and on a handset with no Arabic speech data.
+            // A control that silently does nothing is worse than one that
+            // visibly cannot.
+            onHearAgain: voice.canSpeak
+                ? () => ref.read(assistantVoiceProvider.notifier).say(summary)
+                : null,
           ),
         ),
         if (state.error != null)
@@ -221,8 +261,21 @@ class MyMealRow extends ConsumerWidget {
         price == null ? l10n.myMealsNoPriceYet : mealPriceLabel(l10n, price),
       ),
       placeholderLabel: l10n.photoPlaceholder,
-      // Drawn, disabled: no engine to read it aloud yet.
       hearLabel: l10n.myMealsHearRow,
+      // Read aloud, quietly: the row carries a price, homes are shared, and
+      // income is private.
+      onHear: ref.watch(assistantVoiceProvider).canSpeak
+          ? () => ref.read(assistantVoiceProvider.notifier).say(
+                l10n.mealRowSemanticLabel(
+                  _title(l10n),
+                  statusText,
+                  price == null
+                      ? l10n.myMealsNoPriceYet
+                      : mealPriceLabel(l10n, price),
+                ),
+                quiet: true,
+              )
+          : null,
       moreLabel: l10n.myMealsRowActions,
       // A retired Meal offers nothing. Drawn inert rather than opening an empty
       // sheet — and inert rather than absent, so the row keeps its shape.
