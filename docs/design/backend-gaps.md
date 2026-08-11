@@ -9,7 +9,7 @@ look finished and quietly lost the list below.
 This is that list. Each entry says what a person sees today, what is missing
 behind it, and what it costs to close.
 
-**Four of the ten are closed.** 1, 8, 9 and 10 are done; the rest are listed
+**Four of the eleven are closed.** 1, 8, 9 and 10 are done; the rest are listed
 below with what each still needs.
 
 **Nothing here blocks the screen from shipping.** Everything a Cook can already
@@ -167,6 +167,27 @@ other glance word is one, and the glance set is meant to be recognised by
 silhouette without reading. It is the longest member of that set and it wraps to
 two lines at 200% text scale. That is a deliberate trade of a design property
 for a familiar phrase, not an oversight.
+
+## 11. Only one screen has a voice
+
+**What a Cook hears.** The Meal list greets her, reads any Meal on request, and
+announces every change. Every other screen is silent — including the Meal
+conversation, which is the one screen whose entire premise is that the assistant
+speaks first.
+
+**Where it bites hardest.** She taps «كمّل الأكلة دي» on a half-finished Meal,
+arrives at the conversation, and hears nothing. The row sheet deliberately says
+nothing on that tap rather than announcing an arrival somewhere that then goes
+quiet — a false impression of a working voice is worse than an honest silence.
+
+**What it needs.** `assistantVoiceProvider` read in the conversation screens the
+same way the Meal list reads it, and a spoken line for each question. The engine
+and the seam are done; this is per-screen wiring, one screen at a time.
+
+**Also inherited by whoever wires recognition here.** The Meal list now speaks
+from six places. Nothing has yet proved the speaking and listening engines can
+share a phone's audio without fighting over it, because no screen does both
+today. The first one that does needs a real-device test before it ships.
 
 ## 10. ~~The mute control does nothing~~ — CLOSED
 

@@ -522,6 +522,55 @@ void main() {
       );
     });
 
+    testWidgets('so is retiring, once she has confirmed it', (tester) async {
+      // The gated actions announce themselves AFTER they execute, which the
+      // design asks for separately from the warning before. Untested when it
+      // landed, and an untested announcement is one a refactor drops quietly.
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_published]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealRetire('other')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(KafooConfirmationGate),
+          matching: find.text(l10n.mealRetireConfirm('other')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+          speech.spoken.map((s) => s.line), contains(l10n.mealSpokenRetired));
+    });
+
+    testWidgets('and deleting a draft', (tester) async {
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_draft]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealDeleteDraft('other')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(KafooConfirmationGate),
+          matching: find.text(l10n.mealDeleteDraftConfirm('other')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        contains(l10n.mealSpokenDraftDeleted),
+      );
+    });
+
     testWidgets('a change that failed is not announced as done',
         (tester) async {
       // Announcing something that did not happen is worse than silence, and the

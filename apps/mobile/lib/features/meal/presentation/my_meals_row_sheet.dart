@@ -52,7 +52,9 @@ Future<void> showMyMealRowSheet({
     if (editable != null && onEdit != null)
       _RowAction(
         label: l10n.mealEditTitle(form),
-        // Navigation, not a write. The screen it opens speaks for itself.
+        // Navigation, not a write, so there is nothing to announce as done.
+        // The screen it opens is silent, which is its own gap and not this
+        // sheet's to close — see `docs/design/backend-gaps.md`.
         onSelected: () async {
           onEdit(editable);
           return true;
@@ -81,7 +83,14 @@ Future<void> showMyMealRowSheet({
     if (meal.status == MealStatus.draft) ...[
       _RowAction(
         label: l10n.mealResumeDraft(form),
-        // Navigation. The conversation greets her when it opens.
+        // NOT ANNOUNCED, AND THE SCREEN IT OPENS DOES NOT SPEAK EITHER. This
+        // comment used to claim the conversation greets her on arrival. It
+        // does not: `assistantVoiceProvider` is read in exactly two files and
+        // neither is that screen. So a Cook taps «كمّل» on a half-finished Meal
+        // and hears nothing at all, which is a real gap rather than a handled
+        // one, and belongs to the conversation screen rather than to this
+        // sheet. Recorded in `docs/design/backend-gaps.md`; a "done" line said
+        // here would be a lie about arriving somewhere that then says nothing.
         onSelected: () async {
           ref.read(mealConversationControllerProvider.notifier).resume(meal);
           onResumeDraft?.call(meal);
