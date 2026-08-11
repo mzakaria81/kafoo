@@ -1610,4 +1610,7 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get photoPlaceholder => 'Temporary image slot — will not ship';
 }

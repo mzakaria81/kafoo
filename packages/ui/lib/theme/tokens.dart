@@ -235,6 +235,12 @@ abstract final class KafooColors {
   /// design decision about what a control's edge should look like in sunlight.
   static const Color borderInput = textSubtle;
 
+  /// The dashed edge of an empty image slot.
+  ///
+  /// Named in DESIGN.md's *Placeholders* rule but absent from its palette
+  /// table, so it is a token here rather than a literal in a painter.
+  static const Color placeholderBorder = Color(0xFFC7B9A8);
+
   /// The background of a voice panel that takes over the screen.
   static const Color darkSurface = Color(0xFF1C1917);
 

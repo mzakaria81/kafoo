@@ -210,6 +210,10 @@ Widget discoveredMealCard({
       kitchenLabel,
       price,
     ),
+    // A Meal with no photograph shows an obviously-temporary slot rather than
+    // a blank box. Real photography is shot with the Cook; nothing generated
+    // or stock may ever stand in for it, not even to make a demo look better.
+    placeholderLabel: l10n.photoPlaceholder,
     // MealOpened IS EMITTED HERE AND NOT AT THE CALL SITES, for the same reason
     // the consent gate sits on the funnel rather than on the entrances: call
     // sites keep being added, and the one that forgets is invisible — a number

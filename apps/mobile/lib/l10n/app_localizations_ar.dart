@@ -1556,4 +1556,7 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get photoPlaceholder => 'مكان صورة مؤقت — مش هينزل في النسخة النهائية';
 }

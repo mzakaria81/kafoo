@@ -1436,6 +1436,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{addressForm, select, feminine{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.} other{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.}}'**
   String convVoiceNeedsArabic(String addressForm);
+
+  /// Marks an image slot that has no photograph in it. Kafoo's Meal photos are shot with the Cook in her Kitchen; no generated or stock food image may ever stand in for one, so the empty slot has to be obviously unshippable rather than merely blank.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكان صورة مؤقت — مش هينزل في النسخة النهائية'**
+  String get photoPlaceholder;
 }
 
 class _AppLocalizationsDelegate

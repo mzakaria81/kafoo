@@ -1405,5 +1405,9 @@
         "type": "String"
       }
     }
+  },
+  "photoPlaceholder": "مكان صورة مؤقت — مش هينزل في النسخة النهائية",
+  "@photoPlaceholder": {
+    "description": "Marks an image slot that has no photograph in it. Kafoo's Meal photos are shot with the Cook in her Kitchen; no generated or stock food image may ever stand in for one, so the empty slot has to be obviously unshippable rather than merely blank."
   }
 }

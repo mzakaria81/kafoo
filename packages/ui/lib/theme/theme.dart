@@ -137,6 +137,12 @@ ThemeData kafooTheme({bool arabic = true}) {
       ),
       hintStyle: textTheme.bodyMedium?.copyWith(color: KafooColors.textSubtle),
       helperStyle: textTheme.labelSmall?.copyWith(color: KafooColors.textMuted),
+      // THE SAME METRICS AS THE HELPER, AND THAT IS THE WHOLE POINT. An error
+      // message replaces the helper text in its row; if the two rows are
+      // different heights the form shifts the moment validation fires, and
+      // somebody loses their place mid-entry. Left to Material's default this
+      // was 3 logical pixels taller.
+      errorStyle: textTheme.labelSmall?.copyWith(color: KafooColors.error),
       labelStyle: textTheme.labelLarge?.copyWith(color: KafooColors.textMuted),
       border: _inputBorder(KafooColors.borderInput),
       enabledBorder: _inputBorder(KafooColors.borderInput),

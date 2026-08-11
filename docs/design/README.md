@@ -41,11 +41,47 @@ Two places, both documented at the point of difference rather than only here.
    measures 7.36:1. Nothing turns a pass into a fail, so no value was changed —
    but the tests assert the AA threshold rather than the documented number.
 
+## The six components
+
+All six of `DESIGN.md` §6 exist in `packages/ui/lib/widgets/`, plus two the
+other six depend on.
+
+| Widget | Notes |
+|---|---|
+| `KafooButton` | Three variants. Loading keeps the footprint identical; destructive fills solid only while pressed; a disabled button states its reason in its own label. |
+| `KafooTextField` | Helper row always reserved, so an error does not shift the form. `latinNumerals` flips one field left-to-right inside a right-to-left form. |
+| `MealCard` | The Customer's card. The Cook's name sits *on* the photo. |
+| `KafooMealRow` | The Cook's row — the voice-first shape, see below. |
+| `KafooFilterChip` / `KafooFilterBar` | 40dp visual, 48dp target, one scrolling line that never wraps. |
+| `KafooSheet` | Pinned committing action, scrolling body, capped at 90% height. |
+| `KafooEmptyState` | Reason → expectation → one action, plus the failure form that says what survived. |
+| `KafooPhotoPlaceholder` | The unshippable image slot. A trust rule, not a styling choice. |
+| `KafooGlanceWord` | The closed set of eleven words, as an enum, so a twelfth cannot be added by accident. |
+
+**The Cook's Meal row follows §10, not §6.3.** The two sections of `DESIGN.md`
+describe it differently: §6.3 leads with the Meal name at 17px and a small
+status badge, §10 makes the price the largest element and replaces the badge
+with a glance word. §10 supersedes, and the handoff marks the tap-first screen
+as replaced. The widget's doc comment records which was followed, so the
+earlier section does not get "restored" as a fix.
+
+**Every widget takes its strings from the caller.** This package cannot reach
+the app's ARB files, so labels, semantics and the placeholder warning are
+parameters — and the required ones are the rules a caller is not allowed to
+skip.
+
 ## What is not built yet
 
-Everything above the token layer. `DESIGN.md` §6 defines six components and §10
-defines nine voice states plus the messaging surface; none of them exist as
-Flutter widgets yet.
+**The voice half of every component.** `DESIGN.md` §6 is explicit: "Every
+component is undefined until its spoken line is written." These six have their
+visual states, their haptic-free tap fallbacks and their screen-reader labels;
+none has an assistant line, because Kafoo has no text-to-speech service yet —
+`voice_input.dart` is speech-*to*-text only. By the design's own definition
+these are half-finished, and building the speaking side is the next piece of
+work, not a polish item.
+
+§10's nine voice states, the talk button, the confirmation gate and the
+messaging surface do not exist yet either.
 
 `DESIGN.md`'s own "Known gaps" list — loading/skeleton, status badge versus
 glance word, the app bar, the warning colour, assistant voice casting, how a

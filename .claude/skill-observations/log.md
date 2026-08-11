@@ -2226,3 +2226,61 @@ but larger than a wording fix.
 **Principle:** A search that returns rows is not a search that returned an answer. A tool whose
 failure mode is "plausible but off-topic" needs an explicit relevance check at the call site,
 because the absence of a zero-result signal reads as confirmation.
+
+### Observation 141: A component test that only exercised the tidy API shape missed the overflow real callers hit
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Building the six shared components from the Kafoo design handoff, including a
+Meal card with a large price.
+**Skill:** ui-ux-pro-max
+**Type:** open-source
+**Phase/Area:** Before Delivering App UI / pre-delivery checklist
+
+**Issue:** The card's API offers a price as a numeral plus a separate currency unit, which is what
+the design specifies. The existing screens pass one already-formatted combined string instead,
+because splitting it would change how money is displayed and that is a decision the founder owns.
+The component's own 200%-text-scale test used the tidy two-field form and passed; the app's screen
+tests then failed with a 40-pixel horizontal overflow, because a single unbreakable money string at
+double size cannot sit in a horizontal row. The component test was exercising the shape the API was
+designed for rather than the shape callers actually use.
+
+**Suggested improvement:** Add to `ui-ux-pro-max`'s pre-delivery checklist in
+`references/pro-rules.md`: when a component offers both a structured and a degraded way to pass the
+same content, the scale and overflow tests must cover the degraded form, because that is what
+existing call sites pass until they are migrated.
+
+**Principle:** A test written from the API's intended shape validates the design of the API, not the
+behaviour of the system. The inputs worth testing are the ones already flowing through production
+call sites — especially where a component accepts a fallback form precisely because callers have not
+migrated, since that fallback is by definition the untested majority path.
+
+### Observation 142: A design handoff superseded part of itself, and the implementation had to record which half it followed
+
+**Status:** OPEN
+**Date:** 2026-08-11
+**Session context:** Same — the handoff's component section and its later voice section specify the
+same list row differently.
+**Skill:** ui-ux-pro-max
+**Type:** open-source
+**Phase/Area:** Step 1 (analyse requirements)
+
+**Issue:** The handoff's component chapter described a list row led by the item name at 17px with a
+small status badge; a later chapter, written after a change of direction, inverted it — the number
+becomes the largest element, the status becomes a large word from a closed set, and the name drops
+to small muted text. Both chapters are in the same authoritative document, neither is marked
+obsolete inline, and only a line in a separate README says which supersedes which. Implementing the
+earlier chapter would have looked like faithful adherence to the source of truth while contradicting
+its actual intent.
+
+**Suggested improvement:** Add to `ui-ux-pro-max` Step 1: when a design document is long enough to
+have been revised in place, check whether a later section supersedes an earlier one before
+implementing either, and record in the code which section was followed and why. A doc comment naming
+the superseding section is what stops the next implementer "fixing" the file back to the earlier
+spec.
+
+**Principle:** A single-file source of truth accumulates revisions without deleting what they
+replace, so the newest instruction and the stalest one carry identical authority on the page. The
+resolution belongs in the artefact being built, not only in the reader's head — otherwise the next
+person reads the same document, reaches the earlier section first, and reverts the change as a
+correction.
