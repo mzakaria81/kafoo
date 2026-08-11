@@ -809,9 +809,14 @@
   "@publicMealPhotoLabel": {
     "description": "Spoken for the Meal photograph on the Customer's public view. Names the image, because a Customer is looking at food rather than checking their own upload."
   },
-  "mealConvResuming": "بنجيب الأكلة اللي بدأتها...",
+  "mealConvResuming": "بنجيب الأكلة اللي {addressForm, select, feminine{بدأتيها} other{بدأتها}}...",
   "@mealConvResuming": {
-    "description": "Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen."
+    "description": "Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen. GENDERED, because the first version was not: it told every Cook «اللي بدأتها», addressing a woman as a man on a line she hears every time she comes back to a Meal. ADR-0010 exists because that mistake was already made once. Raised by localization-reviewer on PR #455.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealSummaryConfirm": "{addressForm, select, feminine{تمام، انشريها} other{تمام، انشرها}}",
   "@mealSummaryConfirm": {

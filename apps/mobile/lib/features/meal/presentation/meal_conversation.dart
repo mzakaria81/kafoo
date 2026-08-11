@@ -242,7 +242,7 @@ class _MealConversationScreenState
           // reports is invisible to the person this product exists for, and
           // «كمّل الأكلة دي» is the path a returning Cook takes.
           child: CircularProgressIndicator(
-            semanticsLabel: l10n.mealConvResuming,
+            semanticsLabel: l10n.mealConvResuming(context.addressForm),
           ),
         ),
       );

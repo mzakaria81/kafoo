@@ -771,6 +771,35 @@ run "every screen has a route into it" bash -c '
 # — that is judgement, and `.claude/rules/dart.md` states the rule for a person to follow. What it
 # refuses is the decay: the file being deleted, or quietly rewritten into more per-screen tests,
 # which is exactly how this gap opened in the first place.
+# EVERY ERROR KEY THE MEAL FEATURE PRODUCES HAS A SENTENCE.
+#
+# `meal_error_text.dart` maps a key to what the Cook reads. Its default is the SAVE error, so a key
+# with no case does not crash and does not look wrong in review — it quietly tells her the Meal was
+# not saved, whatever actually happened. Two of today's defects were exactly that shape: a message
+# that was written, and a message that was wrong about which thing failed.
+#
+# The doc comment in that file claimed `meal_error_text_test.dart` enforced this. No such file
+# existed. Raised by localization-reviewer on PR #455, and the honest fix is to make the claim true
+# rather than to soften it — so this is the check, and the comment now points here.
+#
+# A test could not do this: it would need its own list of keys, which is the same list drifting in a
+# second place. Reading the keys out of the source is what makes it enforcement.
+run "meal error keys have a sentence" bash -c '
+  dir=apps/mobile/lib/features/meal
+  text=$dir/presentation/meal_error_text.dart
+  [ -d "$dir" ] || { echo "   no meal feature — skipping"; exit 0; }
+  [ -f "$text" ] || { echo "   FAIL: $text is missing" >&2; exit 1; }
+  status=0
+  keys=$(grep -rhoE "messageKey: .[a-zA-Z]+." "$dir" | sed -E "s/.*: .([a-zA-Z]+)./\1/" | sort -u)
+  for key in $keys; do
+    grep -q "'"'"'${key}'"'"' =>" "$text" || {
+      echo "   FAIL: ${key} is produced in the Meal feature and has no case in" >&2
+      echo "         meal_error_text.dart, so a Cook seeing it reads the SAVE error instead." >&2
+      status=1; }
+  done
+  echo "   $(echo "$keys" | wc -l | tr -d " ") key(s), each with its own sentence"
+  exit $status'
+
 run "the app has journey tests" bash -c '
   f=apps/mobile/test/journey_test.dart
   [ -d apps/mobile/test ] || { echo "   no mobile tests yet — skipping"; exit 0; }

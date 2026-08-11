@@ -830,11 +830,11 @@ abstract class AppLocalizations {
   /// **'صورة الأكلة'**
   String get publicMealPhotoLabel;
 
-  /// Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen.
+  /// Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen. GENDERED, because the first version was not: it told every Cook «اللي بدأتها», addressing a woman as a man on a line she hears every time she comes back to a Meal. ADR-0010 exists because that mistake was already made once. Raised by localization-reviewer on PR #455.
   ///
   /// In ar, this message translates to:
-  /// **'بنجيب الأكلة اللي بدأتها...'**
-  String get mealConvResuming;
+  /// **'بنجيب الأكلة اللي {addressForm, select, feminine{بدأتيها} other{بدأتها}}...'**
+  String mealConvResuming(String addressForm);
 
   /// Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.
   ///

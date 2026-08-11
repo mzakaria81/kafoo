@@ -972,10 +972,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get publicMealPhotoLabel => 'Photo of the dish';
+  String get publicMealPhotoLabel => 'Photo of the Meal';
 
   @override
-  String get mealConvResuming => 'Loading the Meal you started...';
+  String mealConvResuming(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Loading the Meal you started...',
+        'other': 'Loading the Meal you started...',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String mealSummaryConfirm(String addressForm) {

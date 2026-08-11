@@ -19,8 +19,13 @@ import '../../../l10n/app_localizations.dart';
 ///
 /// The fallback is deliberately the save error and not the raw key: a Cook must
 /// never be shown `mealPriceInvalid`. A key with no case here is a bug, and
-/// `meal_error_text_test.dart` is what fails when one is added without a
-/// sentence.
+/// `scripts/verify.sh`'s "meal error keys have a sentence" check is what fails
+/// when one is added without one — it reads the keys out of the feature's source
+/// rather than keeping a second list that can drift.
+///
+/// **That check exists because this comment used to name a test file that was
+/// never written.** Raised by localization-reviewer on PR #455; the claim was
+/// made true rather than softened.
 /// [fromAnalysis] picks the sentence for a key with no case below.
 ///
 /// **The default fallback claims the Meal was not saved, and for an AI failure
@@ -59,6 +64,11 @@ String mealErrorText(
     'mealAvailabilityError' => l10n.mealAvailabilityError(form),
     'mealDeleteError' => l10n.mealDeleteError(form),
     'mealKitchenCheckError' => l10n.mealKitchenCheckError(form),
+    // Spelled out even though the fallback below produces the same sentence.
+    // The gate check reads the cases in this switch, and exempting the one key
+    // that happens to match the default would be an exemption to maintain — the
+    // shape that let the missing keys above go unnoticed in the first place.
+    'mealSaveError' => l10n.mealSaveError(form),
     _ => fromAnalysis
         ? l10n.analyzeMealUnknownError(form)
         : l10n.mealSaveError(form),
