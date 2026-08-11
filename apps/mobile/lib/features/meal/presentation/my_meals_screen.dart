@@ -27,11 +27,21 @@ import 'my_meals_states.dart';
 /// this screen is separate work — speaking and listening are two gaps and only
 /// one is closed. `docs/design/backend-gaps.md` is the list.
 class MyMealsScreen extends ConsumerWidget {
-  const MyMealsScreen({this.onResumeDraft, super.key});
+  const MyMealsScreen({this.onResumeDraft, this.onAddByHand, super.key});
 
   /// Called after [MealConversationController.resume] seeds the conversation
   /// from a stored draft. Navigation is the caller's concern.
   final void Function(CookMeal meal)? onResumeDraft;
+
+  /// Opens the Meal-creation flow.
+  ///
+  /// **Null closes this screen instead, and that is a fallback rather than the
+  /// design.** «أضيف بإيدي» promised the creation flow and called `maybePop` —
+  /// it shut the list and returned a Cook to Home with nothing started. Tap is
+  /// meant to be a complete alternative to speaking, and a button that does not
+  /// do what its label says is not one. Home passes the route; only a test
+  /// constructing this screen bare gets the fallback.
+  final VoidCallback? onAddByHand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,8 +58,12 @@ class MyMealsScreen extends ConsumerWidget {
             ),
           MyMealsState(error: final error?) when state.meals.isEmpty =>
             MyMealsFailed(error: error),
-          MyMealsState(meals: []) => const MyMealsEmpty(),
-          _ => _Full(state: state, onResumeDraft: onResumeDraft),
+          MyMealsState(meals: []) => MyMealsEmpty(onAddByHand: onAddByHand),
+          _ => _Full(
+              state: state,
+              onResumeDraft: onResumeDraft,
+              onAddByHand: onAddByHand,
+            ),
         },
       ),
     );
@@ -57,10 +71,11 @@ class MyMealsScreen extends ConsumerWidget {
 }
 
 class _Full extends ConsumerStatefulWidget {
-  const _Full({required this.state, this.onResumeDraft});
+  const _Full({required this.state, this.onResumeDraft, this.onAddByHand});
 
   final MyMealsState state;
   final void Function(CookMeal meal)? onResumeDraft;
+  final VoidCallback? onAddByHand;
 
   @override
   ConsumerState<_Full> createState() => _FullState();
@@ -179,7 +194,7 @@ class _FullState extends ConsumerState<_Full> {
             },
           ),
         ),
-        const _TalkDock(),
+        _TalkDock(onAddByHand: widget.onAddByHand),
       ],
     );
   }
@@ -195,7 +210,9 @@ class _FullState extends ConsumerState<_Full> {
 /// the label is the only thing carrying the reason, and a disabled control with
 /// no explanation is a dead end.
 class _TalkDock extends StatelessWidget {
-  const _TalkDock();
+  const _TalkDock({this.onAddByHand});
+
+  final VoidCallback? onAddByHand;
 
   /// Chosen so nothing changes at ordinary text sizes — the dock is about 180
   /// logical pixels on a normal phone, well under the cap — and the whole thing
@@ -233,14 +250,14 @@ class _TalkDock extends StatelessWidget {
             state: TalkOrbState.idle,
             amplitude: 0,
             enabled: false,
-            label: l10n.voiceNotReadyYet,
+            label: l10n.voiceNotReadyYet(context.addressForm),
             onPressStart: () {},
             onPressEnd: () {},
           ),
           // Tap is a complete alternative, not a degraded one — and today it is
           // the only one that works.
           TextButton(
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: onAddByHand ?? () => Navigator.of(context).maybePop(),
             style: TextButton.styleFrom(
               minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
             ),

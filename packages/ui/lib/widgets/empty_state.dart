@@ -58,63 +58,74 @@ class KafooEmptyState extends StatelessWidget {
     final tint = failure ? KafooColors.errorTint : KafooColors.primaryTint;
     final edge = failure ? KafooColors.errorBorder : KafooColors.primaryBorder;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: KafooSpacing.md,
-        children: [
-          Center(
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: tint,
-                shape: BoxShape.circle,
-                border: Border.all(color: edge, width: 1.5),
+    // A FAILURE ANNOUNCES ITSELF; AN EMPTY LIST DOES NOT NEED TO.
+    //
+    // The screen a Cook was on said «بحمّل أكلاتك» out loud. If loading then
+    // fails and this panel replaces it in silence, a Cook using a screen reader
+    // is left waiting for a load that already gave up. `liveRegion` is what
+    // makes the swap speak. An absence is not the same event — she navigated
+    // here and the screen reader reads the new screen anyway.
+    return Semantics(
+      liveRegion: failure,
+      container: failure,
+      child: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: KafooSpacing.md,
+          children: [
+            Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: tint,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: edge, width: 1.5),
+                ),
               ),
             ),
-          ),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleLarge,
-          ),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: KafooColors.textMuted),
-          ),
-          if (reassurance != null)
-            Container(
-              padding: const EdgeInsetsDirectional.all(KafooSpacing.md),
-              decoration: BoxDecoration(
-                color: KafooColors.voiceTint,
-                borderRadius: BorderRadius.circular(KafooRadius.panel),
-                border: Border.all(color: KafooColors.voiceBorder),
-              ),
-              child: Text(
-                reassurance!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: KafooColors.voiceDeep),
-              ),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge,
             ),
-          primaryAction,
-          if (secondaryAction != null) secondaryAction!,
-          if (cachedContent != null) ...[
-            const SizedBox(height: KafooSpacing.sm),
-            if (cachedLabel != null)
-              Text(
-                cachedLabel!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: KafooColors.textMuted),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: KafooColors.textMuted),
+            ),
+            if (reassurance != null)
+              Container(
+                padding: const EdgeInsetsDirectional.all(KafooSpacing.md),
+                decoration: BoxDecoration(
+                  color: KafooColors.voiceTint,
+                  borderRadius: BorderRadius.circular(KafooRadius.panel),
+                  border: Border.all(color: KafooColors.voiceBorder),
+                ),
+                child: Text(
+                  reassurance!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: KafooColors.voiceDeep),
+                ),
               ),
-            Opacity(opacity: 0.45, child: cachedContent),
+            primaryAction,
+            if (secondaryAction != null) secondaryAction!,
+            if (cachedContent != null) ...[
+              const SizedBox(height: KafooSpacing.sm),
+              if (cachedLabel != null)
+                Text(
+                  cachedLabel!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: KafooColors.textMuted),
+                ),
+              Opacity(opacity: 0.45, child: cachedContent),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

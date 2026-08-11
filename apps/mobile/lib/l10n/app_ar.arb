@@ -1515,9 +1515,14 @@
   "@gateAnswerNo": {
     "description": "The refusing answer at a read-back gate. 56dp and outline only, never hidden, greyed, or slower to reach."
   },
-  "gateSilenceFootnote": "لو مقولتيش حاجة، مفيش حاجة هتحصل.",
+  "gateSilenceFootnote": "{addressForm, select, feminine{لو مقولتيش حاجة، مفيش حاجة هتحصل.} other{لو مقولتش حاجة، مفيش حاجة هتحصل.}}",
   "@gateSilenceFootnote": {
-    "description": "Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe."
+    "description": "Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe. Takes an address form: it speaks to the Cook directly, and a feminine-only imperative addresses every male Cook in the wrong grammar.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "myMealsLoading": "بحمّل أكلاتك…",
   "@myMealsLoading": {
@@ -1564,11 +1569,11 @@
   },
   "myMealsHearAgain": "اسمعها تاني",
   "@myMealsHearAgain": {
-    "description": "Repeats the assistant's last line. Disabled until a speech engine is chosen."
+    "description": "Re-says the assistant's greeting. The greeting is an event, said once on arrival; this is how a Cook hears it again without the screen nagging her. Inert while muted and on a handset with no Arabic speech data — a control that silently does nothing is worse than one that visibly cannot."
   },
   "myMealsHearRow": "اسمعي الأكلة دي",
   "@myMealsHearRow": {
-    "description": "Reads one Meal row aloud. Disabled until a speech engine is chosen."
+    "description": "Reads one Meal row aloud, quietly, because the row carries a price and income is private. Inert on a handset with no Arabic speech data."
   },
   "myMealsRowActions": "حاجات تانية للأكلة دي",
   "@myMealsRowActions": {
@@ -1583,9 +1588,14 @@
       }
     }
   },
-  "voiceNotReadyYet": "الكلام لسه مش شغال — ضيفي بإيدك دلوقتي",
+  "voiceNotReadyYet": "{addressForm, select, feminine{الكلام لسه مش شغال — ضيفي بإيدك دلوقتي} other{الكلام لسه مش شغال — ضيف بإيدك دلوقتي}}",
   "@voiceNotReadyYet": {
-    "description": "The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end."
+    "description": "The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end. Takes an address form: it speaks to the Cook directly, and a feminine-only imperative addresses every male Cook in the wrong grammar.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "myMealsEmptyInvitation": "احكيلي عن أكلة",
   "@myMealsEmptyInvitation": {

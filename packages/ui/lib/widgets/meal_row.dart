@@ -85,11 +85,18 @@ class KafooMealRow extends StatelessWidget {
     final faded =
         status == GlanceWord.unavailable || status == GlanceWord.archived;
 
+    // THE LABEL COVERS THE INFORMATION, NEVER THE CONTROLS.
+    //
+    // This wrapped the WHOLE row with `excludeSemantics: true`, which does
+    // exactly what it says: it deleted the semantics of everything inside,
+    // including the two icon buttons. In production the row is built with no
+    // `onTap`, so the result was a single static label — a Cook using a screen
+    // reader could hear her Meal and could not reach «اسمعي الأكلة دي» or the
+    // «···» that holds edit, publish, unpublish, delete and retire. That is her
+    // whole menu, unmanageable. Found in review on 2026-08-11; no test built
+    // the row with its actions populated, which is why nothing caught it.
     return Semantics(
-      button: onTap != null,
-      label: semanticsLabel,
-      excludeSemantics: true,
-      onTap: onTap,
+      container: true,
       child: Opacity(
         // Present, but clearly not selling.
         opacity: faded ? 0.6 : 1,
@@ -111,61 +118,79 @@ class KafooMealRow extends StatelessWidget {
                 spacing: KafooSpacing.row,
                 runSpacing: KafooSpacing.row,
                 children: [
-                  SizedBox(
-                    width: _thumb,
-                    height: _thumb,
-                    child: photoUrl == null
-                        ? KafooPhotoPlaceholder(
-                            semanticsLabel: placeholderLabel,
-                          )
-                        : ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(KafooRadius.thumbnail),
-                            child: Image.network(
-                              photoUrl!,
-                              excludeFromSemantics: true,
-                              width: _thumb,
-                              height: _thumb,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const ColoredBox(
-                                color: KafooColors.surfaceSunken,
-                              ),
-                            ),
-                          ),
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 140),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: KafooSpacing.xs,
+                  Semantics(
+                    label: semanticsLabel,
+                    button: onTap != null,
+                    onTap: onTap,
+                    // Scoped to the photo and the text, so the composed
+                    // sentence replaces four separate readings of the same
+                    // facts — and stops there.
+                    excludeSemantics: true,
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: KafooSpacing.row,
+                      runSpacing: KafooSpacing.row,
                       children: [
-                        KafooGlanceWord(word: status, text: statusText),
-                        // Wrap, not Row: a 34px numeral at 200% scale is
-                        // 68px, and a price is never truncated or shrunk to
-                        // fit. It moves onto its own line instead.
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: KafooSpacing.xs,
-                          children: [
-                            Text(
-                              price,
-                              style: KafooType.numeralRow
-                                  .copyWith(color: KafooColors.onSurface),
-                            ),
-                            if (priceUnit != null)
-                              Text(
-                                priceUnit!,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontSize: 15,
-                                  color: KafooColors.textMuted,
+                        SizedBox(
+                          width: _thumb,
+                          height: _thumb,
+                          child: photoUrl == null
+                              ? KafooPhotoPlaceholder(
+                                  semanticsLabel: placeholderLabel,
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                      KafooRadius.thumbnail),
+                                  child: Image.network(
+                                    photoUrl!,
+                                    excludeFromSemantics: true,
+                                    width: _thumb,
+                                    height: _thumb,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        const ColoredBox(
+                                      color: KafooColors.surfaceSunken,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                          ],
                         ),
-                        Text(
-                          name,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: KafooColors.textMuted),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 140),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: KafooSpacing.xs,
+                            children: [
+                              KafooGlanceWord(word: status, text: statusText),
+                              // Wrap, not Row: a 34px numeral at 200% scale is
+                              // 68px, and a price is never truncated or shrunk to
+                              // fit. It moves onto its own line instead.
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: KafooSpacing.xs,
+                                children: [
+                                  Text(
+                                    price,
+                                    style: KafooType.numeralRow
+                                        .copyWith(color: KafooColors.onSurface),
+                                  ),
+                                  if (priceUnit != null)
+                                    Text(
+                                      priceUnit!,
+                                      style:
+                                          theme.textTheme.labelLarge?.copyWith(
+                                        fontSize: 15,
+                                        color: KafooColors.textMuted,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              Text(
+                                name,
+                                style: theme.textTheme.bodySmall
+                                    ?.copyWith(color: KafooColors.textMuted),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -225,10 +250,14 @@ class _RoundAction extends StatelessWidget {
         height: KafooSpacing.minTapTarget,
         child: IconButton(
           onPressed: onPressed,
-          icon: Icon(icon),
-          // An icon-only control with no label is unusable with a screen
-          // reader, and this one sits inside a row whose semantics are
-          // excluded — so the label has to be here.
+          // ON THE ICON, NOT ONLY IN THE TOOLTIP. A tooltip lands on the
+          // semantics node as a `tooltip` rather than a `label`, which some
+          // screen readers announce after the control type and which no test
+          // looking for a label can see. `semanticLabel` merges into the
+          // button's own node, so the control announces itself as
+          // "«اسمعي الأكلة دي», button" the way a labelled button does.
+          icon: Icon(icon, semanticLabel: label.isEmpty ? null : label),
+          // Kept for a sighted long-press.
           tooltip: label.isEmpty ? null : label,
           style: IconButton.styleFrom(
             backgroundColor: background,

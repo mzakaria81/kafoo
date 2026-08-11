@@ -438,6 +438,55 @@ void main() {
     });
   });
 
+  group('KafooMealRow reachable by screen reader', () {
+    // THE TEST THAT DID NOT EXIST, and its absence is why the row shipped
+    // unusable. Every other row test builds it without its actions, so the
+    // composed label read correctly and the two buttons it had swallowed were
+    // never looked for.
+    Widget rowWithActions() => KafooMealRow(
+          name: 'محشي ورق عنب',
+          price: '١٢٠',
+          priceUnit: 'جنيه',
+          status: GlanceWord.published,
+          statusText: 'على المنيو',
+          semanticsLabel: 'محشي ورق عنب، على المنيو، ١٢٠ جنيه',
+          placeholderLabel: 'مكان صورة مؤقت',
+          hearLabel: 'اسمعي الأكلة دي',
+          onHear: () {},
+          moreLabel: 'حاجات تانية',
+          onMore: () {},
+        );
+
+    testWidgets('both actions are reachable, and so is the Meal itself',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(rowWithActions()));
+
+      // The row is built with no onTap in production, so the actions are the
+      // ONLY way to edit, publish, unpublish, delete a draft or retire a Meal.
+      // A Cook who cannot reach them cannot manage her menu at all.
+      expect(find.bySemanticsLabel('اسمعي الأكلة دي'), findsOneWidget);
+      expect(find.bySemanticsLabel('حاجات تانية'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('محشي ورق عنب، على المنيو، ١٢٠ جنيه'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('the composed sentence replaces the four readings under it',
+        (tester) async {
+      // The point of the label is that a Cook hears one sentence rather than
+      // "محشي ورق عنب" then "على المنيو" then "١٢٠" then "جنيه" as four stops.
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(rowWithActions()));
+
+      expect(find.bySemanticsLabel('على المنيو'), findsNothing);
+      expect(find.bySemanticsLabel('١٢٠'), findsNothing);
+      handle.dispose();
+    });
+  });
+
   group('KafooSkeletonList', () {
     // A repeating animation never settles, so every test here pumps single
     // frames. `pumpAndSettle` would time out rather than fail informatively.

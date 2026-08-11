@@ -76,8 +76,12 @@ class KafooSpokenBanner extends StatelessWidget {
                 height: KafooSpacing.minTapTarget,
                 child: IconButton(
                   onPressed: onHearAgain,
+                  // Kept for a sighted long-press; the label a screen reader
+                  // announces is on the icon. A tooltip alone lands on the
+                  // semantics node as a `tooltip` rather than a `label`, which
+                  // is the same gap the Meal row's actions had.
                   tooltip: hearAgainLabel,
-                  icon: const Icon(Icons.replay),
+                  icon: Icon(Icons.replay, semanticLabel: hearAgainLabel),
                   style: IconButton.styleFrom(
                     foregroundColor: KafooColors.voiceDeep,
                     disabledForegroundColor: KafooColors.textDisabled,

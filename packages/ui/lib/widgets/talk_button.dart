@@ -118,6 +118,12 @@ class KafooTalkButton extends StatelessWidget {
       // listening in Kafoo, not even for a wake word, so the state reaches a
       // blind user the same way it reaches a sighted one.
       value: state.isRecording ? label : null,
+      // The label above already IS the sentence under the orb, so without this
+      // the node carries it twice and a screen reader reads the reason a
+      // disabled button cannot work, then reads it again. Safe here and not in
+      // a Meal row: everything inside is the orb, which is decorative, and that
+      // one line of text.
+      excludeSemantics: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         spacing: KafooSpacing.row,

@@ -1533,11 +1533,11 @@ abstract class AppLocalizations {
   /// **'لأ، استنى'**
   String get gateAnswerNo;
 
-  /// Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe.
+  /// Under the two answers at a gate. Silence never confirms: no timeout accepts, and waiting is always safe. Takes an address form: it speaks to the Cook directly, and a feminine-only imperative addresses every male Cook in the wrong grammar.
   ///
   /// In ar, this message translates to:
-  /// **'لو مقولتيش حاجة، مفيش حاجة هتحصل.'**
-  String get gateSilenceFootnote;
+  /// **'{addressForm, select, feminine{لو مقولتيش حاجة، مفيش حاجة هتحصل.} other{لو مقولتش حاجة، مفيش حاجة هتحصل.}}'**
+  String gateSilenceFootnote(String addressForm);
 
   /// What a screen reader says while the Meal list is a skeleton. Required by KafooSkeletonList: without it a blind Cook hears nothing during the one state where she most needs to be told to wait.
   ///
@@ -1587,13 +1587,13 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{عندك {total} أكلة، منهم {published} على المنيو. عايزة تعملي إيه؟} other{عندك {total} أكلة، منهم {published} على المنيو. عايز تعمل إيه؟}}'**
   String myMealsSpokenSummary(String addressForm, int total, int published);
 
-  /// Repeats the assistant's last line. Disabled until a speech engine is chosen.
+  /// Re-says the assistant's greeting. The greeting is an event, said once on arrival; this is how a Cook hears it again without the screen nagging her. Inert while muted and on a handset with no Arabic speech data — a control that silently does nothing is worse than one that visibly cannot.
   ///
   /// In ar, this message translates to:
   /// **'اسمعها تاني'**
   String get myMealsHearAgain;
 
-  /// Reads one Meal row aloud. Disabled until a speech engine is chosen.
+  /// Reads one Meal row aloud, quietly, because the row carries a price and income is private. Inert on a handset with no Arabic speech data.
   ///
   /// In ar, this message translates to:
   /// **'اسمعي الأكلة دي'**
@@ -1611,11 +1611,11 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{أو ضيفي أكلة بإيدك} other{أو ضيف أكلة بإيدك}}'**
   String myMealsAddByHand(String addressForm);
 
-  /// The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end.
+  /// The talk button's label while no speech engine is wired up. A disabled control states its reason; a silent dead button is a dead end. Takes an address form: it speaks to the Cook directly, and a feminine-only imperative addresses every male Cook in the wrong grammar.
   ///
   /// In ar, this message translates to:
-  /// **'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي'**
-  String get voiceNotReadyYet;
+  /// **'{addressForm, select, feminine{الكلام لسه مش شغال — ضيفي بإيدك دلوقتي} other{الكلام لسه مش شغال — ضيف بإيدك دلوقتي}}'**
+  String voiceNotReadyYet(String addressForm);
 
   /// The whole of the empty Meal list: an invitation to speak, not a form.
   ///

@@ -30,7 +30,12 @@ String myMealsErrorMessage(
 /// the design's way of making the first Meal a conversation — the screen has
 /// one sentence, one big button, and one quiet way to do it by hand.
 class MyMealsEmpty extends StatelessWidget {
-  const MyMealsEmpty({super.key});
+  const MyMealsEmpty({this.onAddByHand, super.key});
+
+  /// Opens the Meal-creation flow. See [MyMealsScreen.onAddByHand] — on this
+  /// screen it matters more, because a Cook with no Meals has nothing else to
+  /// do here.
+  final VoidCallback? onAddByHand;
 
   @override
   Widget build(BuildContext context) {
@@ -73,13 +78,13 @@ class MyMealsEmpty extends StatelessWidget {
                 amplitude: 0,
                 enabled: false,
                 size: KafooSpacing.talkButtonInvitation,
-                label: l10n.voiceNotReadyYet,
+                label: l10n.voiceNotReadyYet(form),
                 onPressStart: () {},
                 onPressEnd: () {},
               ),
             ),
             OutlinedButton(
-              onPressed: () => Navigator.of(context).maybePop(),
+              onPressed: onAddByHand ?? () => Navigator.of(context).maybePop(),
               style: OutlinedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 foregroundColor: KafooColors.surface,

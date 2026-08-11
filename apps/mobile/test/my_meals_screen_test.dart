@@ -6,12 +6,15 @@ import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/meal/application/my_meals_controller.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_meal_repository.dart';
 
@@ -86,10 +89,12 @@ const _publishedSecond = CookMeal(
 Widget _app(
   FakeMealRepository repo, {
   void Function(CookMeal meal)? onResumeDraft,
+  SpeechOutput? speech,
 }) =>
     ProviderScope(
       overrides: [
         mealRepositoryProvider.overrideWithValue(repo),
+        if (speech != null) speechOutputProvider.overrideWithValue(speech),
       ],
       child: MaterialApp(
         locale: const Locale('ar'),
@@ -145,6 +150,10 @@ void main() {
 
   setUp(() {
     debugEventRecorder = null;
+    // The voice reads its mute preference on startup. Without a mock store the
+    // read throws, the engine still reports ready, and the greeting is spoken
+    // one frame later than a test expects.
+    SharedPreferences.setMockInitialValues({});
   });
 
   tearDown(() {
@@ -181,6 +190,49 @@ void main() {
 
     expect(find.text(l10n.myMealsEmptyInvitation), findsOneWidget);
     expect(find.byType(KafooSkeletonList), findsNothing);
+  });
+
+  group('the assistant greets once', () {
+    // THE CLAIM THE SCREEN IS BUILT ON, AND NOTHING ASSERTED IT. The greeting
+    // is an event: said on arrival, and said again only when a Cook asks. A
+    // screen that re-reads its own summary every time a Meal changes status
+    // turns the assistant into a nag, and the guard against that is one bool
+    // that a refactor could drop without any test noticing.
+    testWidgets('on arrival, and not again when a Meal changes',
+        (tester) async {
+      final speech = FakeSpeechOutput();
+      final repo = FakeMealRepository(meals: [_published, _unavailable]);
+      await tester.pumpWidget(_app(repo, speech: speech));
+      await tester.pumpAndSettle();
+
+      expect(speech.spoken, hasLength(1));
+      final greeting = speech.spoken.single.line;
+
+      // Take a Meal off the menu — the list rebuilds with a new summary.
+      await _openActions(tester, row: 0);
+      await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.where((s) => s.line == greeting),
+        hasLength(1),
+        reason: 'the assistant re-announced itself on a status change',
+      );
+    });
+
+    testWidgets('and says it again when she asks', (tester) async {
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_published]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+      final greeting = speech.spoken.single.line;
+
+      await tester.tap(find.byTooltip(l10n.myMealsHearAgain));
+      await tester.pumpAndSettle();
+
+      expect(speech.spoken.where((s) => s.line == greeting), hasLength(2));
+    });
   });
 
   testWidgets('shows every status, including drafts', (tester) async {

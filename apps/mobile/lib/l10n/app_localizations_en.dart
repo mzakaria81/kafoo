@@ -1744,7 +1744,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gateAnswerNo => 'No, wait';
 
   @override
-  String get gateSilenceFootnote => 'If you say nothing, nothing happens.';
+  String gateSilenceFootnote(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'If you say nothing, nothing happens.',
+        'other': 'If you say nothing, nothing happens.',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsLoading => 'Loading your Meals…';
@@ -1803,8 +1812,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get voiceNotReadyYet =>
-      'Talking isn\'t working yet — add by hand for now';
+  String voiceNotReadyYet(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Speech is not working yet — add it by hand for now',
+        'other': 'Speech is not working yet — add it by hand for now',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsEmptyInvitation => 'Tell me about a Meal';

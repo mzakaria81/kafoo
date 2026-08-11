@@ -1,3 +1,5 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_ui/ui.dart';
@@ -221,6 +223,59 @@ void main() {
     testWidgets('does not clip at 200% text scale', (tester) async {
       await tester.pumpWidget(_host(gate(), textScale: 2));
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('a disabled talk button is not a dead button', () {
+    // THE PR CLAIMED THIS AND NOTHING ASSERTED IT. A disabled control that
+    // states no reason is a dead end, and on this control the label is the only
+    // place the reason can live — so it has to reach a screen reader, and the
+    // control has to announce that it is disabled rather than just not
+    // responding.
+    Widget disabled(
+            {String label = 'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي'}) =>
+        KafooTalkButton(
+          state: TalkOrbState.idle,
+          amplitude: 0,
+          enabled: false,
+          label: label,
+          onPressStart: () {},
+          onPressEnd: () {},
+        );
+
+    testWidgets('it says why, and says that it is disabled', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(disabled()));
+
+      // Once, not twice. The label and the Text under the orb are the same
+      // sentence, and both reaching the node made a screen reader read the
+      // reason, then read it again.
+      final node = tester.getSemantics(find.byType(KafooTalkButton));
+      expect(node.label, 'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي');
+      // Tristate, not bool: the node distinguishes "declared disabled" from
+      // "has no enabled state at all", and only the first is a control that
+      // tells a screen reader it cannot be used.
+      expect(node.flagsCollection.isEnabled, Tristate.isFalse);
+      handle.dispose();
+    });
+
+    testWidgets('pressing it does nothing at all', (tester) async {
+      var starts = 0;
+      await tester.pumpWidget(
+        _host(
+          KafooTalkButton(
+            state: TalkOrbState.idle,
+            amplitude: 0,
+            enabled: false,
+            label: 'الكلام لسه مش شغال',
+            onPressStart: () => starts++,
+            onPressEnd: () {},
+          ),
+        ),
+      );
+      await tester.press(find.byType(KafooTalkButton));
+      await tester.pump();
+      expect(starts, 0);
     });
   });
 }

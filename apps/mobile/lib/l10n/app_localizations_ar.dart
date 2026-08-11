@@ -1688,7 +1688,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gateAnswerNo => 'لأ، استنى';
 
   @override
-  String get gateSilenceFootnote => 'لو مقولتيش حاجة، مفيش حاجة هتحصل.';
+  String gateSilenceFootnote(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'لو مقولتيش حاجة، مفيش حاجة هتحصل.',
+        'other': 'لو مقولتش حاجة، مفيش حاجة هتحصل.',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsLoading => 'بحمّل أكلاتك…';
@@ -1746,7 +1755,16 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get voiceNotReadyYet => 'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي';
+  String voiceNotReadyYet(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي',
+        'other': 'الكلام لسه مش شغال — ضيف بإيدك دلوقتي',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String get myMealsEmptyInvitation => 'احكيلي عن أكلة';
