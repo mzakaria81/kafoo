@@ -46,6 +46,7 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
 
   bool _checkingExisting = true;
   bool _voiceAvailable = false;
+  bool _voiceNeedsArabic = false;
   bool _listening = false;
 
   /// Set once the person speaks or types on the current step, so the funnel
@@ -81,6 +82,12 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
     setState(() {
       _checkingExisting = false;
       _voiceAvailable = available;
+      // THE FLOW THIS WAS REPORTED FROM. A recogniser that works with no Arabic
+      // installed is the one unavailable case a Cook can fix in their own
+      // settings, and saying it here as well as on search is the difference
+      // between a dead end and an instruction. Raised by conversation-designer,
+      // which pointed out the fix had landed only on the Customer's screen.
+      _voiceNeedsArabic = !available && _voice.engineAvailable;
     });
 
     unawaited(emitEvent(
@@ -270,8 +277,13 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
 
     return Scaffold(
       appBar: AppBar(),
+      // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
+      // by 204 logical pixels, up from 36 before the theme once the design system's type scale landed, and an overflowing
+      // Column resolves it by clipping its LAST child — the button that submits.
+      // A Cook using large text on a cheap Android handset had no reachable
+      // control at all.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -339,11 +351,22 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
         else
           // research.md §3: recognition missing is the likeliest
           // real-world outcome. Say so plainly and keep the flow whole.
-          Text(
-            l10n.convVoiceUnavailable(context.addressForm),
-            style: Theme.of(context).textTheme.bodySmall,
+          //
+          // `liveRegion` because a Cook who cannot see the screen is told this
+          // by nothing else: the microphone button simply is not there, and an
+          // absence announces nothing.
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              _voiceNeedsArabic
+                  ? l10n.convVoiceNeedsArabic(context.addressForm)
+                  : l10n.convVoiceUnavailable(context.addressForm),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
-        const Spacer(),
+        // A fixed gap: a Spacer needs bounded height and a scroll
+        // view gives it none.
+        const SizedBox(height: KafooSpacing.xl),
         FilledButton(
           onPressed: _acceptAnswer,
           style: FilledButton.styleFrom(

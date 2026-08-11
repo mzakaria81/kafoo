@@ -43,16 +43,29 @@ class FakeUpdateDraftCall {
 
 /// Records every write it is asked to make, so a test can assert which writes
 /// happened — and, more usefully, that none did.
+///
+/// **IT MUST ANSWER WITH THE SHAPE THE DATABASE ANSWERS WITH.** This fake used
+/// to hand back a complete [Meal] on every write, inventing `Cuisine.egyptian`,
+/// `MealCategory.main`, a price of `'0'` and an empty description for answers
+/// the Cook had not given yet. Every test in this directory therefore ran
+/// against a row `meals` cannot produce — a draft has those columns NULL by
+/// design — and the real repository crashed on the second question of the
+/// conversation for every Cook, with the whole gate green. 2026-08-11.
+///
+/// A fake that is easier to satisfy than the thing it stands in for is worse
+/// than no fake: it converts a red test into a green one.
 class FakeMealRepository implements MealRepository {
   FakeMealRepository({
-    this.existing,
+    Meal? existing,
     this.failOperations = false,
     this.failUploads = false,
     List<CookMeal>? meals,
-  }) : meals = meals ?? [];
+  })  : existing = existing?.asCookMeal,
+        meals = meals ?? [];
 
-  /// What operations return. Null entries are created on demand.
-  Meal? existing;
+  /// What operations return. Null entries are created on demand, and are as
+  /// empty as a real draft — the Cook has answered nothing yet.
+  CookMeal? existing;
 
   /// When true, all mutating operations fail.
   bool failOperations;
@@ -88,7 +101,7 @@ class FakeMealRepository implements MealRepository {
   }
 
   @override
-  Future<Result<Meal, AppError>> updateDraft({
+  Future<Result<CookMeal, AppError>> updateDraft({
     required String mealId,
     String? title,
     String? description,
@@ -118,15 +131,14 @@ class FakeMealRepository implements MealRepository {
     if (failOperations) {
       return const Failure(AppError(messageKey: 'mealSaveError'));
     }
+    // A NEW DRAFT CARRIES ONLY WHAT THE COOK HAS ANSWERED. No invented cuisine,
+    // no `'0'` price, no empty-string description standing in for a question
+    // nobody has been asked — those are the values that hid the crash. What is
+    // absent here is absent in `meals` too, and the two must keep agreeing.
     final base = existing ??
-        Meal(
+        CookMeal(
           id: mealId,
           cookId: 'fake-cook',
-          title: title ?? 'Untitled',
-          description: description ?? '',
-          price: price ?? '0',
-          cuisine: cuisine ?? Cuisine.egyptian,
-          category: category ?? MealCategory.main,
           status: MealStatus.draft,
           nutritionSource: NutritionSource.ai,
         );
@@ -146,20 +158,19 @@ class FakeMealRepository implements MealRepository {
   }
 
   @override
-  Future<Result<Meal, AppError>> publish(String mealId) async {
+  Future<Result<CookMeal, AppError>> publish(String mealId) async {
     publishCalls++;
     if (failOperations) {
       return const Failure(AppError(messageKey: 'mealSaveError'));
     }
+    // Publishing a draft nothing was written to is not a state `meals` allows —
+    // `enforce_meal_lifecycle` refuses it. The fake keeps the row as empty as it
+    // found it rather than filling the gaps, so a test that publishes without
+    // answering is testing the same impossible row the database would reject.
     final base = existing ??
-        Meal(
+        CookMeal(
           id: mealId,
           cookId: 'fake-cook',
-          title: 'Untitled',
-          description: '',
-          price: '0',
-          cuisine: Cuisine.egyptian,
-          category: MealCategory.main,
           status: MealStatus.draft,
           nutritionSource: NutritionSource.ai,
         );
@@ -184,6 +195,12 @@ class FakeMealRepository implements MealRepository {
     lastUploadedMealId = mealId;
     return Success('fake-cook/$mealId.jpg');
   }
+
+  /// The same shape the public bucket produces, so a test can assert the row
+  /// renders an image rather than a path without reaching a network.
+  @override
+  String photoUrl(String photoPath) =>
+      'https://fake.supabase.co/storage/v1/object/public/meal-photos/$photoPath';
 
   /// Meals returned by myMeals(). Set by tests; defaults to empty.
   List<CookMeal> meals = [];

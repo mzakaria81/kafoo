@@ -36,7 +36,7 @@ class ConversationQuestion extends StatelessWidget {
           Text(
             hint,
             style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.outline),
+                ?.copyWith(color: KafooColors.textMuted),
           ),
         ],
       ],

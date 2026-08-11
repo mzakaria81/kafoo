@@ -61,6 +61,41 @@ delete content, write a Review, or impersonate a Customer or Cook.
 Every AI-derived field written to the database requires an explicit human approval step in the flow.
 If a proposed design has AI writing directly, the design is wrong.
 
+**What that approval step looks like changed on 2026-08-10 (ADR-0013), and the rule did not.**
+Kafoo is voice-first: the assistant speaks, the person speaks back, the screen is the receipt.
+
+- **Reversible** — search, filter, navigation, and writing a draft that holds what the Cook *said* —
+  executes immediately and is announced aloud. No gate.
+- **Irreversible** — publishing a Meal, accepting or rejecting an Order, cancelling, changing the
+  price of a published Meal, sending a Message, posting a Review — is read back aloud in full and
+  waits for «أيوة». Both voice and tap answer the gate.
+- **Silence never confirms.** No timeout resolves a gate. The question repeats once after eight
+  seconds, then waits indefinitely.
+
+**A draft is not a loophole.** Writing what the Cook said needs no gate because she authored it. An
+AI-derived field inside that draft — calories, allergens, inferred cuisine or category — still needs
+the approval step. Speaking a sentence is authoring; a model estimating a calorie count is not.
+
+## Message
+
+New with ADR-0013. **Not built** — no entity, no table, no policies. Recorded here so the rules
+exist before the code rather than after it.
+
+- **All Cook ↔ Customer communication is text.** Neither side ever receives audio. No voice note
+  exists in this product in either direction.
+- **The assistant transcribes; it does not improve.** Egyptian phrasing is preserved exactly. Never
+  rewritten into Modern Standard Arabic, never made more polite, never shortened. A Cook who says
+  «تحبي أبعته مع ابني» must not arrive sounding like a company.
+- **A Message is attributed to the person, never to Kafoo.** The assistant is a pen, not a
+  spokesperson. If a Customer thinks Kafoo is the one talking, the neighbourly relationship this
+  product depends on is gone.
+- **Read back verbatim before sending** — the single exception to "the assistant paraphrases". Those
+  exact words reach another human, so the sender hears them literally and answers «أيوة».
+- Reviews follow the same path: the Customer hears their own Review verbatim before it posts, so a
+  harsh sentence said quickly stays a decision rather than a slip.
+- **Message content is a new category of personal data** between two named people. It needs the
+  privacy answers below and its own RLS before a table exists.
+
 ## Trust
 
 These are product-fatal, not merely disallowed:
@@ -80,3 +115,17 @@ for advertising or ranking outside the Customer's own session, and is never shar
 what a specific Order requires.
 
 Voice recordings are transcribed and discarded. Do not persist raw audio without an ADR.
+
+**That holds offline too, and the founder decided it explicitly on 2026-08-10.** The voice-first
+design's offline state draws a queued-*audio* card; Kafoo queues the **transcript** instead. Speech is
+transcribed on the device, the text is queued, the audio is discarded. No exception to the rule above
+was needed and none was granted (ADR-0013, conflict 1).
+
+**The state may only promise what the phone can actually deliver.** On-device Arabic recognition
+normally needs the network on Android, and `docs/ops/measuring-transcription.md` records that `ar-EG`
+is missing on many Egyptian handsets — so on some phones there is no transcript to queue, because the
+thing that makes transcripts needs the network that just went away.
+
+Where transcription succeeds, queue the text and say «محفوظ». Where it fails, **say so plainly and
+offer tap or typing.** Never say «كلامك محفوظ» over words that were not captured: losing a Cook's
+sentence after telling her it was safe is worse than telling her the truth immediately.

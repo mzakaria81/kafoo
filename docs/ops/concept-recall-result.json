@@ -1,0 +1,724 @@
+{
+  "measured": "2026-08-08",
+  "question": "ADR-0012 open question 1 — does analyze-meal name the food a Meal plainly contains?",
+  "model": "gemini-3.1-flash-lite",
+  "graded": 36,
+  "refusals": 0,
+  "categoryInstances": 75,
+  "recall": 1,
+  "perCategory": {
+    "GLUTEN_CEREAL": {
+      "expected": 14,
+      "found": 14
+    },
+    "WHEAT": {
+      "expected": 14,
+      "found": 14
+    },
+    "ONION": {
+      "expected": 1,
+      "found": 1
+    },
+    "MEAT": {
+      "expected": 9,
+      "found": 9
+    },
+    "GARLIC": {
+      "expected": 5,
+      "found": 5
+    },
+    "MILK": {
+      "expected": 15,
+      "found": 15
+    },
+    "POULTRY": {
+      "expected": 7,
+      "found": 7
+    },
+    "FISH": {
+      "expected": 1,
+      "found": 1
+    },
+    "SESAME": {
+      "expected": 2,
+      "found": 2
+    },
+    "CRUSTACEAN": {
+      "expected": 1,
+      "found": 1
+    },
+    "EGG": {
+      "expected": 2,
+      "found": 2
+    },
+    "TREE_NUT": {
+      "expected": 4,
+      "found": 4
+    }
+  },
+  "outcomes": [
+    {
+      "ingredients": [
+        "عدس",
+        "رز",
+        "مكرونة",
+        "حمص",
+        "صلصة طماطم",
+        "بصل محمر",
+        "شطة"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "koshari",
+      "found": [
+        "GLUTEN_CEREAL",
+        "WHEAT",
+        "ONION"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "ملوخية",
+        "أرانب",
+        "رز",
+        "توم",
+        "كزبرة",
+        "شوربة"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "molokhia",
+      "found": [
+        "MEAT",
+        "GARLIC"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "ورق عنب",
+        "رز",
+        "بقدونس",
+        "شبت"
+      ],
+      "allergens": [],
+      "id": "warak_enab",
+      "found": [],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "كوسة",
+        "باذنجان",
+        "فلفل",
+        "رز",
+        "طماطم",
+        "شبت"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "mahshi_khodar",
+      "found": [],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "مكرونة",
+        "بشاميل",
+        "لحمة مفرومة",
+        "جبنة رومي",
+        "لبن",
+        "دقيق",
+        "زبدة"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان"
+      ],
+      "id": "bechamel",
+      "found": [
+        "MILK",
+        "GLUTEN_CEREAL",
+        "WHEAT",
+        "MEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "لحمة ضاني",
+        "رز",
+        "عيش",
+        "توم",
+        "خل"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "fatta",
+      "found": [
+        "GLUTEN_CEREAL",
+        "WHEAT",
+        "MEAT",
+        "GARLIC"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "حمام",
+        "فريك",
+        "بصل",
+        "توابل"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "hamam",
+      "found": [
+        "POULTRY",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "بامية",
+        "لحمة ضاني",
+        "طماطم",
+        "بصل",
+        "ثوم"
+      ],
+      "allergens": [],
+      "id": "bamya",
+      "found": [
+        "MEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "بطاطس",
+        "لحمة مفرومة",
+        "صلصة طماطم",
+        "بصل",
+        "توابل"
+      ],
+      "allergens": [],
+      "id": "tagen_batates",
+      "found": [
+        "MEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "رقاق",
+        "لحمة مفرومة",
+        "سمن"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان"
+      ],
+      "id": "roqaq",
+      "found": [
+        "MILK",
+        "GLUTEN_CEREAL",
+        "WHEAT",
+        "MEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "كبدة",
+        "ثوم",
+        "فلفل",
+        "كمون",
+        "شطة"
+      ],
+      "allergens": [],
+      "id": "kebda",
+      "found": [
+        "MEAT",
+        "GARLIC"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "سمك بلطي",
+        "طحينة",
+        "كمون",
+        "ليمون"
+      ],
+      "allergens": [
+        "سمك",
+        "سمسم"
+      ],
+      "id": "samak",
+      "found": [
+        "FISH",
+        "SESAME"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "جمبري",
+        "طماطم",
+        "توم"
+      ],
+      "allergens": [
+        "مأكولات بحرية"
+      ],
+      "id": "gambari",
+      "found": [
+        "CRUSTACEAN",
+        "GARLIC"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "فراخ",
+        "زبادي",
+        "ليمون"
+      ],
+      "allergens": [
+        "ألبان"
+      ],
+      "id": "firakh_mashwia",
+      "found": [
+        "POULTRY",
+        "MILK"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "فراخ",
+        "طحينة",
+        "خبز"
+      ],
+      "allergens": [
+        "جلوتين",
+        "سمسم"
+      ],
+      "id": "shawerma",
+      "found": [
+        "POULTRY",
+        "SESAME",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "رز",
+        "لبن",
+        "قشطة"
+      ],
+      "allergens": [
+        "ألبان"
+      ],
+      "id": "arz_moammar",
+      "found": [
+        "MILK"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "ممبار",
+        "رز",
+        "بهارات",
+        "زيت"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "mombar",
+      "found": [
+        "MEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "فول",
+        "زيت",
+        "ليمون",
+        "كمون"
+      ],
+      "allergens": [],
+      "id": "fool",
+      "found": [],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "فول مدشوش",
+        "كزبرة خضراء",
+        "بصل",
+        "ثوم",
+        "توابل"
+      ],
+      "allergens": [],
+      "id": "taameya",
+      "found": [],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "بيض",
+        "طماطم",
+        "فلفل",
+        "زيت"
+      ],
+      "allergens": [
+        "بيض"
+      ],
+      "id": "shakshouka",
+      "found": [
+        "EGG"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "بيض",
+        "جبنة قريش",
+        "طماطم",
+        "زيت"
+      ],
+      "allergens": [
+        "بيض",
+        "ألبان"
+      ],
+      "id": "beid_gebna",
+      "found": [
+        "EGG",
+        "MILK"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "خس",
+        "خيار",
+        "طماطم",
+        "جرجير",
+        "زيت زيتون",
+        "ليمون"
+      ],
+      "allergens": [],
+      "id": "salata_khadra",
+      "found": [],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "زبادي",
+        "خيار",
+        "نعناع",
+        "توم"
+      ],
+      "allergens": [
+        "ألبان"
+      ],
+      "id": "salata_zabadi",
+      "found": [
+        "MILK",
+        "GARLIC"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "عدس أصفر",
+        "كمون",
+        "ليمون",
+        "بصل",
+        "جزر"
+      ],
+      "allergens": [],
+      "id": "shorbet_ads",
+      "found": [],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "شوربة فراخ",
+        "شعرية",
+        "خضار"
+      ],
+      "allergens": [
+        "جلوتين"
+      ],
+      "id": "shorbet_firakh",
+      "found": [
+        "POULTRY",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "صدور فراخ",
+        "خضار مشكل"
+      ],
+      "allergens": [],
+      "id": "sadr_firakh",
+      "found": [
+        "POULTRY"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "رقاق",
+        "لبن",
+        "قشطة",
+        "مكسرات",
+        "سكر"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان",
+        "مكسرات"
+      ],
+      "id": "om_ali",
+      "found": [
+        "TREE_NUT",
+        "MILK"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "سميد",
+        "قشطة",
+        "شربات",
+        "سمنة",
+        "سكر"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان"
+      ],
+      "id": "basbousa",
+      "found": [
+        "MILK",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "كنافة",
+        "فستق",
+        "سمن"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان",
+        "مكسرات"
+      ],
+      "id": "konafa",
+      "found": [
+        "MILK",
+        "TREE_NUT",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "قطايف",
+        "مكسرات",
+        "زيت قلى",
+        "شربات"
+      ],
+      "allergens": [
+        "جلوتين",
+        "مكسرات"
+      ],
+      "id": "atayef",
+      "found": [
+        "TREE_NUT",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "رز",
+        "لبن",
+        "سكر",
+        "فانيليا",
+        "قرفة"
+      ],
+      "allergens": [
+        "ألبان"
+      ],
+      "id": "roz_belaban",
+      "found": [
+        "MILK"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "لبن",
+        "نشا",
+        "سكر",
+        "فستق",
+        "ماء ورد"
+      ],
+      "allergens": [
+        "ألبان",
+        "مكسرات"
+      ],
+      "id": "mahalabeya",
+      "found": [
+        "MILK",
+        "TREE_NUT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "لحمة مفرومة",
+        "جبنة",
+        "خس",
+        "طماطم",
+        "عيش"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان"
+      ],
+      "id": "burger",
+      "found": [
+        "MEAT",
+        "MILK",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "دقيق",
+        "موتزاريلا",
+        "صلصة طماطم",
+        "ريحان"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان"
+      ],
+      "id": "pizza",
+      "found": [
+        "MILK",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "مكرونة بيني",
+        "كريمة طهي",
+        "فراخ",
+        "مشروم",
+        "توم",
+        "بصل",
+        "جبنة بارميزان"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان"
+      ],
+      "id": "pasta_white",
+      "found": [
+        "MILK",
+        "POULTRY",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    },
+    {
+      "ingredients": [
+        "دقيق",
+        "لبن",
+        "بيض",
+        "فراخ",
+        "جبنة",
+        "صوص أبيض"
+      ],
+      "allergens": [
+        "جلوتين",
+        "ألبان",
+        "بيض"
+      ],
+      "id": "crepe",
+      "found": [
+        "MILK",
+        "POULTRY",
+        "GLUTEN_CEREAL",
+        "WHEAT"
+      ],
+      "missed": [],
+      "refusal": null
+    }
+  ]
+}

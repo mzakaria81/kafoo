@@ -99,6 +99,11 @@ def escaped(value: str) -> str:
     return "E'" + "".join(out) + "'"
 
 
+# public.search_meals ends in LIMIT 50. Kept here as a named number because the whole failure this
+# generator had was that nobody related the size of the fixture to the size of the window.
+SEARCH_LIMIT = 50
+
+
 def uuid_for(index: int) -> str:
     return f"'dddddddd-0000-4000-8000-{index:012d}'"
 
@@ -119,12 +124,20 @@ def render(exclusions: list[tuple[str, list[str]]]) -> str:
 -- ة written ه, with a stretched letter inside, and with a no-break space where the form has a space.
 -- Every one is invisible or near-invisible on screen, which is why they are written as escapes here.
 --
+-- WHAT THIS SUITE CANNOT DO, SO NOBODY LEANS ON IT FOR THAT. It generates its fixtures from the
+-- same vocabulary it asserts against, so DELETING a surface form deletes that form's Meals too and
+-- the suite simply tests less while staying green. Measured 2026-08-10: removing مايونيز left every
+-- assertion here passing and only changed 'four spelling(s)' to 'two'. Catching a form that
+-- disappears is the job of the pinned decisions in packages/domain/test/exclusion_vocabulary_test —
+-- the same mutation turns two of those red. This suite's job is the other half: proving the
+-- PREDICATE honours every form that IS listed.
+--
 -- PAIRED WITH A CONTROL, always. A predicate that excluded everything would satisfy every
 -- "did not appear" assertion in this file, so each exclusion also asserts that a Meal made of rice
 -- and water survives it.
 
 BEGIN;
-SELECT plan({len(exclusions) * 2 + 2});
+SELECT plan({len(exclusions) * 3 + 2});
 
 SELECT tests.create_supabase_user('cook@sweep.kafoo');
 
@@ -133,8 +146,23 @@ INSERT INTO public.kitchen_profiles (cook_id, display_name, story, area, deliver
 VALUES (tests.user_id('cook@sweep.kafoo'), 'مطبخ المسح', 'بطبخ من زمان', 'المهندسين', 'توصيل قريب');
 SELECT tests.clear_authentication();
 
+-- ONE PROBE PER EXCLUSION, BECAUSE search_meals ENDS IN LIMIT 50.
+--
+-- Every Meal here used to carry the identical flat embedding, so every distance tied and Postgres
+-- returned the first 50 rows in physical order. Measured 2026-08-09: ids past 049 were never
+-- returned by any query, so 104 of 153 planted spellings were asserted against Meals the search
+-- could not produce and 8 of the 12 SC-005 assertions could not fail. Deleting a whole surface form
+-- from the vocabulary left this suite green.
+--
+-- Each exclusion now gets a probe that spikes its own dimension, and its Meals carry that same
+-- vector — so its group sorts first and sits inside the window whatever else is planted. The
+-- control keeps the flat vector, which is nearer to any spike than another spike is, so it lands
+-- immediately after the group being tested.
 CREATE TEMP TABLE probe AS
-SELECT (SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)) AS v;
+SELECT g AS grp,
+       (SELECT array_agg(CASE WHEN d = g THEN 1.0 ELSE 0.1 END)::vector(768)
+        FROM generate_series(1, 768) AS d) AS v
+FROM generate_series(1, {len(exclusions)}) AS g;
 GRANT SELECT ON probe TO anon, authenticated;
 
 -- One Meal per spelling of every form, plus one control that contains no excluded food at all.
@@ -149,13 +177,15 @@ VALUES
 
     # The control. Rice and water contain no listed food — asserted below rather than assumed.
     control_id = uuid_for(0)
+    # Flat, deliberately: a flat vector is nearer to any spike than a different spike is, so the
+    # control lands immediately after whichever group is being tested, inside the window every time.
     rows.append(
         f"  ({control_id}, tests.user_id('cook@sweep.kafoo'), 'أرز سادة', 'وصف', 25, "
         f"'مصري', 'رئيسي', 'published', ARRAY[E'\\u0623\\u0631\\u0632'], ARRAY[]::text[], "
         f"(SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now())"
     )
 
-    for eid, forms in exclusions:
+    for group, (eid, forms) in enumerate(exclusions, start=1):
         ids_by_exclusion[eid] = []
         for form in forms:
             for text, _why in spellings(form):
@@ -166,9 +196,18 @@ VALUES
                 rows.append(
                     f"  ({row_id}, tests.user_id('cook@sweep.kafoo'), 'أكلة {index}', 'وصف', 50, "
                     f"'مصري', 'رئيسي', 'published', ARRAY[{ingredient}], ARRAY[]::text[], "
-                    f"(SELECT array_agg(0.1)::vector(768) FROM generate_series(1, 768)), now())"
+                    f"(SELECT v FROM probe WHERE grp = {group}), now())"
                 )
                 index += 1
+
+        # A group larger than the search window would silently stop being asserted, which is the
+        # exact defect this rewrite exists to close. Fail the generator instead.
+        if len(ids_by_exclusion[eid]) >= SEARCH_LIMIT:
+            raise SystemExit(
+                f"{eid} plants {len(ids_by_exclusion[eid])} Meals and search_meals returns at most "
+                f"{SEARCH_LIMIT}. Split the group or raise the window — do NOT regenerate, because "
+                f"the assertions past the window would pass without checking anything."
+            )
 
     body = [header + ",\n".join(rows) + ";", "", "SELECT tests.authenticate_as_anon();", ""]
 
@@ -176,7 +215,8 @@ VALUES
         "-- The control is reachable before anything is excluded, so every assertion below is about",
         "-- the exclusion rather than about a Meal that was never visible.",
         "SELECT is(",
-        f"  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), NULL, NULL)",
+        f"  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), "
+        f"NULL, NULL)",
         f"   WHERE id = {control_id}),",
         "  1,",
         "  'the control Meal is on offer — the baseline the rest of this sweep rests on'",
@@ -184,21 +224,33 @@ VALUES
         "",
     ]
 
-    for eid, forms in exclusions:
+    for group, (eid, forms) in enumerate(exclusions, start=1):
         terms = sql_text_array(forms)
         ids = ", ".join(ids_by_exclusion[eid])
+        count = len(ids_by_exclusion[eid])
+        probe = f"(SELECT v FROM probe WHERE grp = {group})"
         body += [
             f"-- {eid}: every spelling of every form, excluded.",
+            "--",
+            "-- BASELINE FIRST. Without it, 'zero rows came back' is satisfied by a Meal the search",
+            "-- could never return, and the exclusion assertion below passes while checking nothing.",
             "SELECT is(",
-            f"  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), {terms}, NULL)",
+            f"  (SELECT count(*)::int FROM public.search_meals({probe}, NULL, NULL)",
             f"   WHERE id IN ({ids})),",
-            "  0,",
-            f"  'SC-005: no Meal containing {eid} appears when {eid} is excluded — "
-            f"{len(ids_by_exclusion[eid])} spelling(s) checked'",
+            f"  {count},",
+            f"  'baseline: all {count} spelling(s) of {eid} are on offer before {eid} is excluded'",
             ");",
             "",
             "SELECT is(",
-            f"  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), {terms}, NULL)",
+            f"  (SELECT count(*)::int FROM public.search_meals({probe}, {terms}, NULL)",
+            f"   WHERE id IN ({ids})),",
+            "  0,",
+            f"  'SC-005: no Meal containing {eid} appears when {eid} is excluded — "
+            f"{count} spelling(s) checked'",
+            ");",
+            "",
+            "SELECT is(",
+            f"  (SELECT count(*)::int FROM public.search_meals({probe}, {terms}, NULL)",
             f"   WHERE id = {control_id}),",
             "  1,",
             f"  'excluding {eid} does not remove a Meal that has none of it — an exclusion is not a "
@@ -212,7 +264,7 @@ VALUES
         "-- ever added that reaches rice, every control assertion above would fail together and the",
         "-- cause would not be obvious from any of them.",
         "SELECT is(",
-        "  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe), "
+        "  (SELECT count(*)::int FROM public.search_meals((SELECT v FROM probe WHERE grp = 1), "
         + sql_text_array(sorted({f for _, forms in exclusions for f in forms}))
         + ", NULL)",
         f"   WHERE id = {control_id}),",

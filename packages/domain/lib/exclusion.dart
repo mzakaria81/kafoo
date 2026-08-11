@@ -130,6 +130,58 @@ abstract final class ExclusionVocabulary {
     'من غير',
     'بدون',
     'بلاش',
+    // "I DON'T EAT" IS A NEGATION, AND IT WAS RETURNING NOTHING AT ALL.
+    //
+    // Added 2026-08-10 on the founder's call. Measured before it went in:
+    // `مبكلش لحمة` produced [NoExclusion] — not not-understood, NOTHING. No
+    // marker in the list matched, so the phrase read as an ordinary request and
+    // the meat came back with the screen saying nothing was dropped.
+    //
+    // That is the same failure as `عندي حساسية من` on 2026-08-07, for the same
+    // structural reason: the marker list is a closed set, and a way of saying
+    // "without" that nobody wrote down is silent rather than loud. Habitual
+    // negation — "I don't eat X" — is how a preference gets stated when it is
+    // long-standing, which is exactly when it is religious or medical.
+    //
+    // Longer first WITHIN this pair: `مباكلش` does not contain `مبكلش` (the ا
+    // sits between the ب and the ك and folding does not remove it), so order is
+    // not load-bearing between these two. Written longest-first anyway, because
+    // the next word added here may not be so lucky.
+    //
+    // **THE LIST AS A WHOLE IS NO LONGER LONGEST-FIRST, AND THE RULE THAT
+    // MATTERS IS CONTAINMENT, NOT LENGTH.** These two are six and five
+    // characters and sit below `بدون` and `بلاش` at four. That is safe here
+    // because no marker in this list contains either of them — but the header
+    // comment above still says "longest first", which was true when it was
+    // written and is now only true within each family. What must never break is
+    // that a marker containing another sits ABOVE the one it contains, which is
+    // why `من غير ما يكون فيه` precedes `من غير`.
+    //
+    // Position in this list is not merely cosmetic: `parse` picks the marker by
+    // LIST INDEX rather than by where it appears in the sentence, so a marker
+    // lower down loses a compound sentence to one above it. Measured 2026-08-10:
+    // `مبكلش لحمة وبدون بصل` answers `onion`, honouring the taste preference
+    // stated second over the habitual negation stated first. That behaviour
+    // predates these two entries — `بدون بصل ومن غير لحمة` answers `meat` on the
+    // old markers alone — so it is recorded here rather than fixed under a
+    // vocabulary change, and it is the founder's call.
+    // THE PARTICLE IS ما AND IT IS WRITTEN APART AS OFTEN AS IT IS JOINED.
+    // Added 2026-08-10 after the first two went in. All four of these returned
+    // NoExclusion — nothing excluded, nothing said — while the suite was green
+    // for `مبكلش` and `مباكلش`, because whoever wrote them (me) reasoned about
+    // the ا between ب and ك and never asked whether the negation particle can
+    // stand on its own. It can, and detaching it is the MORE literate spelling,
+    // which is what somebody stating a religious rule tends to reach for.
+    //
+    // Longest first, and none of the six contains another: folding preserves
+    // the space, so `ما بكلش` and `مابكلش` are genuinely two forms rather than
+    // one written twice.
+    'ما باكلش',
+    'ماباكلش',
+    'ما بكلش',
+    'مابكلش',
+    'مباكلش',
+    'مبكلش',
   ];
 
   /// Words that can sit between the marker and the food without being part of
@@ -192,6 +244,35 @@ abstract final class ExclusionVocabulary {
         'سمك', 'أسماك',
         // Named fish. Excluding سمك and being served رنجة is the failure.
         'سلمون', 'رنجة', 'فسيخ', 'بلطي', 'بوري', 'سردين',
+        // `تونة` SITS INSIDE `زيتونة`, AND IT GOES IN ANYWAY.
+        //
+        // Founder's call, 2026-08-10. Tuna is the fish most likely to reach a
+        // Customer without the word `سمك` anywhere near it — it arrives in a
+        // sandwich, a salad or a filling, and somebody avoiding fish for an
+        // allergy is exactly who meets it that way.
+        //
+        // The cost is ONE olive form, and the mechanism is the Cook side rather
+        // than the Customer side. `search_meals` matches
+        // `fold_arabic(item) ILIKE '%' || fold_arabic(term) || '%'` — ANYWHERE
+        // in the string, not at a word start — so a Cook who wrote `زيتونة`
+        // loses that Meal to a fish exclusion. Measured 2026-08-10: `زيتون`,
+        // `زيت زيتون` and `زيتون أسود` are all untouched, so the mass noun an
+        // ingredient list normally carries does not collide. Only the feminine
+        // singular does. The Customer side is unaffected — `من غير زيتونة`
+        // correctly returns not-understood and never answers `fish`.
+        // Over-exclusion is the direction this feature is allowed
+        // to be wrong in: an olive nobody wanted removed is an annoyance, and a
+        // tuna sandwich served to a fish allergy is the thing SC-005 forbids.
+        // The size of it is pinned in exclusion_over_exclusion_test.dart.
+        // BOTH SPELLINGS, AND SHIPPING ONE WAS WORSE THAN SHIPPING NEITHER.
+        // `تونة` is the tin, `تونا` is the menu board — `سلطة تونا`,
+        // `ساندوتش تونا`. Folding does not join them: `تونة` folds to `تونه`
+        // and `تونا` keeps its alef. Found 2026-08-10 by localization-reviewer
+        // after `تونة` alone had gone in and every suite was green. With only
+        // `تونة` listed, a Customer excluding fish was told Kafoo had removed
+        // سمك and was then served the tuna salad — the first version of this
+        // entry turned an honest silence into a confident false statement.
+        'تونة', 'تونا',
       },
     ),
     // Crustaceans and molluscs are distinct allergies and are grouped here.
@@ -213,7 +294,17 @@ abstract final class ExclusionVocabulary {
     ),
     // `بيض` alone: `بيضة` and `بيضه` both contain it, so naming them added
     // nothing even before folding.
-    Exclusion(id: 'egg', surfaceForms: {'بيض'}),
+    // `مايونيز` IS HERE, AND IT EXCLUDES EVERY EGG RATHER THAN JUST THE SAUCE.
+    //
+    // Founder's call, 2026-08-10. One form set serves both directions — the
+    // same list reads what the Customer said and matches what the Cook wrote —
+    // so there is no way to say "lose the mayonnaise, keep the omelette". A
+    // Customer naming mayonnaise loses eggs entirely.
+    //
+    // Taken knowing that, because the reverse is worse by a wide margin:
+    // mayonnaise is egg that does not look like egg, and somebody avoiding eggs
+    // reads an ingredient list, sees no `بيض`, and eats it.
+    Exclusion(id: 'egg', surfaceForms: {'بيض', 'مايونيز'}),
     // Butter and ghee before cream: anyone avoiding dairy means سمنة and زبدة
     // long before they mean قشطة, and Egyptian cooking uses both constantly.
     // لبنة and لبن رايب need no entry — لبن reaches them as a substring.
@@ -245,6 +336,34 @@ abstract final class ExclusionVocabulary {
         'مكسرات', 'لوز', 'عين جمل', 'عين الجمل', 'بندق', 'فستق', 'كاجو',
         // In every stuffed dish, and absent from every list that forgets it.
         'صنوبر', 'بيكان',
+        // `جوز` IS MISSING ON PURPOSE. THIS IS A DECISION, NOT A GAP.
+        //
+        // Founder's call, 2026-08-10, on localization-reviewer's unprompted
+        // recommendation. `جوز` on its own means a HUSBAND, and `جوز حمام` is a
+        // PAIR of pigeons — so adding it would tell a Customer avoiding nuts
+        // that a pigeon Meal contains walnuts. An exclusion pointing at the
+        // wrong food is worse than one that misses, which is the same reasoning
+        // that keeps `طحين` out of `sesame` a few lines below.
+        //
+        // WALNUT IS REACHABLE ON THE CUSTOMER'S SIDE AND NOT ON THE COOK'S, and
+        // an earlier draft of this comment said only the first half. `عين جمل`
+        // and `عين الجمل` are what an Egyptian ingredient list usually carries
+        // and both are above, so a Cook who writes either is correctly withheld.
+        // But ONE FORM SET SERVES BOTH DIRECTIONS, so leaving `جوز` out to
+        // protect the Customer side leaves the Cook side open: measured
+        // 2026-08-10, a Cook writing `جوز` or `جوز مطحون` is reached by NOTHING,
+        // and a Customer who said `عندي حساسية من المكسرات` is shown that Meal.
+        // Silent under-exclusion on a nut allergy — the direction SC-005 forbids.
+        //
+        // That gap cannot be closed by editing this list. It needs the Customer
+        // and Cook form sets split, or the extraction prompt pinned to emit
+        // `عين جمل` for walnut. Both are open decisions recorded in WP-017 and
+        // neither is taken here. `meals.ingredients` is AI-extracted and models
+        // drift to Modern Standard Arabic, where walnut IS `جوز` — so this is a
+        // live risk, not a hypothetical one.
+        //
+        // Written down here AND pinned by a test, because the next author will
+        // otherwise read the absence as an oversight and close it.
       },
     ),
     // طحين is deliberately NOT here. In Modern Standard Arabic and the Levant it
@@ -381,12 +500,28 @@ abstract final class ExclusionVocabulary {
       for (final form in exclusion.surfaceForms) (exclusion, foldArabic(form)),
   ];
 
-  /// Words that join two foods in one breath — `من غير لبن ولا بيض`.
+  /// Words that end the food and begin something else — `من غير لبن ولا بيض`,
+  /// `مبكلش لحمة بس بحب الفراخ`.
   ///
   /// Matched as whole words. A bare `و` is also a prefix (`وبصل`), so splitting
   /// on the character rather than the word would cut ordinary food names in
-  /// half.
-  static const Set<String> _conjunctions = {'ولا', 'و', 'أو', 'او'};
+  /// half — and `بس` is the front of `بسطرمة`, which is meat.
+  ///
+  /// **`بس` IS NOT A CONJUNCTION AND IT BELONGS HERE ANYWAY.** It means "but",
+  /// and what follows it is the opposite of an exclusion: the food the Customer
+  /// says they DO want. Added 2026-08-10 after trust-reviewer measured what its
+  /// absence did — `مبكلش لحمة بس بحب الفراخ`, "I don't eat meat but I like
+  /// chicken", took the whole tail as the food, let the longest match win, and
+  /// excluded the CHICKEN. The meat stayed on the screen and Kafoo told the
+  /// Customer it had removed chicken.
+  ///
+  /// That is under-exclusion of the food they named wearing a label naming a
+  /// food they did not — the one combination this file promises not to produce.
+  /// It is also the ordinary shape of a habitual negation, so it arrived on the
+  /// phrasing most likely to carry a religious or medical rule. Pre-existing:
+  /// `من غير لحمة بس بحب الفراخ` did the same before the habitual markers
+  /// existed.
+  static const Set<String> _conjunctions = {'ولا', 'و', 'أو', 'او', 'بس'};
 
   /// One shape for a word Arabic writes several ways.
   ///

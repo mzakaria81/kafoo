@@ -218,11 +218,11 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{كمّلي} other{كمّل}}'**
   String signInContinue(String addressForm);
 
-  /// Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.
+  /// Shown when sign-in is rate limited. States no wait time: the client is never told one.
   ///
   /// In ar, this message translates to:
-  /// **'{addressForm, select, feminine{جربت كتير. استني {minutes} دقيقة وبعدين جربي تاني.} other{جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.}}'**
-  String signInRateLimited(int minutes, String addressForm);
+  /// **'{addressForm, select, feminine{جربتي كتير. استني شوية وجربي تاني.} other{جربت كتير. استنى شوية وجرب تاني.}}'**
+  String signInRateLimited(String addressForm);
 
   /// Heading on the OTP code entry screen.
   ///
@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'مقدرناش نحفظ الأكلة. {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
   String mealSaveError(String addressForm);
 
+  /// Shown when the price the Cook typed is not a price the database can hold — words, zero, or more precision than numeric(10,2). Arabic-Indic digits are NOT this case: parseMealPrice accepts them, which is the whole point of it existing.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش فاهمين السعر. {addressForm, select, feminine{اكتبيه} other{اكتبه}} بالأرقام بس، أكبر من صفر.'**
+  String mealPriceInvalid(String addressForm);
+
   /// Shown when uploading a Meal photo fails. The Cook can proceed without a photo.
   ///
   /// In ar, this message translates to:
@@ -811,6 +817,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'من غير صورة'**
   String get mealSummaryNoPhoto;
+
+  /// Spoken when the summary's photo row is reached. It CONFIRMS the photograph is attached rather than naming the image, because that is the question the Cook is on this screen to answer. Before 2026-08-11 the row rendered the storage path as text, so a screen reader at least said something; the image that replaced it announced nothing at all.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللي {addressForm, select, feminine{اخترتيها} other{اخترتها}}، موجودة'**
+  String mealSummaryPhotoAttached(String addressForm);
+
+  /// Spoken for the Meal photograph on the Customer's public view. Names the image, because a Customer is looking at food rather than checking their own upload.
+  ///
+  /// In ar, this message translates to:
+  /// **'صورة الأكلة'**
+  String get publicMealPhotoLabel;
+
+  /// Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen. GENDERED, because the first version was not: it told every Cook «اللي بدأتها», addressing a woman as a man on a line she hears every time she comes back to a Meal. ADR-0010 exists because that mistake was already made once. Raised by localization-reviewer on PR #455.
+  ///
+  /// In ar, this message translates to:
+  /// **'بنجيب الأكلة اللي {addressForm, select, feminine{بدأتيها} other{بدأتها}}...'**
+  String mealConvResuming(String addressForm);
 
   /// Confirms the summary and puts the Meal on offer. FR-004: nothing is offered before this.
   ///
@@ -1057,6 +1081,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أكلاتي'**
   String get myMealsTitle;
+
+  /// Home-screen entry to offering a Meal. A noun rather than an imperative on purpose: it needs no grammatical form for the Cook, so it reads the same to everybody and costs no placeholder.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلة جديدة'**
+  String get newMealEntry;
 
   /// Shown when the Cook has no Meals at any status.
   ///
@@ -1325,7 +1355,7 @@ abstract class AppLocalizations {
   /// THE SENTENCE THE WHOLE EXCLUSION DESIGN EXISTS FOR. A negation Kafoo recognised without recognising the food must reach the Customer as words: without this the results look exactly like results for a request with no exclusion in it, and the Customer is served the thing they asked to avoid. Never says a Meal is safe. IT DOES NOT QUOTE THE WORD BACK, and that is a trade taken deliberately on 2026-08-07: the value `discover` carried was not a word but the whole remainder of the sentence after the negation marker, which crossed the network and landed in error bodies for a screen that only read whether it was set. Trust outranks actionability in the priority order, so the sentence earns its actionability from the closing clause instead. Ungendered per ADR-0010.
   ///
   /// In ar, this message translates to:
-  /// **'فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.'**
+  /// **'فهمنا إن في حاجة المفروض تتشال من الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. نجرب اسم الأكلة لوحده.'**
   String get searchExclusionNotUnderstood;
 
   /// STATES WHAT WAS FILTERED ON AND NEVER THAT A MEAL IS SAFE. meals.allergens is frequently an AI estimate carrying nutrition_source, so the strongest true statement is what was removed and where that came from. A Customer with an allergy is exactly the person who would act on a safety claim, which is why Kafoo does not make one about food it did not cook. THE PLACEHOLDER APPEARS TWICE ON PURPOSE: the closing clause said 'خالية منها', a feminine pronoun, and seven of the twelve exclusions are masculine — so the sentence that has to sound trustworthy carried an agreement error. Repeating the noun cannot disagree with itself. Ungendered per ADR-0010.
@@ -1406,6 +1436,30 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «{first}»} =2{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «{first}» و«{second}»} other{مفيش أكلة هنا زي كده بالظبط. من اللي معروض دلوقتي: «{first}» و«{second}» و«{third}»}}'**
   String searchJudgementAlternatives(
       int count, String first, String second, String third);
+
+  /// Shown when the typed number is not an Egyptian mobile number, before anything is sent.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{الرقم ده مش شكله رقم موبايل مصري. اكتبي رقمك كده: 01xxxxxxxxx} other{الرقم ده مش شكله رقم موبايل مصري. اكتب رقمك كده: 01xxxxxxxxx}}'**
+  String signInPhoneNotMobile(String addressForm);
+
+  /// Shown when the server refused to send a sign-in code. Never claims the internet is down.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{مقدرناش نبعت كود على الرقم ده. اتأكدي من الرقم وجربي تاني.} other{مقدرناش نبعت كود على الرقم ده. اتأكد من الرقم وجرب تاني.}}'**
+  String signInCodeNotSent(String addressForm);
+
+  /// Shown when speech recognition works but the device has no Arabic locale installed. Customer-facing and ungendered per ADR-0010.
+  ///
+  /// In ar, this message translates to:
+  /// **'عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. الكتابة شغالة عادي.'**
+  String get searchVoiceNeedsArabic;
+
+  /// Shown to a Cook when speech recognition works but the device has no Arabic locale installed.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.} other{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.}}'**
+  String convVoiceNeedsArabic(String addressForm);
 }
 
 class _AppLocalizationsDelegate

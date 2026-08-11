@@ -194,6 +194,49 @@ Then confirm the bundle carries no service-role key:
 npm run build && grep -r "service_role\|SERVICE_ROLE" .open-next/ || echo "clean"
 ```
 
+## 5a. Searching without installing anything — SC-009 field by field
+
+Same `npm run dev`, and **run this with the browser's network panel open and recording.** The whole
+point of the checks below is what leaves the browser; reading the code is what the tests already do.
+
+Ask for food in Egyptian Arabic — `عايز حاجة سخنة من غير لحمة في المهندسين` — and compare, side by
+side with the app on the same database:
+
+- **The question comes first, and only at the first attempt to search.** Arriving on the page must
+  ask nothing. Typing and pressing search is what asks (FR-029a).
+- **Both answers look the same.** Same size, same border, same weight. If one of them is louder,
+  that is the dark pattern the trust rules call product-fatal, not a styling nit.
+- **Answer no, and watch the network panel.** Zero requests. Then reload: the question does not come
+  back, the search box is gone, a sentence says search is off, and the food is still there (FR-029e,
+  SC-014, SC-015).
+- **Answer yes, and read the request.** It goes to `/functions/v1/discover` — the same function the
+  app calls — as a **POST**. The phrase is in the body. **If the phrase appears in any URL, stop:**
+  a URL is written to Cloudflare's request log, to the browser's history, and to `Referer` on every
+  image on the page, and each of those is FR-029 broken.
+- **A second request follows to `/functions/v1/judge-results`**, after the results are already on
+  screen. Kill the network between the two and the results must be unchanged with the sentence
+  simply absent — the honesty layer costs a sentence, never a result.
+- **Results and cards are identical to the app's**, field for field: title, kitchen, price, photo.
+  That is SC-009. A field on one surface and not the other is the failure.
+- **`analytics_events` gets a row carrying `result_count` and nothing else.** Check the row, not the
+  request: a phrase riding along as an attribute is what FR-029 forbids. A refused Customer produces
+  **no row at all** — not a row with a count of zero.
+
+Then name an area with nothing in it (`عايز فراخ في العجوزة` where no Cook is in العجوزة):
+
+- Kafoo says that area is empty and **names the areas that do have food**, in the Cooks' own words.
+- Nothing from another area is shown until you choose one. Widening is yours, never Kafoo's.
+- No distance, no "nearest", no claim that anyone there delivers (FR-024b, FR-024c).
+- Choosing an area re-sends the same sentence. **Refuse in Settings first, then try choosing an
+  area** — zero requests. This is the entrance the app's own gate missed on 2026-08-07.
+
+Finally, the switch (T226, FR-029c):
+
+- The Settings link is in the header on every page. Turn search off, then on, then off. It holds
+  across a reload each time, and the search box appears and disappears with it.
+- Turn JavaScript off entirely and reload. **Browsing still works and the search box is not there.**
+  A box that cannot search is worse than no box.
+
 ## 5b. The judgement — what Kafoo says when nothing answers
 
 Search for something the marketplace plainly cannot answer (`سوشي ياباني`), and for something it

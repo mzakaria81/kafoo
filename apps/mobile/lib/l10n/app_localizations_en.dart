@@ -153,12 +153,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String signInRateLimited(int minutes, String addressForm) {
+  String signInRateLimited(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine': 'Too many attempts. Wait $minutes minutes and try again.',
-        'other': 'Too many attempts. Wait $minutes minutes and try again.',
+        'feminine': 'Too many attempts. Wait a little and try again.',
+        'other': 'Too many attempts. Wait a little and try again.',
       },
     );
     return '$_temp0';
@@ -797,6 +797,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String mealPriceInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'We could not read that price. Please write it in digits only, greater than zero.',
+        'other':
+            'We could not read that price. Please write it in digits only, greater than zero.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String mealPhotoError(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
@@ -944,6 +958,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mealSummaryNoPhoto => 'No photo';
+
+  @override
+  String mealSummaryPhotoAttached(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'The one you chose is attached',
+        'other': 'The one you chose is attached',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publicMealPhotoLabel => 'Photo of the Meal';
+
+  @override
+  String mealConvResuming(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Loading the Meal you started...',
+        'other': 'Loading the Meal you started...',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String mealSummaryConfirm(String addressForm) {
@@ -1131,6 +1172,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myMealsTitle => 'My Meals';
+
+  @override
+  String get newMealEntry => 'New Meal';
 
   @override
   String myMealsEmpty(String addressForm) {
@@ -1476,7 +1520,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchExclusionNotUnderstood =>
-      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it. Try naming the food on its own.';
+      'We understood that something was to be left out, but not what it was — so no Meal was removed on account of it. Let\'s try the name of the food on its own.';
 
   @override
   String searchFilteredOn(String food) {
@@ -1558,6 +1602,52 @@ class AppLocalizationsEn extends AppLocalizations {
           'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first» and «$second»',
       one:
           'Nothing here is exactly what you asked for. Among what\'s on offer right now: «$first»',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String signInPhoneNotMobile(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'That does not look like an Egyptian mobile number. Write it like this: 01xxxxxxxxx',
+        'other':
+            'That does not look like an Egyptian mobile number. Write it like this: 01xxxxxxxxx',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String signInCodeNotSent(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'We could not send a code to that number. Check the number and try again.',
+        'other':
+            'We could not send a code to that number. Check the number and try again.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get searchVoiceNeedsArabic =>
+      'Voice needs Arabic enabled in your phone’s speech recognition settings. Typing works as normal.';
+
+  @override
+  String convVoiceNeedsArabic(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'Voice needs Arabic enabled in your phone’s speech recognition settings. You can type your answer instead.',
+        'other':
+            'Voice needs Arabic enabled in your phone’s speech recognition settings. You can type your answer instead.',
+      },
     );
     return '$_temp0';
   }

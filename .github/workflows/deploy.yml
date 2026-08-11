@@ -7,9 +7,14 @@ name: Deploy
 # Secrets that light steps up:
 #   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD
 #     + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD   -> a signed Android bundle
-#   IOS_CERTIFICATE_BASE64 + IOS_CERTIFICATE_PASSWORD
-#     + IOS_PROVISIONING_PROFILE_BASE64
-#     + IOS_KEYCHAIN_PASSWORD                      -> a signed iOS archive
+#   APP_STORE_CONNECT_KEY_ID + APP_STORE_CONNECT_ISSUER_ID
+#     + APP_STORE_CONNECT_PRIVATE_KEY_BASE64
+#     + APPLE_TEAM_ID                              -> a signed iOS build, sent to TestFlight
+#
+# The iOS four replaced IOS_CERTIFICATE_BASE64, IOS_CERTIFICATE_PASSWORD,
+# IOS_PROVISIONING_PROFILE_BASE64 and IOS_KEYCHAIN_PASSWORD on 2026-08-10. Those four were
+# never set, and could not have been: producing a `.p12` certificate means exporting it from
+# a Mac keychain, and Kafoo has no Mac. Setup instructions: docs/ops/ios-testflight.md.
 #
 # THE WEB DEPLOY IS BACK, AND THIS TIME IT POINTS AT SOMETHING THAT EXISTS.
 #
@@ -47,16 +52,35 @@ name: Deploy
 # already advanced is how a migration gets applied twice or skipped. If this job is ever wanted
 # back, turn Supabase Branching's production deploys off first. Do not run both.
 #
-# NOTE ON STORE SUBMISSION: this workflow deliberately stops at building and
-# archiving a release candidate. It does not upload to App Store Connect or Play.
-# A binary cannot be un-shipped, so submission stays a human decision made with
-# release health in front of them — the same "machines propose, people approve"
-# rule the constitution applies to the AI Assistant.
+# NOTE ON STORE SUBMISSION, AND THE LINE MOVED ON 2026-08-10.
+#
+# This workflow CAN now put a signed build in front of a person: on a manual dispatch from `main`,
+# the iOS job uploads to TestFlight for internal testing. That reaches phones belonging to people
+# already on the Apple account, triggers no Apple review, and is visible to nobody outside it.
+#
+# It still never submits for public App Store review, and never touches Play production. A binary
+# in front of the public cannot be un-shipped, so that submission stays a human decision made with
+# release health in front of them — the same "machines propose, people approve" rule the
+# constitution applies to the AI Assistant. The boundary moved from "no upload at all" to "no
+# public release", which is where it belongs; a workflow that cannot reach a tester's phone is a
+# workflow nobody can test with.
+#
+# Until 2026-08-10 this note said the workflow "does not upload to App Store Connect or Play" —
+# written when that was true, left standing when the TestFlight step landed in the same change.
+# The top of a file is where a reader decides how much damage it can do, and a stale answer there
+# is worse than none. Raised by release-engineer, the third comment on this pull request to claim
+# something the pipeline did not do.
 # See .claude/agents/release-engineer.md for the pre-submission checklist.
 
 on:
   push:
     branches: [main]
+  # Manual runs exist so a release candidate can be ASKED FOR. The mobile builds
+  # run on every merge because they are the only thing that compiles the app, but
+  # the bundles they produce are archived only when someone wants one — see
+  # "Archive release candidate" below for why keeping every merge's bundle was
+  # storing an artifact nobody could use.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-main
@@ -123,19 +147,144 @@ jobs:
 
       # Deploy only when Cloudflare credentials exist, and say so out loud when they do not.
       # A skipped deploy that looks like a successful one is what this whole comment block is about.
-      - name: deploy
+      # NAME THE MISSING SECRET, RATHER THAN PUBLISHING A SITE THAT CANNOT
+      # RENDER AND LETTING THE SMOKE CHECK REPORT THE SYMPTOM.
+      #
+      # `SUPABASE_URL` was never set as a repository secret. An unset secret
+      # expands to an empty string in the shell, so `--var "SUPABASE_URL:"` bound
+      # a variable wrangler then listed in its binding table like any other —
+      # `env.SUPABASE_URL ("(hidden)")`, indistinguishable from a healthy one.
+      # `publicBackend()` rejects an empty string exactly as it rejects an
+      # undefined one, so every content page returned 500 and the only signal was
+      # a Worker that published perfectly.
+      #
+      # Conditioned on the Cloudflare token for the same reason the deploy is: a
+      # checkout with no way to publish is not made worse by absent Supabase
+      # values, and failing there would break every fork.
+      - name: refuse to deploy without the values the site needs
         if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          missing=""
+          [ -n "${SUPABASE_URL}" ] || missing="${missing} SUPABASE_URL"
+          [ -n "${SUPABASE_PUBLISHABLE_KEY}" ] || missing="${missing} SUPABASE_PUBLISHABLE_KEY"
+          if [ -n "${missing}" ]; then
+            echo "::error::Empty repository secret(s):${missing}. Every page that reads data will"\
+                 "return 500. Set them under Settings → Secrets and variables → Actions."\
+                 "SUPABASE_PUBLISHABLE_KEY is the sb_publishable_ key — NEVER the service-role key."
+            exit 1
+          fi
+          # The value, never printed. A wrong-project URL is the other half of
+          # this failure — docs/HANDOFF.md records SUPABASE_PROJECT_REF once
+          # pointing at an unrelated application — so the host is echoed to make
+          # a mismatch visible without disclosing anything.
+          echo "publishing against $(echo "${SUPABASE_URL}" | sed -E 's#(https://[a-z0-9]{6})[a-z0-9]*#\1…#')"
+
+      # `--var` sets the Worker's RUNTIME environment, which is a different thing
+      # from the build environment above and is why every content page returned
+      # 500 from 2026-08-07 to 2026-08-09. Each page is `force-dynamic` and reads
+      # `process.env` when the request arrives; on a Worker that comes from the
+      # Worker's vars, and there were none. The build had the values and the
+      # running code never saw them.
+      #
+      # Same secrets as the build step deliberately: one definition of which
+      # Supabase project this surface talks to.
+      # `main` ONLY, AND THIS IS THE STEP THAT PUBLISHES TO REAL CUSTOMERS.
+      #
+      # It used to be safe by accident. The workflow's only trigger was
+      # `push: branches: [main]`, so this job could not run against anything else and
+      # nobody had to say so. Adding `workflow_dispatch` for the mobile candidates
+      # removed that accident from EVERY job in the file, including this one, which
+      # the change never touched — anyone with write access could dispatch from a
+      # branch and this step would publish that branch straight to the live Customer
+      # site. Worse than the mobile case it was written to guard: a leaked bundle
+      # still needs a human to submit it, this needs nobody.
+      #
+      # The build above deliberately still runs on a branch dispatch. Building and
+      # checking the bundle for a service-role key is useful; publishing it is not.
+      # Caught by release-engineer on the run after the trigger was added.
+      #
+      # AND THE SAME LIMIT APPLIES HERE AS TO THE SIGNING STEPS BELOW, which is worth
+      # saying twice rather than leaving one reader of one section to assume
+      # otherwise. `workflow_dispatch` runs the copy of this file on the ref it is
+      # dispatched against, so somebody who can push a branch can push one where this
+      # condition is deleted, dispatch it, and publish. A condition inside a file
+      # cannot defend the file.
+      #
+      # It is worse here than there, and the recommendation below should be read as
+      # covering this step first. A leaked mobile bundle still needs a human to submit
+      # it to a store; this publishes to Customers with nothing further required. The
+      # control that would hold is the same — a GitHub Environment with required
+      # reviewers, enforced by GitHub outside the workflow file — and it is the
+      # founder's to configure. Raised by release-engineer, which noticed the warning
+      # existed for the less sensitive of the two steps and not this one.
+      - name: deploy
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != '' && github.ref == 'refs/heads/main'
+        id: deploy
         working-directory: apps/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx opennextjs-cloudflare deploy
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -o pipefail
+          npx opennextjs-cloudflare deploy -- \
+            --var "SUPABASE_URL:${SUPABASE_URL}" \
+            --var "SUPABASE_PUBLISHABLE_KEY:${SUPABASE_PUBLISHABLE_KEY}" \
+            | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "deployed to ${url}"
+
+      # ASK THE PUBLISHED SITE WHETHER IT WORKS, because "the deploy succeeded"
+      # and "the site renders" turned out to be different facts for two days and
+      # fifteen green runs. `/` is the browse page: it reads Supabase, so it is
+      # the page that fails when the runtime environment is wrong, and a 200 from
+      # it is the shortest honest proof that this deploy is serving food.
+      #
+      # Fails the job rather than warning. A deploy that published a broken site
+      # is not a successful deploy, and reporting it as one is the whole defect
+      # this step exists to end.
+      - name: smoke check the published site
+        if: steps.deploy.outputs.url != ''
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${url}/" || echo 000)
+            [ "${code}" = "200" ] && { echo "${url}/ → 200"; exit 0; }
+            echo "attempt ${attempt}: ${url}/ → ${code}"
+            sleep 6
+          done
+          echo "::error::${url}/ returned ${code}. The Worker published but the site does not render."
+          exit 1
 
       - name: say when the deploy was skipped
         if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN == ''
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: echo "::warning::CLOUDFLARE_API_TOKEN is unset — the surface was built and verified but NOT published."
+
+      # The other reason a run can build the site and not publish it. Said out loud
+      # for the same reason the mobile jobs say theirs: an absence with no
+      # explanation reads as a failure nobody noticed.
+      - name: say when the deploy was withheld from a branch
+        if: steps.check.outputs.present == 'true' && env.CLOUDFLARE_API_TOKEN != '' && github.ref != 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          {
+            echo "### Customer surface: built, not published"
+            echo ""
+            echo "This run is on \`${{ github.ref_name }}\`, not \`main\`. The site was"
+            echo "built and checked for a service-role key, which is the useful half"
+            echo "of running this on a branch — publishing it is not, because this"
+            echo "step deploys to the live Customer site."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::Built on ${{ github.ref_name }} — NOT published. Only main publishes."
 
   # macOS runners cost roughly ten times an Ubuntu minute, so the iOS job must
   # not start at all without signing material. `secrets` is not available in a
@@ -162,12 +311,21 @@ jobs:
     outputs:
       has_ios_signing: ${{ steps.check.outputs.has_ios_signing }}
     steps:
+      # THREE SECRETS AND A TEAM ID, NONE OF WHICH COME FROM A MAC.
+      #
+      # This used to require a `.p12` certificate and a `.mobileprovision` profile — both of
+      # which are produced by exporting from a Mac's keychain, and Kafoo has no Mac. It was a
+      # signing scheme that could not be set up by the only person who would ever set it up.
+      #
+      # An App Store Connect API key is three values downloaded from a web page, and Xcode's
+      # `-allowProvisioningUpdates` uses it to create and fetch the certificate and profile at
+      # build time. Same result, no Mac anywhere in the chain. docs/ops/ios-testflight.md.
       - id: check
         env:
-          HAS_IOS: ${{ secrets.IOS_CERTIFICATE_BASE64 != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' }}
+          HAS_IOS: ${{ secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           echo "has_ios_signing=${HAS_IOS}" >> "$GITHUB_OUTPUT"
-          echo "iOS signing secrets present: ${HAS_IOS}"
+          echo "App Store Connect credentials present: ${HAS_IOS}"
 
       - uses: actions/checkout@v5
 
@@ -209,6 +367,31 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq "postgresql-${PG_MAJOR}" "postgresql-${PG_MAJOR}-pgtap" \
                                       "postgresql-${PG_MAJOR}-pgvector"
+
+      # THE GATE TYPE-CHECKS THE WEB SURFACE NOW, SO THIS JOB HAS TO RESOLVE ITS
+      # DEPENDENCIES — the same two steps ci.yml grew in #443, which this job did not.
+      #
+      # #443 made verify.sh FAIL rather than skip in CI when apps/web/node_modules is
+      # absent, which is right: a skip there had been reporting ok without running on
+      # every pull request. It added setup-node and npm ci to ci.yml and to the `web`
+      # job below, and missed this one — which runs the same gate on a different
+      # runner, where nothing had installed them.
+      #
+      # Every deploy on main failed from that merge at 21:58 until this fix. Nothing
+      # announced it: `preflight` is what `web`, `android` and `ios` all depend on, so
+      # they reported "skipped" rather than red, and the Customer surface simply
+      # stopped being published while the workflow looked like it was only partly
+      # running. A dependency failing quietly is how a deploy goes missing for hours.
+      #
+      # Node version pinned to match ci.yml and the `web` job — one definition of the
+      # runtime, three places that must agree.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install web surface dependencies
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
 
       # A release is not the place to discover a missing RLS policy.
       #
@@ -315,17 +498,78 @@ jobs:
       # --obfuscate with --split-debug-info makes the release AOT build
       # unreadable without the symbol files, so those files ARE the ability to
       # debug a production crash. They are archived below.
+      #
+      # THE TWO `--dart-define`s WERE MISSING UNTIL 2026-08-10, and every candidate this job
+      # produced before that date was an app that installs and then throws on its first
+      # screen. `main()` reads the Supabase address and publishable key through
+      # `String.fromEnvironment`, which returns an empty string rather than failing when the
+      # value was never passed. `demo-apk.yml` passed them from the day it was written; this
+      # job never did, and nothing noticed because no candidate has ever been installed.
+      # Found while wiring the iOS job, which had the identical hole.
       - name: Build app bundle
         if: steps.detect.outputs.buildable == 'true'
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           flutter build appbundle --release \
             --build-number="${{ github.run_number }}" \
             --obfuscate \
-            --split-debug-info=build/symbols
+            --split-debug-info=build/symbols \
+            --dart-define=SUPABASE_URL="${URL}" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
         working-directory: apps/mobile
 
+      # THE BUILD RUNS ON EVERY MERGE. THE ARTIFACT IS KEPT ONLY WHEN ASKED FOR,
+      # AND ONLY FROM `main`.
+      #
+      # The `main` half is not belt-and-braces. Adding `workflow_dispatch` so a
+      # candidate could be asked for quietly removed a property this workflow used to
+      # have for free: before it, the only way to produce a release candidate was a
+      # push to main, so every candidate had been through pull request review by
+      # construction. A dispatch with no ref restriction lets anyone with write access
+      # build a signed, obfuscated candidate from a branch nobody reviewed, and
+      # nothing downstream re-checks where a candidate came from — submission is a
+      # human reading a checklist, and an artifact does not carry its provenance on
+      # its face. Raised by release-engineer on the run that introduced it.
+      #
+      # Signing is deliberately NOT gated, only archiving — and this guard stops an
+      # honest mistake, not a determined one. State the limit rather than the comfort:
+      #
+      # `workflow_dispatch` runs the workflow file ON THE REF IT IS DISPATCHED
+      # AGAINST, not the one on main. So anyone with write access can push a branch
+      # that deletes this very condition, dispatch it, and GitHub will run their
+      # version with full access to the signing secrets. An `if:` inside the file
+      # cannot defend the file. An earlier version of this comment claimed a signed
+      # build could not leave the runner unless archived; that was wrong and
+      # release-engineer said so.
+      #
+      # It does not WIDEN anything, which is the only reason it is acceptable as it
+      # stands: `main` has no branch protection, so the same person can push a
+      # modified deploy.yml straight to main and have it run on push. The exposure is
+      # the unprotected branch, not this trigger.
+      #
+      # The control that would actually hold is a GitHub Environment with required
+      # reviewers on the signing steps, because that is enforced outside the workflow
+      # file and survives someone editing it. That is a repository setting, not a
+      # change anyone can make from here, and it is the founder's to make.
+      #
+      # These are two different jobs wearing one name. The `flutter build` above is
+      # the ONLY thing in the whole pipeline that compiles the Android app — CI runs
+      # analysis and tests, which never touch Gradle — so it has to keep running on
+      # every merge or Android breakage is detected nowhere until release day.
+      #
+      # The bundle it produces is a different matter. It is unsigned whenever
+      # ANDROID_KEYSTORE_BASE64 is unset, and an unsigned bundle cannot be submitted
+      # to Play, so an arbitrary Tuesday's merge was archiving 90 days of something
+      # nobody can use and nobody downloads. Run this workflow manually when a
+      # candidate is actually wanted.
+      #
+      # The symbols follow the bundle deliberately. They are only meaningful for the
+      # exact binary they came from, so keeping them for a bundle that was discarded
+      # is keeping a key to a door that no longer exists.
       - name: Archive release candidate
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-android-${{ github.run_number }}
@@ -333,15 +577,62 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+      # R8's deobfuscation map, and it gets its OWN step rather than another path on
+      # the symbols upload. `if-no-files-found` is evaluated across the whole step, so
+      # a second path added there would go missing without complaint as long as the
+      # symbols themselves turned up — losing the map silently, which is the failure
+      # this repository keeps paying for.
+      #
+      # `isMinifyEnabled = true` and `isShrinkResources = true` on the release build
+      # type mean R8 renames every Java and Kotlin symbol: `PaymentProcessor` ships as
+      # `a.b.c`, and a Play Console crash report is unreadable without this file. It
+      # is generated per build and cannot be regenerated afterwards — rebuilding the
+      # same commit can produce a different mapping — so the file is the only copy
+      # there will ever be of how to read that binary's crashes.
+      #
+      # The Dart half of the app is covered by --split-debug-info below. This is the
+      # Android layer underneath: plugins, platform channels, the framework glue.
+      - name: Archive the R8 deobfuscation map
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-android-mapping-${{ github.run_number }}
+          path: apps/mobile/build/app/outputs/mapping/release/mapping.txt
+          if-no-files-found: error
+          retention-days: 90
+
       # Without these, a production crash report is a column of hex addresses.
       - name: Archive debug symbols
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-android-symbols-${{ github.run_number }}
           path: apps/mobile/build/symbols
           if-no-files-found: error
           retention-days: 90
+
+      # Say so, rather than leaving a merge looking like it produced a candidate it
+      # did not keep. A silent absence is how somebody goes looking for last week's
+      # bundle and finds nothing with no explanation.
+      - name: No candidate archived on this run
+        if: steps.detect.outputs.buildable == 'true' && !(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        run: |
+          {
+            echo "### Android: built, not archived"
+            echo ""
+            echo "The bundle compiled — that is this job's real purpose, and a failure"
+            echo "here would have meant the Android build is broken."
+            echo ""
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "It was NOT kept because this run is on \`${{ github.ref_name }}\`, not"
+              echo "\`main\`. A release candidate is only archived from \`main\`, so that"
+              echo "every candidate has been through pull request review by construction."
+              echo "Merge first, then run this from \`main\`."
+            else
+              echo "It was not kept, because bundles are archived only on a manual run"
+              echo "from \`main\`. To get one: Actions → Deploy → Run workflow."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Release notes
         working-directory: apps/mobile
@@ -359,12 +650,23 @@ jobs:
           unzip -o -q "$AAB" -d "$CERTDIR" 'META-INF/*' 2>/dev/null || true
           CERT=$(find "$CERTDIR/META-INF" -maxdepth 1 \
                    \( -name '*.RSA' -o -name '*.EC' -o -name '*.DSA' \) 2>/dev/null | head -1)
+          # TWO FACTS, AND THE FIRST ONE DECIDES. Whether an upload key was even
+          # provided is knowable without reading anything; the certificate then says
+          # what was actually used. Naming the identities that are NOT publishable
+          # would be the enumeration mistake this repository keeps re-learning — a
+          # third non-publishable key added later would be reported as the upload key,
+          # which is exactly what nearly happened when the demo build stopped falling
+          # back to the debug key on 2026-08-10 and started using a committed one.
+          OWNER=$(keytool -printcert -file "$CERT" 2>/dev/null | grep -m1 '^Owner:' || echo 'Owner: unknown')
           if [ -z "$CERT" ]; then
             echo "Signed: \`NO — unsigned bundle\`" >> "$GITHUB_STEP_SUMMARY"
-          elif keytool -printcert -file "$CERT" 2>/dev/null | grep -q 'CN=Android Debug'; then
+          elif [ "${HAS_KEYSTORE}" != "true" ]; then
+            echo "Signed: \`FALLBACK KEY — NOT PUBLISHABLE\` — $OWNER" >> "$GITHUB_STEP_SUMMARY"
+            echo "No upload key was configured, so whatever signed this cannot reach a store." \
+              >> "$GITHUB_STEP_SUMMARY"
+          elif printf '%s' "$OWNER" | grep -q 'CN=Android Debug'; then
             echo "Signed: \`DEBUG KEY — NOT PUBLISHABLE\`" >> "$GITHUB_STEP_SUMMARY"
           else
-            OWNER=$(keytool -printcert -file "$CERT" 2>/dev/null | grep -m1 '^Owner:' || echo 'Owner: unknown')
             echo "Signed: \`upload key\` — $OWNER" >> "$GITHUB_STEP_SUMMARY"
           fi
           rm -rf "$CERTDIR"
@@ -422,49 +724,178 @@ jobs:
       # the apt route does not exist there — to satisfy a database check for a job that builds an
       # iOS archive. Deno went with it, for the same reason it did in the Android job.
 
-      # iOS needs a certificate AND a provisioning profile, unlike Android's
-      # single keystore. Both land in a temporary keychain that is deleted with
-      # the runner; neither touches the working tree.
-      - name: Install signing certificate and profile
-        if: steps.detect.outputs.buildable == 'true'
+      # ONE FILE, TWO CONSUMERS. `xcodebuild` is handed the path explicitly; `altool` only
+      # looks in a fixed list of directories and this is one of them, so writing it here
+      # serves both without a second copy. Deleted at the end of the job.
+      #
+      # Gated with the signing step below, so an ordinary merge never puts this key on a
+      # runner at all. A merge builds unsigned, and an unsigned build needs no credential.
+      - name: Install the App Store Connect key
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         env:
-          CERT_B64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
         run: |
-          CERT_PATH="$RUNNER_TEMP/cert.p12"
-          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$KEY_B64" | base64 --decode \
+            > "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+          echo "App Store Connect key installed"
 
-          printf '%s' "$CERT_B64" | base64 --decode > "$CERT_PATH"
-          printf '%s' "$PROFILE_B64" | base64 --decode > "$PROFILE_PATH"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security import "$CERT_PATH" -P "$CERT_PASSWORD" -A \
-            -t cert -f pkcs12 -k "$KEYCHAIN"
-          security list-keychain -d user -s "$KEYCHAIN"
-
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/"
-          echo "signing material installed into a temporary keychain"
-
-      # Build number from github.run_number: monotonic, never reused. Symbols
-      # are archived for the same reason as Android — an obfuscated AOT crash
-      # report is unreadable without them.
-      - name: Build IPA
+      # UNSIGNED HERE, SIGNED AT EXPORT, and the split is what removes the Mac from the
+      # chain: `-allowProvisioningUpdates` in the export step below asks Apple for the
+      # distribution certificate and provisioning profile using the API key and signs with
+      # what comes back. Nobody ever exports a `.p12` from a keychain they do not own.
+      #
+      # THE TWO `--dart-define`s ARE NOT OPTIONAL. `main()` reads the Supabase address and
+      # publishable key through `String.fromEnvironment`, which yields an empty string when
+      # the value was never passed, and then throws on the first screen. Without these the
+      # TestFlight build installs perfectly and dies on launch — a failure that looks like a
+      # broken app and is actually a missing build flag. `demo-apk.yml` has always passed
+      # them; this job and the Android one never did, because neither had ever been run.
+      #
+      # Build number from github.run_number: monotonic, never reused. Symbols are archived
+      # for the same reason as Android — an obfuscated AOT crash report is unreadable
+      # without them.
+      - name: Build the archive
         if: steps.detect.outputs.buildable == 'true'
         working-directory: apps/mobile
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          flutter build ipa --release \
+          flutter build ipa --release --no-codesign \
             --build-number="${{ github.run_number }}" \
             --obfuscate \
-            --split-debug-info=build/symbols
+            --split-debug-info=build/symbols \
+            --dart-define=SUPABASE_URL="${URL}" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="${KEY}"
 
+      # SIGNING SPENDS A LIMITED RESOURCE, WHICH IS WHY THIS IS GATED AND THE STEP ABOVE IS
+      # NOT. `-allowProvisioningUpdates` asks Apple to create an Apple Distribution
+      # certificate when the machine has none, and a GitHub runner is destroyed after every
+      # run, so it never has one. Apple caps how many can exist at once — three — so signing
+      # on every merge would fill the cap within a week and then fail every iOS build,
+      # including the compile check this job exists for. Raised by release-engineer.
+      #
+      # Three steps are gated — the key install above, this one, and the upload below. Not the
+      # build: it stays on every merge
+      # THAT REACHES THIS JOB, because `--no-codesign` spends nothing and "does iOS still
+      # compile" is the whole reason for running on a merge. Gating the build as well would
+      # have removed that check — which the recommendation asked for and its own reasoning
+      # argued against.
+      #
+      # The capital letters are load-bearing. The whole job is gated on `has_ios_signing`,
+      # so until the four Apple secrets exist NOTHING here runs, including the compile check
+      # this paragraph is about. An earlier version of this comment said "every merge" flatly
+      # and described a check that does not happen yet — raised by release-engineer, and the
+      # same failure as a repo map listing a directory that was never committed.
+      #
+      # ponytail: three signed builds then a manual cleanup at developer.apple.com. Fixing
+      # that properly means revoking stale certificates through the App Store Connect API on
+      # each run — sixty lines of JWT signing that cannot be tested until an Apple account
+      # exists. Do it when the cleanup becomes annoying, not before.
+      # docs/ops/ios-testflight.md says what the failure looks like.
+      #
+      # `method` is `app-store` rather than the newer `app-store-connect`: both are accepted
+      # by current Xcode, the old name is accepted by older Xcode too, and this file cannot
+      # pin the runner's Xcode version.
+      #
+      # The options file is written here rather than committed because `teamID` is the only
+      # value in it and it comes from a secret. A committed file would either hardcode the
+      # team or be a template with one substitution — both worse than six lines of heredoc.
+      - name: Sign and export the app
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>destination</key><string>export</string>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath apps/mobile/build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath apps/mobile/build/ios/ipa \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+
+      # THE ONLY STEP THAT LEAVES THE RUNNER, and the only one a person outside Kafoo can
+      # see the result of. Gated exactly like the archive steps below — manual run, from
+      # `main` — for the same reason and with the same limit: an `if:` inside this file
+      # cannot defend the file, because `workflow_dispatch` runs the workflow as it exists
+      # on the ref it was dispatched against. It stops an honest mistake, not a determined
+      # one, and the honest mistake it stops is a merge quietly pushing a build to a phone.
+      #
+      # `altool --upload-app` rather than a third-party action: it ships with Xcode, so
+      # there is no supply chain here beyond Apple's own tooling, and it is three lines.
+      - name: Send the build to TestFlight
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          IPA="$(find apps/mobile/build/ios/ipa -maxdepth 1 -name '*.ipa' | head -1)"
+          if [ -z "$IPA" ]; then
+            echo "::error::the export produced no .ipa — nothing to send"
+            exit 1
+          fi
+
+          # READ THE CERTIFICATE, DO NOT TRUST THE EXIT CODE. The step above can succeed and
+          # still have signed with the wrong identity if automatic signing picked a
+          # development profile, and the first thing to notice would be a rejection from
+          # Apple whose message says nothing about identities. The Android job already
+          # inspects its certificate rather than believing the signing step — it prints what
+          # it found; this one refuses to upload, because here the upload is in the same job
+          # and a summary line arrives too late to stop it. Raised by release-engineer.
+          INSPECT="$RUNNER_TEMP/inspect"
+          rm -rf "$INSPECT" && mkdir -p "$INSPECT"
+          unzip -o -q "$IPA" -d "$INSPECT"
+          APP="$(find "$INSPECT/Payload" -maxdepth 1 -name '*.app' | head -1)"
+          AUTHORITY="$(codesign -dvvv "$APP" 2>&1 | grep -m1 '^Authority=' || true)"
+          echo "signed by: ${AUTHORITY:-nothing — the export is unsigned}"
+          case "$AUTHORITY" in
+            *"Apple Distribution"*) ;;
+            *)
+              echo "::error::exported with '${AUTHORITY:-no identity}', not an Apple Distribution certificate — refusing to upload"
+              exit 1
+              ;;
+          esac
+          rm -rf "$INSPECT"
+
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          {
+            echo "### Sent to TestFlight"
+            echo ""
+            echo "Build \`${{ github.run_number }}\` is uploaded. Apple takes a few minutes to"
+            echo "process it, then it appears in the TestFlight app on your phone."
+            echo "A build stops working 90 days after upload — run this again for a fresh one."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Same rule as Android: the build is the check and runs every time, the
+      # artifact is kept only on a manual run. Applied here for consistency rather
+      # than because it changes anything today — this job is gated on iOS signing
+      # secrets that are not set, so it currently skips in full. An archive rule
+      # that differs between the two platforms is a trap for whoever configures
+      # those secrets and then wonders why only one side keeps its candidate.
       - name: Archive release candidate
-        if: steps.detect.outputs.buildable == 'true'
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-ios-${{ github.run_number }}
@@ -472,22 +903,62 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Archive debug symbols and dSYMs
-        if: steps.detect.outputs.buildable == 'true'
+      # TWO STEPS, BECAUSE ONE STEP COULD NOT FAIL FOR THE CASE WORTH FAILING ON. These were a
+      # single upload with `if-no-files-found: warn`, and `if-no-files-found` only fires when
+      # NO path matched anything — so a run with Dart symbols and no dSYMs passed, silently,
+      # shipping a build whose native crashes can never be read. Even `error` on the combined
+      # step would not have caught it. Split, both `error`. Raised by release-engineer.
+      #
+      # They cover different crashes: Dart symbols un-obfuscate a Dart stack trace, dSYMs
+      # un-obfuscate a crash inside Apple's own frameworks or a plugin's native code.
+      - name: Archive Dart debug symbols
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: kafoo-ios-symbols-${{ github.run_number }}
-          path: |
-            apps/mobile/build/symbols
-            apps/mobile/build/ios/archive/*.xcarchive/dSYMs
-          if-no-files-found: warn
+          path: apps/mobile/build/symbols
+          if-no-files-found: error
           retention-days: 90
 
-      # The keychain dies with the runner, but deleting it explicitly means a
-      # later step in this job cannot reach the signing identity.
-      - name: Remove signing material
+      - name: Archive dSYMs
+        if: steps.detect.outputs.buildable == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafoo-ios-dsyms-${{ github.run_number }}
+          path: apps/mobile/build/ios/archive/*.xcarchive/dSYMs
+          if-no-files-found: error
+          retention-days: 90
+
+      # Mirrors the Android job's notice. The comment on the Android archive rule
+      # calls a per-platform difference a trap for whoever configures the iOS signing
+      # secrets later, and then this job did not have the notice — so the trap was
+      # laid in the same change that named it. Raised by release-engineer.
+      - name: No candidate archived on this run
+        if: steps.detect.outputs.buildable == 'true' && !(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        run: |
+          {
+            echo "### iOS: built, not archived"
+            echo ""
+            echo "The archive compiled — that is this job's real purpose, and a failure"
+            echo "here would have meant the iOS build is broken."
+            echo ""
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "It was NOT kept because this run is on \`${{ github.ref_name }}\`, not"
+              echo "\`main\`. A release candidate is only archived from \`main\`, so that"
+              echo "every candidate has been through pull request review by construction."
+              echo "Merge first, then run this from \`main\`."
+            else
+              echo "It was not kept, because archives are kept only on a manual run from"
+              echo "\`main\`. To get one: Actions → Deploy → Run workflow."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The runner is destroyed either way, but deleting it explicitly means a later step in
+      # this job cannot reach the key — and a private key that can create signing
+      # certificates for Kafoo is the one credential here that is not merely a build input.
+      - name: Remove the App Store Connect key
         if: always()
-        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+        run: rm -rf "$HOME/.appstoreconnect" || true
 
       - name: Release notes
         if: steps.detect.outputs.buildable == 'true'
@@ -496,7 +967,8 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Build number: \`${{ github.run_number }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Not submitted. Run the pre-submission checklist in" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`.claude/agents/release-engineer.md\` before uploading." >> "$GITHUB_STEP_SUMMARY"
-          echo "Store listing must be Egyptian Arabic first; no screenshot may" >> "$GITHUB_STEP_SUMMARY"
-          echo "show an invented Cook, Meal, or Review." >> "$GITHUB_STEP_SUMMARY"
+          echo "TestFlight is not the App Store. A build reaching your own phone is" >> "$GITHUB_STEP_SUMMARY"
+          echo "internal testing and needs no Apple review; PUBLISHING still does." >> "$GITHUB_STEP_SUMMARY"
+          echo "Before that, run the pre-submission checklist in" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`.claude/agents/release-engineer.md\`. Store listing must be Egyptian" >> "$GITHUB_STEP_SUMMARY"
+          echo "Arabic first; no screenshot may show an invented Cook, Meal, or Review." >> "$GITHUB_STEP_SUMMARY"

@@ -75,3 +75,52 @@ must not clip. Respect `MediaQuery.disableAnimations`.
 
 Widget tests for anything with conditional rendering. Golden tests for the design system components
 in `packages/ui/`. A test that only asserts "widget exists" is not a test.
+
+**A CHANGE THAT MOVES A PERSON BETWEEN SCREENS NEEDS A JOURNEY TEST.** Not a widget test of the
+screen it leaves and another of the screen it arrives at — a test that boots `KafooApp` and walks the
+path. `apps/mobile/test/journey_test.dart` is where they live.
+
+The rule exists because on 2026-08-10 five defects reached the founder's phone in one day and every
+one of them passed the whole gate:
+
+| What broke | Why no widget test could see it |
+|---|---|
+| Icons rendered as Chinese characters | An asset never bundled; widget tests load no real fonts |
+| The app threw on its first frame | No `ProviderScope` at the root; every test builds its own |
+| Four Cook screens had no route into them | Each rendered perfectly when constructed by hand |
+| The design system was rendered by no test | Every test built its own themeless `MaterialApp` |
+| A correct sign-in code navigated nowhere | Verifying succeeded; the screen above it was never popped |
+
+**None of those is a bug inside a widget.** Each is a bug in how the app is assembled, so testing
+parts more thoroughly would never have found any of them. The last one is the shape to remember: the
+code screen worked, the Cook home worked, and the *step between them* did not exist.
+
+What a journey test must do, and these are not negotiable:
+
+- **Boot `KafooApp`**, with its auth stream and repositories injected. Never a screen in isolation —
+  that is what the rest of the directory already does.
+- **Drive it by tapping and typing what a person would**, never by calling a method on a controller.
+  A controller call proves the controller; a tap proves the app.
+- **Assert on rendered Arabic**, not on widget types where a string will do.
+- **Scope every finder to a screen.** A pushed route keeps the route beneath it alive, so a bare
+  `find.byType(TextField)` matches two fields and types into whichever comes first — a test that
+  passes while proving nothing.
+- **Assert the arrival AND the departure.** `findsOneWidget` on the destination is half of it;
+  `findsNothing` on the screen left behind is the half that catches a route nobody popped.
+
+**TYPE WHAT AN EGYPTIAN COOK TYPES, INCLUDING THE NUMBERS.** `ar` is the default locale, so an
+Arabic keyboard is the default keyboard and «١٢٠» is the default way to write a price. On 2026-08-11 a
+Cook could not put a Meal on offer at all: the price went to a `numeric(10,2)` column as Arabic-Indic
+digits, Postgres refused it, and she was told the Meal could not be saved. Every price, every Cook.
+290 tests passed, and every one of them had typed `'35'`.
+
+The same cause had a second, quieter symptom on the summary — `FilteringTextInputFormatter.digitsOnly`
+allows `[0-9]` and nothing else, so the calorie field deleted her keystrokes as she made them. No
+error, no rejection, an empty box.
+
+A test that only supplies Latin input is testing a user this product does not have. `verify.sh`
+checks that at least one journey types an Arabic-Indic digit; the rule is broader than the check.
+
+**When a journey breaks in somebody's hand, the fix lands as a failing journey test first.** That is
+the whole point: the gate can only refuse what somebody taught it to see, and a person holding a
+phone is currently better at this than every check in the repository.

@@ -61,8 +61,18 @@ class _RemoveAccountScreenState extends State<RemoveAccountScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.removeAccountTitle)),
+      // SCROLLS, for the same reason the home does: at 200% text scale on a
+      // 320x480 phone this Column overflowed by 192 logical pixels and pushed
+      // its last child — the button that actually leaves — off the bottom.
+      // SC-011 is about being able to leave, so a leave screen that cannot
+      // reach its own button fails it as surely as burying the entry would.
+      //
+      // Found by the home screen's own 200% test walking into this screen.
+      // change_phone, code, email_sign_in and sign_in have the identical
+      // Padding > Column > Spacer shape and are not fixed here — see the note
+      // in apps/mobile/test/home_test.dart.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,7 +85,9 @@ class _RemoveAccountScreenState extends State<RemoveAccountScreen> {
                   style: TextStyle(color: theme.colorScheme.error),
                 ),
               ],
-              const Spacer(),
+              // A fixed gap, not a Spacer: a Spacer needs bounded height and a
+              // scroll view gives it none.
+              const SizedBox(height: KafooSpacing.xl),
               FilledButton(
                 onPressed: _removing ? null : _remove,
                 style: FilledButton.styleFrom(

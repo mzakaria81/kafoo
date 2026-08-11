@@ -27,6 +27,12 @@ export const NEGATION_MARKERS: readonly string[] = [
   'من غير',
   'بدون',
   'بلاش',
+  'ما باكلش',
+  'ماباكلش',
+  'ما بكلش',
+  'مابكلش',
+  'مباكلش',
+  'مبكلش',
 ];
 
 /// Words that can sit between the marker and the food without being part of it.
@@ -67,6 +73,8 @@ export const EXCLUSIONS: readonly Exclusion[] = [
       'بلطي',
       'بوري',
       'سردين',
+      'تونة',
+      'تونا',
     ],
   },
   {
@@ -87,6 +95,7 @@ export const EXCLUSIONS: readonly Exclusion[] = [
     id: 'egg',
     surfaceForms: [
       'بيض',
+      'مايونيز',
     ],
   },
   {

@@ -146,7 +146,8 @@ unmeasurable, since a Review requires a completed Order.
 | `PhoneNumberDetached` | planned (E2) | `days_dormant` | A dormant Person lost its phone credential, so the number resolves to nobody (ADR-0007) |
 | `MealDrafted` | active (E2) | — | A Cook began composing a Meal. With `MealPublished`, gives the draft-to-publish rate |
 | `MealUpdated` | active (E2) | `changed` | A published Meal was edited. `changed` distinguishes a price change from a typo. Emitted values: `availability`, `title`, `description`, `price` |
-| `SearchPerformed` | active (E3) | `result_count` | A search ran |
+| `SearchPerformed` | active (E3) | `result_count`, `top_cuisine`, `top_category`, `area_narrowed` | A search ran |
+| `MealOpened` | active (E3) | `source`, `cuisine`, `category` | A Customer opened a Meal. `source` is `browse` or `search` |
 | `SearchFailed` | active (E3) | — | The AI Assistant judged that nothing on offer answers the request. NOT "the database returned no rows": retrieval returning rows is not the same as those rows answering, and conflating the two is what a score threshold tried and failed to do. Carries nothing at all — the phrase is forbidden by FR-029, and a count of results that did not answer is a number nobody can act on |
 | `RecommendationAccepted` | active (E3) | `rank` | A Customer opened a Meal the AI Assistant named after saying nothing answered. `rank` is where that Meal already sat in the results. Never the phrase, and never the Meal's id — an id and a timestamp together are a search somebody could reconstruct |
 | `ReviewEdited` | planned (E5) | — | A Review changed inside its editable window |
@@ -187,9 +188,40 @@ does not. A `fallback` value (any Arabic other than `ar-EG`) is the signal that 
 recognition is not serving Egyptian Arabic, and the Cook's dialect is being transcribed by a model
 trained on something else. When voice is unavailable the literal string `none` is recorded.
 
-**`SearchPerformed` carries `result_count` AND NOTHING ELSE, asserted by test on the attribute
-SET rather than on the count.** A test that checks only the number stays green when a phrase is
-added beside it, which is the exact way this requirement would be lost.
+**`SearchPerformed`'s attributes are asserted by test on the SET, not on the values.** A test that
+checks only the attributes it knows about stays green when a phrase is added beside them, which is
+the exact way this requirement would be lost.
+
+**Three of the four were added on 2026-08-08, and every one is a value Kafoo chose rather than a
+word a Customer typed.** `docs/product/business-questions.md` is the decision; the short version is
+that a search leaves no trace in any table, so a question asked in six months about the first six
+months has nothing to ask it of.
+
+- **`top_cuisine` and `top_category`** are the fixed enums in `packages/domain/lib/meal.dart`, taken
+  off the FIRST result, or the literal `none` when there were none — a literal rather than an
+  omitted key, so every row is the same shape and the enums have no `none` to collide with.
+  **Read them as what Kafoo SERVED, not as what the Customer asked for.** Matching by meaning always
+  returns something: a request the corpus cannot answer still has a top result, and recording its
+  category as demand is the same mistake a score threshold made in research.md §4. They are honest
+  read beside `SearchFailed` — a category that is common while `SearchFailed` is rare is real
+  demand; the same category with `SearchFailed` high is Kafoo repeatedly offering the wrong thing.
+- **`area_narrowed` is a boolean and NEVER THE AREA**, which is a phrase pulled out of a Customer's
+  own sentence. With `result_count: 0` it separates "no Cooks near this person" from "nothing like
+  this on the menu" — different problems with different fixes, arriving identical until now.
+
+**`MealOpened` records what somebody CHOSE, which is the closest thing to demand Kafoo has before
+Orders exist.** `source` is also the only way to answer whether search earns its keep: it costs an
+embedding call and an AI judgement per query, and browsing costs nothing.
+
+It carries **no `rank`**, deliberately — `RecommendationAccepted` already carries it for the one
+case where position is the question, and a rank on every open is a number nobody has a decision
+waiting on, which is this file's own test for not adding an attribute. And **no Meal id**, for the
+reason that keeps it off `RecommendationAccepted`: an id and a timestamp together are a search
+somebody could reconstruct.
+
+It is emitted from the shared Meal card on both surfaces rather than from the screens that use it.
+Call sites keep being added and the one that forgets is invisible — a number that is quietly low
+rather than a screen that is quietly broken.
 
 **A search that never ran emits nothing.** A Customer who has refused, or who has not yet been
 asked, produces no event at all — not an event with a count of zero. Kafoo records searches, and
@@ -258,6 +290,7 @@ is what this file was created to end.
 | Date | Change |
 |---|---|
 | 2026-07-30 | Created. Consolidates event rules previously duplicated across the constitution, `CLAUDE.md`, `glossary.md` and `tasks-template.md`. Completes the Order lifecycle, adds the E1 funnel, introduces levels, status, and the operational-telemetry boundary. |
+| 2026-08-08 | Level 2. `SearchPerformed` gains `top_cuisine`, `top_category` and `area_narrowed`; `MealOpened` added. Both from `docs/product/business-questions.md`, which is the demand side of this registry — the questions the business needs answered, and which of them are not recoverable later. **The same day found that the discovery events had never been recorded at all for signed-out Customers**: the `anon` insert policy on `analytics_events` allowed two E1 sign-in names and nothing else, so every search since E3 shipped was rejected and swallowed. Fixed in `20260808194534_widen_anonymous_analytics_to_discovery.sql`. |
 | 2026-07-30 | E1 shipped: all thirteen E1 events moved from `planned` to `active`. A `planned` event that is emitted misleads exactly as much as an `active` one that is not. |
 | 2026-08-05 | E2 publishing shipped: `MealPublished` and `MealDrafted` moved to `active`. **`MealArchived`, `MealUpdated` and `PhoneNumberDetached` deliberately did NOT move**, though all three are E2 events. Nothing emits them yet — retiring a Meal, editing one on offer, and ADR-0007's dormancy severing are still unbuilt. The rule from the row above cuts both ways, and moving all five at once because they share an epic label is exactly how a registry stops describing the system. Move each one in the change that first emits it. |
 | 2026-08-05 | E2 availability, retirement and editing shipped: `MealArchived` and `MealUpdated` moved to `active` — the follow-through the row above promised, in the change that first emitted them rather than in a later tidy-up. `MealUpdated` now carries four `changed` values: `availability` from taking a Meal off the menu or putting it back, and `title` / `description` / `price` from correcting one already on offer. `PhoneNumberDetached` is still `planned`; ADR-0007's dormancy severing is unbuilt. |

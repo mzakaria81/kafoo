@@ -89,7 +89,11 @@ class PublicMealView extends StatelessWidget {
               ],
 
               // 1. Photo.
-              if (photoUrl != null) MealPhoto(url: photoUrl!),
+              if (photoUrl != null)
+                MealPhoto(
+                  url: photoUrl!,
+                  semanticsLabel: l10n.publicMealPhotoLabel,
+                ),
               const SizedBox(height: KafooSpacing.lg),
 
               // 2. Title.
@@ -160,30 +164,6 @@ class PublicMealView extends StatelessWidget {
   }
 }
 
-/// The meal photo, named as its own widget so the "has a photo" branch can
-/// be asserted in a test. [Image.network] cannot resolve under the test
-/// binding, so a test that looked for the decoded image would be testing the
-/// network rather than the layout.
-class MealPhoto extends StatelessWidget {
-  const MealPhoto({required this.url, super.key});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(KafooSpacing.sm),
-      child: Image.network(
-        url,
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-      ),
-    );
-  }
-}
-
 class _PublicMealDetail extends StatelessWidget {
   const _PublicMealDetail({
     required this.label,
@@ -204,22 +184,29 @@ class _PublicMealDetail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          // Wrap, not Row. At 200% text on a 360dp phone the label and the
+          // estimate badge overflowed by 18 logical pixels, and the badge is the
+          // half that fell off — the words telling a Customer that a calorie or
+          // allergen figure was guessed by a machine rather than verified. It is
+          // the same element the `colorScheme.outline` mistake made invisible on
+          // the same day, which is a fair sign of where the real risk sits on
+          // this screen.
+          Wrap(
+            spacing: KafooSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(label, style: theme.textTheme.labelLarge),
               // The badge is its own Text rather than a Semantics wrapper
               // around one. A wrapper carrying the same label nests two
               // identical semantics nodes, and a screen reader reads the word
               // twice — text announces itself.
-              if (showEstimateBadge) ...[
-                const SizedBox(width: KafooSpacing.xs),
+              if (showEstimateBadge)
                 Text(
                   l10n.mealSummaryEstimateBadge,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                    color: KafooColors.textMuted,
                   ),
                 ),
-              ],
             ],
           ),
           const SizedBox(height: KafooSpacing.xs),
@@ -278,7 +265,7 @@ class _NutritionBlock extends StatelessWidget {
                 ? l10n.aiEstimateNotice(cookForm)
                 : l10n.publicMealNutritionFromCook(cookForm),
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
+              color: KafooColors.textMuted,
             ),
           ),
         ),

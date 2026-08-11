@@ -293,13 +293,68 @@ What E2 has not done is measure itself — see "Where to pick up".
   Egyptian Arabic accuracy benchmark with an `msa_substituted` scoring rule, written 2026-08-03 and
   never run (WP-004, `NOT_STARTED`). Building the harness for the corpus that exists may beat
   importing one that does not.
-- **iOS release credentials** — the pipeline now has an iOS job, but it is gated behind a
-  preflight check and will not start until Apple Developer credentials exist. Needs Apple
-  Developer Program membership, then `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
-  `IOS_PROVISIONING_PROFILE_BASE64`, and `IOS_KEYCHAIN_PASSWORD` as repository secrets. Platform
-  scope is recorded in ADR-0006: Kafoo ships on **both** Android and iOS, and iOS reaches users
-  through **TestFlight first** — friends and family, which means external testers and therefore
-  Beta App Review. The same signed archive serves both, so the pipeline is unchanged.
+- **iOS release credentials** — the pipeline has an iOS job, gated behind a preflight check that
+  will not let it start until Apple credentials exist. **The setup lives in one place and it is not
+  this file: `docs/ops/ios-testflight.md`.** It needs an Apple Developer Program membership, then
+  `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
+  `APP_STORE_CONNECT_PRIVATE_KEY_BASE64` and `APPLE_TEAM_ID` as repository secrets.
+
+  Until 2026-08-10 this bullet named `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`,
+  `IOS_PROVISIONING_PROFILE_BASE64` and `IOS_KEYCHAIN_PASSWORD`, which no longer exist anywhere in
+  the pipeline. Anyone following it would have set four secrets nothing reads, watched preflight
+  report `App Store Connect credentials present: false` forever, and had no reason to doubt the
+  document. Found by release-engineer, in the same change whose own commits fixed three comments
+  making that identical mistake — a rename is only finished when the prose is renamed with it.
+
+  It also said "the same signed archive serves both, so the pipeline is unchanged", which was never
+  the plan and is not what shipped. iOS signs through Apple's cloud signing: `xcodebuild` presents
+  the API key and Apple issues the certificate, so no `.p12` is exported from a Mac keychain — which
+  matters because Kafoo has no Mac. Platform scope is still ADR-0006: **both** Android and iOS, iOS
+  through **TestFlight first**. Internal testers — the founder's own phone — need no Beta App
+  Review; the moment a tester outside the Apple account is added, that changes.
+
+## Repository secrets the Customer web surface needs
+
+**Both, or the site returns 500 on every page that reads data.** Recorded here because this file
+documented four iOS secrets and four Android ones in detail and said nothing about these two — which
+is most of why one of them could be absent from 2026-08-07 to 2026-08-09 with nobody noticing.
+
+| Secret | Value | Where it is used |
+|---|---|---|
+| `SUPABASE_URL` | `https://<project-ref>.supabase.co` | Build, and bound to the Worker at deploy time |
+| `SUPABASE_PUBLISHABLE_KEY` | The `sb_publishable_…` key, Supabase → Settings → API | Same |
+
+**`SUPABASE_PUBLISHABLE_KEY` is the publishable key and never the service-role one.** The
+service-role key bypasses RLS entirely, so a leak defeats every policy in `supabase/migrations` at
+once. `apps/web/scripts/check-no-service-role.mjs` fails the build if it reaches the output, but not
+copying it is cheaper than catching it.
+
+**They go in GitHub, not in Cloudflare.** `.github/workflows/deploy.yml` binds them to the Worker
+with `--var` on every deploy, and `--var` replaces a Worker's variables wholesale — so a value set
+by hand in the Cloudflare dashboard is overwritten by the next merge to `main`. One source, and it
+is the one the build already reads.
+
+### What went wrong, so it is not repeated
+
+`SUPABASE_URL` was never set. **An unset GitHub secret expands to an empty string**, silently:
+`--var "SUPABASE_URL:"` bound a variable that wrangler listed in its binding table exactly like a
+healthy one — `env.SUPABASE_URL ("(hidden)")` — and `publicBackend()` rejects an empty string the
+same way it rejects an undefined one. Browse, kitchen and Meal pages returned 500 for two days
+through **fifteen consecutive green deploy runs**. `/settings` worked throughout, because it reads
+the browser's own storage and never touches Supabase.
+
+Two checks now stand between that and a repeat, and they catch different halves:
+
+- **`refuse to deploy without the values the site needs`** fails before publishing and names the
+  empty secret. It exists because the deploy was correct and the failure was invisible.
+- **`smoke check the published site`** curls `/` after deploying and fails on anything but 200. A
+  deploy that published a broken site is not a successful deploy.
+
+There was also a genuine second defect, fixed in the same change and worth knowing separately: the
+values were passed to the **build** and never bound to the **Worker**, and every page here is
+`force-dynamic` and reads `process.env` when the request arrives. `wrangler.jsonc` said the key
+"arrives as a build-time variable", which is true of anything Next inlines and false of every page
+on this surface. Either defect alone was enough to keep the site down.
 
 ## Known-wrong or unverified
 

@@ -7,7 +7,9 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
+import 'meal_edit_screen.dart';
 import 'meal_enum_labels.dart';
+import 'meal_error_text.dart';
 
 class MyMealsScreen extends ConsumerWidget {
   const MyMealsScreen({this.onResumeDraft, super.key});
@@ -61,23 +63,6 @@ class MyMealsScreen extends ConsumerWidget {
   }
 }
 
-/// The Cook-facing text for an [AppError] this screen can produce.
-///
-/// One function rather than a copy in each of the two widgets that render an
-/// error: a second switch is a second place to forget a key, and the fallback
-/// shows the raw key to the Cook, which is the failure this must not have.
-String _errorMessage(
-  AppLocalizations l10n,
-  String addressForm,
-  AppError error,
-) =>
-    switch (error.messageKey) {
-      'mealLoadError' => l10n.mealLoadError(addressForm),
-      'mealAvailabilityError' => l10n.mealAvailabilityError(addressForm),
-      'mealDeleteError' => l10n.mealDeleteError(addressForm),
-      _ => l10n.mealLoadError(addressForm),
-    };
-
 class _ErrorState extends ConsumerWidget {
   const _ErrorState({required this.error});
 
@@ -92,7 +77,7 @@ class _ErrorState extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _errorMessage(l10n, context.addressForm, error),
+            mealErrorText(context, error),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: KafooSpacing.md),
@@ -126,8 +111,7 @@ class _InlineError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final message = _errorMessage(l10n, context.addressForm, error);
+    final message = mealErrorText(context, error);
     return Padding(
       padding: const EdgeInsetsDirectional.only(
         start: KafooSpacing.lg,
@@ -181,7 +165,7 @@ class MyMealRow extends ConsumerWidget {
           Text(
             mealStatusLabel(l10n, meal.status),
             style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.outline,
+              color: KafooColors.textMuted,
             ),
           ),
           const SizedBox(height: KafooSpacing.xs),
@@ -208,8 +192,31 @@ class MyMealRow extends ConsumerWidget {
       onConfirmed: () => controller.setStatus(meal, MealStatus.archived),
     );
 
+    // Editing needs a complete [Meal], which a draft is not. `asMeal` is null
+    // exactly when a required field is still unanswered, so the control is
+    // absent rather than disabled for a Meal that cannot yet be edited — and
+    // absent for an archived one, which offers nothing at all.
+    final editable = meal.asMeal;
+    final edit = editable == null
+        ? null
+        : _MealAction(
+            label: l10n.mealEditTitle(context.addressForm),
+            mealTitle: _title(l10n),
+            // Editing opens a screen rather than changing anything, so there is
+            // nothing here to confirm.
+            warning: null,
+            confirmLabel: l10n.mealRetireConfirm(context.addressForm),
+            cancelLabel: l10n.mealRetireCancel(context.addressForm),
+            onConfirmed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MealEditScreen(meal: editable),
+              ),
+            ),
+          );
+
     final actions = switch (meal.status) {
       MealStatus.published => [
+          if (edit != null) edit,
           _MealAction(
             label: l10n.mealMakeUnavailable(context.addressForm),
             mealTitle: _title(l10n),
@@ -227,6 +234,7 @@ class MyMealRow extends ConsumerWidget {
           retire,
         ],
       MealStatus.unavailable => [
+          if (edit != null) edit,
           _MealAction(
             label: l10n.mealMakeAvailable(context.addressForm),
             mealTitle: _title(l10n),
@@ -245,12 +253,17 @@ class MyMealRow extends ConsumerWidget {
             warning: null,
             confirmLabel: l10n.mealRetireConfirm(context.addressForm),
             cancelLabel: l10n.mealRetireCancel(context.addressForm),
-            onConfirmed: () async {
-              ref
-                  .read(mealConversationControllerProvider.notifier)
-                  .resume(meal);
-              onResumeDraft?.call(meal);
-            },
+            // NO `resume()` CALL HERE, DELIBERATELY. It used to seed the
+            // conversation controller through `ref.read` before handing over —
+            // and the controller is autoDispose, so with nothing on this screen
+            // watching it, the seeded state was disposed before the next route
+            // existed. The Cook was asked the dish question again with every
+            // answer she had given still in the database.
+            //
+            // The draft travels as an argument now. `MealConversationScreen`
+            // seeds from it in `initState`, inside the route that watches the
+            // provider, which is the only place the seeding survives.
+            onConfirmed: () async => onResumeDraft?.call(meal),
           ),
           _MealAction(
             label: l10n.mealDeleteDraft(context.addressForm),

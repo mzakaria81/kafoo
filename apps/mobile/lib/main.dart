@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +10,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/discovery/presentation/opened_meal.dart';
 import 'features/discovery/presentation/search_screen.dart';
-import 'features/identity/presentation/change_phone_screen.dart';
-import 'features/identity/presentation/remove_account_screen.dart';
+import 'features/identity/data/account_repository.dart';
 import 'features/identity/presentation/sign_in_screen.dart';
 import 'features/kitchen_profile/data/kitchen_profile_repository.dart';
-import 'features/kitchen_profile/presentation/conversation.dart';
 import 'features/kitchen_profile/presentation/public_kitchen_view.dart';
+import 'home.dart';
 import 'l10n/address_form.dart';
 import 'l10n/app_localizations.dart';
 
@@ -31,6 +31,39 @@ const _supabasePublishableKey =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // THE FONT'S LICENCE, WHERE A PERSON CAN READ IT.
+  //
+  // IBM Plex Sans Arabic ships under the SIL Open Font License, which asks that
+  // the notice travel with the font. It does travel inside each .ttf, and the
+  // OFL accepts that — but "inside a binary metadata table" is not somewhere
+  // anybody looks. Flutter aggregates licences from Dart packages only, so an
+  // app's own asset folder is invisible to its licences page unless registered.
+  //
+  // NOTHING ROUTES TO THE LICENCES PAGE YET, and that is a founder decision
+  // rather than an oversight. `settings_screen.dart` says in terms that the next
+  // entry added there is its own stop-and-ask, not a follow-on — so the entry
+  // that would reach `showLicensePage` is waiting on approval.
+  //
+  // Registering it anyway is still the right half to do now: the registration is
+  // what makes the notice available, it is correct whether or not a route
+  // exists, and the alternative is remembering to come back. But do not describe
+  // Kafoo's attribution as "visible to a user" until that route exists — today
+  // it is visible inside the font files and to Flutter, and no further.
+  LicenseRegistry.addLicense(() => Stream.value(
+        const LicenseEntryWithLineBreaks(
+          ['IBM Plex Sans Arabic'],
+          'Copyright 2019 IBM Corp. All rights reserved.\n\n'
+          'This Font Software is licensed under the SIL Open Font License, '
+          'Version 1.1. This licence is available at '
+          'https://openfontlicense.org and is also carried in the metadata of '
+          'each bundled font file.\n\n'
+          'IBM Plex is a trademark of IBM Corp., registered in many '
+          'jurisdictions worldwide. "Plex" is a Reserved Font Name under the '
+          'OFL: a modified version of these faces — including a subset — must '
+          'not carry it.',
+        ),
+      ));
 
   // Fail here, loudly, rather than at the first request with a confusing auth error. A missing
   // --dart-define is a build mistake, and an app that cannot reach Supabase cannot do anything
@@ -62,7 +95,34 @@ Future<void> main() async {
 /// Egyptian Arabic is the default locale, not a fallback, so [locale] is fixed
 /// to `ar` and every screen below must render correctly right-to-left.
 class KafooApp extends StatelessWidget {
-  const KafooApp({super.key});
+  const KafooApp({
+    this.authState,
+    this.accountRepository = const SupabaseAccountRepository(),
+    this.kitchenProfileRepository = const SupabaseKitchenProfileRepository(),
+    super.key,
+  });
+
+  /// The auth stream the gate listens to. Null means the real one.
+  ///
+  /// **THIS EXISTS SO THE APP CAN BE BOOTED IN A TEST**, which it could not be
+  /// until 2026-08-10. `app_test.dart` said so in a comment — "KafooApp includes
+  /// _AuthGate which requires a live Supabase instance" — and skipped the root
+  /// entirely. Every widget test therefore built one screen with its own fakes,
+  /// and the gate never once ran the app as a whole.
+  ///
+  /// Five defects in a single day came out of exactly that gap, all of them
+  /// invisible to a green build and all of them obvious to a person holding a
+  /// phone: the icon font that rendered as Chinese characters, the missing
+  /// `ProviderScope`, four Cook screens with no route into them, a theme no test
+  /// rendered through, and a correct sign-in code that navigated nowhere.
+  ///
+  /// A screen tested alone proves the screen. Only the app tested whole proves
+  /// the seams, and the seams are where every one of those lived.
+  final Stream<AuthState>? authState;
+
+  /// Injected for the same reason.
+  final AccountRepository accountRepository;
+  final KitchenProfileRepository kitchenProfileRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -76,15 +136,25 @@ class KafooApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: KafooColors.primary),
-        useMaterial3: true,
-      ),
+      // The design system, not Material's guess at it. `ColorScheme.fromSeed`
+      // stood here until 2026-08-10: it derived twenty-odd colours from the one
+      // terracotta seed and used none of the values anybody had chosen, in
+      // whatever font the handset happened to install. See ADR-0013 and
+      // `docs/design/DESIGN.md`.
+      theme: kafooTheme(),
       // Above the Navigator on purpose. A pushed route is not a descendant of
       // the widget that pushed it, so a scope placed inside [home] would be
       // invisible to every screen reached by pushing — which is all of them.
-      builder: (context, child) => _AddressFormLoader(child: child!),
-      home: const _AuthGate(),
+      builder: (context, child) => _AddressFormLoader(
+        authState: authState,
+        repository: kitchenProfileRepository,
+        child: child!,
+      ),
+      home: _AuthGate(
+        authState: authState,
+        accountRepository: accountRepository,
+        kitchenProfileRepository: kitchenProfileRepository,
+      ),
     );
   }
 }
@@ -93,16 +163,26 @@ class KafooApp extends StatelessWidget {
 /// Uses [Supabase.instance.client.auth.onAuthStateChange] — a stream and a
 /// builder, no state-management package (E1 deliberate decision, research.md §7).
 class _AuthGate extends StatelessWidget {
-  const _AuthGate();
+  const _AuthGate({
+    this.authState,
+    required this.accountRepository,
+    required this.kitchenProfileRepository,
+  });
+
+  final Stream<AuthState>? authState;
+  final AccountRepository accountRepository;
+  final KitchenProfileRepository kitchenProfileRepository;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+      stream: authState ?? Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         final session = snapshot.data?.session;
         if (session != null) {
-          return const _SignedInHome();
+          return SignedInHome(
+            kitchenProfileRepository: kitchenProfileRepository,
+          );
         }
         // Signed out, a person sees FOOD, not a sign-in form.
         //
@@ -119,7 +199,7 @@ class _AuthGate extends StatelessWidget {
         //
         // Signing in stays one tap away, in the bar, for the Cook who came
         // here to cook.
-        return const _SignedOutHome();
+        return _SignedOutHome(accountRepository: accountRepository);
       },
     );
   }
@@ -139,7 +219,18 @@ class _AuthGate extends StatelessWidget {
 /// form. They get `other`, which is the same answer they got before this
 /// existed.
 class _AddressFormLoader extends StatefulWidget {
-  const _AddressFormLoader({required this.child});
+  const _AddressFormLoader({
+    required this.child,
+    required this.repository,
+    this.authState,
+  });
+
+  final KitchenProfileRepository repository;
+
+  /// Injected for the same reason as [KafooApp.authState] — this loader reached
+  /// `Supabase.instance` directly and was the last thing keeping the app root
+  /// out of a test.
+  final Stream<AuthState>? authState;
 
   final Widget child;
 
@@ -148,7 +239,6 @@ class _AddressFormLoader extends StatefulWidget {
 }
 
 class _AddressFormLoaderState extends State<_AddressFormLoader> {
-  static const _repository = SupabaseKitchenProfileRepository();
   late final StreamSubscription<AuthState> _auth;
   AddressForm? _form;
 
@@ -159,7 +249,9 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
     // what makes a Kitchen Profile readable at all, and signing out must drop
     // the previous Cook's form — otherwise the next person on the same device
     // is addressed in a stranger's grammar.
-    _auth = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+    _auth =
+        (widget.authState ?? Supabase.instance.client.auth.onAuthStateChange)
+            .listen((_) {
       unawaited(_load());
     });
   }
@@ -171,7 +263,7 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
   }
 
   Future<void> _load() async {
-    final result = await _repository.findMine();
+    final result = await widget.repository.findMine();
     if (!mounted) return;
     // A failed read is not worth surfacing: the consequence is that a Cook is
     // addressed in the unset form for this launch, which every Cook was until
@@ -195,7 +287,9 @@ class _AddressFormLoaderState extends State<_AddressFormLoader> {
 /// Browsing, and a way in. See the note in [_AuthGate] for why this is food
 /// rather than a form.
 class _SignedOutHome extends StatelessWidget {
-  const _SignedOutHome();
+  const _SignedOutHome({required this.accountRepository});
+
+  final AccountRepository accountRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +297,9 @@ class _SignedOutHome extends StatelessWidget {
     return SearchScreen(
       entry: TextButton(
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const SignInScreen()),
+          MaterialPageRoute<void>(
+            builder: (_) => SignInScreen(repository: accountRepository),
+          ),
         ),
         style: TextButton.styleFrom(
           minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
@@ -224,74 +320,6 @@ class _SignedOutHome extends StatelessWidget {
                 builder: (_) => PublicKitchenView(profile: item.kitchen),
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The signed-in surface.
-///
-/// Deliberately thin — browsing and Meals arrive in later epics. What it must
-/// carry now is the two things E1 delivers: becoming a Cook, and leaving.
-class _SignedInHome extends StatelessWidget {
-  const _SignedInHome();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.appTitle)),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const KitchenConversationScreen(),
-                  ),
-                ),
-                child: Text(l10n.kitchenViewTitle),
-              ),
-              const SizedBox(height: KafooSpacing.sm),
-              // FR-026: a lost or recycled number is recoverable rather than
-              // terminal, because a Person is not their phone number.
-              TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ChangePhoneScreen(),
-                  ),
-                ),
-                child: Text(l10n.changePhoneEntry(context.addressForm)),
-              ),
-              const Spacer(),
-              // SC-011: leaving is reachable in one step from the first screen
-              // after signing in — no deeper than joining was. It is not buried
-              // under a settings tree, because burying it is the dark pattern
-              // this requirement exists to prevent.
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: KafooColors.danger,
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const RemoveAccountScreen(),
-                  ),
-                ),
-                child: Text(l10n.removeAccountEntry(context.addressForm)),
-              ),
-            ],
           ),
         ),
       ),

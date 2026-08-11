@@ -34,7 +34,20 @@ abstract interface class MealRepository {
   /// Updates only the fields supplied on a draft Meal.
   ///
   /// The Meal must belong to the signed-in Cook, enforced by RLS.
-  Future<Result<Meal, AppError>> updateDraft({
+  ///
+  /// **Returns [CookMeal], and the type is the fix for a defect that stopped
+  /// every Cook from putting a Meal on offer.** This returned `Meal` until
+  /// 2026-08-11 and parsed the row with a mapper that casts title, description,
+  /// cuisine and category to non-null. A draft has none of the last two — the
+  /// whole point of `allow_incomplete_meal_drafts` — so the cast threw, the
+  /// throw was caught as a save failure, and the Cook was told «مقدرناش نحفظ
+  /// الأكلة» about a row the database had already written. It happened on the
+  /// second question of the conversation, every time, for everyone.
+  ///
+  /// [createDraft] two declarations above says why [Meal] cannot describe a
+  /// half-finished draft. That reasoning was written down and then contradicted
+  /// here. A signature is the only version of it a later change cannot ignore.
+  Future<Result<CookMeal, AppError>> updateDraft({
     required String mealId,
     String? title,
     String? description,
@@ -51,7 +64,12 @@ abstract interface class MealRepository {
   ///
   /// The database trigger sets `published_at` on the first publish moment;
   /// this layer only changes the status.
-  Future<Result<Meal, AppError>> publish(String mealId);
+  ///
+  /// [CookMeal] here too, even though a published row IS complete —
+  /// `enforce_meal_lifecycle` refuses to let it leave draft otherwise. One
+  /// mapper for every row this file reads is worth more than a second one that
+  /// is correct only while a guarantee holds somewhere else.
+  Future<Result<CookMeal, AppError>> publish(String mealId);
 
   /// Uploads a photo to the `meal-photos` bucket at `{uid}/{mealId}.jpg`.
   ///
@@ -61,6 +79,22 @@ abstract interface class MealRepository {
     required String mealId,
     required Uint8List bytes,
   });
+
+  /// A URL the app can render for a photo stored at [photoPath].
+  ///
+  /// **THE SUMMARY SHOWED THE PATH ITSELF UNTIL 2026-08-11.** A Cook who had
+  /// just taken a photograph of her food was shown the text
+  /// `7a38f558-…/69d0e03e-….jpg` where the photograph should have been, on the
+  /// screen where she checks the Meal before putting it on offer. Nothing
+  /// resolved a URL anywhere in the app, so there was nothing for the row to
+  /// render — `public_meal_view.dart` takes a `photoUrl` and no caller had ever
+  /// supplied one either.
+  ///
+  /// Synchronous and non-failing because `meal-photos` is a PUBLIC bucket
+  /// (`create_meals.sql`), so this is string construction rather than a request.
+  /// It stays on the repository regardless: this layer is the only one that may
+  /// know how Supabase addresses storage.
+  String photoUrl(String photoPath);
 
   /// Every Meal belonging to the signed-in Cook, at every status.
   ///
@@ -183,7 +217,7 @@ class SupabaseMealRepository implements MealRepository {
   }
 
   @override
-  Future<Result<Meal, AppError>> updateDraft({
+  Future<Result<CookMeal, AppError>> updateDraft({
     required String mealId,
     String? title,
     String? description,
@@ -218,7 +252,7 @@ class SupabaseMealRepository implements MealRepository {
             .select(_columns)
             .eq('id', mealId)
             .single();
-        return Success(_fromRow(row));
+        return Success(_cookMealFromRow(row));
       }
       final row = await _client
           .from(_table)
@@ -232,14 +266,14 @@ class SupabaseMealRepository implements MealRepository {
       if (changesWhatTheFoodIs(title: title, description: description)) {
         _askForEmbedding(mealId);
       }
-      return Success(_fromRow(row));
+      return Success(_cookMealFromRow(row));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
     }
   }
 
   @override
-  Future<Result<Meal, AppError>> publish(String mealId) async {
+  Future<Result<CookMeal, AppError>> publish(String mealId) async {
     try {
       final uid = _uid;
       if (uid == null) {
@@ -253,7 +287,7 @@ class SupabaseMealRepository implements MealRepository {
           .single();
       // A Meal reaching Customers for the first time is exactly when it needs to be findable.
       _askForEmbedding(mealId);
-      return Success(_fromRow(row));
+      return Success(_cookMealFromRow(row));
     } on Object catch (e) {
       return Failure(AppError(messageKey: 'mealSaveError', cause: e));
     }
@@ -280,6 +314,10 @@ class SupabaseMealRepository implements MealRepository {
       return Failure(AppError(messageKey: 'mealPhotoError', cause: e));
     }
   }
+
+  @override
+  String photoUrl(String photoPath) =>
+      _client.storage.from(_bucket).getPublicUrl(photoPath);
 
   @override
   Future<Result<List<CookMeal>, AppError>> myMeals() async {
@@ -336,44 +374,19 @@ class SupabaseMealRepository implements MealRepository {
     }
   }
 
-  Meal _fromRow(Map<String, dynamic> row) {
-    return Meal(
-      id: row['id'] as String,
-      cookId: row['cook_id'] as String,
-      title: row['title'] as String,
-      description: row['description'] as String,
-      price: row['price'].toString(),
-      cuisine: Cuisine.tryFromWireName(row['cuisine'] as String) ??
-          (throw ArgumentError.value(
-            row['cuisine'],
-            'cuisine',
-            'unknown cuisine',
-          )),
-      category: MealCategory.tryFromWireName(row['category'] as String) ??
-          (throw ArgumentError.value(
-            row['category'],
-            'category',
-            'unknown meal category',
-          )),
-      status: MealStatus.fromWireName(row['status'] as String),
-      ingredients: (row['ingredients'] as List).cast<String>(),
-      calories: row['calories'] as int?,
-      allergens: (row['allergens'] as List).cast<String>(),
-      nutritionSource: NutritionSource.fromWireName(
-        row['nutrition_source'] as String,
-      ),
-      photoPath: row['photo_path'] as String?,
-      publishedAt: row['published_at'] == null
-          ? null
-          : DateTime.parse(row['published_at'] as String),
-    );
-  }
-
   /// Maps a row that may still be a half-answered draft.
   ///
   /// Delegates to [CookMeal.fromRow]: the mapping is a rule and it now has one
   /// home, because discovery reads the same table and a second copy of it would
   /// drift.
+  ///
+  /// **THE SECOND COPY IS GONE, AND DELETING IT IS THE FIX.** A `_fromRow`
+  /// beside this one built a [Meal] and cast title, description, cuisine and
+  /// category to non-null. Both mappers kept working and disagreed about
+  /// exactly the four columns a draft leaves empty, which is the drift the
+  /// comment above predicted, in the same file, already written down. Do not
+  /// add a mapper here that cannot represent a draft — every row this table
+  /// returns may be one.
   CookMeal _cookMealFromRow(Map<String, dynamic> row) => CookMeal.fromRow(row);
 }
 

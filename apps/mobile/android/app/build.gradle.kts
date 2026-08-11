@@ -17,6 +17,24 @@ val keystoreProperties = Properties().apply {
 }
 val hasUploadKey = keystoreProperties.getProperty("storeFile") != null
 
+// A COMMITTED KEYSTORE, AND IT IS NOT A CREDENTIAL. Read this before deleting it.
+//
+// Android refuses to install an update whose signature differs from the installed app — the rule
+// that stops anyone pushing a fake update over your banking app. The demo APK used to fall back to
+// the local debug key, and a GitHub runner generates a fresh one on every run, so every demo build
+// was a different app as far as the phone was concerned: "App not installed", and the only way
+// through was to uninstall, losing the session and every answer the app remembered. Reported by the
+// founder on 2026-08-10, after the second demo build.
+//
+// This keystore fixes that by being the same every time. Its password is `android`, it is in the
+// repository on purpose, and publishing it costs nothing: it signs nothing that can reach a store,
+// anybody can generate an equivalent one in ten seconds, and the Play Store rejects it. The upload
+// key — the one that IS a credential — is still never in the tree and still arrives through
+// key.properties from a secret.
+//
+// It expires in 2056. If a demo build ever refuses to install after that, this is why.
+val demoKeystoreFile = rootProject.file("demo/demo.keystore")
+
 android {
     namespace = "com.kafoo.kafoo_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -38,6 +56,7 @@ android {
         versionName = flutter.versionName
     }
 
+
     signingConfigs {
         if (hasUploadKey) {
             create("release") {
@@ -47,19 +66,27 @@ android {
                 keyPassword = keystoreProperties.getProperty("keyPassword")
             }
         }
+        if (demoKeystoreFile.exists()) {
+            create("demo") {
+                storeFile = demoKeystoreFile
+                storePassword = "android"
+                keyAlias = "kafoodemo"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {
         release {
-            // Sign with the upload key when key.properties is present. Without
-            // it, fall back to debug keys so `flutter run --release` still works
-            // locally — but such a build is NOT publishable, and the deploy
-            // workflow verifies the artifact's signature rather than trusting
+            // Upload key when key.properties is present, demo key otherwise, and the
+            // local debug key only if somebody deleted the demo keystore. None of the
+            // fallbacks is publishable — the deploy workflow reads the certificate out
+            // of the finished artifact and says which one it found, rather than trusting
             // that secrets were configured.
-            signingConfig = if (hasUploadKey) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            signingConfig = when {
+                hasUploadKey -> signingConfigs.getByName("release")
+                demoKeystoreFile.exists() -> signingConfigs.getByName("demo")
+                else -> signingConfigs.getByName("debug")
             }
 
             isMinifyEnabled = true

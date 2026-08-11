@@ -12,9 +12,9 @@ DENO_CERT=/root/.ccr/ca-bundle.crt deno run --allow-net --allow-env --allow-read
 
 | | n | p50 | p95 | min | max |
 |---|---|---|---|---|---|
-| **End-to-end** (`discover`) — what a Customer waits | 20 | 1112 ms | 1291 ms | 858 ms | 1315 ms |
-| **Database**, full rows (`search_meals`) | 20 | 578 ms | 598 ms | 554 ms | 608 ms |
-| **Database**, ids only (`?select=id`) — the scan alone | 20 | 170 ms | 209 ms | 161 ms | 211 ms |
+| **End-to-end** (`discover`) — what a Customer waits | 20 | 684 ms | 847 ms | 528 ms | 1002 ms |
+| **Database**, full rows (`search_meals`) | 20 | 171 ms | 175 ms | 160 ms | 176 ms |
+| **Database**, ids only (`?select=id`) — the scan alone | 20 | 168 ms | 185 ms | 162 ms | 374 ms |
 
 **Corpus: 1013 published Meals carrying an embedding**, of which 1000 were a benchmark corpus loaded and removed by this run.
 Measured against `pzyngffppwfsvdsnslkb`. End-to-end p95 is WITHIN the 1.5 s budget.
@@ -24,50 +24,55 @@ percentile is not a budget check, which is why both are here and in every senten
 
 ## Where the time goes
 
-Subtracting the rows above, at the median: **534 ms is the model provider's embedding call plus the Edge Function's own overhead**, 408 ms is serialising and sending the vectors, and **170 ms is the scan and its round trip**.
+Subtracting the rows above, at the median: **513 ms is the model provider's embedding call plus the Edge Function's own overhead**, 3.2 ms is serialising and sending the vectors, and **168 ms is the scan and its round trip**.
 
 The scan is the only one of the three that grows with the marketplace. `search_meals` ranks
 **exactly** rather than approximately — it computes the distance to every surviving row — so its
 cost is linear in the corpus. See `supabase/migrations/20260806231625_add_meal_embeddings.sql`,
 which explains why the HNSW index exists and is deliberately not used.
 
-## What corpus size actually did
+## Against the previous measurement
 
-Same script, same target, 2026-08-08, at **13** Meals against **1013** here —
-78× the corpus:
+Same script, same target, same corpus. Baseline: **2026-08-08, before the vector stopped being returned**, 1013 Meals.
 
-| | 13 Meals | 1013 Meals | change |
+| | before | now | change |
 |---|---|---|---|
-| End-to-end p50 | 990 ms | 1112 ms | +122 ms |
-| Database, full rows p50 | 359 ms | 578 ms | +219 ms |
-| **Database, ids only p50 — the scan** | **164 ms** | **170 ms** | **+6.3 ms** |
-| Median results returned | 13 | 50 | |
+| End-to-end p50 — what a Customer waits | 1112 ms | 684 ms | −428 ms |
+| End-to-end p95 | 1438 ms | 847 ms | −591 ms |
+| Database, full rows p50 | 581 ms | 171 ms | −410 ms |
+| Database, ids only p50 — the scan | 166 ms | 168 ms | +2.0 ms |
 
-**The scan did not move.** 78× the Meals changed it by 6.3 ms, which is inside the noise
-between two runs. Everything that got worse got worse because more rows came back — the `LIMIT 50`
-in `search_meals` binds once the corpus passes fifty Meals, so the response grew and the wait grew
-with it.
+**The scan did not move, and it was never supposed to.** What moved is the gap between the two
+database rows — the cost of serialising vectors into the response — which has gone from
+415 ms to 3.2 ms.
 
-So the thing to fix is not the corpus and not the ranking. It is what a search sends back.
+## Corpus size, settled
+
+Measured at **13 Meals and again at 1,013** on 2026-08-08: the scan ran at 164 ms and 166 ms. **78×
+the corpus moved it by about 2 ms**, inside the noise between two runs.
+
+Search latency is therefore not currently a scaling problem, and a bigger corpus is not the way to
+find the next one. Exact ranking is linear and reaches a second somewhere near 180,000 Meals; until
+then the wait is a vendor call and a round trip.
 
 ## Response size
 
-Each search returns **505,347 bytes at the median** for a median of 50 results — about 10,107 bytes per Meal, against 2,448 bytes for the same rows as ids alone.
+Each search returns **28,626 bytes at the median** for a median of 50 results — about 573 bytes per Meal, against 2,448 bytes for the same rows as ids alone.
 
 **`search_meals` returned `SETOF public.meals` until 2026-08-08**, so every row carried its
 768-float `embedding` and `discover` passed that straight through. No client reads the column —
 it is "shown to nobody" by the column's own comment, and `CookMeal.fromRow` does not mention it.
 
 `20260808165000_stop_returning_meal_embeddings_from_search.sql` gives the function a return type
-with no `embedding` in it. Measured on the same rows before deploying it: **497 KB → 29 KB** at
-the 50-result limit, a 94% cut in what a search sends back. Fixed in the database rather than in
-`discover`, so no future caller can select it back.
+with no `embedding` in it. Fixed in the database rather than in `discover`, so no future caller
+can select it back.
 
-**If the figures above still show a large gap between the two database rows, this report predates
-that migration reaching the target.** Re-run it after deploying to refresh them.
+**The figures above are from after that migration**, which is why the two database rows now agree.
+If a future run shows them diverging again, something has put a large column back into what search
+returns.
 
 **The two database rows above are the same scan.** The only difference is whether the vectors are
-serialised and sent, so the gap between them — 408 ms at the median — is what the
+serialised and sent, so the gap between them — 3.2 ms at the median — is what the
 unread column costs on the wire. This run sat at the `LIMIT 50`, so that is the worst case rather than a projection from a small result set — it is what every search costs once the marketplace holds more than fifty Meals, which is to say almost immediately.
 
 Paid on **every search, by every Customer, on an Egyptian mobile network** — and not a scaling

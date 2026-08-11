@@ -5,31 +5,36 @@ Voice-first, Egyptian Arabic default. Flutter (mobile) + Supabase (backend) + Cl
 
 ## Who you are talking to
 
-**The user is the founder and a company director, not a developer.** He runs a software development
-company and has never written code professionally. He is technically literate — he reads
-architecture, weighs trade-offs, and makes the calls on cost, scope and risk — but he does not read
-Dart, SQL or shell, and should never have to in order to follow you.
+**The founder is a company director, not a developer.** He runs a software company and has never
+written code professionally. He reads architecture, weighs trade-offs and makes the calls on cost,
+scope and risk — but he does not read Dart, SQL or shell, and should never have to in order to
+follow you. **Your job is to be the translator. If he has to translate you, you did the job wrong.**
 
 This changes how you write, not what you do. Engineering rigour is unchanged: the gate still runs,
 RLS still lands in the same migration, tests still come first.
 
-- **Lead with the decision or the outcome**, then the reasoning. Not a narration of what you did in
-  the order you did it.
-- **Explain in terms of consequence**, not mechanism. "This step would have failed the first time
-  we deployed a database change" beats "the pinned npm version does not resolve."
-- **Name the trade-off and give a recommendation.** He is deciding, so he needs the options and
-  your expert opinion on which to take — not a neutral survey. Say which one you would pick and
-  why.
-- **Say what something costs**, in money and in ongoing commitment, whenever that is part of the
-  choice.
-- **Spell out jargon on first use**, briefly, in the same sentence. Not a glossary — a clause.
-- **Show code only when it is the thing being discussed.** A file path and a plain-English summary
-  of what changed is usually enough. Do not paste diffs to prove work happened.
-- **Flag anything irreversible or externally visible before doing it**, in plain terms: what it
-  changes, who can see it, and how hard it is to undo.
+**The answer shape is enforced by hooks, not by this file.**
+`.claude/hooks/communication-contract.sh` re-states it before every reply and
+`check-reply-shape.py` refuses one that ignores it: bottom line first, labelled sections, exactly
+one closing line, the four claim labels, What → Why → Consequence → Recommendation. Do not restate
+those rules here — a rule kept in two places drifts in one of them, and the hook is the copy that
+runs.
 
-Do not perform simplicity by hiding bad news. If something is broken, half-finished, or riskier
-than it looks, say so plainly and early — that is the judgement he is relying on you for.
+What a hook cannot check, and you still owe him:
+
+- **Explain in consequence, not mechanism.** "This would have failed the first time we deployed a
+  database change" beats "the pinned npm version does not resolve".
+- **Concrete over abstract.** Not "concept-level population in the food ontology" but "only create a
+  food concept when an ingredient needs one — mayonnaise needs *egg* because someone may exclude
+  eggs; sumac does not".
+- **Name the trade-off and pick one.** He is deciding, so he needs your expert opinion rather than a
+  neutral survey — and **say what it costs**, in money and in ongoing commitment.
+- **Show code only when the code is the subject.** A file path and a plain-English summary is
+  usually enough. Do not paste diffs to prove work happened.
+- **Do not perform simplicity by hiding bad news.** Plain English is not softer English. If
+  something is broken, half-finished or riskier than it looks, say so plainly and early — clearly
+  enough that the bad news survives the simplification. That is the judgement he is relying on you
+  for.
 
 ## Commands
 
@@ -62,10 +67,44 @@ through the provider abstraction in `packages/ai/`. Swapping OpenAI → Anthropi
 config change, not a refactor. (ADR-0005)
 
 **NEVER** hardcode user-facing strings. Every string goes through ARB files with an Egyptian Arabic
-entry. `ar` is the default locale, not the fallback.
+entry. `ar` is the default locale, not the fallback. **In `apps/web/` the same rule points at a
+different file** — `apps/web/messages/ar.json` and `en.json`, because a TypeScript surface cannot
+read Flutter's ARB. Two locale files, one rule: no string outside them, `ar` written first.
+
+**The iOS permission prompts are the one exception, and it is a platform limit rather than a
+choice.** `apps/mobile/ios/Runner/Info.plist` carries the `NS*UsageDescription` strings — the
+sentences iOS shows when Kafoo asks for the microphone, speech recognition or the photo library.
+iOS reads them before Flutter has started, so ARB does not exist yet at the moment they are
+displayed; there is no version of this rule that reaches them. They are written in Egyptian Arabic
+and not mirrored into English, because `main.dart` pins the locale to `ar` whatever language the
+phone is set to. **Do not "fix" them into ARB** — the app crashes without them, and the crash is
+silent to every check the gate runs. Raised by release-engineer on 2026-08-10, once the strings
+existed and looked like an oversight.
 
 **NEVER** build a form where a conversation would work. If you find yourself adding a fourth input
 field, stop and propose a conversational flow instead.
+
+**NEVER** ship a component without its spoken Egyptian Arabic line. **Kafoo is voice-first as of
+2026-08-10 (ADR-0013), and that is a different thing from what this file used to mean by it.** It
+used to mean a microphone button on a form. It now means the assistant speaks, the user speaks
+back, and **the screen is the receipt of that exchange rather than the place information first
+appears.** The assumption underneath is that a Cook may not read comfortably — so anything only the
+screen says is invisible to the person the product exists for.
+
+Four consequences bind every screen, and `docs/design/DESIGN.md` §10 has the rest:
+
+- **A component is unfinished until its spoken line is written.** Visual states alone are no longer
+  a component. This changes what "done" means for `packages/ui/` and every widget above it.
+- **The assistant paraphrases what it understood; it never shows a transcript.** The one exception
+  is a message to another human, which is read back verbatim before sending — those exact words are
+  what the other person receives.
+- **Reversible actions execute and are announced. Irreversible ones are read back and wait for a
+  spoken «أيوة». Silence never confirms**, and no timeout may resolve a gate.
+- **Every state reaches the user three ways — visual, spoken, haptic — any one sufficient alone.**
+
+**Tap is a complete alternative, never a degraded one**, and typing is never a *consequence* of the
+assistant failing to understand. Large Arabic text is a closed set of eleven glance words; numerals
+are the largest type in the system. Do not invent a twelfth glance word — add it to the set first.
 
 **NEVER** let AI write to the database without explicit human approval in the flow. AI suggests,
 humans approve. This is a domain rule, not a UX preference.
@@ -86,6 +125,7 @@ style nit — it propagates into schema, prompts, and UI. Full glossary: `docs/v
 | Order | purchase, transaction, ticket |
 | Review | feedback, rating (rating is the *score inside* a review) |
 | Conversation | chat, session (session is runtime-only, never user-facing) |
+| Message | chat, DM, thread |
 | AI Assistant | bot, chatbot, LLM, robot |
 | Publish / Archive | upload / delete |
 | Accept Order / Reject Order | approve / decline |
@@ -97,46 +137,34 @@ not copy event lists into other documents.
 
 ## Repo map
 
-```
-apps/mobile/         Flutter app (Customer + Cook, one binary). The only app that exists.
-packages/ui/         Shared widgets, design system
-packages/domain/     Entities + business logic. No Supabase imports here.
-packages/ai/         Provider abstraction, prompts, conversation engine
-prompts/             Prompt files. Compiled into supabase/functions/_shared/prompts.ts.
-scripts/             verify.sh (the gate), the toolchain installer, code generators
-supabase/migrations/ SQL. Generated names only.
-supabase/functions/  Edge Functions
-specs/               Per-epic spec, plan and tasks
-decisions/           ADRs. Read before proposing architecture changes.
-coordination/        Work packages, one JSON file each. How parallel sessions divide work.
-```
+Read the directory tree from the disk. What it will not tell you:
 
-`packages/domain/` must not import `supabase_flutter`. If you need it there, the boundary is wrong.
-
-**There is no `apps/admin/`, and its absence is a decision rather than a gap.** E0's T045 defers an
-administrative surface until one is needed. This map listed it as though it existed until
-2026-08-03, which is worse than omitting it: a map is read as a description of what is there, and a
-deferred decision written in the present tense reads as a directory somebody forgot to commit.
-
-**There is no Customer web surface yet either.** ADR-0008 commits to one and deliberately leaves the
-rendering technology open until E2 lands and there is a Meal to show. `apps/mobile/web/` is a
-development and demonstration target, measured at 42 MB on a canvas that cannot produce a
-previewable link — read ADR-0008 before treating it as the Customer surface, because it says in
-terms not to.
+- **`packages/domain/` must not import `supabase_flutter`.** Entities and business logic only. If
+  you need it there, the boundary is wrong.
+- **There is no `apps/admin/`.** E0's T045 defers an administrative surface until one is needed — a
+  decision, not a gap. Choosing a framework capable of carrying one was not approval to build it.
+- **`apps/web/` is the Customer web surface** — Next.js and TypeScript on Cloudflare Workers
+  (ADR-0008 Amendment 1). Three things bind it, none optional: Customer flows only, no Cook portal
+  or administrative surface without a new decision; the database is the arbiter and both front-ends
+  are presentation, so a rule restated in TypeScript with no RLS policy or constraint behind it is a
+  regression, not a shortcut; and its strings live in `apps/web/messages/{ar,en}.json`, not the ARB
+  files.
+- **`apps/mobile/web/` is not that, and never will be.** It is the Flutter web build: 42 MB to a
+  canvas with no link preview, no indexing and no text selection. Never point a Customer at it.
+- **`prompts/` compiles into `supabase/functions/_shared/prompts.ts`.** Edit the source, never the
+  generated file.
+- **Read `decisions/` before proposing any architecture change.** `specs/` holds per-epic spec, plan
+  and tasks; `coordination/` holds work packages, one JSON file each.
+- **`docs/design/` is the design system, and `DESIGN.md` §10 is the voice specification.** The
+  HTML files beside it are design references — never shipped, never ported.
 
 ## Building a feature
 
-The order below is the path; "Definition of done" is the check at the end of it. Do not reorder
-steps 5–7 — the constitution requires an authorization test to be written, and seen to fail, before
-the policy it tests exists.
+**Step 0 — check the stop-and-ask triggers first.** This sequence looks complete enough to follow to
+the end without noticing that the feature needed approval three steps in.
 
-**Step 0 — check the stop-and-ask triggers before starting.** This sequence looks complete enough
-to follow to the end without noticing that the feature needed approval three steps in. See "When to
-stop and ask".
-
-**Steps 3–9 are delegated work.** Understanding the requirement, reviewing the architecture, and
-the whole of step 10 onward are yours. See "Delegating implementation work" — the brief must carry
-every constraint the task touches, because the implementer has none of this file's context.
+**Do not reorder steps 5–7.** The constitution requires an authorization test to be written, and
+seen to fail, before the policy it tests exists.
 
 1. Understand the requirement. Ambiguity is a reason to ask one specific question, not to pick a
    reading.
@@ -144,50 +172,56 @@ every constraint the task touches, because the implementer has none of this file
    the code that already does something similar.
 3. **Define the interfaces and data models first**, in `packages/domain/`. No Flutter imports, no
    `supabase_flutter`. Entities before behaviour.
-4. **Isolate infrastructure behind a repository interface**, and inject a fake in tests. Business
-   logic never depends on Supabase directly. This is already the pattern — see
-   `features/identity/data/account_repository.dart` and the `Fake*Repository` classes in
-   `apps/mobile/test/`. Follow it rather than inventing a second approach.
-5. **Write the authorization tests, run them, and confirm they FAIL.** A negative test that passes
-   on its first run is testing nothing and must be fixed before you continue.
+4. **Isolate infrastructure behind a repository interface**, and inject a fake in tests. Follow the
+   existing pattern — `features/identity/data/account_repository.dart` and the `Fake*Repository`
+   classes in `apps/mobile/test/` — rather than inventing a second approach.
+5. **Write the authorization tests, run them, and confirm they FAIL.** A negative test that passes on
+   its first run is testing nothing and must be fixed before you continue.
 6. Write the migration — table, `ENABLE ROW LEVEL SECURITY`, and every policy in the **same file**.
    Then re-run the tests from step 5 and watch them pass.
 7. Implement the business logic.
-8. Unit tests for the domain logic, widget tests for the screens — loading, data, and error states.
-   Add integration tests when a feature spans several screens or services.
-9. Strings into both ARB files, Arabic written first. Analytics event if the change touches a
+8. Unit tests for the domain logic, widget tests for the screens — loading, data and error states.
+   Integration tests when a feature spans several screens or services.
+9. Strings into both locale files, Arabic written first. Analytics event if the change touches a
    tracked business action. Golden-case test if it adds AI behaviour.
-10. Run `./scripts/verify.sh`. This is the gate — not `flutter test`, which misses the pure-Dart
-    packages, and not `flutter analyze`, which misses RLS coverage, credentials, vocabulary, ARB
-    parity and the Edge Function type-check.
-11. On failure: diagnose, fix, re-run, repeat until green — **except** a failing RLS or
-    committed-credentials check, which is a stop-and-report, never something to iterate against.
-    The quickest way to turn a red authorization test green is to weaken the policy, which is the
-    one outcome the test exists to prevent.
-12. Verify every `SC-###` acceptance criterion in the spec, by name.
-13. Update whatever the change made stale — `domain-model.md`, `event-model.md`, an ADR, this file.
-    Documentation drift is part of the change, not follow-up work.
-14. Extend the feature's `quickstart.md` so someone with none of your context can verify it by hand.
-15. Run `/ship-check`, then it is done.
+10. Verify every `SC-###` acceptance criterion in the spec, by name. Then the checks below.
 
 ## Definition of done
 
-A change is done when all of these are true:
+1. `./scripts/verify.sh` passes — this is the gate. Not `flutter test`, which misses the pure-Dart
+   packages; not `flutter analyze`, which misses RLS coverage, credentials, vocabulary, ARB parity
+   and the Edge Function type-check.
+2. New tables have RLS policies and a test proving a non-owner cannot read the row.
+3. **A change that moves a person between screens has a journey test** in
+   `apps/mobile/test/journey_test.dart` — one that boots the whole app and walks the path, asserting
+   both the arrival and the departure. Five defects reached the founder's phone on 2026-08-10 with
+   the gate fully green, and every one lived in the step *between* screens rather than inside one.
+   Two passing widget tests either side of a broken transition is the exact shape to distrust.
+   `.claude/rules/dart.md` has what a journey test must do.
+4. New user-facing strings exist in both `ar` and `en`.
+5. New AI behaviour has at least one golden-case test in `packages/ai/test/`.
+6. Analytics event emitted if the change touches a tracked business action.
+7. `docs/product/domain-model.md` updated in the same commit if the domain changed. Not optional — a
+   feature without updated domain docs is half-shipped. Update whatever else the change made stale:
+   `event-model.md`, an ADR, this file. Documentation drift is part of the change.
+8. The feature's `quickstart.md` lets someone with none of your context verify it by hand.
+9. `/ship-check` run.
 
-1. `./scripts/verify.sh` passes
-2. New tables have RLS policies and a test proving a non-owner cannot read the row
-3. New user-facing strings exist in both `ar` and `en` ARB files
-4. New AI behaviour has at least one golden-case test in `packages/ai/test/`
-5. Analytics event emitted if the change touches a tracked business action
-6. If the domain changed, `docs/product/domain-model.md` updated in the same commit
-
-Item 6 is not optional. A feature without updated domain docs is half-shipped.
+**On gate failure:** diagnose, fix, re-run until green — **except** a failing RLS or
+committed-credentials check, which is a stop-and-report, never something to iterate against. The
+quickest way to turn a red authorization test green is to weaken the policy, which is the one
+outcome the test exists to prevent.
 
 ## Git
 
 Branch: `feat/short-description`, `fix/short-description`.
 Commit message: imperative, one logical change per commit. Do not bundle unrelated files.
 Never `git push --force` to `main`.
+
+**Never `git add -A` while a review agent is running.** They run the code they review, writing probe
+files into the same working tree you are about to stage. Stage named paths, or `git add -u` plus the
+files you actually created. `zz_*` is git-ignored so the known case cannot recur silently, but a
+blanket add in a shared tree is still a commit nobody reviewed.
 
 ## When to stop and ask
 
@@ -201,6 +235,9 @@ Stop and produce a short plan for approval instead of implementing when:
 - A feature appears in the roadmap under Phase 2 or later and was not explicitly requested
 
 Ambiguity is not a reason to invent behaviour. It is a reason to ask one specific question.
+
+**Flag anything irreversible or externally visible before doing it**: what it changes, who can see
+it, how hard it is to undo.
 
 ## Priority order when options conflict
 
@@ -218,329 +255,74 @@ Development speed is last. Do not trade trust or simplicity for it.
 App launch <2s · voice response <2s · meal publish <3s · search <1.5s.
 If a change pushes past a budget, say so in the PR rather than shipping it silently.
 
-**Search was <1s until 2026-08-08, and it was raised by the founder rather than missed quietly.**
-Measured end to end for the first time that day — the figure it replaced had never been taken —
-discovery runs at 1112 ms median and 1438 ms at p95 against a corpus of 1,013 Meals.
-`docs/ops/measuring-discovery.md` has the breakdown. Raising a budget so a measurement passes is
-normally the move this repository refuses; it is allowed here because the founder owns this number,
-took the decision knowing what it was measured at, and it is written down as a decision with its
-evidence rather than adjusted to fit. **Nobody else raises one of these.**
+**Two more arrived with voice-first (ADR-0013), and they are tighter than anything above.** Input is
+acknowledged — haptic and orb growth — within **150 ms**, and the thinking state visible before
+**400 ms**. Half a second of silence reads as "the button didn't work", so the Cook taps again and
+cuts off her own speech. They govern the gap before the 2 s round-trip, not instead of it. **Nothing
+in a voice flow may be silent and still.**
 
-Two things that decision does not cover, and both are in the report: the measurement runs from a
-cloud container in the database's own region, so an Egyptian mobile network adds to every figure and
-1438 ms is a floor rather than what a phone sees. And 415 ms of that median is the `embedding`
-column being serialised into a response no client reads — a fixable cost, not a fact about search.
+**Neither is measured and the path behind them is unproven** — `docs/ops/spike-gemini-live.md`
+records the ephemeral-token flow failing on 2026-08-06 and ADR-0009 is open. Targets a design
+committed to, not budgets a build has met.
 
-The old wording read "cached search <1s" and described something that cannot exist: `discover`
-must not cache on a Customer's phrase, because a cache keyed on what somebody said is a recording
-of what they said (FR-029, SC-011).
+**Only the founder raises a budget.** Search was <1s until 2026-08-08, when he raised it having seen
+the first end-to-end measurement — 1112 ms median, 1438 ms p95 over 1,013 Meals.
+`docs/ops/measuring-discovery.md` has the numbers, what they exclude, and the 415 ms of avoidable
+cost inside them. Raising a budget so a measurement passes is otherwise the move this repository
+refuses.
 
-## Skill activation
+`discover` must not cache on a Customer's phrase — a cache keyed on what somebody said is a
+recording of what they said (FR-029, SC-011).
 
-At the start of any task-oriented session — any interaction where you will use tools and
-produce deliverables — invoke the `task-observer` skill before beginning work. This ensures
-skill improvement opportunities are captured throughout the session.
+## Skills and hooks
 
-When loading any skill, check the observation log for OPEN observations tagged to that skill.
-Apply their insights to the current work, even if the skill file hasn't been updated yet. This
-enables immediate application of observations before they're permanently integrated during the
-weekly review.
+Invoke `task-observer` at the start of any session where you will use tools and produce
+deliverables. When loading any skill, check the observation log for OPEN observations tagged to it
+and apply them, even if the skill file has not been updated yet.
 
-**Workspace folder for `task-observer` is pinned to `.claude/skill-observations/` in this
-repository.** Do not use `~/.claude/projects/<id>/`. Kafoo development runs in ephemeral
-containers that are destroyed after each session, so the repository is the only storage that
-outlives a session — and only for work that is committed and pushed. An observation log that
-is written but never committed is lost at teardown. Say so rather than silently losing it.
+**`task-observer`'s workspace is pinned to `.claude/skill-observations/` in this repository**, not
+`~/.claude/projects/<id>/`. Containers are destroyed after each session, so the repository is the
+only storage that outlives one — and only for work that is committed and pushed. Commit the log in
+the session that writes it; an uncommitted observation is lost at teardown.
 
-`using-superpowers` is injected automatically at session start by
-`.claude/hooks/superpowers-session-start.sh`; it does not need an instruction here.
-
-**caveman and ponytail are wired but set to different intensities, on purpose.** Both are
-hook-driven output-compression tools vendored into `.claude/`; the full reasoning is in
-`.claude/skills/_vendor-licenses/VENDORED.md`, and the short version is:
-
-- **caveman is `off`.** It compresses *prose to the reader*, and its `full` default contradicts the
-  communication contract at the top of this file. Every command still works on demand —
-  `/caveman lite`, `/caveman-stats`, `/caveman-commit`, `/caveman-review`. Do not switch the default
-  on without saying so; the founder reads these answers to make decisions.
-- **ponytail is `lite`.** It shapes generated *code*, so it does not collide with that contract, and
-  it agrees with Simplicity at position 2 in the priority order. It is deliberately not `full`:
-  RLS in the same migration, a negative test seen to fail, and both ARB locales are all work a
-  strong "write less" prior will argue against. **Ponytail never outranks a non-negotiable.** If it
-  suggests dropping one, ponytail is wrong.
-
-Its subagent injection is scoped by `PONYTAIL_SUBAGENT_MATCHER` to implementation agents only.
-The review agents in `.claude/agents/` exist to object, and telling them to do less defeats them.
+**Ponytail never outranks a non-negotiable.** It is set to `lite` and shapes generated code, which
+agrees with Simplicity at position 2 above — but RLS in the same migration, a negative test seen to
+fail, and both locale files are all work a "write less" prior will argue against. If it suggests
+dropping one, ponytail is wrong. Caveman is `off` because it compresses prose to the reader, which
+collides with the communication contract at the top of this file; do not switch it on without
+saying so. Reasoning for both: `.claude/skills/_vendor-licenses/VENDORED.md`.
 
 ## Working alongside another session
 
-Kafoo runs more than one Claude Code session at a time. **Read `coordination/README.md` before
-picking up any work.** The short version, and it is not optional:
+Kafoo runs more than one session at a time. **Read `coordination/README.md` before picking up any
+work** — roles, work-package fields, lifecycle and what the gate enforces are all there. What it
+cannot enforce:
 
-**One session is the coordinator; every other session is a worker.** If the founder is talking to
-you about planning, priorities or what to do next, you are the coordinator. Otherwise you are a
-worker. It is a role, not an identity — containers are destroyed after a period of inactivity, so
-no session is durable and the founder is the only continuous participant.
-
-**A worker never chooses its own work.** Work arrives as a work package in
-`coordination/packages/WP-###.json`, assigned by the coordinator. A worker owns its package end to
-end and updates the status of that package only. It does not create, split, reprioritise or assign
-packages, and it does not edit `specs/*/tasks.md` planning state.
-
-**The coordinator pulls `main` before proposing anything.** This whole directory exists because on
-2026-08-05 a session proposed the Cook's Meal list, asked the founder to approve two design
-decisions about it, and dispatched an implementer — while the identical screen sat merged in `main`,
-twenty-six minutes old. The task list it read was a local copy. **A stale plan is indistinguishable
-from a correct one until the merge.**
-
-**Never claim a task number from a local copy of `tasks.md`.** Two sessions each took `T097` the
-same day. The coordinator allocates ids; `scripts/validate-coordination.py` refuses duplicates for
-packages, but nothing can retroactively fix a task number two people have already used.
-
-**Declare what a package shares.** File-disjoint packages are not achievable here — every
-user-facing change touches both ARB files, and two workers adding pgTAP cases both edit the same
-`plan(N)` line. `scope.shared_files` is where that is admitted so the coordinator can serialise it.
-A package claiming to touch nothing shared is usually a package nobody checked.
-
-**Never `git add -A` while a review agent is running.** They run the code they review, which means
-writing probe files into the same working tree you are about to stage. Stage named paths, or
-`git add -u` plus the files you actually created. Both agents dispatched on 2026-08-07 left a probe
-behind and one reached a commit; `zz_*` is now git-ignored so the class cannot recur silently, but a
-blanket add in a shared tree is still a commit nobody reviewed.
-
-The same applies to the gate. `./scripts/verify.sh` grades the WORKING TREE, so a run started while
-an agent is mid-edit is grading a mixture — rls-reviewer said so explicitly rather than reporting a
-result it could not attribute. If the tree is not yours alone, say what you measured.
-
-**A worker still stops and asks.** The stop-and-ask triggers below — a new screen, money, a new
-category of personal data, AI acting without approval — route to the founder. Owning a package end
-to end is not authority to decide those.
+- **The coordinator pulls `main` before proposing anything.** A stale plan is indistinguishable from
+  a correct one until the merge.
+- **Never claim a task number from a local copy of `tasks.md`.** The coordinator allocates ids.
+  Nothing can retroactively fix a task number two sessions have already used.
+- **`./scripts/verify.sh` grades the working tree**, so a run started while an agent is mid-edit is
+  grading a mixture. If the tree is not yours alone, say what you measured.
+- **A worker still stops and asks.** Owning a package end to end is not authority to decide a new
+  screen, money, a new category of personal data, or an AI write path. Those route to the founder.
 
 ## Delegating implementation work
 
-> **SUSPENDED 2026-08-06 — do not delegate until the founder lifts this.** The OpenCode weekly limit
-> is reached. Write the code directly, and keep every other rule in this section: the gate still
-> runs, RLS still lands in the same migration, a negative test is still seen to fail first. What is
-> suspended is the dispatch, not the discipline.
->
-> **You lose the separation the rest of this section exists to create**, so replace it deliberately:
-> the review agents in `.claude/agents/` are not delegation and are not suspended. `rls-reviewer`,
-> `ai-boundary-reviewer`, `trust-reviewer` and the rest read a diff with fresh eyes, which is the
-> whole point. Use them on anything touching authorization, money, personal data, or an AI write
-> path.
->
-> **Do not treat the spend ledger as authority to resume.** On 2026-08-06 `report` printed
-> `OK to dispatch` and `$18.85 left` while the account was over its weekly limit — the identical
-> figure `docs/HANDOFF.md` already records as a check that could not fail. The founder lifts this,
-> not the tool.
+**SUSPENDED 2026-08-06 — do not delegate until the founder lifts this.** The OpenCode weekly limit
+is reached. Write the code directly; every other rule holds — the gate runs, RLS lands in the same
+migration, a negative test is still seen to fail first. What is suspended is the dispatch, not the
+discipline. **The founder lifts it, not the tooling:** the spend ledger printed `OK to dispatch`
+while the account was already over its limit, so its verdict is not authority to resume.
 
-**YOU MUST delegate implementation.** Writing production code directly is the exception, not the
-default. Use `opencode-delegate` (or `claude-delegate`) to hand a bounded task to a separate agent,
-then review its diff, re-run the gates yourself, and commit. Founder's decision, 2026-08-02.
+Delegation exists because **the author of a change is the worst available reviewer of it.** With it
+suspended you lose that separation, so replace it deliberately: the review agents in
+`.claude/agents/` are not delegation and are not suspended. Use `rls-reviewer`,
+`ai-boundary-reviewer` and `trust-reviewer` on anything touching authorization, money, personal
+data, or an AI write path.
 
-The reason is not cost. It is that **the author of a change is the worst available reviewer of it**,
-and this repository's whole safety model — RLS negative tests seen to fail, mutation checks, a gate
-that must go red before it goes green — depends on somebody actually reading the code with fresh
-eyes. Delegating creates that separation structurally instead of asking one agent to pretend.
-
-**Delegate, always:** feature code, migrations, Edge Functions, tests, refactors, renames, sweeps.
-
-**Do it yourself, and say why:**
-
-- **Architecture and decisions.** ADRs, spec and plan documents, choosing between approaches, and
-  anything in `decisions/` or `.claude/`. A brief cannot carry the conversation that produced the
-  judgement.
-- **Diagnosis.** Use `--read-only` (the `plan` agent) to investigate; do not delegate a fix for a
-  bug nobody has understood yet.
-- **A change smaller than its brief.** A one-line fix costs more to describe than to make.
-- **Anything the founder asked you specifically to do.** He asked you, not a subagent.
-
-**Reviewing is not optional and not a formality.** Never accept "gates passed" on faith — run
-`./scripts/verify.sh` yourself, read the diff against the brief, and check the things a delegated
-agent has no way to know: canonical vocabulary, Egyptian Arabic register, whether a negative test
-was actually seen to fail, whether an RLS policy is as narrow as it looks. **You are accountable for
-what you commit, whoever typed it.**
-
-Model choice comes from the table below. **Read the prefix carefully** — `opencode-go/` is the
-flat-rate subscription and `opencode/` is a metered product sharing the same credential. Re-verify
-rather than trusting this sentence; both the lineup and the prefix have been wrong here before.
-
-The opencode CLI is installed by `scripts/install-toolchain.sh`, so it is on `PATH` in every
-session.
-
-**Signing in: set `OPENCODE_API_KEY` as a cloud-environment variable.** opencode reads it directly
-for the OpenCode Go and Zen providers, so a session starts already signed in. `opencode auth login`
-also works but writes `~/.local/share/opencode/auth.json`, which is destroyed with the container —
-it signs in this session only. Set the variable at claude.ai/code → the cloud icon above the
-message box → the gear on your environment → **Environment variables**, one `KEY=value` per line.
-**Never put the key in this repository**; `./scripts/verify.sh` fails if a real-looking one is
-tracked by git.
-
-Two things to know about that variable. Cloud environments have **no secrets store**: anyone who
-can use the environment can read the value, so keep the key in a personal environment rather than
-an organization-shared one, and treat it as rotatable. And the API host `opencode.ai` is **not** on
-the default **Trusted** network allowlist — it is reachable from the environment this was set up in,
-but an environment restricted to Trusted may need `opencode.ai` added under **Custom**.
-
-Without a credential, `opencode models` lists only the anonymous free tier and shows none of the
-allowlist below. That is a missing key, not a drifted plan — every model below was confirmed
-present once a key was supplied.
-
-`opencode-delegate` and `claude-delegate` hand a bounded task to a separate CLI agent, which
-edits the working tree but never commits. **You stay the reviewer**: re-run the gates yourself,
-read the diff against the brief, then commit. Never accept a delegated agent's "gates passed"
-on faith — re-run `./scripts/verify.sh`.
-
-### Allowed OpenCode models — the prefix IS the billing boundary, and it is `opencode-go/`
-
-The OpenCode subscription on this account is **OpenCode Go**. Its namespace is **`opencode-go/`**.
-Everything dispatched for Kafoo uses that prefix.
-
-**It is not flat-rate, and this file said it was until 2026-08-03.** Go is $5 for the first month
-then $10/month, and it meters usage against three dollar-denominated caps
-(https://opencode.ai/docs/go/):
-
-| Window | Cap |
-|---|---|
-| rolling 5 hours | $12 of usage |
-| week | $30 of usage |
-| month | $60 of usage |
-
-So the `cost` field in a relay's `result.json` is not notional — **it is what counts against those
-caps.** Three `grok-4.5` dispatches on 2026-08-03 cost $0.44, $0.71 and $0.76: $1.91 for one
-session's work, about a sixth of a five-hour window. A delegation-heavy day can exhaust a window,
-and the failure mode is work stopping mid-task rather than a surprise bill.
-
-Model choice moves this by orders of magnitude, not percentages — the docs put MiMo-V2.5 at roughly
-150,400 requests a month against Kimi K3's 490. **Send mechanical work to a cheap model because it
-is cheap, not merely because it is sufficient.**
-
-**YOU MUST run the spend ledger around every dispatch.** Two commands, and neither is optional:
-
-```bash
-python3 scripts/opencode-spend.py report          # BEFORE dispatching. Obey the verdict.
-python3 scripts/opencode-spend.py record <relay-result-dir>   # AFTER every relay, pass or fail
-```
-
-Then **commit AND push `.claude/opencode-spend.jsonl`, immediately, not at the end of the session**.
-It is append-only, one row per dispatch, and it lives in the repository for the same reason the
-observation log does: cloud containers are destroyed after each session, so an uncommitted ledger
-is a ledger that resets to zero against a cap that does not. `opencode stats` cannot do this job —
-it reads the container's local database and starts empty every time.
-
-Push immediately because **the caps are per account and `report` reads every remote branch**, not
-just this checkout. Two parallel sessions each see the other's spend only through what has been
-pushed, so a row sitting uncommitted is a row the other session will dispatch straight through. The
-report says how many rows it found elsewhere, and warns if it could not reach the remote — that
-warning means halve every cap, because you are seeing at most your own half. `--local` skips the
-fetch and is for debugging only; it is not a faster `report`, it is a blind one.
-
-The report prints `OK`, `WARN` at 70% of any window, or `STOP` at 90%. `WARN` means send the next
-task down the model table. `STOP` means finish what is in flight and start nothing new: the failure
-being avoided is a long task dying halfway, not a bill.
-
-**It is an approximation and it is honest about being one.** It records what Kafoo spent, which
-tracks the account only while delegated coding is the sole consumer of the subscription — true as
-of 2026-08-03. It cannot see spend from a laptop or another machine. The authoritative number is
-the OpenCode workspace console, which needs a browser credential that must not be put in a cloud
-environment: there is no secrets store, so anyone with access to the environment could read it, and
-a console session reaches billing rather than just model calls.
-
-**So the founder sends a screenshot of that console at the end of each day, and it is the only
-thing here that touches billed dollars.** He hovers a day's bar; the tooltip gives the exact figure
-per model. Record each reading in `.claude/opencode-calibration.jsonl`, one row per day per model,
-and commit it with the ledger. That gets the authoritative number into the repository without a
-billing-capable browser session ever reaching an environment with no secrets store.
-
-**Do not put calibration rows in the ledger.** They carry a cost figure, everything that reads the
-ledger sums cost figures, and the check would corrupt the number it exists to check.
-
-**The relay's `cost` is what the CLI computes, not what the account is billed, and the gap is
-per model rather than uniform.** Measured 2026-08-05 across four days:
-
-| Model | Ledger | Console | Drift |
-|---|---|---|---|
-| `qwen3.6-plus` | $4.24 | $4.36 | −2.7%, and within 1% on every single day |
-| `grok-4.5` | $7.28 | $5.35 | +36%, i.e. a third of the five-hour window spent on nothing |
-
-`report` now corrects per model from those readings before comparing anything to a cap, and prints
-the relay's own figure beside the corrected one so the correction is visible rather than silent.
-**Adding a day's reading is what keeps it accurate — an uncalibrated report says so in its output.**
-
-Founder's tolerance, 2026-08-05: **8% per day after correction.** Five of the seven day-and-model
-pairs measured land inside 1%. The two that do not are both `grok-4.5` on 02 and 03 August, the
-first two days this tooling was used at all, and they are reported as OUT rather than absorbed.
-**A day outside tolerance is a defect to investigate, never a reason to widen the band** — scaling
-a number that is wrong for a knowable reason only hides the reason.
-
-**`opencode/` is a different product and it bills per token.** One `OPENCODE_API_KEY` authenticates
-two separate providers, which is why this file spent from 2026-07-26 to 2026-08-02 telling every
-agent to use the metered one:
-
-| Prefix | Provider | Billing | Models |
-|---|---|---|---|
-| `opencode-go/` | OpenCode Go | flat-rate subscription | 17 — the published Go lineup |
-| `opencode/` | OpenCode Zen | **metered, per token** | 60 — includes frontier models |
-
-Corrected on 2026-08-02, and not by reading anything. A dispatch to `opencode/grok-4.5` failed with
-HTTP 401 `CreditsError: Insufficient balance`, against `https://opencode.ai/zen/v1/responses` — the
-model string named a Go-lineup model and the request still went to Zen. `opencode auth list` then
-showed `OPENCODE_API_KEY` listed twice, once under "OpenCode Go" and once under "OpenCode Zen".
-
-The earlier text said the provider id was `opencode` "verified with `opencode models`". Both
-providers appear in that output, both carry Go-lineup model names, and the flat-rate one sorts
-lower. Verifying that a model *exists* is not verifying which account pays for it.
-
-**MUST NOT** dispatch anything outside `opencode-go/`. A metered model produces a real, unbudgeted
-charge. If a task seems to need one, say so and let a human decide.
-
-The zero balance that produced the error above is not a safety net to rely on. It made this
-particular mistake free; a topped-up balance would have made the same mistake silent.
-
-### Allowlist — verified present on this account, 2026-08-03
-
-The full published Go lineup is available. Listing `opencode-go/` returns all eighteen:
-
-`deepseek-v4-flash` · `deepseek-v4-pro` · `glm-5.1` · `glm-5.2` · `gpt-5.6-luna` · `grok-4.5` ·
-`hy3` · `kimi-k2.6` · `kimi-k2.7-code` · `kimi-k3` · `mimo-v2.5` · `mimo-v2.5-pro` ·
-`minimax-m2.7` · `minimax-m3` · `qwen3.6-plus` · `qwen3.7-max` · `qwen3.7-plus` · `qwen3.8-max`
-
-Six of these — `kimi-k3`, `qwen3.7-plus`, `qwen3.7-max`, `mimo-v2.5`, `mimo-v2.5-pro`, `hy3` — were
-once recorded here as "on the published docs but not on this account", and a note warned that Go's
-lineup drifts. They were never missing. They were under the prefix nobody had looked at.
-
-**`qwen3.8-max` is the case that note was reaching for, and it is a cache, not drift.** A plain
-`opencode models` returned seventeen; `opencode models --refresh` returned eighteen. So the local
-catalog does go stale, and the symptom is indistinguishable from a model being unavailable —
-**always `--refresh` before concluding a model is missing.**
-
-| Task shape | Model |
-|---|---|
-| Mechanical — renames, migrations, removal sweeps, formatting | `opencode-go/deepseek-v4-flash` |
-| Ordinary implementation | `opencode-go/qwen3.6-plus` |
-| Subtle logic, tricky bugs, anything near money, auth, or RLS | `opencode-go/grok-4.5` |
-
-Pick down this table, not up. `grok-4.5` is the expensive row and every dispatch on 2026-08-03 used
-it, including one that generated JSON fixtures — work the mechanical row would have done for a
-fraction of the cap. Reserve it for what the row actually says: subtle logic, auth, RLS, money.
-
-Re-run `opencode models --refresh` and update this allowlist rather than improvising per task. A
-model that no longer exists fails loudly, which is safe; a metered one does not.
-
-**Do not substitute a same-named model from another provider.** `cloudflare-ai-gateway/`,
-`amazon-bedrock/`, `github-models/` and `openrouter/` all carry names from the Go lineup and none
-of them are covered by this subscription — they bill separately and need their own credentials.
-This is the same trap as `opencode/` versus `opencode-go/`, one level out: a familiar model name is
-not evidence of who pays for the call. If a wanted model is missing from `opencode-go/`, the
-subscription cannot reach it and no configuration changes that; use the nearest allowlisted model
-or ask.
-
-### Delegated work is still Kafoo work
-
-Everything in this file and in `.specify/memory/constitution.md` binds delegated code too. The
-brief MUST carry the constraints the task touches — canonical vocabulary, RLS in the same
-migration, `ar` ARB entries, no AI write path without human approval — because the implementer
-has none of this conversation's context and does not auto-load this file.
-
-Prefer `--read-only` (the `plan` agent) for diagnosis. Note the relay passes the parent
-environment to the child process: do not delegate in a working tree holding a real `.env`.
+**When the suspension is lifted, delegating implementation becomes mandatory again** — writing
+production code directly is the exception, not the default (founder's decision, 2026-08-02). Load
+the `opencode-delegate` skill at that point: this account's model allowlist, billing caps and
+spend-ledger workflow live in its `references/kafoo-account.md`, and nothing outside the
+`opencode-go/` prefix may ever be dispatched.

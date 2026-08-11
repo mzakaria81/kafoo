@@ -270,7 +270,7 @@ void main() {
           variables: {
             'said': 'عملت كشري',
             'meal_id': 'uuid-here',
-            'photo_path': 'meal-photos/uid/mid.jpg',
+            'photo_path': 'uid/mid.jpg',
             'cook_id': 'should-not-be-sent',
             'user_id': 'also-not-sent',
           },

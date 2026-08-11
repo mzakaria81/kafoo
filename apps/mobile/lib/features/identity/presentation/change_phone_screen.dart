@@ -109,8 +109,13 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.changePhoneTitle(context.addressForm))),
+      // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
+      // by 334 logical pixels once the design system's type scale landed, and an overflowing
+      // Column resolves it by clipping its LAST child — the button that submits.
+      // A Cook using large text on a cheap Android handset had no reachable
+      // control at all.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

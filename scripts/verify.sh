@@ -166,6 +166,12 @@ run "edge functions" bash -c '
 #   *_test.ts   unit. No network, no database, no local stack. Runs in this gate on every commit.
 #   *.test.ts   integration. Needs `supabase start`. Runs by hand, and never here.
 #
+# The convention is the REPOSITORY'S, not Deno's, so `apps/web` follows it too — its suites are
+# `lib/*_test.ts` and run in the "web surface" check below. They arrived as `.test.mjs`, which was
+# wrong twice over: a `.mjs` file is outside `tsconfig`'s `include`, so nothing type-checked a test
+# against the API it tested, and the dotted name is the one that means "does not run here". Renamed
+# 2026-08-08 rather than left as a second convention beside this one.
+#
 # delete-account/index.test.ts is the second kind — it creates real auth users against a local
 # stack and cannot pass without Docker. Sweeping both kinds into the gate makes it fail on every
 # machine that has no Docker, which is every CI runner we use and the session container too.
@@ -545,13 +551,19 @@ run "localization parity" bash -c '
 # The web surface's own checks — its type-check and its preview-cap assertions. Skipped with a
 # LOUD notice when node_modules is absent rather than silently, because a check that reports
 # success on having inspected nothing is the failure this gate keeps meeting.
+# This check printed "NOT CHECKED" and then exited 0, so the gate reported ok. Nothing in ci.yml
+# installed apps/web's dependencies — only deploy.yml did, and that runs after the merge — so on
+# every clean CI checkout node_modules was absent and the Customer web surface was type-checked
+# nowhere but a developer's laptop, on every pull request from the day this was written.
+#
+# That is the same failure as the three Deno checks described at the top of this file, and
+# `skip_or_fail` is the thing built to prevent it. It was sitting forty lines above, unused here.
 run "web surface" bash -c '
-  [ -f apps/web/package.json ] || { echo "   apps/web not present yet — skipping"; exit 0; }
-  if [ ! -d apps/web/node_modules ]; then
-    echo "   apps/web/node_modules absent — NOT CHECKED. Run: (cd apps/web && npm ci)"
-    exit 0
-  fi
-  cd apps/web && npx tsc --noEmit && node --test lib/*.test.mjs > /dev/null'
+  [ -f apps/web/package.json ] || {
+    skip_or_fail "apps/web not present"; exit $?; }
+  [ -d apps/web/node_modules ] || {
+    skip_or_fail "apps/web/node_modules absent (run: cd apps/web && npm ci)"; exit $?; }
+  cd apps/web && npx tsc --noEmit && node --test lib/*_test.ts > /dev/null'
 
 # The Customer web surface carries its own ar/en messages rather than the app's ARB files, so the
 # parity check above does not see them. Two locales that drift are how a Customer meets an English
@@ -637,6 +649,33 @@ run "work packages" bash -c '
   [ -d coordination/packages ] || { echo "   no coordination/packages — skipping"; exit 0; }
   python3 scripts/validate-coordination.py'
 
+# A task id must name exactly one task in its file. E0, E1 and E2 each restart numbering at T001, so
+# an id is only ever unique WITHIN one tasks.md — which is why this compares per file and not across
+# the repository, and why anything that reads these files across epics has to qualify the id.
+#
+# specs/003 recorded T094 and T095 twice each until 2026-08-08: once in their phase and once in a
+# trailing section, both `[x]`, both saying "folded into T088". Nothing contradicted anything, which
+# is precisely why it survived every review and every run of this gate. The file reported 101 task
+# lines against 99 tasks and every count taken from it was two high.
+#
+# The cost is not the miscount. A duplicated id has no single state — tick one copy and the same task
+# is both done and not done — and any tool keying on it silently maps two records onto one.
+run "task ids are unique" bash -c '
+  ls specs/*/tasks.md >/dev/null 2>&1 || { echo "   no specs/*/tasks.md — skipping"; exit 0; }
+  status=0
+  total=0
+  for f in specs/*/tasks.md; do
+    ids=$(grep -oE "^- \[[ x]\] T[0-9]{3}" "$f" | grep -oE "T[0-9]{3}")
+    total=$((total + $(printf "%s\n" "$ids" | grep -c .)))
+    dupes=$(printf "%s\n" "$ids" | sort | uniq -d | tr "\n" " ")
+    if [ -n "$dupes" ]; then
+      echo "   $f: ${dupes}recorded more than once — one id, one task"
+      status=1
+    fi
+  done
+  [ "$status" -eq 0 ] && echo "   $total task ids across $(ls specs/*/tasks.md | wc -l | tr -d " ") files, none repeated within a file"
+  exit "$status"'
+
 # Which review agent reads which diff is decided by a path map in
 # scripts/select-reviewers.sh, and the failure mode is the quiet one: rename a brief
 # or move a directory, and the map stops matching. CI then dispatches nothing for
@@ -670,6 +709,188 @@ run "edge functions are declared" bash -c '
       echo "   test and type-check for it stays green."
       status=1
     fi
+  done
+  exit $status'
+
+# EVERY SCREEN CAN BE OPENED BY SOMEBODY HOLDING THE PHONE.
+#
+# On 2026-08-09 the founder installed the app and found two screens. `my_meals_screen.dart`,
+# `meal_publish_entry.dart`, `meal_edit_screen.dart` and `kitchen_profile_screen.dart` — 920 lines,
+# the whole Cook side of E2 — were referenced by no file in `apps/mobile/lib/`. There was no route
+# into any of them.
+#
+# NOTHING IN THIS GATE COULD SEE IT, and that is the point. A widget test constructs a screen
+# directly, so it proves the screen renders; `analyze` proves it compiles; the RLS suites prove the
+# policies hold. Every automated check builds the thing under test with its own hands and therefore
+# shares one blind spot: none of them asks whether anything reaches it. "The tests pass" and "a user
+# can get there" are different claims and only the first was ever established.
+#
+# It had already happened once. `main.dart` carries a comment about the app shipping with no
+# `ProviderScope`, ending "a screen tested in isolation is not a screen that has been run" — written
+# beside the fix, as prose, three weeks before the identical failure recurred. That is why this is a
+# check and not a paragraph.
+#
+# IT MATCHES IMPORT LINES, NOT THE FILENAME ANYWHERE.
+#
+# The first version of this check grepped lib/ for the screen`s basename and could not fail: the
+# comment above in `home.dart` names all four files, so every screen counted as referenced by the
+# prose describing why they were not. A check defeated by a comment about the check is worse than no
+# check, because it reports ok. Only an `import` makes a screen reachable from another file, and a
+# comment cannot look like one.
+run "every screen has a route into it" bash -c '
+  [ -d apps/mobile/lib ] || { echo "   no mobile app yet — skipping"; exit 0; }
+  status=0
+  for file in apps/mobile/lib/features/*/presentation/*_screen.dart; do
+    [ -f "$file" ] || continue
+    base=$(basename "$file" .dart)
+    # Any import path ending in this filename, from anywhere in lib/ — main.dart, home.dart, or the
+    # screen this one sits behind. Excluding $file itself stops a screen counting as its own caller.
+    if ! grep -rl --include="*.dart" "^import .*${base}\.dart'"'"'" apps/mobile/lib \
+         | grep -qv "^${file}$"; then
+      echo "   FAIL: nothing in apps/mobile/lib imports ${base}.dart."
+      echo "   It compiles, its widget test passes, and NOBODY CAN OPEN IT. Give it a route from"
+      echo "   home.dart or from the screen it belongs behind, or delete it."
+      status=1
+    fi
+  done
+  exit $status'
+
+# THE APP IS TESTED AS A WHOLE, NOT ONLY AS PARTS.
+#
+# Every other test in `apps/mobile/test/` builds one screen and hands it fakes. That proves the
+# screen and says nothing about the joins between screens — and on 2026-08-10 FIVE defects reached
+# the founder's phone in a single day, every one of them through a fully green gate, every one of
+# them living in a join rather than inside a widget:
+#
+#   icons rendered as Chinese characters · the app threw on its first frame with no ProviderScope ·
+#   four Cook screens had no route into them · the design system was rendered by no test at all ·
+#   a correct sign-in code signed the Cook in and navigated nowhere
+#
+# `journey_test.dart` boots `KafooApp` and walks real paths, which is the only level at which any of
+# those is visible. This check does not pretend to know whether a given change NEEDED a new journey
+# — that is judgement, and `.claude/rules/dart.md` states the rule for a person to follow. What it
+# refuses is the decay: the file being deleted, or quietly rewritten into more per-screen tests,
+# which is exactly how this gap opened in the first place.
+# EVERY ERROR KEY THE MEAL FEATURE PRODUCES HAS A SENTENCE.
+#
+# `meal_error_text.dart` maps a key to what the Cook reads. Its default is the SAVE error, so a key
+# with no case does not crash and does not look wrong in review — it quietly tells her the Meal was
+# not saved, whatever actually happened. Two of today's defects were exactly that shape: a message
+# that was written, and a message that was wrong about which thing failed.
+#
+# The doc comment in that file claimed `meal_error_text_test.dart` enforced this. No such file
+# existed. Raised by localization-reviewer on PR #455, and the honest fix is to make the claim true
+# rather than to soften it — so this is the check, and the comment now points here.
+#
+# A test could not do this: it would need its own list of keys, which is the same list drifting in a
+# second place. Reading the keys out of the source is what makes it enforcement.
+run "meal error keys have a sentence" bash -c '
+  dir=apps/mobile/lib/features/meal
+  text=$dir/presentation/meal_error_text.dart
+  [ -d "$dir" ] || { echo "   no meal feature — skipping"; exit 0; }
+  [ -f "$text" ] || { echo "   FAIL: $text is missing" >&2; exit 1; }
+  status=0
+  keys=$(grep -rhoE "messageKey: .[a-zA-Z]+." "$dir" | sed -E "s/.*: .([a-zA-Z]+)./\1/" | sort -u)
+  for key in $keys; do
+    grep -q "'"'"'${key}'"'"' =>" "$text" || {
+      echo "   FAIL: ${key} is produced in the Meal feature and has no case in" >&2
+      echo "         meal_error_text.dart, so a Cook seeing it reads the SAVE error instead." >&2
+      status=1; }
+  done
+  echo "   $(echo "$keys" | wc -l | tr -d " ") key(s), each with its own sentence"
+  exit $status'
+
+run "the app has journey tests" bash -c '
+  f=apps/mobile/test/journey_test.dart
+  [ -d apps/mobile/test ] || { echo "   no mobile tests yet — skipping"; exit 0; }
+  status=0
+  if [ ! -f "$f" ]; then
+    echo "   FAIL: $f is missing."
+    echo "   It is the only test that boots the whole app. Five defects shipped green without it."
+    exit 1
+  fi
+  # It must boot the app root. A journey file full of single screens is the gap wearing the name.
+  grep -q "KafooApp(" "$f" || {
+    echo "   FAIL: $f does not construct KafooApp."
+    echo "   A journey test that builds screens one at a time is what every other test already does."
+    status=1; }
+  # It must assert a DEPARTURE, not only an arrival. findsOneWidget on the destination is half a
+  # transition; findsNothing on the screen left behind is the half that catches a route nobody popped,
+  # which is precisely the sign-in bug the founder found.
+  grep -q "findsNothing" "$f" || {
+    echo "   FAIL: $f never asserts findsNothing."
+    echo "   Arriving somewhere is half a transition. The half that catches an undismissed screen is"
+    echo "   asserting the screen left behind is GONE."
+    status=1; }
+  # And it must actually drive the app rather than call into it.
+  grep -qE "tester\.(tap|enterText)" "$f" || {
+    echo "   FAIL: $f never taps or types. Drive the app the way a person does."
+    status=1; }
+  # AND SOMEWHERE IN IT, A NUMBER IS TYPED THE WAY AN EGYPTIAN COOK TYPES ONE.
+  #
+  # 2026-08-11: the founder answered the price question with «١٢٠» and was told his Meal could not be
+  # saved. `price` is `numeric(10,2)`, an Arabic keyboard produces Arabic-Indic digits, and Postgres
+  # refuses them. Every Cook, every price, every time — and 290 passing tests, every one of which had
+  # typed `'35'`.
+  #
+  # That is the failure this arm exists for, and it is not really about digits. `ar` is this product'"'"'s
+  # DEFAULT locale, so a suite that only ever types Latin input is testing a user who does not exist.
+  # The check is deliberately crude — one Arabic-Indic digit anywhere in the walked journey — because
+  # the alternative it is guarding against is zero.
+  # SCOPED TO WHAT IS TYPED, and it took three tries to get there — worth recording, because each
+  # wrong version LOOKED like it worked:
+  #
+  #   1. Any Arabic-Indic digit in the file. Passed on the comment explaining the bug.
+  #   2. Same, with comment lines stripped. Passed on the `reason:` string quoting «١٢٠» in prose.
+  #   3. Inside an `enterText(...)`, as a bracket range in `grep -E`. Passed on «كشري» — a bracket
+  #      range over Arabic code points collates loosely outside the C locale and swallows the letters.
+  #
+  # Hence `grep -P` with explicit code points and `(*UTF)`. Each earlier version was green on this
+  # exact file with the fix mutated away, which is the only test of a gate check that counts.
+  tr "\n" " " < "$f" \
+    | grep -qP "(*UTF)enterText\([^;]*[\x{0660}-\x{0669}\x{06F0}-\x{06F9}]" || {
+    echo "   FAIL: no journey types an Arabic-Indic digit into the app."
+    echo "   ar is the default locale. A journey that only types Latin numerals is walking a user"
+    echo "   this product does not have — and «١٢٠» in the price box is what broke on 2026-08-11."
+    status=1; }
+  journeys=$(grep -c "testWidgets(" "$f")
+  echo "   ${journeys} journey(s), booting the app root"
+  exit $status'
+
+# THE ARABIC FONT IS DECLARED IN BOTH PLACES IT HAS TO BE.
+#
+# `KafooType.fontFamily` names a family in Dart; `apps/mobile/pubspec.yaml` is what actually bundles
+# it. Nothing connects the two. Rename, move or drop the pubspec block and the build SUCCEEDS while
+# every screen reverts to whatever Arabic face the handset happens to carry — the exact state the
+# design system exists to end.
+#
+# The test called "carries the bundled Arabic font" cannot catch it. It asserts the theme's family
+# equals `KafooType.fontFamily` — the constant against itself. It reads as coverage and is not.
+# `dart analyze` never opens pubspec, and widget tests never load real fonts. Same shape as the icon
+# font below and the Info.plist strings: invisible to everything except a person holding a phone.
+#
+# Written first INSIDE the android check above, where its quoting broke that block and the gate died
+# on an unbound variable — so it is its own check now, with no literal apostrophe in it.
+run "the Arabic font is bundled" bash -c '
+  [ -f apps/mobile/pubspec.yaml ] || { echo "   no mobile app — skipping"; exit 0; }
+  [ -f packages/ui/lib/theme/tokens.dart ] || { echo "   no design tokens yet — skipping"; exit 0; }
+  status=0
+  family=$(grep -oE "fontFamily = .[A-Za-z]+" packages/ui/lib/theme/tokens.dart | head -1 |
+           grep -oE "[A-Za-z]+$")
+  if [ -z "$family" ]; then
+    echo "   FAIL: could not read KafooType.fontFamily from packages/ui/lib/theme/tokens.dart."
+    status=1
+  elif ! grep -qE "^[[:space:]]+- family: ${family}$" apps/mobile/pubspec.yaml; then
+    echo "   FAIL: apps/mobile/pubspec.yaml does not declare the font family [${family}]."
+    echo "   Dart names the family, the pubspec bundles it, and nothing else connects them. Without"
+    echo "   the declaration the app builds clean and every Arabic glyph comes from the handset."
+    status=1
+  fi
+  declared=$(grep -cE "asset: assets/fonts/[A-Za-z0-9-]+[.]ttf" apps/mobile/pubspec.yaml || true)
+  [ "$declared" -gt 0 ] || { echo "   FAIL: no font assets declared."; status=1; }
+  for asset in $(grep -oE "assets/fonts/[A-Za-z0-9-]+[.]ttf" apps/mobile/pubspec.yaml); do
+    [ -f "apps/mobile/${asset}" ] || {
+      echo "   FAIL: ${asset} is declared in pubspec.yaml but is not on disk."; status=1; }
   done
   exit $status'
 

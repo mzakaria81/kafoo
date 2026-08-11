@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { fill, messages } from '@/lib/messages';
+import { fill, messages, priceLabel } from '@/lib/messages';
 import { mealPreview } from '@/lib/preview';
 import { mealOnOffer, photoUrl } from '@/lib/supabase';
 
@@ -48,12 +48,15 @@ export default async function MealPage({ params }: Params) {
   return (
     <main>
       {src ? <img src={src} alt="" style={{ maxInlineSize: '100%' }} /> : null}
-      <h1>{item.meal.title}</h1>
-      <p className="price">{item.meal.price}</p>
-      <p>{item.meal.description}</p>
+      {/* Cook-authored — see the note in app/meal-card.tsx. */}
+      <h1 dir="auto">{item.meal.title}</h1>
+      <p className="price">{priceLabel(item.meal.price)}</p>
+      <p dir="auto">{item.meal.description}</p>
       <p>
         <Link href={`/k/${item.kitchen.id}`}>
-          {fill(t.browseKitchenLabel, { kitchen: item.kitchen.display_name })}
+          {fill(t.browseKitchenLabel, {
+            kitchen: `⁨${item.kitchen.display_name}⁩`,
+          })}
         </Link>
       </p>
     </main>

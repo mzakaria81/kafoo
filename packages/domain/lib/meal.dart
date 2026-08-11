@@ -225,6 +225,28 @@ final class Meal {
   /// Whether a reader other than the owning Cook may see it.
   bool get isPubliclyReadable => status.isPubliclyReadable;
 
+  /// The same Meal seen as the row a Cook's own queries return.
+  ///
+  /// The inverse of [CookMeal.asMeal] and always succeeds — every complete Meal
+  /// is a valid [CookMeal], while only some [CookMeal]s are complete Meals.
+  /// Lives here so the two directions of one mapping sit in one file.
+  CookMeal get asCookMeal => CookMeal(
+        id: id,
+        cookId: cookId,
+        title: title,
+        description: description,
+        price: price,
+        cuisine: cuisine,
+        category: category,
+        status: status,
+        ingredients: ingredients,
+        calories: calories,
+        allergens: allergens,
+        nutritionSource: nutritionSource,
+        photoPath: photoPath,
+        publishedAt: publishedAt,
+      );
+
   Meal copyWith({
     String? title,
     String? description,

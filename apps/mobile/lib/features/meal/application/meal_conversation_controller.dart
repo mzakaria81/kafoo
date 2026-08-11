@@ -102,6 +102,14 @@ class MealConversationController extends _$MealConversationController {
   /// Monotonic id so a late reply from an earlier analysis is dropped.
   int _analysisRequestId = 0;
 
+  /// How long the AI Assistant gets before the Cook is told it did not answer.
+  ///
+  /// Far outside the <2s budget on purpose: this is not a target, it is the
+  /// point at which waiting stops being useful. The budget governs how fast a
+  /// good reply arrives; this governs how long a Cook stares at a spinner when
+  /// no reply is coming.
+  static const Duration _analysisTimeout = Duration(seconds: 30);
+
   /// Guards against a double tap putting the Meal on offer twice.
   bool _publishInFlight = false;
 
@@ -245,8 +253,34 @@ class MealConversationController extends _$MealConversationController {
   ///
   /// Returns true when the answer was accepted, false when a write failed.
   /// The caller should clear the text field only on success.
-  Future<bool> answer(MealStepId step, String value) async {
+  Future<bool> answer(MealStepId step, String raw) async {
     state = state.copyWith(error: null);
+
+    // THE PRICE IS NORMALISED BEFORE ANYTHING ELSE SEES IT, and that is the fix
+    // for the second defect to reach the founder's phone on 2026-08-11. He typed
+    // «١٢٠» — the digits an Arabic keyboard produces — and the answer went to a
+    // `numeric(10,2)` column as that exact text. Postgres refuses it, and the
+    // refusal surfaced as «مقدرناش نحفظ الأكلة»: every Cook, every price.
+    //
+    // Here rather than in `_persistAnswer`, so the value written to the database
+    // and the value `_recordAnswer` keeps in memory are the same string. Two
+    // representations of one price is how a summary comes to disagree with the
+    // row it is summarising.
+    final String value;
+    if (step == MealStepId.price) {
+      final price = parseMealPrice(raw);
+      if (price == null) {
+        // Not a save failure — a question the Cook can answer again, and the
+        // only failure in this flow she can actually do anything about.
+        state = state.copyWith(
+          error: const AppError(messageKey: 'mealPriceInvalid'),
+        );
+        return false;
+      }
+      value = price;
+    } else {
+      value = raw;
+    }
 
     if (state.draft.mealId == null) {
       final result = await _repository.createDraft(title: value);
@@ -381,7 +415,51 @@ class MealConversationController extends _$MealConversationController {
     AiRequest request, {
     required bool usedPhoto,
   }) async {
-    final result = await _ai.complete(request);
+    // WRAPPED, AND THE WRAPPER IS THE FIX FOR A DEAD END THE FOUNDER HIT ON
+    // 2026-08-11: «تقديرات المساعد» spun forever and the conversation could not
+    // be finished at all.
+    //
+    // `_ai.complete` is declared to return a `Result`, and the transport under
+    // it does not honour that — `client.functions.invoke` THROWS on any non-2xx
+    // reply. `_startAnalysis` calls this method inside `unawaited(...)`, so the
+    // throw went nowhere: no error, no log, and `analysisInFlight` left true for
+    // the life of the screen.
+    //
+    // A stuck flag is worse than a visible failure. `currentFallbackStep`
+    // returns null while it is set, so the questions that ASK for cuisine and
+    // category — the two answers the database requires before a Meal may leave
+    // draft — were never offered. The Cook was not waiting for an estimate. She
+    // was locked out of publishing, with a spinner as the only explanation.
+    //
+    // Anything thrown from here therefore has to land as an error the Cook can
+    // read, and the flag has to come down whatever happens.
+    try {
+      await _analyse(requestId, request, usedPhoto: usedPhoto);
+    } on Object catch (e) {
+      if (!ref.mounted) return;
+      if (requestId != _analysisRequestId) return;
+      state = state.copyWith(
+        analysisInFlight: false,
+        analysisError:
+            AppError(messageKey: 'analyzeMealUnknownError', cause: e),
+      );
+    }
+  }
+
+  Future<void> _analyse(
+    int requestId,
+    AiRequest request, {
+    required bool usedPhoto,
+  }) async {
+    final result = await _ai.complete(request).timeout(
+          _analysisTimeout,
+          // A reply that never arrives is the same dead end as a throw. The
+          // Edge Function has its own deadline; nothing was enforcing one on a
+          // connection that simply stops answering, which on an Egyptian mobile
+          // network is not a rare case.
+          onTimeout: () =>
+              const Failure(AppError(messageKey: 'analyzeMealTimeout')),
+        );
 
     // The only await in this method, so this is the only place either check can
     // fire. parseMealAnalysis below is synchronous — a second pair after it
@@ -497,7 +575,9 @@ class MealConversationController extends _$MealConversationController {
 
     state = state.copyWith(error: null);
 
-    final Result<Meal, AppError> result;
+    // CookMeal, not Meal: every write here lands on a draft, and a draft has no
+    // cuisine or category until one of these very calls puts it there.
+    final Result<CookMeal, AppError> result;
     switch (field) {
       case MealEstimateFields.cuisine:
         if (value is! Cuisine) return false;

@@ -1643,3 +1643,501 @@ objective is a worse fit than a weaker tool aimed at ours.
 **Suggested improvement:** When closing a unit of work that carries an unfinished task, MOVE the task id to the new unit rather than leaving or copying it, and write on both sides what was delivered under the old id. The delivered half stays recorded as history in the closed unit's notes; the id itself — the thing tools and dependency graphs read — travels with the work that remains. Then check whether any other unit depended on the closed one for the moved task's outcome, and repoint that dependency, or the split silently unblocks work that is still blocked.
 
 **Principle:** Identifiers carry status, prose carries history. A task number in a completed unit is a machine-readable assertion of completion no amount of surrounding explanation overrides, so the number must follow the unfinished work while the narrative of what was already delivered stays behind.
+
+---
+
+### Observation 114: A second surface inherits the rule, not the mechanism — and the mechanism is where the rule breaks
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Building discovery (browse, search, honesty layer, consent) on a Next.js web surface, mirroring an existing Flutter implementation of the same feature.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Implementation — reproducing an existing feature on a different platform
+
+**Issue:** The rule "a user's search phrase is never recorded" was already implemented and well-tested on the first surface, where it meant "no log line, no cache keyed on the phrase, no analytics attribute". Ported literally to a web surface, every one of those checks would have passed while the phrase leaked through three mechanisms that do not exist on the first platform: a query string written into the server's request log, the browser's own history, and the `Referer` header sent to every third-party asset host on the page. A form control with a `name` attribute and no JavaScript would have produced all three silently. None of these are visible from reading the original implementation, because the original platform has no URLs.
+
+**Suggested improvement:** When porting a feature, enumerate the rule's *threat surface on the new platform* before reproducing the *code*. For each invariant the feature carries, ask "what are the ways this could be violated here that do not exist there" — and write the test against the new mechanisms, not against the old ones. The ported test suite should contain at least one assertion that would have been meaningless on the original platform.
+
+**Principle:** A ported invariant is only as strong as the threat model it was written against, and a threat model is platform-specific. Copying the guard without re-deriving what it guards against reproduces the letter of a rule onto a surface where the letter no longer covers the spirit.
+
+---
+
+### Observation 115: A conflation that was merely wrong becomes load-bearing when a second feature reads it
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Adding area-narrowing to a second surface, which required knowing which areas currently have inventory.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Implementation — building on existing read layers
+
+**Issue:** An existing read function returned an empty list both when the query succeeded with no rows and when it failed. The user-facing consequence at the time was one wrong sentence on one page, and a correctly-worded error string sat unused in the localization files because no caller could distinguish the two cases. The new feature then needed exactly that distinction: when a user's chosen area has nothing in it, the product must name the areas that *do* have something — and a failed read looks identical to "nowhere has anything", which turns a network error into a false claim about the whole marketplace at the precise moment the user is being offered alternatives.
+
+**Suggested improvement:** Before building on an existing read layer, check whether it collapses "empty" into "failed". If it does, fix the read layer rather than working around it in the new caller — and look for an unused error string or dead branch, which is often the fossil evidence that someone already knew the distinction was needed. Treat an unreferenced user-facing error message as a defect report, not as dead code to delete.
+
+**Principle:** Conflating absence with failure is a latent bug whose blast radius grows with each new reader. The second consumer of a lossy signal is where the loss stops being cosmetic, so the cost of the original shortcut is paid by whoever arrives next.
+
+---
+
+### Observation 116: Test-runner capability sets the shape of the code under test, and it is worth checking first
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Writing behavioural tests for a TypeScript module in a project whose existing tests only read source files as text.
+**Skill:** test-driven-development
+**Type:** open-source
+**Phase/Area:** Writing tests for compiled/transpiled languages
+
+**Issue:** The project's existing test file for this area read its subject as a string and asserted with regexes, with a comment explaining that the modules were TypeScript and therefore could not be imported. That constraint had quietly expired — the installed runtime strips types natively — but the workaround had already shaped the tests into structural assertions that could not verify behaviour. The requirement being tested explicitly demanded behavioural verification ("verified by watching what leaves rather than by reading the code that decides"), which regex-over-source cannot do. Separately, once real imports worked, one ordinary language feature in the module under test was unsupported by the stripper and had to be written out longhand — a one-line cost that bought executable tests.
+
+**Suggested improvement:** At the start of a testing task in a transpiled language, spend one command establishing what the runner can actually execute today, rather than inheriting the constraint encoded in the neighbouring test file. When a runtime limitation forces a small change to the code under test, make the change and record why in a comment at that spot — otherwise the next person "cleans it up" and silently breaks the ability to test.
+
+**Principle:** Workarounds outlive the limitations that caused them, and a test-shape adopted under an expired constraint keeps testing the wrong thing. Verify the tool's current capability before accepting the previous author's compromise as a fact about the world.
+
+---
+
+### Observation 117: Verifying an acceptance criterion "by name" is a different act from reviewing the diff, and finds different things
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Completing a unit of work whose acceptance criteria included "verified field by field: what is visible on surface B is identical to what is visible on surface A".
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Final verification, before declaring work done
+
+**Issue:** The full automated gate passed, types checked, the build succeeded, and every test written for the change was green. Walking the acceptance criteria one at a time afterwards — specifically the one demanding a field-by-field comparison against the other surface — surfaced a real user-facing defect that none of that had touched, and that was not in the diff at all: a value rendered on three pre-existing pages was missing a unit that the reference surface displays. It had been wrong since that surface shipped. A diff review cannot find it, because the defect is in code the change does not modify; a test suite cannot find it, because no test knew to compare the two surfaces; and the criterion names it exactly.
+
+**Suggested improvement:** Treat "check the acceptance criteria by name" as a distinct verification step with its own output, performed after the automated gate rather than assumed to be covered by it. For each criterion, state what was actually done to check it and what the result was — and when a criterion asks for a comparison against something outside the change, go and read that other thing rather than reasoning about it. A criterion that can only be satisfied by inspection is the one most likely to be marked done by assertion.
+
+**Principle:** Automated gates verify the change; acceptance criteria verify the outcome, and the gap between them is where pre-existing defects in scope of the criterion survive indefinitely. A criterion phrased as a comparison is an instruction to look at both sides, not a claim to endorse.
+
+---
+
+### Observation 118: A closed-list authorization rule ages into a silent outage, and the swallow that makes it safe is what hides it
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Deciding which analytics could not be recovered later; discovered that an entire feature's measurement had never been recorded.
+**Skill:** New skill candidate: porting-a-feature-to-a-second-surface
+**Type:** open-source
+**Phase/Area:** Authorization rules that outlive the world they were written for
+
+**Issue:** An authorization policy enumerated the two operations an unauthenticated caller could perform, and was exactly right when written. A later feature was built on the premise of working without authentication, and emitted three operations that policy did not name. Every one was rejected by the database and discarded by the client's own error handling — which is correct on its own terms, because that subsystem must never interrupt the user. The result: the feature worked, every test passed, the full gate stayed green, and the authorization test suite continued asserting the *old* behaviour truthfully, while the feature recorded nothing at all for its primary case. It went unnoticed for the entire epic and was found only by someone asking a question about the data rather than about the code.
+
+**Suggested improvement:** Two habits, both cheap. (1) When a feature's premise is "works without X", enumerate every subsystem that gates on X and check each one explicitly — the gate list is short and the failure is otherwise invisible. (2) When writing an authorization rule as a closed list, write the test as a statement of the *principle* the list encodes ("an anonymous caller may record what an anonymous caller can cause"), not of the list's current contents. A test that restates the enumeration cannot distinguish a correct list from a stale one.
+
+**Principle:** An enumerated permission is a snapshot of what the system could do on the day it was written, and it silently narrows as the system grows. Where the consumer of that permission is also designed to fail silently — as measurement, logging and telemetry almost always are — the two correct decisions compose into an outage with no symptom. Look for that pairing deliberately: a closed list plus a swallowed error is a blind spot by construction, not by accident.
+
+### Observation 119: speckit-taskstoissues has no concept of hierarchy, so it flattens the structure it is asked to mirror
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Founder asked for all four Kafoo epics and their 348 tasks in GitHub issues, with work packages as a second level wherever the project had started using them.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, steps 6–7 (issue creation)
+
+**Issue:** The skill creates exactly one flat issue per `T###` task in a single feature's `tasks.md` and stops there. It has no notion of a parent issue for the feature itself, no use of GitHub's sub-issues API, and no way to express an intermediate grouping — so the epic → task and epic → package → task shape the request was about could not be produced by following it. It also assumes a single feature directory (`check-prerequisites.sh` returns one `FEATURE_DIR`), so "all epics" is outside what it can express. The task's real structure had to be built in a purpose-written script instead, and the skill contributed only its title convention (`T001: <description>`) and its deduplication idea.
+
+**Suggested improvement:** Add an optional hierarchy mode: create a parent issue per feature from `spec.md`, link every task issue to it via `POST /repos/{owner}/{repo}/issues/{n}/sub_issues`, and allow one intermediate level supplied by the caller (a grouping file, a phase header, or a label). State the two GitHub limits that constrain the shape — 100 sub-issues per parent and 8 levels of nesting — because a per-epic task count above 100 silently changes the design. Note that a sub-issue takes exactly one parent, so a task claimed by two groups needs a declared tie-break rather than a second link.
+
+**Principle:** A converter that flattens is only correct when the source has no structure. When the source encodes a hierarchy — phases, epics, work packages — a tool that emits a flat list discards the most useful thing it was given, and the loss is invisible because every individual record looks right.
+
+---
+
+### Observation 120: a per-item API workflow needs a stated crossover point where it becomes a script
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Same task. 348 tasks plus 4 epics plus 20 work packages meant ~945 content-creating GitHub requests: 372 creates, 368 sub-issue links, 205 closes.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, step 7, and Pre-Execution as a whole
+
+**Issue:** The skill instructs the agent to create issues one at a time through MCP tool calls, and is careful about read-side pagination while saying nothing about the write side. At this repository's size that prescription is not merely slow, it does not fit: GitHub caps content-creating requests at roughly 500/hour and 80/minute and signals a breach with a 403 plus `Retry-After` rather than a 429, so the run must pace itself and survive multi-minute stalls. Several hundred sequential tool calls also consume the agent's context on tool results that carry no information the agent needs. Neither constraint is mentioned, so the default reading of the skill is a workflow that stalls partway with issues half-created and no record of where it stopped.
+
+**Suggested improvement:** Add a scale note: below roughly 30 tasks, create issues via individual tool calls as written; above that, generate a resumable script and state the three properties it must have — pacing with permanent slowdown on a secondary-limit 403, a state file written before the next call so a re-run resumes instead of duplicating, and a dry-run that prints the plan and counts before anything is created. Deduplication by issue title (already in step 6) is the fallback when no state file exists, not a substitute for one.
+
+**Principle:** Any workflow that repeats a write per item has a size at which per-item agent calls stop being the right mechanism, and the instruction should name that threshold rather than leave the agent to discover it by exhausting a rate limit. Partial completion of a bulk write is the expected case, so resumability belongs in the design, not in the recovery.
+
+---
+
+### Observation 121: a documented warning that an identifier is not unique needs a test, not a reader
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Backfilling 348 Kafoo tasks into GitHub issues. The run died partway with a 422 from the sub-issues API — "Sub issue may only have one parent" — because state was keyed on the bare `T###`.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline, step 6 (deduplication) and step 7 (issue creation)
+
+**Issue:** The project's own instructions state plainly that task numbering restarts per epic, so the same `T045` names three different tasks in three different `tasks.md` files. That warning was read before the code was written and the code still keyed on the bare id, because the warning was absorbed as background rather than turned into a constraint. The skill encourages this directly: its deduplication step matches issue titles against `\bT\d{3}\b` and treats a hit as "this task already has an issue", which is only sound when ids are unique across everything being converted. The failure was loud and cheap here — GitHub refused the second parent and the run stopped with nothing corrupted — but the same key collision in a tool without a uniqueness constraint at the far end would have silently attached one epic's issue to another epic's parent.
+
+**Suggested improvement:** In step 6, qualify the identifier by its feature before matching, and state that a bare task id is only assumed unique within one `tasks.md`. Add an explicit precondition to the Outline: assert that ids are unique across the set being converted and stop with the collisions listed if not. Where a multi-feature conversion is in scope, the created issue title should carry the feature too, so a bare id never names two issues.
+
+**Principle:** A warning in prose that an identifier is not unique protects nobody, because reading it and encoding it are different acts. Convert the warning into an assertion the tool runs, and let it fail on the collision it predicts — otherwise the design proceeds on the assumption the document exists to deny.
+
+---
+
+### Observation 122: never derive a record's category from a map built by claim order
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Same task. Deriving which epic each work package belonged to from the task-to-package ownership map filed one package under a default epic.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Grouping / parent resolution
+
+**Issue:** Two units of work claimed the same task id, and a task can have only one parent, so the ownership map was built with first-claimant-wins. One package's entire task list was a single task already claimed by a lower-numbered package, so it contributed no entry to that map at all — and because the package's epic was being read back out of the same map, it fell through to a hardcoded default and was filed under the wrong epic. The visible symptom was a count being off by one in two places; the cause was a category derived from a side effect of contention rather than from the record itself. Nothing in the output looked wrong, which is why it took a count comparison against an earlier run to notice.
+
+**Suggested improvement:** Derive each grouping's parent from its own fields, in a separate pass, before any claim or deduplication runs — then let the claim pass consume that result. Never let a default silently absorb a record missing from a derived map: if a lookup misses, fail or log it rather than substituting a fallback value that will look plausible in the output.
+
+**Principle:** Deduplication is lossy by design, so anything read back out of a deduplicated map inherits the arbitrariness of who won. Compute a record's own attributes from the record, and keep that pass independent of, and earlier than, any pass that resolves contention between records.
+
+---
+
+### Observation 123: a converter is a reader of last resort, and what it trips over belongs back in the source
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** Converting 348 spec-kit tasks into GitHub issues surfaced two defects in the source files that had passed every review and every gate run: a task id recorded twice in one `tasks.md`, and a plan file whose checkboxes contradicted the status of the work packages delivering them.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Outline — a validation pass before any issue is created
+
+**Issue:** The skill converts and creates, and never inspects what it is reading. Both defects it walked into were invisible to human review precisely because nothing contradicted anything — the duplicated id was `[x]` in both copies with the same explanatory text, so no reader had a reason to look twice, and the miscount it caused had been quoted onward. A converter is the first thing to read every record in a file mechanically and compare them, so it is the cheapest place these defects will ever be found; discarding that signal and creating issues anyway propagates the defect into a second system, where it is then harder to see because two systems now agree.
+
+**Suggested improvement:** Add a validation pass before creation that reports, without fixing: ids duplicated within a file, ids referenced by a grouping that do not exist in any task file, and checkbox state contradicting any status the project tracks separately. Report and stop, or report and continue behind a flag — but never silently normalise, because reconciling a plan file is a planning decision belonging to whoever owns it. Where the converter must handle a defect to proceed at all, it should say so in the created record rather than absorb it.
+
+**Principle:** Any tool that reads every record in a source mechanically is a free consistency check on that source, and the findings belong upstream where the source can be fixed — not silently accommodated so the conversion can finish. Accommodating a defect quietly is worse than failing on it: it creates a second system that agrees with the first, and agreement between two copies of one mistake reads as corroboration.
+
+---
+
+### Observation 124: a rollup counts the children it has, not the ones you were thinking of
+
+**Status:** OPEN
+**Date:** 2026-08-08
+**Session context:** After reconciling 113 of 126 tasks in an epic to done and closing every one of their issues, the epic's own progress indicator still read 0%.
+**Skill:** speckit-taskstoissues
+**Type:** open-source
+**Phase/Area:** Hierarchy / parent-child modelling
+
+**Issue:** Where an intermediate grouping level exists, the top-level parent's children are the groupings — not the leaf items. Closing 113 leaf issues moved every grouping to 100% and left the top level at 0%, because nothing had closed the grouping issues themselves. The number was not wrong; it was answering a different question from the one being read off it, and it looked like a bug in the closing pass. The fix was to close a grouping when the project's own status field says the grouping is finished — deliberately not when its children all happen to be closed, because a grouping can have every item delivered and still be open on decisions its owner has not taken, which was true of one grouping here.
+
+**Suggested improvement:** When a hierarchy has three levels, state which level each parent's indicator counts, and close intermediate nodes from the source's own completion field rather than inferring completion from the children. Inferring it would silently overrule whoever owns that field. Verify the top-level indicator explicitly after any bulk close — a parent reading 0% while all its grandchildren are closed is the signature of this mistake.
+
+**Principle:** A hierarchy's progress indicator aggregates its immediate children only, so in a three-level tree the top level tells you about the middle level and says nothing directly about the leaves. Never infer a parent's completion from its descendants when the source of truth has a field for it: all-children-done and owner-says-done are different claims, and the gap between them is usually where the real remaining work is recorded.
+
+### Observation 125: A communication contract that describes a posture gets ignored; one that describes a shape gets followed
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** The founder said he routinely pastes Claude's answers into ChatGPT and asks it to explain what they meant, then supplied a twelve-point specification of the answer format he needs. Kafoo's CLAUDE.md already carried a "Who you are talking to" section saying to lead with the decision, explain in consequence not mechanism, and spell out jargon — every one of those rules was correct and none of them changed the output enough to be usable.
+**Skill:** New skill candidate: writing-for-a-non-developer-decision-maker
+**Type:** open-source
+**Phase/Area:** Project instruction files — the audience/communication section
+
+**Issue:** The failing instructions were all posture statements: adverbs and dispositions ("lead with", "explain in terms of", "briefly"). They are unfalsifiable in a single response, so nothing ever reads as a violation and drift is invisible. The instructions the founder wrote himself were shapes: a bottom line capped at three sentences, four named labels (Problem / Recommendation / Information / Decision needed), a fixed four-beat order for technical decisions, a length ceiling, a mandatory closing line, and a self-check question. Each of those can be checked against a draft and found absent. The founder's own evidence — outsourcing translation to a second AI — was the only reason the gap was detectable at all; without it the original section looked fine.
+
+**Suggested improvement:** When an instruction file governs how the agent writes rather than what it builds, express the requirement as structure the draft either has or lacks — a section order, a word count, a required closing line, a fixed vocabulary of labels, a yes/no check to run before sending. Reserve prose about tone for explaining why the structure exists. Where a rule is being rewritten because the old one failed, record that it failed and what the evidence was, so nobody restores the softer wording as a simplification.
+
+**Principle:** A behavioural rule an agent cannot fail visibly is a rule it will not follow. Convert dispositions into artefacts: instead of "be clear", require a named section, a bounded length, or a check with a yes/no answer. The test of such a rule is whether a reader holding the output can point at the place it is missing — if they cannot, it is a preference, not an instruction, and it will decay into decoration.
+
+### Observation 126: A guard that matches command text will block the prose describing the command
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Replacing a permission allowlist with a wide-open one plus a PreToolUse hook enforcing four hard blocks. The hook worked on the first try against 36 crafted cases, then blocked the commit that was trying to land it, because the commit message explained which commands the hook blocks.
+**Skill:** New skill candidate: writing-tool-call-guards
+**Type:** open-source
+**Phase/Area:** Guard/hook authoring — pattern scope
+
+**Issue:** A guard that inspects a shell command string cannot distinguish a command from a sentence about that command. The two are the same characters. Every realistic guard therefore has a false-positive class its author will not think to test, because the test cases they write are commands and the failures are prose: commit messages, echo, heredocs, documentation written with a redirect, a grep for the dangerous pattern itself. The failure surfaced here only because landing the guard required writing about it; a guard for something never discussed in commit messages would have shipped with the same defect latent, and each later false positive would look like an unrelated glitch. The fix is to strip what cannot name a target — heredoc bodies and quoted spans — before matching, which also narrows the guard honestly: a quoted path stops being caught, and that residual gap is worth stating rather than papering over.
+
+**Suggested improvement:** When authoring a guard over command text, add prose cases to the allow half of the self-test from the start — a commit message naming the blocked command, an echo, a heredoc — not only the dangerous spellings. Strip heredoc bodies and quoted strings before matching. Where a guard's coverage is genuinely partial after that, record the residual gap next to the rule instead of implying the block is total.
+
+**Principle:** A pattern that matches an action will also match a description of that action, and self-tests written by the guard's author cover the action only. Test the descriptions too. More generally: any filter over a representation, rather than over the thing represented, inherits every ambiguity of that representation — so decide explicitly which regions of the input can name a real target, and match only there.
+
+---
+
+### Observation 127: Repo-profiling skills should diff observed structure against the project's own documented structure
+
+**Status:** PARTIALLY ACTIONED (2026-08-09) — the project half is done: `CLAUDE.md`'s repo map now lists `apps/web/`, states the ADR-0008 Amendment 1 constraints, and records that it denied the surface until today; the ARB non-negotiable now names `apps/web/messages/` as the same rule's second home. The skill half remains OPEN — `find-skills` Phase 2 still has no step instructing it to diff observed structure against the project's own documented structure, so the next repository gets no such check.
+**Date:** 2026-08-09
+**Session context:** Running `/find-skills` over the Kafoo repository to recommend Claude Code skills from known marketplaces.
+**Skill:** find-skills
+**Type:** open-source
+**Phase/Area:** Phase 2 — Understand the Repository
+
+**Issue:** Phase 2 builds a repo profile by direct inspection (languages, frameworks, CI, docs, purpose) and then uses it only to score skill relevance. In this run the inspection surfaced a live Next.js application at `apps/web/` deployed to Cloudflare Workers via OpenNext — while the project's own agent-facing map in `CLAUDE.md` still stated there was no Customer web surface and listed only `apps/mobile/`. The skill had every fact needed to notice the contradiction and had no instruction to look for it, so the drift would have gone unreported. The cost is asymmetric: the observed structure is read once by this skill, but the documented structure is read by every future agent session as ground truth.
+
+**Suggested improvement:** Add a step at the end of Phase 2: after building the profile, read the project's own structural documentation (`CLAUDE.md`, `AGENTS.md`, README repo map, `docs/` architecture pages) and diff the documented structure against what was observed — top-level applications and packages present but undocumented, documented but absent, or described in a tense that contradicts what is on disk. Report any drift as a short note in the Phase 6 report, separate from the skill recommendations, since it is a finding about the repository rather than about skills.
+
+**Principle:** A skill that profiles an artefact to make a decision has already paid the cost of observing ground truth; when the artefact also carries a self-description, comparing the two is nearly free and catches drift that no dedicated process is watching for. Documentation that describes structure is read far more often than the structure is inspected, so a stale map costs more than a stale observation — surface the diff as a by-product rather than discarding it.
+
+---
+
+### Observation 128: An "already installed" check must enumerate every location the host actually loads from
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Running `/find-skills` over the Kafoo repository to recommend Claude Code skills from known marketplaces.
+**Skill:** find-skills
+**Type:** open-source
+**Phase/Area:** Phase 5 — Match Skills to the Project (irrelevance signals)
+
+**Issue:** Phase 5's first irrelevance signal is "Skill already installed (found in `~/.claude/plugins`)", and Phase 2's discovery step likewise greps `~/.claude/settings.json` for plugins. Claude Code also loads skills from a repository's own `.claude/skills/` directory, and this repository vendors 46 of them there — including direct namesakes of marketplace candidates (`security-review`, `brainstorming`, and `find-skills` itself). Following the phases literally, every one of those would have been scored as a fresh candidate and recommended back to a user who already has it, because the single directory the skill was told to check was the one they were not in. The failure is silent and reads as thoroughness: the report is longer, not visibly wrong.
+
+**Suggested improvement:** Change the Phase 5 signal and the Phase 2 discovery command to enumerate all load locations before scoring — the user-level plugin directory, the user and project `settings.json` plugin entries, and the project-level `.claude/skills/` (plus `.claude/plugins/` where present) — and match on skill name across the union. Where a namesake exists locally but differs from the marketplace version, say so rather than suppressing it silently, since a vendored fork and an upstream skill are not the same artefact.
+
+**Principle:** A deduplication check is only as good as its enumeration of where the thing being deduplicated can live. When a host resolves a resource from several locations by design, a check that names one of them will pass while missing most of the population — and because the symptom is a redundant recommendation rather than an error, nothing surfaces the gap. Derive the search set from the host's actual resolution order, not from the one canonical path that is easiest to name.
+
+
+---
+
+### Observation 129: In a shared working tree, "I did not commit" is not evidence that your work is uncommitted
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Fixing CLAUDE.md's repo map and the CI web-surface check in Kafoo, with a second Claude session live in the same working tree.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** Working alongside another session / pre-flight state check
+
+**Issue:** I edited four files, told the founder they were uncommitted and at risk of being lost at container teardown, and offered to commit them. The founder asked whether the work was already pushed. It was already committed — a parallel session had committed my working-tree edits minutes earlier, with authored messages I had not written. My statement was built on the absence of my own `git commit` call, which in a shared tree proves nothing: another writer can commit your changes, and the only way to know is to read git, not memory. The same session had already told me, via an Edit-tool warning, that the observation log had changed underneath it — evidence of the parallel writer that I registered and did not generalise. Separately, I began editing without checking `origin/main` at all; had the fix been merged upstream, the whole change would have been redundant.
+
+**Suggested improvement:** Two additions to the shared-tree guidance. First, a pre-flight step before any substantive edit: fetch the remote and confirm the target change is not already present upstream — the cost is one command and the failure it prevents is a whole task's redundant work. Second, a rule that any claim about repository state (committed, uncommitted, pushed, clean) must be read from git immediately before it is stated, never inferred from what this session did or did not do. Treat a concurrent-modification warning from any tool as a signal that both rules are now load-bearing for the rest of the session.
+
+**Principle:** In an environment with concurrent writers, an agent's own action history is not a valid model of shared state. The absence of an action you would have had to take proves only that you did not take it — not that nobody did. Any assertion about shared state must be re-read from the authoritative source at the moment of asserting it, because the window between observation and claim is exactly where another writer acts. A tool reporting "this changed underneath you" is a statement about the whole environment, not about one file.
+
+### Observation 130: Evaluating an external coordination tool — the decisive question is where durable state lives, not feature overlap
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Founder asked whether ruflo (formerly claude-flow) would help Kafoo's work-package coordination workflow. Answer was no, and the reasoning generalised.
+**Skill:** New skill candidate: evaluating-a-tool-against-an-existing-workflow
+**Type:** open-source
+**Phase/Area:** Evaluation of third-party tooling proposed for an existing process
+
+**Issue:** The obvious way to evaluate a proposed tool is feature-by-feature against the current
+system — both do "agent coordination", so the comparison looks like a matrix. That comparison is
+almost always uninformative, because two systems can share every noun and still operate at
+different layers. What actually decided it here was one structural question: *where does durable
+state live, and does the candidate's substrate survive what destroys the incumbent's?* Kafoo's
+coordination state lives in git because sessions run in ephemeral containers with no shared
+filesystem; the candidate's lives in a local database, with cross-machine coordination available
+only via an always-on server. That single fact settled the evaluation before any feature was
+compared, and no amount of feature overlap could have changed it.
+
+**Suggested improvement:** Before comparing features, establish for both the incumbent and the
+candidate: (1) what the durable substrate is, (2) what event destroys non-durable state, (3) who
+or what is the only continuous participant. If the candidate's substrate does not survive (2), the
+evaluation is over — say so first, then optionally note what the candidate would be good for in a
+different environment. Also check what the installer writes: a tool that rewrites the files
+encoding your non-negotiables (CLAUDE.md, hooks, agent definitions) is a merge conflict with your
+own rules, independent of whether its features are good.
+
+**Principle:** When evaluating a tool against an existing workflow, compare substrates before
+features. A tool whose state cannot survive the environment's teardown event cannot replace a
+process built around that teardown, however closely its feature list matches. And read the
+installer's write-list as carefully as the feature list — what a tool overwrites in your
+repository is part of its cost.
+
+### Observation 131: A component test proves rendering, never reachability
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** The founder reported seeing only two screens in the Android build and asked
+where the Cook screens were. Four merged screens — my_meals_screen (350 lines),
+meal_publish_entry (187), meal_edit_screen (120), kitchen_profile_screen (264) — are referenced by
+zero files in `apps/mobile/lib/`. Re-verified against `origin/main` after fetching: still zero. The
+entire Cook side of E2 is unreachable from the running app.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** What counts as evidence that a feature works
+
+**Issue:** Every gate passed on all four screens. Widget tests construct a screen directly, so they
+prove it renders; `analyze` proves it compiles; the RLS suites prove the policies hold. None can
+see that no code path reaches the screen. `ship-check` verified SC-### criteria against the spec,
+not against the app's navigation graph. The identical failure had already happened once here —
+`main.dart` carries a comment about the app shipping without a `ProviderScope` because "a screen
+tested in isolation is not a screen that has been run" — and that lesson was recorded as a prose
+comment beside its fix, which did not prevent the second instance three weeks later.
+
+**Suggested improvement:** Add to the skill's verification list: for a user-facing surface, prove
+reachability from the application entry point, not just that the component renders under test. The
+cheap mechanical form is a grep — assert every screen symbol is referenced from at least one
+non-test file or a router table — not a framework. State explicitly that "the tests pass" and "a
+user can reach it" are different claims, and that an automated gate establishes only the first.
+
+**Principle:** A component test proves a component works; it cannot prove the component is
+reachable. Every automated gate constructs the thing under test directly and therefore shares that
+blind spot, so any verification checklist for user-facing work needs a reachability assertion
+distinct from a rendering assertion. When a lesson of this kind recurs, the prose comment left
+beside the first fix was the wrong enforcement mechanism — convert it into a check that runs.
+
+### Observation 132: Numbering collided because the branch was cut from a shallow clone
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Appended an observation as 125 after reading the highest number in the working
+tree. The container held a shallow clone seven commits behind `main`, where 125 through 130 were
+already taken. The founder caught the staleness, not the tooling.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** Numbering discipline — the pre-check step
+
+**Issue:** The skill's three-step numbering discipline reads the log on disk. Every step behaved
+correctly and still produced a collision, because a working tree is not the shared log — it is one
+snapshot of it. The pre-write assertion greps the same stale file as the pre-check, so both agree
+with each other and disagree with the remote. Post-write verification cannot catch it either: it
+counts occurrences in the local file, and the colliding entry is not in that file yet.
+
+**Suggested improvement:** In the numbering-discipline pre-check, add a step before reading the
+log: confirm the checkout is level with the remote (`git fetch` the default branch, then compare),
+and read the highest number from the remote's copy as well as the local one, taking the maximum. A
+shallow or stale clone should be called out loudly, since it silently invalidates the whole
+sequence. This is the same class of failure as the concurrent-append race the skill already
+documents, one level out — stale in time rather than racing in time.
+
+**Principle:** A discipline that reads shared state from a local checkout is only as correct as the
+checkout is current. Any check-then-act sequence over shared state must first establish that what
+it is reading is the shared state, not a snapshot of it — otherwise every step passes, agrees with
+every other step, and is wrong together.
+### Observation 133: Search-result summaries fabricated an official Anthropic skill that does not exist
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Founder asked whether Anthropic publishes a skill for reviewing CLAUDE.md files, and what the current recommendations are.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Research and verification before reporting tool availability
+
+**Issue:** A web search for an Anthropic CLAUDE.md review skill returned a confident summary
+asserting that "there is an Anthropic official skill that audits and improves CLAUDE.md files"
+and describing its rubric in detail — commands, architecture clarity, conciseness, currency,
+actionability. Fetching the primary source (`anthropics/skills` README) showed no such skill
+exists; the official mechanisms are `/doctor`'s trim check and `/init`. The fabricated summary
+was specific enough to be indistinguishable from a real finding, and reporting it would have
+sent the user looking for something that does not exist.
+
+**Suggested improvement:** Add a rule to the research/verification guidance: an assertion that a
+tool, skill, plugin or API exists must be confirmed against the primary source (repository
+listing, official docs page, package registry) before it is reported to the user. A search-engine
+summary is evidence that people write about the topic, not that the artefact exists.
+
+**Principle:** Search summaries answer the question they were asked, which biases them toward
+confirming the existence of whatever was searched for. Existence claims require a primary-source
+check; the more specific and useful the summarised detail, the more it should raise suspicion
+rather than confidence.
+
+### Observation 134: Always-loaded instruction files absorb corrections that belong in on-demand skills
+
+**Status:** ACTIONED (2026-08-10) — both halves closed. Project: CLAUDE.md 631->287 and the delegation procedure moved to the opencode-delegate skill (#447). Skill: "Name the destination before writing the fix" added to task-observer, patch recorded in VENDORED.md (#452). Cross-cutting: promoted to `cross-cutting-principles.md` as principle 1, opportunistic propagation, on the founder's approval.
+**Date:** 2026-08-09
+**Session context:** Auditing a 631-line project CLAUDE.md against Anthropic's under-200-line guidance.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Where a correction gets written
+
+**Issue:** The file's largest section — 228 lines, 36% of the whole — documented a delegation
+workflow that was already covered by two existing on-demand skills, and was itself suspended at
+the time. Every incident over three weeks (a wrong provider prefix, a billing-model error, a
+spend-ledger drift measurement) had been written into the always-loaded file rather than into the
+skill that runs the workflow. Nothing chose that destination; it was the file being read when the
+incident happened. The result is that the cost of every past incident is paid at the start of
+every session, including sessions that will never delegate.
+
+**Suggested improvement:** When a correction is logged or applied, name the destination explicitly
+and justify it: always-loaded only if it is needed in *every* session. A correction to a procedure
+belongs in the procedure's skill or a path-scoped rule, even when the procedure's own file is not
+the one currently open.
+
+**Principle:** Documentation gravitates to whichever file is open when the lesson is learned, not
+to the file where it belongs. Any always-loaded context file will grow monotonically unless the
+routing decision is made deliberately at write time — and the growth is invisible, because each
+individual addition is correct.
+
+### Observation 135: A documented output format was read, agreed with, and then not applied
+
+**Status:** OPEN
+**Date:** 2026-08-09
+**Session context:** Auditing a project instruction file; the same instruction file specifies a
+mandatory reply format for this user.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Following a documented output contract
+
+**Issue:** The project's instruction file specifies an answer shape in unusual detail — a one-to-three
+sentence bottom line, then sections carrying named headings, then one of three named closing lines,
+plus four required labels for classifying each statement. The file also records that a previous,
+vaguer version of the same instruction had been ignored, and states outright that describing a
+posture failed where describing a shape might work. The reply produced was well-organised and
+plainly written, and still used invented headings rather than the named ones. The user had to ask
+for the format a second time. Notably, the failure was not a comprehension failure: the contract was
+in context, was understood, and was even cited elsewhere in the same session's work.
+
+**Suggested improvement:** When an instruction file prescribes a literal output template — named
+headings, required labels, a fixed closing line — treat it as a checklist to verify the drafted
+reply against before sending, not as style guidance to absorb. The verification is mechanical: does
+each named element literally appear? A format specified this precisely exists because approximation
+already failed.
+
+**Principle:** Adhering to the *spirit* of a format contract while substituting your own structure is
+a failure mode that looks like success, because the output is genuinely good — just not the thing
+that was asked for. The more precisely a format is specified, the more likely it was specified that
+way because someone previously delivered something good in the wrong shape. Prescribed structure is
+a requirement to satisfy literally, not a quality bar to clear by other means.
+
+### Observation 136: Auditing a file for redundancy without fetching the default branch first
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Auditing a project instruction file for bloat and recommending what to cut.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Establishing current state before an audit
+
+**Issue:** A 62-line section of the audited file was recommended for retention on the grounds that
+it was non-derivable and enforced nothing else. It had in fact been made redundant the previous day
+by a merged commit that moved the whole contract into two hooks — one re-stating it every turn, one
+rejecting output that ignored it. The session branch predated that merge, so the working tree was a
+truthful picture of a superseded repository. The user knew and had to say so; the audit had no way
+to notice, because everything it read agreed with itself.
+
+**Suggested improvement:** Before auditing any file for redundancy or duplication, fetch the
+default branch and diff against it. Redundancy is created by commits, and the ones that matter most
+are the recent ones you do not have. Make `git fetch origin <default>` plus a log of what is missing
+the first step of an audit, not a step taken later when a merge conflict forces it.
+
+**Principle:** An audit judges what is *already* covered elsewhere, which makes it uniquely
+sensitive to being one commit behind — more so than implementation work, where a stale base usually
+announces itself as a conflict. A stale checkout produces an internally consistent, confidently
+wrong audit: every source agrees, because they are all the same age.
+
+### Observation 137: Restructuring a document breaks references held by enforcement code
+
+**Status:** OPEN
+**Date:** 2026-08-10
+**Session context:** Removing sections from an instruction file after their rules moved into hooks.
+**Skill:** task-observer (cross-cutting principle candidate)
+**Type:** open-source
+**Phase/Area:** Checking for dangling references after a documentation change
+
+**Issue:** A validation hook cited a section heading of the file being restructured, inside the
+error message it returns when it rejects work — twice. Deleting that heading would have left the
+enforcement mechanism instructing future sessions to consult a section that no longer existed, and
+nothing would have failed: the hook still works, the gate still passes, and the defect only surfaces
+for whoever reads the rejection message and goes looking. It was caught by grepping for the removed
+*heading strings*, a check that would not have run if the sweep had only covered file paths.
+
+**Suggested improvement:** After removing or renaming any heading in a document that other files
+reference, grep the repository for the heading text itself, not just for the filename. Include
+scripts, hooks, CI config and test fixtures in the sweep — code that quotes documentation usually
+quotes it by section name, and that reference is invisible to a filename search.
+
+**Principle:** Prose is referenced by its headings, and those references live in code that keeps
+working after the heading is gone. A dangling documentation pointer fails silently and only at the
+moment someone follows it, which is the moment they were already confused. Structural edits to a
+document need a reference sweep on the same footing as renaming a function.

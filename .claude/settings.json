@@ -2,48 +2,53 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "Bash(melos:*)",
-      "Bash(flutter analyze:*)",
-      "Bash(flutter test:*)",
-      "Bash(flutter pub get:*)",
-      "Bash(dart analyze:*)",
-      "Bash(dart format:*)",
-      "Bash(dart run build_runner:*)",
-      "Bash(supabase start)",
-      "Bash(supabase stop)",
-      "Bash(supabase status)",
-      "Bash(supabase migration new:*)",
-      "Bash(supabase db diff:*)",
-      "Bash(supabase functions serve:*)",
-      "Bash(git status)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(git add:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh issue view:*)",
-      "Bash(./scripts/verify.sh)"
+      "Bash",
+      "mcp__github",
+      "mcp__supabase"
     ],
     "ask": [
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(gh pr create:*)",
       "Bash(supabase db reset)",
-      "Bash(supabase functions deploy:*)"
+      "Bash(supabase functions deploy:*)",
+      "mcp__supabase__deploy_edge_function",
+      "mcp__github__push_files",
+      "mcp__github__create_or_update_file",
+      "mcp__github__delete_file",
+      "mcp__github__merge_pull_request"
     ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
       "Read(./**/*.pem)",
       "Read(./**/*service-role*)",
-      "Bash(git push --force:*)",
-      "Bash(git push -f:*)",
+      "Bash(rm -rf:*)",
       "Bash(supabase db push --linked:*)",
       "Bash(supabase link:*)",
       "Bash(wrangler deploy:*)",
-      "Bash(rm -rf:*)"
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__merge_branch",
+      "mcp__supabase__delete_branch",
+      "mcp__supabase__reset_branch",
+      "mcp__supabase__rebase_branch"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-hard-blocks.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
@@ -102,6 +107,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/communication-contract.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/caveman-mode-tracker.js\"",
             "timeout": 10,
             "statusMessage": "Tracking caveman mode..."
@@ -111,6 +121,17 @@
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/ponytail-mode-tracker.js\"",
             "timeout": 5,
             "statusMessage": "Tracking ponytail mode..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/check-reply-shape.py\"",
+            "timeout": 5
           }
         ]
       }

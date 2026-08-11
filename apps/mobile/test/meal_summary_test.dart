@@ -18,6 +18,7 @@ import 'package:kafoo_mobile/features/meal/presentation/meal_estimate_rows.dart'
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary_rows.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_meal_repository.dart';
 
@@ -60,7 +61,12 @@ AiProvider _stubAi([String? reply]) => StubAiProvider({
       if (reply != null) 'meal-analysis': reply,
     });
 
-Widget _app(FakeMealRepository repo, {AiProvider? ai}) => ProviderScope(
+Widget _app(
+  FakeMealRepository repo, {
+  AiProvider? ai,
+  CookMeal? resumeFrom,
+}) =>
+    ProviderScope(
       overrides: [
         mealRepositoryProvider.overrideWithValue(repo),
         aiProviderProvider.overrideWithValue(ai ?? _stubAi()),
@@ -74,7 +80,10 @@ Widget _app(FakeMealRepository repo, {AiProvider? ai}) => ProviderScope(
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        home: MealConversationScreen(
+          voiceInput: _UnavailableVoiceInput(),
+          resumeFrom: resumeFrom,
+        ),
       ),
     );
 
@@ -229,6 +238,127 @@ void main() {
     expect(find.text(_dish), findsOneWidget);
     expect(find.text(_description), findsOneWidget);
     expect(find.text(_price), findsOneWidget);
+  });
+
+  testWidgets('a photo is rendered, not printed as a storage path',
+      (tester) async {
+    // 2026-08-11: the founder photographed his food and the summary showed him
+    // `c1/draft-photo.jpg` under the word «الصورة». The row took the storage
+    // path and rendered it as text — and nothing anywhere in the app resolved a
+    // path into a URL, so there was nothing else it could have drawn.
+    //
+    // The bucket is public (`create_meals.sql`), so this is string construction
+    // rather than a request. `MealPhoto` already existed, inside a
+    // Customer-facing screen, one import away from the Cook screen that needed
+    // it.
+    await _tallSurface(tester);
+    const draft = CookMeal(
+      id: 'draft-photo',
+      cookId: 'c1',
+      title: _dish,
+      description: _description,
+      price: _price,
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      photoPath: 'c1/draft-photo.jpg',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    final repo = FakeMealRepository(meals: const [draft]);
+
+    await tester.pumpWidget(_app(repo, resumeFrom: draft));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MealSummaryScreen), findsOneWidget);
+    expect(
+      find.byType(MealPhoto),
+      findsOneWidget,
+      reason: 'THE BUG. She checks the Meal here before offering it, and the '
+          'photograph is the part she is checking.',
+    );
+    expect(
+      find.text('c1/draft-photo.jpg'),
+      findsNothing,
+      reason: 'a path inside a bucket was never something to show a person',
+    );
+    expect(find.text(l10n.mealSummaryNoPhoto), findsNothing);
+  });
+
+  testWidgets('the photo says out loud that it is attached', (tester) async {
+    // Raised by accessibility-reviewer on PR #455, and it is a regression THIS
+    // change introduced. The row it replaced rendered the storage path as text —
+    // useless to read but audible. An unlabelled image announces nothing, so a
+    // Cook using a screen reader came out of the fix with strictly less than she
+    // had: no way to confirm her photograph was attached, on the screen whose
+    // whole purpose is checking the Meal before offering it.
+    //
+    // Asserts the ANNOUNCED STRING, not the presence of a Semantics widget. A
+    // test for the widget type passes on an empty label.
+    // Disposed at the end of the body rather than in a tearDown: Flutter checks
+    // for leaked semantics handles before tearDowns run.
+    final handle = tester.ensureSemantics();
+
+    await _tallSurface(tester);
+    const draft = CookMeal(
+      id: 'draft-photo-a11y',
+      cookId: 'c1',
+      title: _dish,
+      description: _description,
+      price: _price,
+      cuisine: Cuisine.egyptian,
+      category: MealCategory.main,
+      photoPath: 'c1/draft-photo-a11y.jpg',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    final repo = FakeMealRepository(meals: const [draft]);
+
+    await tester.pumpWidget(_app(repo, resumeFrom: draft));
+    await tester.pumpAndSettle();
+
+    // The row's own «الصورة» and the confirmation merge into one node, which is
+    // what a screen reader reads out: "الصورة، اللي اخترتها، موجودة". Asserted as
+    // the merged string on purpose — the isolated label is not what she hears,
+    // and the first version of this test found the two repeating the word صورة.
+    expect(
+      tester.getSemantics(find.byType(MealPhoto)),
+      matchesSemantics(
+        label: '${l10n.mealSummaryLabelPhoto}\n'
+            '${l10n.mealSummaryPhotoAttached('other')}',
+        isImage: true,
+      ),
+    );
+    handle.dispose();
+  });
+
+  testWidgets('a failed estimate says so instead of failing silently',
+      (tester) async {
+    // Raised by accessibility-reviewer on PR #455, and verified by grep before it
+    // was believed: `analysisError` had ZERO consumers in the whole UI layer.
+    //
+    // So this morning's fix for «تقديرات المساعد» spinning forever traded a hang
+    // for a SILENT failure. The flag came down, the fallback questions appeared,
+    // and nothing said why the AI Assistant had not answered — she could not tell
+    // "the model had no opinion about my food" from "the assistant is down". A
+    // smaller problem than the hang, and still one CLAUDE.md forbids: every state
+    // reaches the Cook, or it did not happen.
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+
+    // An empty stub answers every prompt with a Failure, which is exactly the
+    // shape a provider outage takes.
+    await _reachSummary(tester, repo, ai: _stubAi(), l10n: l10n);
+
+    expect(
+      find.text(l10n.analyzeMealUnknownError('other')),
+      findsOneWidget,
+      reason: 'THE GAP. A localized error was written and rendered by nobody.',
+    );
+    expect(
+      find.text(l10n.mealSaveError('other')),
+      findsNothing,
+      reason: 'and it must not read as a save failure — her answers ARE saved',
+    );
   });
 
   testWidgets('a declined photo reads as a choice, not an empty row',
@@ -959,6 +1089,83 @@ void main() {
         calCall.calories,
         cookCalories,
         reason: 'a correction must send the Cook number, not the estimate',
+      );
+    });
+
+    testWidgets('a calorie correction typed in Arabic digits is not discarded',
+        (tester) async {
+      // «٩٥٠» is nine hundred and fifty on an Arabic keyboard, and
+      // `int.tryParse` returns null for it. The correction was therefore thrown
+      // away in silence: the row closed, the AI Assistant's 850 came back, and
+      // the Cook could publish a figure she believed she had changed. Same cause
+      // as the price defect the founder hit on 2026-08-11, quieter symptom.
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+          matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), '٩٥٠');
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      final calCall =
+          repo.updateDraftArgs.where((c) => c.calories != null).last;
+      expect(
+        calCall.calories,
+        950,
+        reason: 'her number, in the digits she typed it in — not the estimate',
+      );
+    });
+
+    testWidgets('the calorie field accepts Arabic digits and refuses letters',
+        (tester) async {
+      // The mechanism, pinned at the field itself.
+      // `FilteringTextInputFormatter.digitsOnly` allows `[0-9]` and nothing
+      // else, so «٩٥٠» was deleted keystroke by keystroke and the box stayed
+      // empty — no error, no rejection, just a field that would not accept the
+      // digits of the app's own default locale. The filter is still a filter:
+      // letters in a calorie count remain a mistake.
+      await _tallSurface(tester);
+      final repo = FakeMealRepository();
+      await _reachSummary(
+        tester,
+        repo,
+        ai: _stubAi(_fullAnalysisReply),
+      );
+
+      await _tapVisible(
+        tester,
+        find.descendant(
+          of: _estimateRowFor(l10n.mealSummaryLabelCalories),
+          matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
+        ),
+      );
+
+      final field = find.byType(TextField);
+      await tester.enterText(field, '٩٥٠');
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(field).controller?.text,
+        '٩٥٠',
+        reason: 'THE BUG. This was empty: her keystrokes were filtered out.',
+      );
+
+      await tester.enterText(field, 'كتير');
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(field).controller?.text,
+        isEmpty,
+        reason: 'a calorie count is a number, and letters are still refused',
       );
     });
 

@@ -136,13 +136,10 @@
       }
     }
   },
-  "signInRateLimited": "{addressForm, select, feminine{جربت كتير. استني {minutes} دقيقة وبعدين جربي تاني.} other{جربت كتير. استنى {minutes} دقيقة وبعدين جرب تاني.}}",
+  "signInRateLimited": "{addressForm, select, feminine{جربتي كتير. استني شوية وجربي تاني.} other{جربت كتير. استنى شوية وجرب تاني.}}",
   "@signInRateLimited": {
-    "description": "Shown when Supabase rate-limits the OTP request. {minutes} is the wait time.",
+    "description": "Shown when sign-in is rate limited. States no wait time: the client is never told one.",
     "placeholders": {
-      "minutes": {
-        "type": "int"
-      },
       "addressForm": {
         "type": "String"
       }
@@ -658,6 +655,15 @@
       }
     }
   },
+  "mealPriceInvalid": "مش فاهمين السعر. {addressForm, select, feminine{اكتبيه} other{اكتبه}} بالأرقام بس، أكبر من صفر.",
+  "@mealPriceInvalid": {
+    "description": "Shown when the price the Cook typed is not a price the database can hold — words, zero, or more precision than numeric(10,2). Arabic-Indic digits are NOT this case: parseMealPrice accepts them, which is the whole point of it existing.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
   "mealPhotoError": "الصورة ما اتحملتش. ممكن {addressForm, select, feminine{تكملي} other{تكمل}} من غير صورة.",
   "@mealPhotoError": {
     "description": "Shown when uploading a Meal photo fails. The Cook can proceed without a photo.",
@@ -789,6 +795,28 @@
   "mealSummaryNoPhoto": "من غير صورة",
   "@mealSummaryNoPhoto": {
     "description": "Shown in place of a photo when the Cook declined one."
+  },
+  "mealSummaryPhotoAttached": "اللي {addressForm, select, feminine{اخترتيها} other{اخترتها}}، موجودة",
+  "@mealSummaryPhotoAttached": {
+    "description": "Spoken when the summary's photo row is reached. It CONFIRMS the photograph is attached rather than naming the image, because that is the question the Cook is on this screen to answer. Before 2026-08-11 the row rendered the storage path as text, so a screen reader at least said something; the image that replaced it announced nothing at all.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "publicMealPhotoLabel": "صورة الأكلة",
+  "@publicMealPhotoLabel": {
+    "description": "Spoken for the Meal photograph on the Customer's public view. Names the image, because a Customer is looking at food rather than checking their own upload."
+  },
+  "mealConvResuming": "بنجيب الأكلة اللي {addressForm, select, feminine{بدأتيها} other{بدأتها}}...",
+  "@mealConvResuming": {
+    "description": "Spoken while a stored draft is being read back into the Meal conversation. Brief — one microtask — and still announced: a silent state is a state that did not reach a Cook who cannot see the screen. GENDERED, because the first version was not: it told every Cook «اللي بدأتها», addressing a woman as a man on a line she hears every time she comes back to a Meal. ADR-0010 exists because that mistake was already made once. Raised by localization-reviewer on PR #455.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
   },
   "mealSummaryConfirm": "{addressForm, select, feminine{تمام، انشريها} other{تمام، انشرها}}",
   "@mealSummaryConfirm": {
@@ -993,6 +1021,10 @@
   "myMealsTitle": "أكلاتي",
   "@myMealsTitle": {
     "description": "Heading on the Cook's own list of Meals, showing every status including drafts."
+  },
+  "newMealEntry": "أكلة جديدة",
+  "@newMealEntry": {
+    "description": "Home-screen entry to offering a Meal. A noun rather than an imperative on purpose: it needs no grammatical form for the Cook, so it reads the same to everybody and costs no placeholder."
   },
   "myMealsEmpty": "لسه مافيش أكلات. {addressForm, select, feminine{ابدئي} other{ابدأ}} واحدة.",
   "@myMealsEmpty": {
@@ -1280,7 +1312,7 @@
   "@searchFoundNothing": {
     "description": "FR-012: the fallback when nothing matched is browse. Says what happened and hands over to what is on offer underneath. 'بالوصف ده' was a calque of 'matching that description'. First-person plural, ungendered per ADR-0010."
   },
-  "searchExclusionNotUnderstood": "فهمنا إن في حاجة مش عايزينها في الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. جرب تكتب اسم الأكلة لوحده.",
+  "searchExclusionNotUnderstood": "فهمنا إن في حاجة المفروض تتشال من الأكل، بس مش عارفين هي إيه — فما اتشالتش أي أكلة على أساسها. نجرب اسم الأكلة لوحده.",
   "@searchExclusionNotUnderstood": {
     "description": "THE SENTENCE THE WHOLE EXCLUSION DESIGN EXISTS FOR. A negation Kafoo recognised without recognising the food must reach the Customer as words: without this the results look exactly like results for a request with no exclusion in it, and the Customer is served the thing they asked to avoid. Never says a Meal is safe. IT DOES NOT QUOTE THE WORD BACK, and that is a trade taken deliberately on 2026-08-07: the value `discover` carried was not a word but the whole remainder of the sentence after the negation marker, which crossed the network and landed in error bodies for a screen that only read whether it was set. Trust outranks actionability in the priority order, so the sentence earns its actionability from the closing clause instead. Ungendered per ADR-0010."
   },
@@ -1371,6 +1403,37 @@
       "third": {
         "type": "String",
         "example": "فتة لحمة"
+      }
+    }
+  },
+  "signInPhoneNotMobile": "{addressForm, select, feminine{الرقم ده مش شكله رقم موبايل مصري. اكتبي رقمك كده: 01xxxxxxxxx} other{الرقم ده مش شكله رقم موبايل مصري. اكتب رقمك كده: 01xxxxxxxxx}}",
+  "@signInPhoneNotMobile": {
+    "description": "Shown when the typed number is not an Egyptian mobile number, before anything is sent.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "signInCodeNotSent": "{addressForm, select, feminine{مقدرناش نبعت كود على الرقم ده. اتأكدي من الرقم وجربي تاني.} other{مقدرناش نبعت كود على الرقم ده. اتأكد من الرقم وجرب تاني.}}",
+  "@signInCodeNotSent": {
+    "description": "Shown when the server refused to send a sign-in code. Never claims the internet is down.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "searchVoiceNeedsArabic": "عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. الكتابة شغالة عادي.",
+  "@searchVoiceNeedsArabic": {
+    "description": "Shown when speech recognition works but the device has no Arabic locale installed. Customer-facing and ungendered per ADR-0010."
+  },
+  "convVoiceNeedsArabic": "{addressForm, select, feminine{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدري تكتبي إجابتك بدل كده.} other{عشان الصوت يشتغل، لازم اللغة العربية تكون مفعّلة في إعدادات التعرف على الصوت بتاعة الموبايل. تقدر تكتب إجابتك بدل كده.}}",
+  "@convVoiceNeedsArabic": {
+    "description": "Shown to a Cook when speech recognition works but the device has no Arabic locale installed.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
       }
     }
   }

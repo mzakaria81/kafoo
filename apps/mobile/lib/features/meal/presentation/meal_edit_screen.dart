@@ -8,6 +8,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/meal_edit_controller.dart';
+import 'meal_error_text.dart';
 import 'meal_summary_rows.dart';
 
 class MealEditScreen extends ConsumerStatefulWidget {
@@ -106,7 +107,7 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
             if (editState.error != null) ...[
               const SizedBox(height: KafooSpacing.md),
               Text(
-                l10n.mealSaveError(context.addressForm),
+                mealErrorText(context, editState.error!),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.error,
                 ),
