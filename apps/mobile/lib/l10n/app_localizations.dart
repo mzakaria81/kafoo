@@ -1485,10 +1485,10 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.} other{الدوشة عالية — قرّب الموبايل من بوقك وقول تاني.}}'**
   String voiceTooNoisy(String addressForm);
 
-  /// Said when a recording cannot be sent. Reassurance first: what was said survived.
+  /// Said when the connection drops during a voice exchange. IT DOES NOT PROMISE THAT HER WORDS WERE SAVED. Kafoo queues the transcript, not audio, and on-device Arabic recognition is frequently unavailable offline — so there may be no words to keep. Telling her they are saved and then losing them is worse than telling her the truth immediately. Currently unused; wired to TalkOrbState.offlineQueued when the offline path is built.
   ///
   /// In ar, this message translates to:
-  /// **'مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.'**
+  /// **'مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت يرجع.'**
   String get voiceOfflineQueued;
 
   /// Last rung of the failure ladder. Offers photos and numerals to tap. NEVER offers a keyboard — typing Arabic on a phone is the hardest thing this product could ask of a Cook, and it is never a consequence of failure.
@@ -1712,6 +1712,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{addressForm, select, feminine{تقفلي المطبخ؟} other{تقفل المطبخ؟}}'**
   String mealLastOnOfferQuestion(String addressForm);
+
+  /// Shown when the Meal list failed because the phone could not reach the network — and ONLY then. A Cook whose load failed for any other reason must not be sent to check her WiFi.
+  ///
+  /// In ar, this message translates to:
+  /// **'مش لاقيين النت. {addressForm, select, feminine{جربي} other{جرب}} تاني لما يرجع.'**
+  String mealOfflineError(String addressForm);
+
+  /// The title on a failed Meal-list load that was NOT a connection problem. «مفيش نت» is reserved for an actual dropped connection.
+  ///
+  /// In ar, this message translates to:
+  /// **'في حاجة مش مظبوطة'**
+  String get myMealsFailedTitle;
+
+  /// Reassurance FIRST on any failed load. True whatever went wrong — the failure was reading, not writing. The offline variant adds that the connection is the cause, which must not be claimed when it is not.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلاتك كلها في أمان.'**
+  String get myMealsFailedReassurance;
 }
 
 class _AppLocalizationsDelegate

@@ -1646,7 +1646,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get voiceOfflineQueued =>
-      'مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.';
+      'مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت يرجع.';
 
   @override
   String voiceTapFallback(String addressForm) {
@@ -1892,4 +1892,22 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String mealOfflineError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مش لاقيين النت. $_temp0 تاني لما يرجع.';
+  }
+
+  @override
+  String get myMealsFailedTitle => 'في حاجة مش مظبوطة';
+
+  @override
+  String get myMealsFailedReassurance => 'أكلاتك كلها في أمان.';
 }

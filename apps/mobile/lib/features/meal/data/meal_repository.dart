@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:kafoo_domain/domain.dart';
@@ -334,8 +335,37 @@ class SupabaseMealRepository implements MealRepository {
         rows.cast<Map<String, dynamic>>().map(_cookMealFromRow).toList(),
       );
     } on Object catch (e) {
-      return Failure(AppError(messageKey: 'mealLoadError', cause: e));
+      // OFFLINE IS A DIFFERENT SENTENCE FROM BROKEN. Everything landed on
+      // `mealLoadError`, and the screen above titles that «مفيش نت» and
+      // reassures «المشكلة في النت بس» — so a Cook whose read was refused by a
+      // policy, or whose row would not parse, was sent to check her WiFi. The
+      // one thing worse than an error is an error that sends someone to fix
+      // something that is not broken.
+      // Written out twice rather than as one constructor with a computed key:
+      // the gate that checks every messageKey has an Arabic sentence reads the
+      // token after `messageKey:`, so anything but a literal there reads as a
+      // key nobody wrote a string for.
+      return Failure(
+        _looksOffline(e)
+            ? AppError(messageKey: 'mealOfflineError', cause: e)
+            : AppError(messageKey: 'mealLoadError', cause: e),
+      );
     }
+  }
+
+  /// Whether a thrown error is the phone failing to reach the network.
+  ///
+  /// Matched on type and message rather than on a status code, because the
+  /// client wraps a socket failure differently on each platform and none of the
+  /// wrappers is exported.
+  static bool _looksOffline(Object error) {
+    if (error is SocketException) return true;
+    final text = error.toString().toLowerCase();
+    return text.contains('socketexception') ||
+        text.contains('failed host lookup') ||
+        text.contains('connection closed') ||
+        text.contains('connection refused') ||
+        text.contains('network is unreachable');
   }
 
   @override

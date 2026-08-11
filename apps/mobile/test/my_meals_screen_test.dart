@@ -264,6 +264,77 @@ void main() {
       );
     });
 
+    testWidgets('deleting a draft says its warning out loud', (tester) async {
+      // Confirmed for retire and asserted nowhere for the other two, which is
+      // how a rule ends up half-kept.
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_draft]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealDeleteDraft('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        contains(l10n.mealDeleteDraftWarning('other')),
+      );
+    });
+
+    testWidgets('so does closing the kitchen', (tester) async {
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_published]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealMakeUnavailable('other')));
+      await tester.pumpAndSettle();
+
+      expect(
+        speech.spoken.map((s) => s.line),
+        contains(l10n.mealLastOnOfferWarning('other')),
+      );
+    });
+
+    testWidgets('it asks once more after eight seconds, and then waits',
+        (tester) async {
+      // A Cook steps away mid-sentence — flour on her hands, a pot going over.
+      // One repeat is the difference between waiting and abandoned; a third
+      // would be nagging, and nagging is how people learn to say yes to make it
+      // stop.
+      final speech = FakeSpeechOutput();
+      await tester.pumpWidget(
+        _app(FakeMealRepository(meals: [_published]), speech: speech),
+      );
+      await tester.pumpAndSettle();
+
+      await _openActions(tester);
+      await tester.tap(find.text(l10n.mealRetire('other')));
+      await tester.pumpAndSettle();
+      final said = () =>
+          speech.spoken.where((s) => s.line == l10n.mealRetireWarning).length;
+      expect(said(), 1);
+
+      await tester.pump(const Duration(seconds: 9));
+      expect(said(), 2);
+
+      // And never a third.
+      await tester.pump(const Duration(seconds: 30));
+      expect(said(), 2);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(KafooConfirmationGate),
+          matching: find.text(l10n.mealRetireCancel('other')),
+        ),
+      );
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('answering stops it mid-sentence', (tester) async {
       final speech = FakeSpeechOutput();
       await tester.pumpWidget(
@@ -300,6 +371,35 @@ void main() {
 
       expect(find.byType(KafooConfirmationGate), findsNothing);
       expect(repo.setStatusArgs, hasLength(1));
+    });
+  });
+
+  group('a failed load says what actually failed', () {
+    // «مفيش نت» is a claim about her connection, and it was made for every
+    // failure — an auth problem, a refused read, a row that would not parse.
+    // A Cook was sent to check her WiFi over something that had nothing to do
+    // with it. Nothing covered this panel's words at all.
+    testWidgets('a dropped connection blames the connection', (tester) async {
+      final repo = FakeMealRepository()
+        ..myMealsError = const AppError(messageKey: 'mealOfflineError');
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.glanceOffline), findsOneWidget);
+      expect(find.text(l10n.myMealsOfflineReassurance), findsOneWidget);
+    });
+
+    testWidgets('anything else does not', (tester) async {
+      final repo = FakeMealRepository()
+        ..myMealsError = const AppError(messageKey: 'mealLoadError');
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.myMealsFailedTitle), findsOneWidget);
+      expect(find.text(l10n.glanceOffline), findsNothing);
+      // Still reassured — her Meals are safe either way — just not told a
+      // cause that was not the cause.
+      expect(find.text(l10n.myMealsFailedReassurance), findsOneWidget);
     });
   });
 

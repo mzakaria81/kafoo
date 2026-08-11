@@ -276,6 +276,26 @@ abstract final class KafooElevation {
   /// Behind a level-3 surface.
   static const Color scrim = Color(0x8C1C1917);
 
+  /// The veil over a sold-out Meal's photograph.
+  ///
+  /// Lighter than [scrim], and that is the point: a modal scrim hides what is
+  /// behind it, while this one must let a Customer still recognise the Meal she
+  /// is being told she cannot have today.
+  static const Color soldOutVeil = Color(0x731C1917);
+
+  /// The Cook's name pill sitting on a photograph.
+  ///
+  /// Nearly the page colour but not quite: it has to read as a label laid over
+  /// an image rather than a hole cut in it.
+  static const Color pillOnPhoto = Color(0xF2FFFBF7);
+
+  /// A secondary button under a finger.
+  ///
+  /// One step deeper than [KafooColors.primaryTint]. Named rather than typed in
+  /// so the contrast tests can see it — it ships on every screen that has a
+  /// secondary button.
+  static const Color primaryTintPressed = Color(0xFFFDE7D3);
+
   /// Focus is a 3px halo, never a colour-only change — a colour shift alone is
   /// invisible in sunlight.
   static const Color focusRing = Color(0x2EC2410C);

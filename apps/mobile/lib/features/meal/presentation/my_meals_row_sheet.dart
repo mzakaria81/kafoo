@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
@@ -172,6 +174,16 @@ class _Gate extends ConsumerStatefulWidget {
 }
 
 class _GateState extends ConsumerState<_Gate> {
+  /// The rule, not a copy of it. `ConfirmationGate` holds "silence never
+  /// confirms" and "ask once more, then wait" — and it lived in
+  /// `packages/domain/`, fully tested and called by nothing, while this screen
+  /// spoke the warning once and then waited forever. A tested class nobody
+  /// instantiates makes a rule look met.
+  late final ConfirmationGate _gate =
+      ConfirmationGate(spokenReadback: widget.readback);
+
+  Timer? _repromptTimer;
+
   @override
   void initState() {
     super.initState();
@@ -180,15 +192,44 @@ class _GateState extends ConsumerState<_Gate> {
       // Read back in full. Not quietly: this is the sentence a Cook is being
       // asked to agree to, and a decision she cannot undo is not the place to
       // protect her from being overheard.
-      ref.read(assistantVoiceProvider.notifier).say(widget.readback);
+      ref.read(assistantVoiceProvider.notifier).say(_gate.spokenReadback);
+      _armReprompt();
+    });
+  }
+
+  /// Asks once more, then waits indefinitely.
+  ///
+  /// A Cook steps away mid-sentence — flour on her hands, a pot going over —
+  /// and comes back to a screen that has said nothing since. One repeat is the
+  /// difference between waiting and abandoned. A third would be nagging, and
+  /// nagging is how people learn to say yes to make it stop, which is the one
+  /// outcome a gate exists to prevent.
+  void _armReprompt() {
+    _repromptTimer = Timer(_gate.repromptAfter, () {
+      if (!mounted || !_gate.reprompt()) return;
+      ref.read(assistantVoiceProvider.notifier).say(_gate.spokenReadback);
     });
   }
 
   void _answer(bool confirmed) {
-    // Stop mid-sentence the moment she answers. Continuing to read a warning
-    // she has already acted on is the assistant talking over her.
+    _gate.answer(confirmed: confirmed);
+    _stopTalking();
+    Navigator.of(context).pop(_gate.isConfirmed);
+  }
+
+  /// Stops mid-sentence. Continuing to read a warning she has already acted on
+  /// is the assistant talking over her — and on a back-gesture dismissal the
+  /// screen is gone while the voice carries on, which is worse.
+  void _stopTalking() {
+    _repromptTimer?.cancel();
+    _repromptTimer = null;
     ref.read(assistantVoiceProvider.notifier).hush();
-    Navigator.of(context).pop(confirmed);
+  }
+
+  @override
+  void dispose() {
+    _repromptTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -196,17 +237,28 @@ class _GateState extends ConsumerState<_Gate> {
     final l10n = AppLocalizations.of(context);
     final form = context.addressForm;
 
-    return Scaffold(
-      backgroundColor: KafooColors.darkSurface,
-      body: SafeArea(
-        child: KafooConfirmationGate(
-          spokenReadback: widget.readback,
-          question: widget.action.question!,
-          confirmLabel: widget.action.confirmLabel!,
-          rejectLabel: widget.action.cancelLabel!,
-          footnote: l10n.gateSilenceFootnote(form),
-          onConfirm: () => _answer(true),
-          onReject: () => _answer(false),
+    return PopScope(
+      // The back gesture is an answer too, and it is «لأ». Left alone it
+      // skipped the answer path entirely, so the assistant kept reading a
+      // warning aloud over a screen that had already closed.
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _gate.answer(confirmed: false);
+          _stopTalking();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: KafooColors.darkSurface,
+        body: SafeArea(
+          child: KafooConfirmationGate(
+            spokenReadback: widget.readback,
+            question: widget.action.question!,
+            confirmLabel: widget.action.confirmLabel!,
+            rejectLabel: widget.action.cancelLabel!,
+            footnote: l10n.gateSilenceFootnote(form),
+            onConfirm: () => _answer(true),
+            onReject: () => _answer(false),
+          ),
         ),
       ),
     );

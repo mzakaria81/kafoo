@@ -18,6 +18,7 @@ String myMealsErrorMessage(
   AppError error,
 ) =>
     switch (error.messageKey) {
+      'mealOfflineError' => l10n.mealOfflineError(addressForm),
       'mealLoadError' => l10n.mealLoadError(addressForm),
       'mealAvailabilityError' => l10n.mealAvailabilityError(addressForm),
       'mealDeleteError' => l10n.mealDeleteError(addressForm),
@@ -123,11 +124,19 @@ class MyMealsFailed extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final form = context.addressForm;
 
+    // «مفيش نت» is a claim about her connection, and it was made whatever went
+    // wrong. It is now made only when that is what happened.
+    final offline = error.messageKey == 'mealOfflineError';
+
     return KafooEmptyState(
       failure: true,
-      title: l10n.glanceOffline,
+      title: offline ? l10n.glanceOffline : l10n.myMealsFailedTitle,
       body: myMealsErrorMessage(l10n, form, error),
-      reassurance: l10n.myMealsOfflineReassurance,
+      // Both are true whatever failed — the read broke, not her Meals. Only the
+      // offline one also names the cause.
+      reassurance: offline
+          ? l10n.myMealsOfflineReassurance
+          : l10n.myMealsFailedReassurance,
       cachedLabel: cachedAt == null ? null : l10n.myMealsCachedAt(cachedAt!),
       cachedContent: cached,
       primaryAction: KafooButton(

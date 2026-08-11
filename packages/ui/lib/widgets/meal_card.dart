@@ -207,7 +207,7 @@ class MealCard extends StatelessWidget {
           if (soldOut)
             Positioned.fill(
               child: ColoredBox(
-                color: const Color(0x731C1917),
+                color: KafooElevation.soldOutVeil,
                 child: Center(
                   child: Container(
                     padding: const EdgeInsetsDirectional.symmetric(
@@ -236,7 +236,7 @@ class MealCard extends StatelessWidget {
                 vertical: KafooSpacing.sm,
               ),
               decoration: BoxDecoration(
-                color: const Color(0xF2FFFBF7),
+                color: KafooElevation.pillOnPhoto,
                 borderRadius: BorderRadius.circular(KafooRadius.pill),
               ),
               child: Text(

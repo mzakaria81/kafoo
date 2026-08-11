@@ -1473,9 +1473,9 @@
       }
     }
   },
-  "voiceOfflineQueued": "No connection. What you said is saved and will send when it's back.",
+  "voiceOfflineQueued": "No connection. What is on the screen is saved, but speech will not be captured until it is back.",
   "@voiceOfflineQueued": {
-    "description": "Said when a recording cannot be sent. Reassurance first: what was said survived."
+    "description": "Said when the connection drops during a voice exchange. IT DOES NOT PROMISE THAT HER WORDS WERE SAVED. Kafoo queues the transcript, not audio, and on-device Arabic recognition is frequently unavailable offline — so there may be no words to keep. Telling her they are saved and then losing them is worse than telling her the truth immediately. Currently unused; wired to TalkOrbState.offlineQueued when the offline path is built."
   },
   "voiceTapFallback": "{addressForm, select, feminine{No problem — here are the options, tap the one you want.} other{No problem — here are the options, tap the one you want.}}",
   "@voiceTapFallback": {
@@ -1727,5 +1727,22 @@
         "type": "String"
       }
     }
+  },
+  "mealOfflineError": "{addressForm, select, feminine{No connection. Try again when it is back.} other{No connection. Try again when it is back.}}",
+  "@mealOfflineError": {
+    "description": "Shown when the Meal list failed because the phone could not reach the network — and ONLY then. A Cook whose load failed for any other reason must not be sent to check her WiFi.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "myMealsFailedTitle": "Something is not right",
+  "@myMealsFailedTitle": {
+    "description": "The title on a failed Meal-list load that was NOT a connection problem. «مفيش نت» is reserved for an actual dropped connection."
+  },
+  "myMealsFailedReassurance": "Your Meals are all safe.",
+  "@myMealsFailedReassurance": {
+    "description": "Reassurance FIRST on any failed load. True whatever went wrong — the failure was reading, not writing. The offline variant adds that the connection is the cause, which must not be claimed when it is not."
   }
 }

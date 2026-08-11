@@ -1702,7 +1702,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceOfflineQueued =>
-      'No connection. What you said is saved and will send when it\'s back.';
+      'No connection. What is on the screen is saved, but speech will not be captured until it is back.';
 
   @override
   String voiceTapFallback(String addressForm) {
@@ -1949,4 +1949,22 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String mealOfflineError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'No connection. Try again when it is back.',
+        'other': 'No connection. Try again when it is back.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsFailedTitle => 'Something is not right';
+
+  @override
+  String get myMealsFailedReassurance => 'Your Meals are all safe.';
 }

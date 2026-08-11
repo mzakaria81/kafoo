@@ -62,7 +62,7 @@ can be reached today.
 ## 3. No offline cache, so the failure state is thinner than designed
 
 **What a Cook sees.** On a failed load: «مفيش نت» as a glance word, the
-reassurance «اللي قولتيه محفوظ وهيتبعت أول ما النت يرجع», and a retry.
+reassurance «أكلاتك كلها في أمان», and a retry.
 
 **What is missing.** Two halves of the designed state:
 

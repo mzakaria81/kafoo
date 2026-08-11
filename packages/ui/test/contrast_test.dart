@@ -160,6 +160,29 @@ void main() {
     });
   });
 
+  test('the colours laid over a photograph stay readable', () {
+    // These three were typed in as raw hex and no test could see them, so a
+    // retune of the palette would have left them behind.
+    //
+    // A pill on a photograph and a veil over one are composited against an
+    // image, not a flat colour, so the check is that each is opaque enough to
+    // establish its own ground rather than a ratio against a surface that is
+    // not there.
+    expect(KafooElevation.pillOnPhoto.a, greaterThan(0.9),
+        reason: 'the Cook name pill is too sheer to read over a photo');
+    expect(KafooElevation.soldOutVeil.a, greaterThan(0.4),
+        reason: 'a sold-out Meal must read as sold out at a glance');
+    // And lighter than a modal scrim: this one has to let the Meal show
+    // through, because a Customer is being told she cannot have THIS.
+    expect(KafooElevation.soldOutVeil.a, lessThan(KafooElevation.scrim.a));
+
+    // The pressed secondary fill carries the same text as the resting one.
+    expect(
+      _contrast(KafooColors.primaryDeep, KafooElevation.primaryTintPressed),
+      greaterThanOrEqualTo(4.5),
+    );
+  });
+
   test('voice is the only cool colour in the system', () {
     // Everything else is warm. Reserving one hue for voice is what lets a Cook
     // tell "I'm hearing you" from "buy this" before reading a word.

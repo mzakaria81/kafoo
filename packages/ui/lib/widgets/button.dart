@@ -85,7 +85,9 @@ class _KafooButtonState extends State<KafooButton> {
           null,
         ),
       KafooButtonVariant.secondary => (
-          _pressed ? const Color(0xFFFDE7D3) : KafooColors.primaryTint,
+          _pressed
+              ? KafooElevation.primaryTintPressed
+              : KafooColors.primaryTint,
           KafooColors.primaryDeep,
           _pressed ? KafooColors.primary : KafooColors.primaryBorder,
         ),

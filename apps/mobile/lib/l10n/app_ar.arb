@@ -1473,9 +1473,9 @@
       }
     }
   },
-  "voiceOfflineQueued": "مفيش نت. كلامك محفوظ وهيتبعت أول ما النت يرجع.",
+  "voiceOfflineQueued": "مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت يرجع.",
   "@voiceOfflineQueued": {
-    "description": "Said when a recording cannot be sent. Reassurance first: what was said survived."
+    "description": "Said when the connection drops during a voice exchange. IT DOES NOT PROMISE THAT HER WORDS WERE SAVED. Kafoo queues the transcript, not audio, and on-device Arabic recognition is frequently unavailable offline — so there may be no words to keep. Telling her they are saved and then losing them is worse than telling her the truth immediately. Currently unused; wired to TalkOrbState.offlineQueued when the offline path is built."
   },
   "voiceTapFallback": "{addressForm, select, feminine{خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.} other{خلاص، هوريك الاختيارات وانت دوس على اللي عايزه.}}",
   "@voiceTapFallback": {
@@ -1727,5 +1727,22 @@
         "type": "String"
       }
     }
+  },
+  "mealOfflineError": "مش لاقيين النت. {addressForm, select, feminine{جربي} other{جرب}} تاني لما يرجع.",
+  "@mealOfflineError": {
+    "description": "Shown when the Meal list failed because the phone could not reach the network — and ONLY then. A Cook whose load failed for any other reason must not be sent to check her WiFi.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "myMealsFailedTitle": "في حاجة مش مظبوطة",
+  "@myMealsFailedTitle": {
+    "description": "The title on a failed Meal-list load that was NOT a connection problem. «مفيش نت» is reserved for an actual dropped connection."
+  },
+  "myMealsFailedReassurance": "أكلاتك كلها في أمان.",
+  "@myMealsFailedReassurance": {
+    "description": "Reassurance FIRST on any failed load. True whatever went wrong — the failure was reading, not writing. The offline variant adds that the connection is the cause, which must not be claimed when it is not."
   }
 }

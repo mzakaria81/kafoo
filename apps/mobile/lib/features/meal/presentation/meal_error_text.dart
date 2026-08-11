@@ -57,6 +57,7 @@ String mealErrorText(
     'analyzeMealProviderError' => l10n.analyzeMealProviderError(form),
     'analyzeMealServerError' => l10n.analyzeMealServerError(form),
     'analyzeMealUnknownError' => l10n.analyzeMealUnknownError(form),
+    'mealOfflineError' => l10n.mealOfflineError(form),
     'mealPriceInvalid' => l10n.mealPriceInvalid(form),
     'mealPhotoError' => l10n.mealPhotoError(form),
     'mealPublishError' => l10n.mealPublishError(form),
