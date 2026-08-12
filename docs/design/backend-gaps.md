@@ -88,14 +88,33 @@ state the app is *in*, not an error it discovers.
 
 ## 5. The spoken summary uses digits where the design speaks words
 
-**What a Cook sees.** «عندك ٥ أكلة، منهم ٢ على المنيو. عايزة تعملي إيه؟»
+**MOSTLY CLOSED ON 2026-08-12, and the part that closed it was not the part this
+entry expected.**
 
-**What the design says.** «عندك خمس أكلات، اتنين منشورين» — numbers spelled out,
-because the line is *spoken* and a voice does not read digits.
+Two things were wrong here, and one of them was this entry.
 
-**What is missing.** An Arabic number-to-words function, with the agreement
-rules Arabic needs for counted nouns. Written text keeps the Arabic-Indic
-digits; only the spoken line needs words.
+**The counted noun did not agree, and that was the real defect.** It said
+«عندك ٥ أكلة» for every number, when Arabic changes the noun with the number:
+«أكلة واحدة», «أكلتين», «تلات أكلات», «٢٠ أكلة». Fixed with an ICU plural, whose
+CLDR bands line up with the grammar exactly, so no hand-written agreement rules
+were needed after all.
+
+**And the written line was in Latin digits**, not the Arabic-Indic ones this
+entry showed. It was the only numeral on the screen still in the script a Cook
+does not type. The banner now goes through `KafooNumerals.arabicIndic`.
+
+**The number-to-words half is rejected rather than outstanding.** This entry
+assumed a voice cannot read digits. It can: the provider reads «20» as «عشرين»
+in correct Egyptian, heard on a handset on 2026-08-12. So Kafoo needs no Arabic
+number-to-words function for speech, and the spoken string deliberately keeps
+Latin digits while the written one shows Arabic-Indic — the same sentence in two
+scripts, because they are read by different things.
+
+**What is genuinely still open** is one listening verdict: whether the provider
+says «تلات أكلات» or the wrong «تلاتة أكلات» for «3 أكلات», and whether «٢٠» in
+Arabic-Indic is read as well as «20» is. Both are in
+`docs/ops/measuring-spoken-arabic.md` and need a Cairene ear rather than a
+function.
 
 ## 6. The publish gate has no route into it
 

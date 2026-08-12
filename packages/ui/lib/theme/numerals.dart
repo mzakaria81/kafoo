@@ -32,14 +32,26 @@ abstract final class KafooNumerals {
   ///
   /// Anything that is not a digit or a separator — a currency word, a space, a
   /// range dash — is left exactly as it was.
-  static String arabicIndic(String source) {
+  ///
+  /// **PASS `separators: false` FOR A SENTENCE, AND THIS IS NOT A STYLE
+  /// CHOICE.** A full stop inside a price *is* a decimal point, so «35.00»
+  /// must become «٣٥٫٠٠». A full stop inside a sentence is the end of the
+  /// sentence, and rewriting it produces «على المنيو٫ عايزة تعملي إيه؟» — a
+  /// decimal-point mark floating where a Cook expects a pause, on the most-read
+  /// line of her screen, with a screen reader garbling or dropping it.
+  ///
+  /// That shipped for the length of one review round on #462, because this was
+  /// written for prices, reached for on a whole sentence, and the test only
+  /// asked whether a digit had appeared rather than whether the sentence
+  /// survived. Found by accessibility-reviewer.
+  static String arabicIndic(String source, {bool separators = true}) {
     final out = StringBuffer();
     for (final unit in source.runes) {
       final character = String.fromCharCode(unit);
       final digit = _latinDigits.indexOf(character);
       out.write(switch (character) {
-        '.' => arabicDecimalSeparator,
-        ',' => arabicThousandsSeparator,
+        '.' when separators => arabicDecimalSeparator,
+        ',' when separators => arabicThousandsSeparator,
         _ => digit >= 0 ? _arabicIndicDigits[digit] : character,
       });
     }

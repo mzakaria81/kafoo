@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_mobile/features/conversation/data/hosted_speech_output.dart';
 import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/voice_clip_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The paid Cairene voice, and what happens when it cannot speak.
@@ -54,8 +57,38 @@ void main() {
   }
 
   group('asking Kafoo to speak', () {
-    test('the female voice is the default — ADR-0010 addresses a Cook as her',
+    test('Ahmad is the voice a Cook hears until she chooses otherwise',
         () async {
+      // Founder's decision, 2026-08-12, made by ear on a handset. It is not a
+      // preference one person set for themselves: §10.11's chooser does not
+      // exist, so this is the voice EVERY Cook gets.
+      final t = build();
+      await t.speech.initialize();
+      expect(t.speech.role, AssistantVoiceRole.male);
+    });
+
+    test('a stored value that is neither name falls back to the default',
+        () async {
+      // Not hypothetical the day a default changes. Written as "is it male,
+      // else female", an unreadable value resolved to whichever voice sat on
+      // the else branch — so changing the default silently changed what a
+      // corrupted preference meant, on handsets nobody could see.
+      SharedPreferences.setMockInitialValues(
+        {HostedSpeechOutput.voicePreferenceKey: 'ghozlan'},
+      );
+      final t = build();
+      await t.speech.initialize();
+      expect(t.speech.role, AssistantVoiceRole.defaultRole);
+    });
+
+    test('a Cook who chose Ghozlan keeps Ghozlan across the default changing',
+        () async {
+      // The half that matters more than the default itself: §10.11 says the
+      // choice persists until changed and never switches on its own. Shipping a
+      // new default must not reach past somebody who already answered.
+      SharedPreferences.setMockInitialValues(
+        {HostedSpeechOutput.voicePreferenceKey: 'female'},
+      );
       final t = build();
       await t.speech.initialize();
       expect(t.speech.role, AssistantVoiceRole.female);
@@ -69,28 +102,81 @@ void main() {
 
       expect(t.asked, hasLength(1));
       expect(t.asked.single.line, 'تمام، الأكلة منشورة');
-      expect(t.asked.single.voice, 'female');
+      expect(t.asked.single.voice, 'male');
       // The ids live in the Edge Function. If one ever appears here, the app can
       // choose a voice and therefore choose what Kafoo is billed for.
       expect(t.asked.single.voice.length, lessThan(12));
     });
 
-    test('choosing the male voice changes what is asked for, and persists',
+    test('choosing the other voice changes what is asked for, and persists',
         () async {
       final t = build();
       await t.speech.initialize();
-      await t.speech.setRole(AssistantVoiceRole.male);
+      await t.speech.setRole(AssistantVoiceRole.female);
       await t.speech.speak('أيوة');
 
-      expect(t.asked.single.voice, 'male');
+      expect(t.asked.single.voice, 'female');
 
       final again = build();
       await again.speech.initialize();
       expect(
         again.speech.role,
-        AssistantVoiceRole.male,
+        AssistantVoiceRole.female,
         reason:
             'the voice reverted on the next launch — §10.11 says it persists',
+      );
+    });
+
+    test('choosing the voice that is ALREADY the default is still stored',
+        () async {
+      // §10.11: the choice persists until changed and never switches on its
+      // own. setRole used to return early when the role was unchanged, so a
+      // Cook who deliberately picked today's default stored nothing — and the
+      // next change of default would move her silently, which is exactly what
+      // "never switches on its own" forbids. Invisible until a default changes,
+      // and one just did.
+      final t = build();
+      await t.speech.initialize();
+      await t.speech.setRole(AssistantVoiceRole.defaultRole);
+
+      // `await expectLater` rather than a bare `expect` on a Future: the bare
+      // form leans on flutter_test noticing an unawaited matcher, which is the
+      // easier idiom to get silently wrong — in a test whose whole job is to
+      // catch something silent. Raised by release-engineer on #462.
+      await expectLater(
+        SharedPreferences.getInstance().then(
+          (p) => p.getString(HostedSpeechOutput.voicePreferenceKey),
+        ),
+        completion(AssistantVoiceRole.defaultRole.wireName),
+      );
+    });
+
+    test('re-choosing the voice already speaking does not cut it off',
+        () async {
+      // The other half of the change above, and the half that could regress
+      // without anyone noticing: storing the answer must not come at the cost
+      // of interrupting a sentence the Cook is in the middle of hearing, to
+      // confirm a voice she is already listening to. Raised as untested by
+      // release-engineer on #462.
+      var stops = 0;
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        fetchAudio: (line, voice) async => audio(1),
+        playAudio: (bytes, volume) async {},
+        stopAudio: () async => stops++,
+      );
+      await speech.initialize();
+      await speech.speak('تمام');
+      final before = stops;
+
+      await speech.setRole(AssistantVoiceRole.defaultRole);
+      expect(stops, before, reason: 'it interrupted itself for no change');
+
+      await speech.setRole(AssistantVoiceRole.female);
+      expect(
+        stops,
+        greaterThan(before),
+        reason: 'a real change must stop the old voice mid-sentence',
       );
     });
 
@@ -112,10 +198,10 @@ void main() {
       final t = build();
       await t.speech.initialize();
       await t.speech.speak('تمام');
-      await t.speech.setRole(AssistantVoiceRole.male);
+      await t.speech.setRole(AssistantVoiceRole.female);
       await t.speech.speak('تمام');
 
-      expect(t.asked.map((a) => a.voice), ['female', 'male']);
+      expect(t.asked.map((a) => a.voice), ['male', 'female']);
     });
 
     test('a muted assistant sends nothing at all', () async {
@@ -442,10 +528,88 @@ void main() {
       );
     });
 
+    test('a sentence Kafoo already owns is never bought again', () async {
+      // The 36 bundled sentences. If this ever regresses, nothing looks broken:
+      // the Cook still hears a Cairene voice, and Kafoo silently pays for every
+      // fixed line on every launch — the bill this whole seam exists to end.
+      final temp = Directory.systemTemp.createTempSync('kafoo_owned');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      const line = 'تمام، شلتها من المنيو.';
+      final name = VoiceClipStore.nameFor(line);
+      final voice = AssistantVoiceRole.defaultRole.wireName;
+
+      final asked = <String>[];
+      final played = <Uint8List>[];
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        clips: VoiceClipStore(
+          loadAsset: (key) async => key == 'assets/voice/$voice/$name.mp3'
+              ? ByteData.view(audio(7).buffer)
+              : throw Exception('not bundled'),
+          cacheDirectory: () async => temp,
+        ),
+        fetchAudio: (l, v) async {
+          asked.add(l);
+          return audio(1);
+        },
+        playAudio: (bytes, volume) async => played.add(bytes),
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+      await speech.speak(line);
+
+      expect(asked, isEmpty, reason: 'a bundled sentence went to the network');
+      expect(played.single, equals(audio(7)));
+    });
+
+    test('a sentence that HAD to be bought is kept for the next launch',
+        () async {
+      // The Meal-list greeting — the one sentence carrying a Cook's own counts,
+      // so the one sentence that cannot be bundled. Before this, it was re-bought
+      // every single time she opened Kafoo.
+      final temp = Directory.systemTemp.createTempSync('kafoo_bought');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      const greeting = 'عندك تلات أكلات، منهم واحدة على المنيو.';
+      final voice = AssistantVoiceRole.defaultRole.wireName;
+      final clips = VoiceClipStore(
+        loadAsset: (_) async => throw Exception('not bundled'),
+        cacheDirectory: () async => temp,
+      );
+
+      var purchases = 0;
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        clips: clips,
+        fetchAudio: (l, v) async {
+          purchases++;
+          return audio(3);
+        },
+        playAudio: (bytes, volume) async {},
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+      await speech.speak(greeting);
+      expect(purchases, 1);
+
+      // The write is deliberately not awaited inside speak, so that the Cook is
+      // never made to wait on bookkeeping. Give it the turn it needs.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(await clips.read(greeting, voice), equals(audio(3)));
+    });
+
     test('the whole failure path stays inside the voice budget', () async {
       expect(
         HostedSpeechOutput.worstCaseBeforeAnyVoice,
-        lessThan(const Duration(seconds: 2)),
+        // RAISED FROM 2 s BY THE FOUNDER ON 2026-08-12, and the reason is
+        // recorded here because a number nobody can explain is a number the
+        // next person quietly lowers again. The 1000 ms fetch wait this sum was
+        // built around was never measured against ElevenLabs; the first
+        // measurement was 1064, 1070 and 2612 ms, so the paid voice he had just
+        // bought lost every race and the Cook always heard the machine.
+        //
+        // The 2 s budget still governs the path that works — a successful fetch
+        // speaks at about 1.1 s. This ceiling bounds only the broken path.
+        lessThan(const Duration(seconds: 4)),
         reason: 'only the founder may raise a budget',
       );
     });

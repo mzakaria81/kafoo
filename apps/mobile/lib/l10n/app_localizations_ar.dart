@@ -1743,15 +1743,48 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String myMealsSpokenSummary(String addressForm, int total, int published) {
-    String _temp0 = intl.Intl.selectLogic(
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total أكلة',
+      many: '$total أكلة',
+      few: '$total أكلات',
+      two: 'أكلتين',
+      one: 'أكلة واحدة',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      published,
+      locale: localeName,
+      other: 'منهم $published على المنيو',
+      two: 'منهم اتنين على المنيو',
+      one: 'منهم واحدة على المنيو',
+      zero: 'بس مفيش ولا واحدة على المنيو',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total أكلة',
+      many: '$total أكلة',
+      few: '$total أكلات',
+      two: 'أكلتين',
+      one: 'أكلة واحدة',
+    );
+    String _temp3 = intl.Intl.pluralLogic(
+      published,
+      locale: localeName,
+      other: 'منهم $published على المنيو',
+      two: 'منهم اتنين على المنيو',
+      one: 'منهم واحدة على المنيو',
+      zero: 'بس مفيش ولا واحدة على المنيو',
+    );
+    String _temp4 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine':
-            'عندك $total أكلة، منهم $published على المنيو. عايزة تعملي إيه؟',
-        'other': 'عندك $total أكلة، منهم $published على المنيو. عايز تعمل إيه؟',
+        'feminine': 'عندك $_temp0، $_temp1. عايزة تعملي إيه؟',
+        'other': 'عندك $_temp2، $_temp3. عايز تعمل إيه؟',
       },
     );
-    return '$_temp0';
+    return '$_temp4';
   }
 
   @override

@@ -1566,9 +1566,9 @@
   "@glanceSaved": {
     "description": "Glance word for work held safely until the connection returns, from the closed set."
   },
-  "myMealsSpokenSummary": "{addressForm, select, feminine{You have {total} Meals, {published} of them on the menu. What would you like to do?} other{You have {total} Meals, {published} of them on the menu. What would you like to do?}}",
+  "myMealsSpokenSummary": "{addressForm, select, feminine{You have {total, plural, one{1 Meal} other{{total} Meals}}, {published, plural, =0{none of them on the menu} one{1 of them on the menu} other{{published} of them on the menu}}. What would you like to do?} other{You have {total, plural, one{1 Meal} other{{total} Meals}}, {published, plural, =0{none of them on the menu} one{1 of them on the menu} other{{published} of them on the menu}}. What would you like to do?}}",
   "@myMealsSpokenSummary": {
-    "description": "The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.",
+    "description": "The line the assistant says on arriving at the Cook's Meal list, and shown in the spoken banner as its receipt. AN ICU PLURAL RATHER THAN A FIXED NOUN, BECAUSE ARABIC COUNTS IN FIVE BANDS AND THE NOUN CHANGES WITH THE NUMBER: one=أكلة واحدة, two=أكلتين, few (3-10)=أكلات, many (11-99)=أكلة, other (100+)=أكلة. It shipped saying «عندك 3 أكلة» for every count, which no Egyptian writes and no Egyptian says; it survived because every test used a count in the 11-99 band, the one band where the singular is right. `published` is 0 whenever every Meal is still a draft, and «منهم 0» is not a sentence, so nothing-on-the-menu is said in words. `total` is never 0 — an empty list renders MyMealsEmpty instead. DIGITS ARE STILL DIGITS: the provider reads «20» as «عشرين» itself, so Kafoo needs no Arabic number-to-words function for the voice, only correct agreement around the number. FLAG: wants a native Cairene ear on two things — whether «3 أكلات» is read «تلات أكلات» rather than «تلاتة أكلات», and whether «عندك أكلة واحدة، منهم واحدة على المنيو» is how a Cairene would say it when a Cook has exactly one Meal.",
     "placeholders": {
       "addressForm": {
         "type": "String"

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -5,18 +6,42 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'speech_output.dart';
+import 'voice_clip_store.dart';
 
 /// Which of the two Cairene voices the assistant uses.
 ///
 /// §10.11: two voices, male and female, both Cairene, and **each account chooses
 /// its own.** Stored per device and never switched on its own.
+///
+/// **NOBODY CAN ACTUALLY CHOOSE YET, WHICH IS WHY [defaultRole] MATTERS MORE
+/// THAN IT SHOULD.** [setRole] works and persists, and nothing in the app calls
+/// it — §10.11's voice cards and the aloud question on first launch are designed
+/// and unbuilt. Until they exist, the default is not a starting point a Cook can
+/// move away from; it is the only voice anybody gets.
 enum AssistantVoiceRole {
-  /// Ghozlan — Soft Clear Conversational. The default, because ADR-0010 exists
-  /// to address a Cook as a woman and she is who hears this most.
+  /// Ghozlan — Soft Clear Conversational.
   female,
 
-  /// Ahmad — Conversational AI Voice.
+  /// Ahmad — Conversational AI Voice. **The default since 2026-08-12.**
+  ///
+  /// The founder chose it by ear, having heard both on a handset. It replaced
+  /// Ghozlan, whose only claim to the position was a comment in this file
+  /// reasoning from ADR-0010 — and ADR-0010 is about the grammar Kafoo uses to
+  /// *address* a Cook, not about who does the speaking. So this is a decision
+  /// being made rather than one being overturned.
+  ///
+  /// **It is a decision for every Cook, not a setting for one person**, and it
+  /// stays that way until §10.11's chooser is built.
   male;
+
+  /// What the assistant speaks with until somebody chooses otherwise.
+  ///
+  /// Named rather than repeated, because it was written out in three places and
+  /// changing the default means changing all three — including the `catch` that
+  /// runs when stored preferences cannot be read, which is the one a change
+  /// would silently miss and the one that would leave a handset on the old
+  /// voice with no way to tell.
+  static const AssistantVoiceRole defaultRole = AssistantVoiceRole.male;
 
   /// The word `speak` accepts. **A role, never an id** — the ids live in the
   /// Edge Function and nowhere else, so a voice cannot be chosen from here.
@@ -54,21 +79,27 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// actually played timed out — which is the wrong half to have covered.
   HostedSpeechOutput({
     required SpeechOutput fallback,
+    VoiceClipStore? clips,
     Future<Uint8List?> Function(String line, String voice)? fetchAudio,
     Future<void> Function(Uint8List audio, double volume)? playAudio,
     Future<void> Function()? stopAudio,
   })  : _fallback = fallback,
+        _clips = clips,
         _fetchAudio = fetchAudio,
         _playAudio = playAudio,
         _stopAudio = stopAudio;
 
   final SpeechOutput _fallback;
+
+  /// Audio Kafoo already owns — the 36 bundled sentences, and anything bought
+  /// on a previous launch. Null in tests that are not about the store.
+  final VoiceClipStore? _clips;
   final Future<Uint8List?> Function(String line, String voice)? _fetchAudio;
   final Future<void> Function(Uint8List audio, double volume)? _playAudio;
   final Future<void> Function()? _stopAudio;
   AudioPlayer? _player;
 
-  AssistantVoiceRole _role = AssistantVoiceRole.female;
+  AssistantVoiceRole _role = AssistantVoiceRole.defaultRole;
   bool _ready = false;
 
   /// Bumped every time the assistant is told to stop.
@@ -118,21 +149,45 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// A stalled connection with no timeout is an app that is silent AND still —
   /// the one thing a voice flow may never be. Falling back to the machine voice
   /// is a worse voice; waiting forever is no voice at all.
-  static const Duration _fetchTimeout = Duration(milliseconds: 1000);
+  ///
+  /// **THIS WAS 1000 ms, AND 1000 ms MEANT THE PAID VOICE NEVER PLAYED ONCE.**
+  /// The figure was never measured against the provider it bounds — it was
+  /// arithmetic backwards from the 2 s budget, and it assumed a synthesis
+  /// faster than ElevenLabs has ever delivered. The first real measurement, on
+  /// the demo project on 2026-08-12, was three calls the founder triggered
+  /// himself: **1064 ms, 1070 ms and 2612 ms**, all of them HTTP 200 with audio
+  /// attached. The app abandoned all three and spoke in the machine voice, and
+  /// because nothing is cached until a fetch *succeeds*, it never recovered.
+  /// Kafoo was billed for every sentence and heard none of them.
+  ///
+  /// 3000 ms covers the cold start as well as the warm case. **The founder
+  /// raised the budget to accept it on 2026-08-12**, having been shown that the
+  /// wait only lengthens on the failure path: a fetch that succeeds still
+  /// reaches the Cook in about 1.1 s, unchanged and well inside 2 s.
+  static const Duration _fetchTimeout = Duration(milliseconds: 3000);
 
   /// **EVERY WAIT ON THE FAILURE PATH, ADDED UP, AND THAT IS THE POINT OF THE
-  /// GETTER.** The voice response budget is 2 seconds. The worst case is a fetch
-  /// that stalls, then a playback that stalls, then the stop that abandons it
-  /// stalling too — **and the silence at the START of `speak` stalling as well,
-  /// which the first version of this sum also missed.** 300 + 1000 + 300 + 300
-  /// = 1900 ms before the machine voice starts.
+  /// GETTER.** The worst case is a fetch that stalls, then a playback that
+  /// stalls, then the stop that abandons it stalling too — **and the silence at
+  /// the START of `speak` stalling as well, which the first version of this sum
+  /// also missed.** 300 + 3000 + 300 + 300 = 3900 ms before the machine voice
+  /// starts.
+  ///
+  /// **THIS SUM IS NO LONGER UNDER THE 2 s VOICE BUDGET, AND THAT IS A DECISION
+  /// RATHER THAN A REGRESSION.** The founder raised the ceiling on 2026-08-12
+  /// once the first measurement of the provider showed that keeping it meant
+  /// the paid voice could never play at all — see [_fetchTimeout]. What the
+  /// budget still governs is the path that *works*: a successful fetch reaches
+  /// the Cook in about 1.1 s. This figure bounds only the broken path, where
+  /// the alternative on offer was a machine voice 2 s sooner at the cost of
+  /// never hearing the real one.
   ///
   /// It has been wrong twice, in the same way both times — a new wait was added
   /// inside the handler for the previous one and not counted. First 2000 + 700,
   /// which shipped 700 ms over a budget only the founder may raise. Then the
   /// stop call, which was unbounded and invisible to this sum. **Any new await
   /// on this path belongs in this figure, and the test below is what refuses a
-  /// total over budget.**
+  /// total over the ceiling.**
   ///
   /// None of the three is measured on a handset. What is guaranteed is the
   /// ceiling, not the accuracy of any part of it.
@@ -152,9 +207,11 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// bytes every time. The Edge Function marks the response immutable for the
   /// same reason; this is the half of it the app controls.
   ///
-  /// ponytail: in memory, so it is lost on restart. A disk cache under
-  /// `path_provider` is the upgrade if the monthly bill ever justifies it —
-  /// measured at 997 characters for the whole fixed vocabulary, it does not yet.
+  /// **IN MEMORY, AND NO LONGER THE ONLY CACHE.** This one is lost on restart,
+  /// which used to mean every sentence was re-bought on every launch. The two
+  /// stores in [VoiceClipStore] are what survive that now — bundled clips for
+  /// the 36 sentences that never change, and a disk copy of anything bought at
+  /// runtime. This is just the fastest tier above them.
   final Map<String, Uint8List> _heard = {};
 
   /// Which voice is speaking.
@@ -183,27 +240,49 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
     return canSpeak;
   }
 
+  /// Reads the stored choice, and falls back to [AssistantVoiceRole.defaultRole].
+  ///
+  /// **BOTH NAMES ARE MATCHED EXPLICITLY, so that an unreadable value is not
+  /// mistaken for a choice.** Written as "is it male, else female" this silently
+  /// changed meaning the day the default changed: a corrupted or unrecognised
+  /// stored value would have resolved to whichever voice happened to be on the
+  /// else branch, rather than to the default. Only the two words a Cook's own
+  /// choice can produce count as a choice; anything else is no answer at all.
   Future<void> _loadVoicePreference() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getString(voicePreferenceKey);
-      _role = stored == AssistantVoiceRole.male.wireName
-          ? AssistantVoiceRole.male
-          : AssistantVoiceRole.female;
+      _role = switch (stored) {
+        'male' => AssistantVoiceRole.male,
+        'female' => AssistantVoiceRole.female,
+        _ => AssistantVoiceRole.defaultRole,
+      };
     } on Object catch (_) {
-      // The documented default. Never a silent switch to the other voice.
-      _role = AssistantVoiceRole.female;
+      // Never a silent switch to the other voice.
+      _role = AssistantVoiceRole.defaultRole;
     }
   }
 
   /// Chooses a voice, and remembers it. §10.11: persists until changed.
+  /// **AN ANSWER IS STORED EVEN WHEN IT MATCHES TODAY'S DEFAULT**, and that is
+  /// the whole difference between a default and a choice.
+  ///
+  /// This returned early when the role was unchanged, which looked like an
+  /// obvious saving and quietly broke §10.11's promise that a voice never
+  /// switches on its own. A Cook who listened to both and deliberately picked
+  /// the one that happened to be the default stored nothing — so she was
+  /// indistinguishable from someone who had never been asked, and the next time
+  /// Kafoo changed its default she would have been moved without being told.
+  /// Exposed on 2026-08-12 by the default changing for the first time.
   Future<void> setRole(AssistantVoiceRole role) async {
-    if (role == _role) return;
+    final changed = role != _role;
     _role = role;
     // The cache is keyed by voice, so nothing has to be thrown away — but stop
     // talking, because finishing a sentence in the old voice after the Cook
-    // chose a new one is the app arguing with her.
-    await stop();
+    // chose a new one is the app arguing with her. Only when it really changed:
+    // cutting off a sentence to confirm a voice she is already hearing would be
+    // the app interrupting itself for no reason.
+    if (changed) await stop();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(voicePreferenceKey, role.wireName);
@@ -273,16 +352,44 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
     }
   }
 
+  /// Where a sentence's audio comes from, cheapest source first.
+  ///
+  /// **THREE OF THESE FOUR COST NOTHING AND BEAT THE NETWORK, WHICH IS THE
+  /// WHOLE POINT.** In memory, then bundled in the app, then bought on an
+  /// earlier launch, and only then bought again. The provider bills per
+  /// character generated, so every sentence that never changes — 36 of the 38
+  /// Kafoo says — should be paid for exactly once in the life of the product
+  /// rather than once per launch, which is what happened before.
+  ///
+  /// The two that are not bundled both carry something only this Cook's account
+  /// knows: the Meal-list greeting, with her Meal counts, and the row's
+  /// «اسمعيها», which reads back a Meal's own name, status and price. They land
+  /// in the disk store instead, so each is bought when it changes rather than
+  /// every time she opens Kafoo.
   Future<Uint8List?> _audioFor(String line) async {
-    final key = '${_role.wireName}:$line';
+    final voice = _role.wireName;
+    final key = '$voice:$line';
     final cached = _heard[key];
     if (cached != null) return cached;
 
+    // Bundled or already bought. No network, no timeout to lose, no bill — and
+    // it works with no signal at all, which is the state a Cook in a lift or on
+    // the metro is actually in.
+    final owned = await _clips?.read(line, voice);
+    if (owned != null && owned.isNotEmpty) {
+      _heard[key] = owned;
+      return owned;
+    }
+
     final fetch = _fetchAudio ?? _invokeSpeak;
     try {
-      final audio = await fetch(line, _role.wireName).timeout(_fetchTimeout);
+      final audio = await fetch(line, voice).timeout(_fetchTimeout);
       if (audio == null || audio.isEmpty) return null;
       _heard[key] = audio;
+      // Kept for the next launch. Not awaited: the Cook is waiting to hear this
+      // sentence, and a disk write she gains nothing from must not sit in front
+      // of it — a slow filesystem would spend the voice budget on bookkeeping.
+      unawaited(_clips?.keep(line, voice, audio) ?? Future<void>.value());
       return audio;
     } on Object catch (_) {
       // `on Object` for the usual reason: an uninitialised client throws

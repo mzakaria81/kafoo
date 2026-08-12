@@ -229,11 +229,27 @@ Two rules for whoever does:
 
 | Role | Voice | Id |
 |---|---|---|
-| The assistant's female voice — the one most Cooks hear | Ghozlan — Soft Clear Conversational | `xPcC3nehhziQaOrIeAwv` |
+| The assistant's female voice | Ghozlan — Soft Clear Conversational | `xPcC3nehhziQaOrIeAwv` |
 | The assistant's male voice | Ahmad — Conversational AI Voice | `ihycSANIrpHfhWoaq1g3` |
 
 Chosen by ear from the fourteen samples, which is the only way this decision can be made. §10.11's
 two-voice setting now has both of its values.
+
+> **SUPERSEDED IN ONE RESPECT, 2026-08-12: Ahmad is the default, not Ghozlan.** This table
+> originally described Ghozlan as "the one most Cooks hear", which was true of the code and is no
+> longer. The founder heard both on a handset the day the paid voice first worked and chose Ahmad.
+> The voices themselves are unchanged, and so are their ids — only which one speaks first.
+>
+> **Ghozlan's claim to being the default was never a recorded decision.** It rested on a code
+> comment reasoning from ADR-0010, which is about the grammar Kafoo uses to *address* a Cook rather
+> than about who does the speaking. So this is a decision being made rather than one overturned.
+>
+> **It is the only voice anybody gets, and that is the part to fix.** §10.11 says each account
+> chooses its own and is asked aloud on first launch; `setRole` works and nothing in the app calls
+> it. Until that chooser is built, changing the default changes the voice for every Cook — including
+> Cooks who would have preferred the other one, and including a Cook who has been hearing Ghozlan
+> for weeks and is told nothing. Both reviewers on #462 raised the missing announcement; the
+> chooser's first-run line is where it belongs.
 
 **The pronunciation finding is separate from the voice choice, and it is the more surprising one.**
 «مية وعشرين جنيه» was judged *perfect Egyptian* — hard **g** in «جنيه», Egyptian numeral — and that
@@ -289,3 +305,104 @@ Four listening verdicts, and only a Cairene ear can give them:
 Plus two judgements that are preferences rather than defects: whether written-in warmth
 (`[warmly]`, `[thoughtful]`) is close enough to a conversational assistant's feel, and whether `eleven_v3`
 is worth its unpredictability for lines that are heard before they ship.
+
+## How long the provider takes, 2026-08-12
+
+**The audition measured how the voices sound and what they cost. Nobody measured how long they
+take, and that omission is what stopped the paid voice ever playing.**
+
+`HostedSpeechOutput` waited 1000 ms for audio and then fell back to the device's own engine. The
+figure was never a measurement — it was arithmetic backwards from the 2-second voice budget, and it
+assumed a synthesis faster than ElevenLabs has ever delivered here.
+
+Three calls the founder triggered from the Cook's Meal list on the demo project, read from
+`function_edge_logs`:
+
+| Time (UTC) | Result | Function execution |
+|---|---|---|
+| 10:42 | 200, audio returned | **2612 ms** — cold start |
+| 10:45 | 200, audio returned | **1064 ms** |
+| 10:49 | 200, audio returned | **1070 ms** |
+
+Every call succeeded. The app discarded every one. The figure above is the Edge Function's own wall
+time, so what the handset waits is that plus its round trip to Supabase — the real client-side
+figure is worse than the table, not better.
+
+Two consequences, and the second is the one that costs money:
+
+- **The paid voice had a 0% chance of ever being heard.** The fastest call was 6% over the limit.
+- **Nothing ever cached, so it never recovered.** `_audioFor` stores audio only on a *successful*
+  fetch, so every sentence started the same losing race forever — and ElevenLabs bills on generation,
+  not on delivery. Kafoo paid for every sentence and heard none of them.
+
+**The founder raised the wait to 3000 ms on 2026-08-12**, having been shown that the extra wait
+lands only on the failure path: a fetch that succeeds still speaks at about 1.1 s, inside the
+2-second budget and unchanged. `worstCaseBeforeAnyVoice` is now 3900 ms and the test that guards it
+was raised in the same commit, with the reason written into it.
+
+**What is still unmeasured:** the round trip from an actual Egyptian handset on an actual mobile
+connection, which is the only figure that describes what a Cook experiences. Three samples from one
+morning is a floor, not a distribution — and the cold start at 2612 ms is the one to watch, because
+it lands on the *first* sentence after the app opens, which is the sentence heard most.
+
+## What Kafoo now owns outright, 2026-08-12
+
+**The 997-character figure above was an argument about cost. It is now a fact about the app.**
+
+`scripts/generate-voice-clips.ts` buys every Kafoo sentence that has no variable in it, in both
+voices, and writes the mp3s into `apps/mobile/assets/voice/`. They ship inside the APK. **72 clips,
+2,496 characters, 3.5 MB, bought once** — and free from then on for every Cook there will ever be,
+however many that turns out to be.
+
+Before this, all of them were re-bought on every launch. The in-memory cache died with the process,
+so «تمام، شلتها من المنيو» — five words that have never changed and never will — was billed again
+every time a Cook opened Kafoo.
+
+**36 of the 38 sentences Kafoo says are bundled.** The first that is not is the Meal-list greeting,
+because it carries the Cook's own Meal counts. Pre-rendering every version of it was measured and
+refused: a Cook with twenty Meals has 231 possible count pairs, which across two grammars and two
+voices is 924 clips and roughly 45,000 characters — **more than a whole month's allowance for one
+sentence.** It is bought at runtime and kept on disk instead, so it costs a Cook one purchase when
+her menu changes rather than one per launch.
+
+**The second was missed on the first pass, and the miss is worth recording.** Tapping «اسمعيها» on a
+Meal row reads that Meal back — its name, its status, its price — through the same buy-and-cache
+path. It was overlooked because the ARB key is called `mealRowSemanticLabel`, which reads like a
+screen-reader label rather than something a Cook hears aloud, and because it is spoken from a
+different file than the three that obviously talk. It cannot be bundled either, and unlike the
+greeting it cannot be pre-rendered at *any* price, because nobody knows what a Cook will call her
+food. Found by localization-reviewer on #462, third round.
+
+The practical consequence is on the disk cache rather than the bill: it grows with the number of
+Meals a Cook asks to hear, and a renamed or re-priced Meal is a new sentence, so old ones accumulate.
+Tens of Meals at roughly 50 KB each is still low megabytes — but it grows with editing rather than
+converging, which the first version of that note did not say.
+
+**Splicing it from stored fragments was considered and rejected.** «عندك» + a number + «أكلة، منهم»
+would collapse that 45,000 to about 1,140 characters, and the founder was right about the
+arithmetic. Two things stopped it. Each clip is synthesised as a complete utterance with its own
+falling intonation, so five of them stitched together is an airport announcement — the flat cadence
+this product left the device voice to escape. And Arabic changes the noun with the number, so the
+fragments are not fixed either: «أكلة واحدة», «أكلتين», «تلات أكلات», «٢٠ أكلة». If splicing is ever
+worth it — and at a thousand Cooks it will be — **the sentence has to be rewritten for it**, with one
+join at a natural pause and the number last. Retrofitted onto this sentence it will sound wrong.
+
+Two things the gate now refuses, because neither has a symptom anyone would notice:
+
+- **A spoken string edited without regenerating.** `./scripts/verify.sh` runs the generator's
+  `--check`, which needs no key and no network. Without it, the clip is simply never found — the
+  hash of the new wording matches nothing — and Kafoo pays for that sentence forever while the old
+  file sits unused in the app.
+- **A sentence the app builds differing from the one that was bought**, by so much as a trailing
+  space. `apps/mobile/test/voice_clip_store_test.dart` calls the real localization getters, the ones
+  the screens call, and asks whether each result is a clip Kafoo owns. That is also the only
+  cross-check that the Dart and TypeScript SHA-1 agree.
+
+### Still outstanding, and it is a Cairene ear again
+
+The Meal-list greeting now counts in Arabic instead of saying «عندك 3 أكلة» for every number. Two
+listening verdicts on it, and neither can be settled from here:
+
+1. **«3 أكلات»** — does the provider read it «تلات أكلات», or «تلاتة أكلات»? The second is wrong.
+2. **«عندك أكلة واحدة، منهم واحدة على المنيو»** — grammatical, but is it what a Cairene would say to
+   a Cook with exactly one Meal? It is the sentence a Cook hears on her very first day.

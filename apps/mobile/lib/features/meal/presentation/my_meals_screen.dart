@@ -107,6 +107,24 @@ class _FullState extends ConsumerState<_Full> {
         state.meals.where((m) => m.status == MealStatus.published).length;
     final summary =
         l10n.myMealsSpokenSummary(form, state.meals.length, published);
+    // **THE SAME SENTENCE IN TWO SCRIPTS, ON PURPOSE.** An Arabic keyboard
+    // writes «٢٠» and every other numeral on this screen is Arabic-Indic
+    // already — the price two widgets down goes through this same call. The
+    // greeting was the one number still in Latin digits, which is the script a
+    // Cook does not use.
+    //
+    // **Only the written half is converted.** The provider reads «20» as
+    // «عشرين» correctly — heard on a handset, 2026-08-12 — and whether it reads
+    // «٢٠» as well is an open listening question in
+    // `docs/ops/measuring-spoken-arabic.md`. Converting what is spoken would
+    // trade a proven pronunciation for an unproven one to fix something nobody
+    // hears. Raised by localization-reviewer on #462.
+    // `separators: false` because this is a sentence, not a price. The default
+    // rewrites a full stop into the Arabic decimal mark — right for «35.00»,
+    // and it turned «على المنيو. عايزة تعملي إيه؟» into «على المنيو٫ عايزة» on
+    // every visit to this screen.
+    final writtenSummary =
+        KafooNumerals.arabicIndic(summary, separators: false);
 
     if (voice.canSpeak) {
       // After this frame, not during it: speaking from inside build would fire
@@ -173,7 +191,7 @@ class _FullState extends ConsumerState<_Full> {
                   // The receipt of the spoken greeting, and the most important
                   // element on the screen.
                   KafooSpokenBanner(
-                    line: summary,
+                    line: writtenSummary,
                     hearAgainLabel: l10n.myMealsHearAgain(form),
                     // Inert while muted, and on a handset with no Arabic speech
                     // data. A control that silently does nothing is worse than

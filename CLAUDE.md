@@ -49,6 +49,7 @@ supabase db reset            # rebuild local DB from migrations + seed (needs Do
 ./scripts/local-db.sh test   # RLS suites against a real Postgres — no Docker. docs/ops/local-database.md
 supabase migration new NAME  # NEVER hand-write migration filenames
 supabase functions serve     # local Edge Functions
+deno run -A scripts/generate-voice-clips.ts  # buy any fixed sentence Kafoo does not own yet
 deno check supabase/functions/**/*.ts   # type-check Edge Functions (also in verify.sh)
 ./scripts/verify.sh          # full gate — must pass before any PR
 ```
