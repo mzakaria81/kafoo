@@ -1799,16 +1799,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myMealsSpokenSummary(String addressForm, int total, int published) {
-    String _temp0 = intl.Intl.selectLogic(
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total Meals',
+      one: '1 Meal',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      published,
+      locale: localeName,
+      other: '$published of them on the menu',
+      one: '1 of them on the menu',
+      zero: 'none of them on the menu',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total Meals',
+      one: '1 Meal',
+    );
+    String _temp3 = intl.Intl.pluralLogic(
+      published,
+      locale: localeName,
+      other: '$published of them on the menu',
+      one: '1 of them on the menu',
+      zero: 'none of them on the menu',
+    );
+    String _temp4 = intl.Intl.selectLogic(
       addressForm,
       {
-        'feminine':
-            'You have $total Meals, $published of them on the menu. What would you like to do?',
-        'other':
-            'You have $total Meals, $published of them on the menu. What would you like to do?',
+        'feminine': 'You have $_temp0, $_temp1. What would you like to do?',
+        'other': 'You have $_temp2, $_temp3. What would you like to do?',
       },
     );
-    return '$_temp0';
+    return '$_temp4';
   }
 
   @override

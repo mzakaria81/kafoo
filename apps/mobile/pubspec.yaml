@@ -18,6 +18,11 @@ dependencies:
   # byte buffer directly (`BytesSource`) — `just_audio` wants a URI or a stream,
   # which would mean writing every sentence to a temporary file first.
   audioplayers: ^6.1.0
+  # Names a bundled voice clip after the SHA-1 of the sentence it says, so the app can ask "do I
+  # already own these exact words" — see `voice_clip_store.dart`. Declared directly rather than
+  # leant on through supabase_flutter, which already pulls it in: a transitive dependency is a
+  # dependency somebody else may drop, and every clip would miss silently the day it went.
+  crypto: ^3.0.0
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -31,6 +36,10 @@ dependencies:
     path: ../../packages/domain
   kafoo_ui:
     path: ../../packages/ui
+  # Where a sentence bought at runtime is kept so the next launch does not buy it again. Only the
+  # Meal-list greeting needs this — it carries the Cook's own Meal counts, so it is the one sentence
+  # that cannot be bundled. Declared directly for the same reason as `crypto` above.
+  path_provider: ^2.1.0
   riverpod_annotation: ^4.0.3
   # A Customer's answer about their own words lives HERE and not in Kafoo — FR-029d. Declared
   # directly rather than leant on through supabase_flutter, which already pulls it in: a transitive
@@ -42,6 +51,26 @@ dependencies:
 
 flutter:
   generate: true
+
+  # THE 36 SENTENCES KAFOO OWNS OUTRIGHT, IN BOTH CAIRENE VOICES.
+  #
+  # Generated once by `scripts/generate-voice-clips.ts` and committed. The provider bills per
+  # character generated, so a sentence with no variable in it — «تمام، شلتها من المنيو», every
+  # conversation question, every read-back before «أيوة» — was being re-bought on every launch for
+  # words that have never changed. 2,496 characters bought these outright, and they now cost nothing
+  # for every Cook there will ever be.
+  #
+  # 3.5 MB, and it buys more than the money. A bundled clip plays in milliseconds with no signal at
+  # all, so it cannot lose the race `_fetchTimeout` bounds — a Cook on the metro hears Ghozlan
+  # rather than the machine voice.
+  #
+  # DIRECTORIES, NOT FILENAMES, because the filenames are hashes of the Arabic and change whenever
+  # the wording does. Listing them individually would mean this file going stale every time somebody
+  # edits a string, which is the failure mode a generated name exists to avoid.
+  assets:
+    - assets/voice/female/
+    - assets/voice/male/
+
   # BUNDLES THE ICON FONT, AND WITHOUT IT EVERY `Icon` IS A CHINESE CHARACTER.
   #
   # Material icons are codepoints in the Unicode Private Use Area, and this line is the only thing

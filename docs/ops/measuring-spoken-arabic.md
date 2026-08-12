@@ -328,3 +328,52 @@ was raised in the same commit, with the reason written into it.
 connection, which is the only figure that describes what a Cook experiences. Three samples from one
 morning is a floor, not a distribution — and the cold start at 2612 ms is the one to watch, because
 it lands on the *first* sentence after the app opens, which is the sentence heard most.
+
+## What Kafoo now owns outright, 2026-08-12
+
+**The 997-character figure above was an argument about cost. It is now a fact about the app.**
+
+`scripts/generate-voice-clips.ts` buys every Kafoo sentence that has no variable in it, in both
+voices, and writes the mp3s into `apps/mobile/assets/voice/`. They ship inside the APK. **72 clips,
+2,496 characters, 3.5 MB, bought once** — and free from then on for every Cook there will ever be,
+however many that turns out to be.
+
+Before this, all of them were re-bought on every launch. The in-memory cache died with the process,
+so «تمام، شلتها من المنيو» — five words that have never changed and never will — was billed again
+every time a Cook opened Kafoo.
+
+**36 of the 37 sentences Kafoo says are bundled.** The one that is not is the Meal-list greeting,
+because it carries the Cook's own Meal counts. Pre-rendering every version of it was measured and
+refused: a Cook with twenty Meals has 231 possible count pairs, which across two grammars and two
+voices is 924 clips and roughly 45,000 characters — **more than a whole month's allowance for one
+sentence.** It is bought at runtime and kept on disk instead, so it costs a Cook one purchase when
+her menu changes rather than one per launch.
+
+**Splicing it from stored fragments was considered and rejected.** «عندك» + a number + «أكلة، منهم»
+would collapse that 45,000 to about 1,140 characters, and the founder was right about the
+arithmetic. Two things stopped it. Each clip is synthesised as a complete utterance with its own
+falling intonation, so five of them stitched together is an airport announcement — the flat cadence
+this product left the device voice to escape. And Arabic changes the noun with the number, so the
+fragments are not fixed either: «أكلة واحدة», «أكلتين», «تلات أكلات», «٢٠ أكلة». If splicing is ever
+worth it — and at a thousand Cooks it will be — **the sentence has to be rewritten for it**, with one
+join at a natural pause and the number last. Retrofitted onto this sentence it will sound wrong.
+
+Two things the gate now refuses, because neither has a symptom anyone would notice:
+
+- **A spoken string edited without regenerating.** `./scripts/verify.sh` runs the generator's
+  `--check`, which needs no key and no network. Without it, the clip is simply never found — the
+  hash of the new wording matches nothing — and Kafoo pays for that sentence forever while the old
+  file sits unused in the app.
+- **A sentence the app builds differing from the one that was bought**, by so much as a trailing
+  space. `apps/mobile/test/voice_clip_store_test.dart` calls the real localization getters, the ones
+  the screens call, and asks whether each result is a clip Kafoo owns. That is also the only
+  cross-check that the Dart and TypeScript SHA-1 agree.
+
+### Still outstanding, and it is a Cairene ear again
+
+The Meal-list greeting now counts in Arabic instead of saying «عندك 3 أكلة» for every number. Two
+listening verdicts on it, and neither can be settled from here:
+
+1. **«3 أكلات»** — does the provider read it «تلات أكلات», or «تلاتة أكلات»? The second is wrong.
+2. **«عندك أكلة واحدة، منهم واحدة على المنيو»** — grammatical, but is it what a Cairene would say to
+   a Cook with exactly one Meal? It is the sentence a Cook hears on her very first day.

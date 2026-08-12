@@ -1566,7 +1566,7 @@
   "@glanceSaved": {
     "description": "Glance word for work held safely until the connection returns, from the closed set."
   },
-  "myMealsSpokenSummary": "{addressForm, select, feminine{You have {total} Meals, {published} of them on the menu. What would you like to do?} other{You have {total} Meals, {published} of them on the menu. What would you like to do?}}",
+  "myMealsSpokenSummary": "{addressForm, select, feminine{You have {total, plural, one{1 Meal} other{{total} Meals}}, {published, plural, =0{none of them on the menu} one{1 of them on the menu} other{{published} of them on the menu}}. What would you like to do?} other{You have {total, plural, one{1 Meal} other{{total} Meals}}, {published, plural, =0{none of them on the menu} one{1 of them on the menu} other{{published} of them on the menu}}. What would you like to do?}}",
   "@myMealsSpokenSummary": {
     "description": "The line the assistant says on arriving at the Cook's Meal list, shown in the spoken banner. NOTE: the design spells the numbers out in words when spoken; digits are used here because Kafoo has no Arabic number-to-words function yet.",
     "placeholders": {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -5,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'speech_output.dart';
+import 'voice_clip_store.dart';
 
 /// Which of the two Cairene voices the assistant uses.
 ///
@@ -54,15 +56,21 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// actually played timed out — which is the wrong half to have covered.
   HostedSpeechOutput({
     required SpeechOutput fallback,
+    VoiceClipStore? clips,
     Future<Uint8List?> Function(String line, String voice)? fetchAudio,
     Future<void> Function(Uint8List audio, double volume)? playAudio,
     Future<void> Function()? stopAudio,
   })  : _fallback = fallback,
+        _clips = clips,
         _fetchAudio = fetchAudio,
         _playAudio = playAudio,
         _stopAudio = stopAudio;
 
   final SpeechOutput _fallback;
+
+  /// Audio Kafoo already owns — the 36 bundled sentences, and anything bought
+  /// on a previous launch. Null in tests that are not about the store.
+  final VoiceClipStore? _clips;
   final Future<Uint8List?> Function(String line, String voice)? _fetchAudio;
   final Future<void> Function(Uint8List audio, double volume)? _playAudio;
   final Future<void> Function()? _stopAudio;
@@ -176,9 +184,11 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// bytes every time. The Edge Function marks the response immutable for the
   /// same reason; this is the half of it the app controls.
   ///
-  /// ponytail: in memory, so it is lost on restart. A disk cache under
-  /// `path_provider` is the upgrade if the monthly bill ever justifies it —
-  /// measured at 997 characters for the whole fixed vocabulary, it does not yet.
+  /// **IN MEMORY, AND NO LONGER THE ONLY CACHE.** This one is lost on restart,
+  /// which used to mean every sentence was re-bought on every launch. The two
+  /// stores in [VoiceClipStore] are what survive that now — bundled clips for
+  /// the 36 sentences that never change, and a disk copy of anything bought at
+  /// runtime. This is just the fastest tier above them.
   final Map<String, Uint8List> _heard = {};
 
   /// Which voice is speaking.
@@ -297,16 +307,42 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
     }
   }
 
+  /// Where a sentence's audio comes from, cheapest source first.
+  ///
+  /// **THREE OF THESE FOUR COST NOTHING AND BEAT THE NETWORK, WHICH IS THE
+  /// WHOLE POINT.** In memory, then bundled in the app, then bought on an
+  /// earlier launch, and only then bought again. The provider bills per
+  /// character generated, so every sentence that never changes — 36 of the 37
+  /// Kafoo says — should be paid for exactly once in the life of the product
+  /// rather than once per launch, which is what happened before.
+  ///
+  /// The one sentence that is not bundled is the Meal-list greeting, because it
+  /// carries the Cook's own Meal counts. It lands in the disk store instead, so
+  /// it is bought when her menu changes rather than every time she opens Kafoo.
   Future<Uint8List?> _audioFor(String line) async {
-    final key = '${_role.wireName}:$line';
+    final voice = _role.wireName;
+    final key = '$voice:$line';
     final cached = _heard[key];
     if (cached != null) return cached;
 
+    // Bundled or already bought. No network, no timeout to lose, no bill — and
+    // it works with no signal at all, which is the state a Cook in a lift or on
+    // the metro is actually in.
+    final owned = await _clips?.read(line, voice);
+    if (owned != null && owned.isNotEmpty) {
+      _heard[key] = owned;
+      return owned;
+    }
+
     final fetch = _fetchAudio ?? _invokeSpeak;
     try {
-      final audio = await fetch(line, _role.wireName).timeout(_fetchTimeout);
+      final audio = await fetch(line, voice).timeout(_fetchTimeout);
       if (audio == null || audio.isEmpty) return null;
       _heard[key] = audio;
+      // Kept for the next launch. Not awaited: the Cook is waiting to hear this
+      // sentence, and a disk write she gains nothing from must not sit in front
+      // of it — a slow filesystem would spend the voice budget on bookkeeping.
+      unawaited(_clips?.keep(line, voice, audio) ?? Future<void>.value());
       return audio;
     } on Object catch (_) {
       // `on Object` for the usual reason: an uninitialised client throws

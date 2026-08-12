@@ -241,6 +241,23 @@ run "prompt bundle drift" bash -c '
     echo "   no prompts yet — skipping"; exit 0; }
   deno run --allow-read scripts/generate-prompts.ts --check >/dev/null'
 
+# Every sentence with no variable in it is bought once and shipped inside the app. This asks whether
+# the clips are still there for the words the ARB currently holds.
+#
+# IT CATCHES A FAILURE THAT HAS NO SYMPTOM. Edit a spoken Arabic string, do not regenerate, and
+# nothing looks wrong: the clip is keyed by a hash of the sentence, so the old wording is never
+# spoken — the lookup simply misses and the app buys the new wording from the provider instead. On
+# every launch. For every Cook. The only trace is the bill, and nobody reads the bill on the day the
+# string changed.
+#
+# `--check` needs no API key and no network — it only asks which files exist — so this runs in CI
+# exactly as it runs locally. `apps/mobile/test/voice_clip_store_test.dart` covers the other half:
+# that the sentence the app builds at runtime is byte-for-byte the one that was bought.
+run "voice clips are paid for" bash -c '
+  command -v deno >/dev/null || {
+    skip_or_fail "deno not on PATH (run scripts/install-toolchain.sh)"; exit $?; }
+  deno run --allow-read scripts/generate-voice-clips.ts --check >/dev/null'
+
 # The exclusion vocabulary is compiled from Dart into TypeScript so there is one of it.
 #
 # `discover` parses a Customer's phrase server-side and the Customer web surface will need the same

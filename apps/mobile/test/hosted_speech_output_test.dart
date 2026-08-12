@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_mobile/features/conversation/data/hosted_speech_output.dart';
 import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/voice_clip_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The paid Cairene voice, and what happens when it cannot speak.
@@ -440,6 +443,73 @@ void main() {
         isEmpty,
         reason: 'the hushed line came back in the machine voice',
       );
+    });
+
+    test('a sentence Kafoo already owns is never bought again', () async {
+      // The 36 bundled sentences. If this ever regresses, nothing looks broken:
+      // the Cook still hears Ghozlan, and Kafoo silently pays for every fixed
+      // line on every launch — which is the bill this whole seam exists to end.
+      final temp = Directory.systemTemp.createTempSync('kafoo_owned');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      const line = 'تمام، شلتها من المنيو.';
+      final name = VoiceClipStore.nameFor(line);
+
+      final asked = <String>[];
+      final played = <Uint8List>[];
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        clips: VoiceClipStore(
+          loadAsset: (key) async => key == 'assets/voice/female/$name.mp3'
+              ? ByteData.view(audio(7).buffer)
+              : throw Exception('not bundled'),
+          cacheDirectory: () async => temp,
+        ),
+        fetchAudio: (l, v) async {
+          asked.add(l);
+          return audio(1);
+        },
+        playAudio: (bytes, volume) async => played.add(bytes),
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+      await speech.speak(line);
+
+      expect(asked, isEmpty, reason: 'a bundled sentence went to the network');
+      expect(played.single, equals(audio(7)));
+    });
+
+    test('a sentence that HAD to be bought is kept for the next launch',
+        () async {
+      // The Meal-list greeting — the one sentence carrying a Cook's own counts,
+      // so the one sentence that cannot be bundled. Before this, it was re-bought
+      // every single time she opened Kafoo.
+      final temp = Directory.systemTemp.createTempSync('kafoo_bought');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      const greeting = 'عندك تلات أكلات، منهم واحدة على المنيو.';
+      final clips = VoiceClipStore(
+        loadAsset: (_) async => throw Exception('not bundled'),
+        cacheDirectory: () async => temp,
+      );
+
+      var purchases = 0;
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        clips: clips,
+        fetchAudio: (l, v) async {
+          purchases++;
+          return audio(3);
+        },
+        playAudio: (bytes, volume) async {},
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+      await speech.speak(greeting);
+      expect(purchases, 1);
+
+      // The write is deliberately not awaited inside speak, so that the Cook is
+      // never made to wait on bookkeeping. Give it the turn it needs.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(await clips.read(greeting, 'female'), equals(audio(3)));
     });
 
     test('the whole failure path stays inside the voice budget', () async {
