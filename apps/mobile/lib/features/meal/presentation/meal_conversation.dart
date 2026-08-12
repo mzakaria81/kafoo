@@ -137,6 +137,20 @@ class _MealConversationScreenState
     final step = _currentStep;
     if (step == null) return;
 
+    // CLOSE THE MICROPHONE BEFORE THE NEXT QUESTION IS SPOKEN.
+    //
+    // A Cook can tap «كمّل» while still mid-sentence, with a partial transcript
+    // already in the box — she has said enough and wants to move on. Without
+    // this the recogniser is still listening when the next question is said
+    // aloud, so the assistant talks into a live microphone and she hears herself
+    // being spoken over. Worse in a kitchen, which is the room this product is
+    // for.
+    if (_listening) {
+      await _voice.stop();
+      if (!mounted) return;
+      setState(() => _listening = false);
+    }
+
     final controller = ref.read(mealConversationControllerProvider.notifier);
     final success = await controller.answer(step.id, answer);
 
@@ -231,10 +245,15 @@ class _MealConversationScreenState
       if (mounted) setState(() => _listening = false);
       return;
     }
-    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS, and this is an
-    // invariant rather than a courtesy: `voice.dart` asserts that no state has
-    // both the speaker and the microphone live, because otherwise the recogniser
-    // transcribes the assistant and the Cook hears herself talked over.
+    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS.
+    //
+    // `voice.dart` states this as a property of the nine states and
+    // `voice_test.dart` asserts it there — but that is a check over an enum, not
+    // a guard over a running speaker and a running microphone. **The runtime
+    // guard is this call and the generation counter behind it**, and an earlier
+    // version of this comment claimed the enum test enforced it. It does not.
+    // A false claim of safety is worse than no comment, because it stops the
+    // next person looking.
     await ref.read(assistantVoiceProvider.notifier).hush();
     if (!mounted) return;
     setState(() => _listening = true);
@@ -312,8 +331,26 @@ class _MealConversationScreenState
 
     final isPhoto = step.id == MealStepId.photo;
 
+    final voice = ref.watch(assistantVoiceProvider);
+
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          // Every screen that speaks carries the mute control, top inline-end,
+          // and it persists until reversed. This screen started speaking and did
+          // not get one — so a Cook beside a sleeping baby could only silence it
+          // by leaving the screen, which loses the question she was answering.
+          KafooMuteButton(
+            muted: voice.muted,
+            label: voice.muted
+                ? l10n.voiceMuteRestore(context.addressForm)
+                : l10n.voiceMuteSilence(context.addressForm),
+            onChanged: (muted) => ref
+                .read(assistantVoiceProvider.notifier)
+                .setMuted(muted: muted),
+          ),
+        ],
+      ),
       // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
       // by 182 logical pixels, up from 4 before the theme once the design system's type scale landed, and an overflowing
       // Column resolves it by clipping its LAST child — the button that submits.

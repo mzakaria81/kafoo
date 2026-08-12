@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -204,6 +205,70 @@ void main() {
       await t.speech.setMuted(muted: true);
 
       expect(t.fallback.isMuted, isTrue);
+    });
+  });
+
+  group('the assistant must not talk into a live microphone', () {
+    test('a line hushed while its audio is in flight is discarded', () async {
+      // THE BUG THREE REVIEWERS FOUND ON #461. The paid voice fetches over the
+      // network before playing, so hushing mid-fetch stopped nothing — there was
+      // nothing playing yet — and the audio arrived afterwards, into a
+      // microphone that had since opened.
+      final release = Completer<Uint8List?>();
+      final played = <Uint8List>[];
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        fetchAudio: (line, voice) => release.future,
+        playAudio: (bytes, volume) async => played.add(bytes),
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+
+      final speaking = speech.speak('تمام، الأكلة منشورة');
+      await speech.stop(); // she tapped the microphone
+      release.complete(Uint8List.fromList([1, 2, 3]));
+      await speaking;
+
+      expect(
+        played,
+        isEmpty,
+        reason: 'the sentence played after the microphone opened',
+      );
+    });
+
+    test('a stalled network falls back inside the budget, never hangs',
+        () async {
+      // Silent AND still is the one thing a voice flow may never be. Without a
+      // timeout a dropping connection leaves the app doing nothing, forever.
+      final fallback = FakeSpeechOutput();
+      final speech = HostedSpeechOutput(
+        fallback: fallback,
+        fetchAudio: (line, voice) => Completer<Uint8List?>().future,
+        playAudio: (bytes, volume) async {},
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+
+      await speech.speak('أيوة').timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => fail('speak never returned — the app hung'),
+          );
+
+      expect(fallback.spoken, hasLength(1));
+    });
+
+    test('speaking stops whatever is already being said, both voices',
+        () async {
+      final t = build();
+      await t.speech.initialize();
+      await t.speech.speak('الأولى');
+      await t.speech.speak('التانية');
+
+      expect(
+        t.fallback.stopped,
+        isTrue,
+        reason: 'the fallback engine was left talking under the new line',
+      );
     });
   });
 

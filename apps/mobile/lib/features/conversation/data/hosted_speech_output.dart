@@ -71,6 +71,28 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   AssistantVoiceRole _role = AssistantVoiceRole.female;
   bool _ready = false;
 
+  /// Bumped every time the assistant is told to stop.
+  ///
+  /// **THIS IS WHAT STOPS THE ASSISTANT TALKING INTO A LIVE MICROPHONE**, and
+  /// nothing else does. The paid voice fetches audio over the network *before*
+  /// playing it, so hushing while a fetch is in flight stops nothing — there is
+  /// nothing playing yet. The fetch then completes and plays into a microphone
+  /// that has since opened, which is the exact failure the whole design forbids
+  /// and the worst in a loud kitchen, which is where this product lives.
+  ///
+  /// So `speak` captures this number before fetching and checks it after. A
+  /// sentence hushed mid-fetch is discarded rather than played late. Found by
+  /// three independent reviewers on #461 converging on the same timing.
+  int _generation = 0;
+
+  /// How long to wait for the paid voice before falling back.
+  ///
+  /// The voice round-trip budget is 2 seconds, and a stalled connection with no
+  /// timeout is an app that is silent AND still — the one thing a voice flow may
+  /// never be. Falling back to the machine voice inside the budget is a worse
+  /// voice; waiting forever is no voice at all.
+  static const Duration _fetchTimeout = Duration(seconds: 2);
+
   /// The stored answer to "which voice should the assistant use".
   static const String voicePreferenceKey = 'kafoo.voice.role';
 
@@ -148,7 +170,26 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   Future<void> speak(String line, {bool quiet = false}) async {
     if (isMuted || line.isEmpty) return;
 
+    // STAMPED SYNCHRONOUSLY, BEFORE THE FIRST `await`, AND THAT ORDERING IS THE
+    // WHOLE FIX. Capturing it after any await lets a hush land in the gap and
+    // be captured as though it had already happened, so the check compares a
+    // number against itself and the sentence plays into the open microphone
+    // anyway. The first version of this did exactly that and the test caught it.
+    final generation = ++_generation;
+
+    // BOTH VOICES STOP BEFORE EITHER STARTS. The interface promises a new line
+    // interrupts whatever is being said, and this class has two things that can
+    // be saying it — the player and the fallback engine. Stopping only one left
+    // the fail-then-recover sequence with two voices talking over each other.
+    await _silence();
+
     final audio = await _audioFor(line);
+
+    // Hushed, or overtaken by a newer line, while the audio was in flight.
+    // Discard it: the microphone may be open now, and a sentence arriving late
+    // is worse than one that never came.
+    if (generation != _generation || isMuted) return;
+
     if (audio == null) {
       // Network, quota, key, or a provider outage. The Cook hears the machine
       // voice rather than nothing.
@@ -173,7 +214,7 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
 
     final fetch = _fetchAudio ?? _invokeSpeak;
     try {
-      final audio = await fetch(line, _role.wireName);
+      final audio = await fetch(line, _role.wireName).timeout(_fetchTimeout);
       if (audio == null || audio.isEmpty) return null;
       _heard[key] = audio;
       return audio;
@@ -219,6 +260,17 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
 
   @override
   Future<void> stop() async {
+    // Before anything else, so a fetch already in flight is invalidated even if
+    // the two stops below throw.
+    _generation++;
+    await _silence();
+  }
+
+  /// Stops both voices without invalidating anything.
+  ///
+  /// Separate from [stop] because `speak` needs to silence what is playing
+  /// without discarding the line it is about to say.
+  Future<void> _silence() async {
     try {
       if (_stopAudio != null) {
         await _stopAudio();
