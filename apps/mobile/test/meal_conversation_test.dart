@@ -11,7 +11,10 @@ import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
 import 'package:kafoo_mobile/features/conversation/application/photo_picker.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
+import 'package:kafoo_mobile/features/conversation/presentation/voice_button.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
@@ -20,6 +23,7 @@ import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_fallback_question.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_meal_repository.dart';
 
@@ -41,6 +45,92 @@ class _UnavailableVoiceInput extends VoiceInput {
 
   @override
   Future<void> cancel() async {}
+}
+
+/// Voice available, listening, and recording WHEN it was stopped.
+///
+/// Exists for one test: that the microphone closes before the next question is
+/// spoken. The ordering is the whole assertion, so both this and the speech fake
+/// append to the same log.
+class _ListeningVoiceInput extends VoiceInput {
+  _ListeningVoiceInput(this.log);
+
+  final List<String> log;
+  bool _listening = false;
+
+  @override
+  Future<bool> initialize() async => true;
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  String? get resolvedLocaleId => 'ar-EG';
+
+  @override
+  bool get isListening => _listening;
+
+  @override
+  Future<void> listen({
+    required void Function(String transcript, bool isFinal) onTranscript,
+    Duration? pauseFor,
+  }) async {
+    _listening = true;
+    // A partial transcript, the way a real recogniser delivers one: she is
+    // mid-sentence and the words are already in the box.
+    onTranscript('كشري', false);
+  }
+
+  @override
+  Future<void> stop() async {
+    _listening = false;
+    log.add('microphone stopped');
+  }
+
+  @override
+  Future<void> cancel() async {}
+}
+
+/// Records what was said, into a shared ordering log.
+class _LoggingSpeech extends FakeSpeechOutput {
+  _LoggingSpeech(this.log);
+
+  final List<String> log;
+
+  @override
+  Future<void> speak(String line, {bool quiet = false}) async {
+    await super.speak(line, quiet: quiet);
+    log.add('said: $line');
+  }
+}
+
+/// A stop that never finishes until the test lets it.
+///
+/// The unit tests prove the *engine* waits for a real stop before it returns.
+/// They call `stop()` directly, so nothing proved the SCREEN still awaits it —
+/// and "each piece worked alone, the step between them did not" is the exact
+/// defect shape this whole feature keeps citing. This double is what lets a tap
+/// on the microphone prove the wiring.
+class _StallingStopSpeech extends FakeSpeechOutput {
+  _StallingStopSpeech(this.release);
+
+  final Completer<void> release;
+
+  @override
+  Future<void> stop() async {
+    await super.stop();
+    await release.future;
+  }
+}
+
+/// A stop that throws.
+///
+/// Every engine behind `hush()` swallows its own errors today, so the guard
+/// against one that does not was correct by inspection and proven by nothing —
+/// reverting it passed every test. Accessibility-reviewer, round nine.
+class _ThrowingStopSpeech extends FakeSpeechOutput {
+  @override
+  Future<void> stop() async => throw StateError('the platform channel is gone');
 }
 
 /// Voice available with Egyptian Arabic locale.
@@ -115,11 +205,16 @@ Widget _testApp(
   Widget child, {
   FakeMealRepository? repo,
   AiProvider? ai,
+  SpeechOutput? speech,
 }) {
   return ProviderScope(
     overrides: [
       if (repo != null) mealRepositoryProvider.overrideWithValue(repo),
       aiProviderProvider.overrideWithValue(ai ?? _stubAi()),
+      // Recorded rather than spoken. Without this every test here leans on the
+      // real engine's error handling to avoid reaching a paid provider, which
+      // is isolation by accident rather than by design.
+      speechOutputProvider.overrideWithValue(speech ?? FakeSpeechOutput()),
     ],
     child: MaterialApp(
       locale: const Locale('ar'),
@@ -1804,5 +1899,191 @@ void main() {
     expect(state.analysis, isNull);
     expect(state.approvals, isEmpty);
     expect(state.draft.mealId, 'draft-with-no-description');
+  });
+
+  testWidgets('the microphone closes BEFORE the next question is spoken',
+      (tester) async {
+    // The mic-close guard had no test at the level the bug lives, which is the
+    // same "each piece worked alone" shape that caused the original defect.
+    // Both reviewers said so and both were right.
+    //
+    // The assertion is ORDER, not presence: a mic that closes after the
+    // assistant starts talking is the failure, and a test that only checked
+    // both happened would pass on it.
+    final log = <String>[];
+    final repo = FakeMealRepository();
+
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _ListeningVoiceInput(log)),
+      repo: repo,
+      speech: _LoggingSpeech(log),
+    ));
+    await tester.pumpAndSettle();
+
+    // She taps the microphone and starts talking.
+    await tester.tap(find.byType(VoiceButton));
+    await tester.pumpAndSettle();
+
+    // Then taps «كمّل» while still mid-sentence.
+    await tester.tap(find.text(l10n.convContinue('other')));
+    await tester.pumpAndSettle();
+
+    final stopped = log.indexOf('microphone stopped');
+    final spokeNext = log.indexWhere(
+        (e) => e == 'said: ${l10n.mealConvPromptDescription('other')}');
+
+    expect(stopped, isNonNegative, reason: 'the microphone was never closed');
+    expect(spokeNext, isNonNegative,
+        reason: 'the next question was not spoken');
+    expect(
+      stopped,
+      lessThan(spokeNext),
+      reason: 'the assistant spoke into a live microphone',
+    );
+  });
+
+  testWidgets('the microphone does not open until the assistant HAS stopped',
+      (tester) async {
+    // The same guarantee as the engine's unbounded stop, asserted one layer up
+    // — through the call chain a tap actually takes: VoiceButton →
+    // _toggleListening → AssistantVoice.hush → SpeechOutput.stop.
+    //
+    // Nothing tested that chain. An edit that dropped the `await` before
+    // opening the microphone would leave every engine test green while the
+    // assistant talked over a Cook, which is the one failure this feature
+    // exists to prevent.
+    final release = Completer<void>();
+    final speech = _StallingStopSpeech(release);
+
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _ListeningVoiceInput(<String>[])),
+      repo: FakeMealRepository(),
+      speech: speech,
+    ));
+    await tester.pumpAndSettle();
+
+    bool listening() =>
+        tester.widget<VoiceButton>(find.byType(VoiceButton)).listening;
+
+    await tester.tap(find.byType(VoiceButton));
+    // Long past any bound inside the engine. A screen that gave up waiting
+    // would have opened the microphone by now.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(
+      listening(),
+      isFalse,
+      reason: 'the microphone opened while the assistant was still stopping',
+    );
+
+    // AND THE WAIT IS NOT SILENT AND STILL. §10.3: a button that does not
+    // change for half a second reads as a button that did nothing, so she taps
+    // again and cuts off her own first words. Proving the wait was real is what
+    // made the silence during it visible — accessibility-reviewer, round seven.
+    expect(
+      tester.widget<VoiceButton>(find.byType(VoiceButton)).preparing,
+      isTrue,
+      reason: 'the tap was not acknowledged while the assistant stopped',
+    );
+    expect(find.text(l10n.voicePreparing), findsOneWidget);
+    // The RENDERED button, not just the flag it was handed. A regression that
+    // kept the flag and dropped what it does — the changed glyph, the second
+    // tap it refuses — would otherwise pass.
+    expect(
+      tester
+          .widget<OutlinedButton>(find.descendant(
+            of: find.byType(VoiceButton),
+            matching: find.byType(OutlinedButton),
+          ))
+          .onPressed,
+      isNull,
+      reason: 'a second tap could land while the first was still waiting',
+    );
+    expect(
+      find.descendant(
+        of: find.byType(VoiceButton),
+        matching: find.byIcon(Icons.more_horiz),
+      ),
+      findsOneWidget,
+    );
+
+    release.complete();
+    await tester.pumpAndSettle();
+
+    expect(listening(), isTrue, reason: 'the microphone never opened at all');
+  });
+
+  testWidgets('a stop that THROWS leaves the microphone button usable',
+      (tester) async {
+    // The acknowledgement disables the button, so a state cleared only on the
+    // happy path is a dead microphone with no message and no way back except
+    // leaving the screen. Nothing throws today, which is exactly why this needed
+    // a test rather than an inspection.
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _ListeningVoiceInput(<String>[])),
+      repo: FakeMealRepository(),
+      speech: _ThrowingStopSpeech(),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(VoiceButton));
+    await tester.pumpAndSettle();
+    // Reported rather than swallowed, so it is here to be taken. An error the
+    // screen hid would leave nobody able to find it.
+    expect(tester.takeException(), isStateError);
+
+    expect(
+      tester.widget<VoiceButton>(find.byType(VoiceButton)).listening,
+      isFalse,
+      reason: 'a hush that failed is not a promise of silence',
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(find.descendant(
+            of: find.byType(VoiceButton),
+            matching: find.byType(OutlinedButton),
+          ))
+          .onPressed,
+      isNotNull,
+      reason: 'her microphone is dead until she leaves the screen',
+    );
+    expect(
+      tester.widget<VoiceButton>(find.byType(VoiceButton)).preparing,
+      isFalse,
+    );
+  });
+
+  testWidgets('the mute button silences the assistant on this screen',
+      (tester) async {
+    // The screen started speaking without a mute control, so a Cook beside a
+    // sleeping baby could only silence it by leaving and losing her answer.
+    final speech = FakeSpeechOutput();
+
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+      repo: FakeMealRepository(),
+      speech: speech,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(speech.spoken, isNotEmpty, reason: 'nothing was said to silence');
+    final saidBefore = speech.spoken.length;
+
+    await tester.tap(find.byType(KafooMuteButton));
+    await tester.pumpAndSettle();
+
+    expect(speech.isMuted, isTrue);
+    expect(speech.stopped, isTrue, reason: 'a sentence in progress kept going');
+
+    await tester.enterText(find.byType(TextField).first, 'كشري');
+    await tester.tap(find.text(l10n.convContinue('other')));
+    await tester.pumpAndSettle();
+
+    expect(
+      speech.spoken.length,
+      saidBefore,
+      reason: 'it went on talking after she muted it',
+    );
   });
 }

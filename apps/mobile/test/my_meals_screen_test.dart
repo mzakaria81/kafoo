@@ -109,7 +109,11 @@ Widget _app(
     ProviderScope(
       overrides: [
         mealRepositoryProvider.overrideWithValue(repo),
-        if (speech != null) speechOutputProvider.overrideWithValue(speech),
+        // Recorded rather than spoken, always. Left real, this screen reaches
+        // Kafoo's `speak` function — and a paid provider — from a widget test,
+        // and its timeouts leave pending timers the framework rejects. The
+        // named fake wins when a test supplies one.
+        speechOutputProvider.overrideWithValue(speech ?? FakeSpeechOutput()),
       ],
       child: MaterialApp(
         locale: const Locale('ar'),
@@ -1142,6 +1146,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          // Recorded rather than spoken. Left real, this screen reaches Kafoo's
+          // `speak` function — and a paid provider — from a widget test, and its
+          // timeouts leave pending timers the test framework rejects.
+          speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
           mealRepositoryProvider.overrideWithValue(repo),
           aiProviderProvider.overrideWithValue(StubAiProvider({})),
         ],

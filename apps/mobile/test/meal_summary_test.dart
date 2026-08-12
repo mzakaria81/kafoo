@@ -9,6 +9,8 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
@@ -68,6 +70,10 @@ Widget _app(
 }) =>
     ProviderScope(
       overrides: [
+        // Recorded rather than spoken. Left real, this screen reaches Kafoo's
+        // `speak` function — and a paid provider — from a widget test, and its
+        // timeouts leave pending timers the test framework rejects.
+        speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
         mealRepositoryProvider.overrideWithValue(repo),
         aiProviderProvider.overrideWithValue(ai ?? _stubAi()),
       ],
