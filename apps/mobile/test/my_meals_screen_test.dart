@@ -244,6 +244,59 @@ void main() {
       );
     });
 
+    testWidgets('the banner writes «٢» and the voice is sent «2»',
+        (tester) async {
+      // **THE SAME SENTENCE IN TWO SCRIPTS, AND BOTH HALVES ARE DELIBERATE.**
+      // A Cook types on an Arabic keyboard and every other numeral on this
+      // screen is already Arabic-Indic; the greeting was the last one in a
+      // script she does not use. But the provider is *proven* to read «2» as
+      // Egyptian and unproven on «٢», so what is spoken keeps Latin digits.
+      //
+      // A single assertion on one string would pass while either half was
+      // wrong, which is why this checks the screen and the speech separately.
+      // Raised by localization-reviewer on #462.
+      // FIVE, BECAUSE ONE AND TWO HAVE NO DIGIT IN THEM AT ALL. Arabic says
+      // «أكلة واحدة» and «أكلتين» in words, so a two-Meal fixture renders a
+      // greeting with nothing to convert — this test passed against a broken
+      // screen until the count was raised, which is the same shape as the bug
+      // that put «عندك 3 أكلة» on a real phone.
+      final speech = FakeSpeechOutput();
+      final repo = FakeMealRepository(
+        meals: List.generate(
+          5,
+          (i) => CookMeal(
+            id: 'm-$i',
+            cookId: 'c1',
+            title: 'كشري $i',
+            description: 'عدس ورز',
+            price: '35',
+            cuisine: Cuisine.egyptian,
+            category: MealCategory.main,
+            status: MealStatus.published,
+            nutritionSource: NutritionSource.ai,
+          ),
+        ),
+      );
+      await tester.pumpWidget(_app(repo, speech: speech));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('٥'),
+        findsWidgets,
+        reason: 'the written greeting is in digits a Cook does not type',
+      );
+      expect(
+        speech.spoken.single.line,
+        contains('5'),
+        reason: 'the spoken greeting lost the digits the provider reads well',
+      );
+      expect(
+        speech.spoken.single.line,
+        isNot(contains('٥')),
+        reason: 'the voice was sent a script it has not been proven to read',
+      );
+    });
+
     testWidgets('and says it again when she asks', (tester) async {
       final speech = FakeSpeechOutput();
       await tester.pumpWidget(
