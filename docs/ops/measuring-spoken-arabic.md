@@ -358,12 +358,25 @@ Before this, all of them were re-bought on every launch. The in-memory cache die
 so «تمام، شلتها من المنيو» — five words that have never changed and never will — was billed again
 every time a Cook opened Kafoo.
 
-**36 of the 37 sentences Kafoo says are bundled.** The one that is not is the Meal-list greeting,
+**36 of the 38 sentences Kafoo says are bundled.** The first that is not is the Meal-list greeting,
 because it carries the Cook's own Meal counts. Pre-rendering every version of it was measured and
 refused: a Cook with twenty Meals has 231 possible count pairs, which across two grammars and two
 voices is 924 clips and roughly 45,000 characters — **more than a whole month's allowance for one
 sentence.** It is bought at runtime and kept on disk instead, so it costs a Cook one purchase when
 her menu changes rather than one per launch.
+
+**The second was missed on the first pass, and the miss is worth recording.** Tapping «اسمعيها» on a
+Meal row reads that Meal back — its name, its status, its price — through the same buy-and-cache
+path. It was overlooked because the ARB key is called `mealRowSemanticLabel`, which reads like a
+screen-reader label rather than something a Cook hears aloud, and because it is spoken from a
+different file than the three that obviously talk. It cannot be bundled either, and unlike the
+greeting it cannot be pre-rendered at *any* price, because nobody knows what a Cook will call her
+food. Found by localization-reviewer on #462, third round.
+
+The practical consequence is on the disk cache rather than the bill: it grows with the number of
+Meals a Cook asks to hear, and a renamed or re-priced Meal is a new sentence, so old ones accumulate.
+Tens of Meals at roughly 50 KB each is still low megabytes — but it grows with editing rather than
+converging, which the first version of that note did not say.
 
 **Splicing it from stored fragments was considered and rejected.** «عندك» + a number + «أكلة، منهم»
 would collapse that 45,000 to about 1,140 characters, and the founder was right about the

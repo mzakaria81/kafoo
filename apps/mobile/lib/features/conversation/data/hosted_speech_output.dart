@@ -357,13 +357,15 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// **THREE OF THESE FOUR COST NOTHING AND BEAT THE NETWORK, WHICH IS THE
   /// WHOLE POINT.** In memory, then bundled in the app, then bought on an
   /// earlier launch, and only then bought again. The provider bills per
-  /// character generated, so every sentence that never changes — 36 of the 37
+  /// character generated, so every sentence that never changes — 36 of the 38
   /// Kafoo says — should be paid for exactly once in the life of the product
   /// rather than once per launch, which is what happened before.
   ///
-  /// The one sentence that is not bundled is the Meal-list greeting, because it
-  /// carries the Cook's own Meal counts. It lands in the disk store instead, so
-  /// it is bought when her menu changes rather than every time she opens Kafoo.
+  /// The two that are not bundled both carry something only this Cook's account
+  /// knows: the Meal-list greeting, with her Meal counts, and the row's
+  /// «اسمعيها», which reads back a Meal's own name, status and price. They land
+  /// in the disk store instead, so each is bought when it changes rather than
+  /// every time she opens Kafoo.
   Future<Uint8List?> _audioFor(String line) async {
     final voice = _role.wireName;
     final key = '$voice:$line';

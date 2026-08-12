@@ -30,8 +30,9 @@ part 'speech_output_provider.g.dart';
 /// [VoiceClipStore] hands over the 36 fixed sentences bundled into the app by
 /// `scripts/generate-voice-clips.ts` — bought once, in both voices, for every
 /// Cook there will ever be — and keeps anything bought at runtime on disk so it
-/// survives the app closing. Only one sentence Kafoo says is not in the bundle:
-/// the Meal-list greeting, which carries the Cook's own Meal counts.
+/// survives the app closing. Two sentences Kafoo says are not in the bundle:
+/// the Meal-list greeting, which carries her Meal counts, and the row's
+/// «اسمعيها», which reads back a Meal's own name, status and price.
 ///
 /// `keepAlive` because the engine holds a resolved voice, a stored mute
 /// preference and the audio it has already heard: rebuilding it per screen would

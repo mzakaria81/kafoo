@@ -13,11 +13,13 @@ import 'package:path_provider/path_provider.dart';
 /// - **Bundled** — the 36 sentences with no variable in them, bought once by
 ///   `scripts/generate-voice-clips.ts` and shipped inside the app. Free forever,
 ///   for every Cook, however many Cooks there are. Plays in milliseconds and
-///   needs no signal, so «تمام، شلتها من المنيو» is Ghozlan on the metro rather
-///   than the machine voice.
-/// - **On disk** — sentences bought at runtime because they carry a Cook's own
-///   numbers. Kafoo has exactly one: the Meal-list greeting. Kept so that her
-///   greeting is bought once rather than on every launch.
+///   needs no signal, so «تمام، شلتها من المنيو» is a Cairene voice on the metro
+///   rather than the machine one.
+/// - **On disk** — sentences bought at runtime because they carry something only
+///   this Cook's account knows. **Two of them, and the second was missed on the
+///   first pass:** the Meal-list greeting, which carries her Meal counts, and
+///   the row's «اسمعيها», which reads back a Meal's own name, status and price.
+///   Kept so each is bought once rather than on every launch.
 ///
 /// The memory cache in `HostedSpeechOutput` sits above both. This class is what
 /// survives the app closing.
@@ -85,7 +87,15 @@ class VoiceClipStore {
   Future<Uint8List?> _readBundled(String name, String voice) async {
     try {
       final data = await _loadAsset('assets/voice/$voice/$name.mp3');
-      return data.buffer.asUint8List();
+      // OFFSET AND LENGTH, NOT THE WHOLE BUFFER. `asUint8List()` with no
+      // arguments hands back a view over the entire underlying ByteBuffer
+      // rather than this ByteData's own range. Identical today, because
+      // `rootBundle.load` happens to return a ByteData sized exactly to the
+      // asset — but if that ever stops being true the clip gains bytes at one
+      // end, and the failure is either a refusal to decode or an audible click,
+      // with nothing in this path to report it. Raised by release-engineer
+      // on #462.
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     } on Object catch (_) {
       // Not a bundled sentence — the ordinary answer for anything carrying a
       // Cook's own numbers, and for a line whose Arabic has been edited since
@@ -109,11 +119,20 @@ class VoiceClipStore {
     }
   }
 
-  /// ponytail: the disk store is never pruned. It holds one sentence per
-  /// (Meal count, published count) pair a Cook actually passes through, at
-  /// roughly 50 KB each, so it settles in the low megabytes rather than
-  /// growing without limit. Add a size cap here if a Cook's device ever
-  /// complains — nothing above this class needs to change for that.
+  /// ponytail: the disk store is never pruned, and the first version of this
+  /// note undercounted what that means.
+  ///
+  /// It holds a sentence per (Meal count, published count) pair a Cook passes
+  /// through — **and one per Meal she asks the row to read aloud**, which was
+  /// missed because `mealRowSemanticLabel` is named like a screen-reader label
+  /// and is in fact spoken. That second set grows with her Meals rather than
+  /// with her counts, and a renamed or re-priced Meal is a new sentence with a
+  /// new hash, so the old one is left behind.
+  ///
+  /// At roughly 50 KB each it still settles in the low megabytes for a Cook
+  /// with tens of Meals — but it grows with editing rather than converging.
+  /// Found by localization-reviewer on #462. Add a size cap here when a
+  /// device complains; nothing above this class needs to change for that.
   Future<Directory?> _resolveDirectory() async {
     if (_directoryResolved) return _directory;
     _directoryResolved = true;

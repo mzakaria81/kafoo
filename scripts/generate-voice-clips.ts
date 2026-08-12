@@ -15,13 +15,15 @@
 //
 // THE CLIPS ARE ALSO FASTER THAN ANYTHING THE NETWORK CAN DO. A bundled asset plays in
 // milliseconds, needs no signal, and cannot lose the race that `_fetchTimeout` bounds. The Cook on
-// the metro hears Ghozlan rather than the machine voice.
+// the metro hears a Cairene voice rather than the machine one.
 //
 // WHAT IT REFUSES TO BUNDLE, AND WHY THAT IS THE IMPORTANT PART: any sentence with a placeholder
-// left in it after the address form is resolved. Kafoo has exactly one — the Meal-list greeting,
-// which carries the Cook's own Meal counts. Pre-rendering every version of that sentence would cost
-// more than a month's allowance for a Cook with twenty Meals (231 count pairs x 2 grammars x 2
-// voices), so it stays on the network and on the disk cache instead. A string that grows a
+// left in it after the address form is resolved. Two of Kafoo's spoken sentences are like that —
+// the Meal-list greeting, which carries the Cook's own Meal counts, and the row's «اسمعيها», which
+// reads back a Meal's own name, status and price. Pre-rendering every version of the greeting alone
+// would cost more than a month's allowance for a Cook with twenty Meals (231 count pairs x 2
+// grammars x 2 voices); the row's line cannot be pre-rendered at all, because nobody knows what a
+// Cook will call her food. Both stay on the network and in the disk cache. A string that grows a
 // placeholder later drops out of the bundle automatically rather than shipping a clip that says the
 // wrong number.
 //

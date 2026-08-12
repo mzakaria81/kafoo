@@ -36,9 +36,10 @@ dependencies:
     path: ../../packages/domain
   kafoo_ui:
     path: ../../packages/ui
-  # Where a sentence bought at runtime is kept so the next launch does not buy it again. Only the
-  # Meal-list greeting needs this — it carries the Cook's own Meal counts, so it is the one sentence
-  # that cannot be bundled. Declared directly for the same reason as `crypto` above.
+  # Where a sentence bought at runtime is kept so the next launch does not buy it again. Two
+  # sentences need this — the Meal-list greeting, which carries the Cook's own Meal counts, and the
+  # row's «اسمعيها», which reads back a Meal's own name and price. Declared directly for the same
+  # reason as `crypto` above.
   path_provider: ^2.1.0
   riverpod_annotation: ^4.0.3
   # A Customer's answer about their own words lives HERE and not in Kafoo — FR-029d. Declared
@@ -61,8 +62,8 @@ flutter:
   # for every Cook there will ever be.
   #
   # 3.5 MB, and it buys more than the money. A bundled clip plays in milliseconds with no signal at
-  # all, so it cannot lose the race `_fetchTimeout` bounds — a Cook on the metro hears Ghozlan
-  # rather than the machine voice.
+  # all, so it cannot lose the race `_fetchTimeout` bounds — a Cook on the metro hears a Cairene
+  # voice rather than the machine one.
   #
   # DIRECTORIES, NOT FILENAMES, because the filenames are hashes of the Arabic and change whenever
   # the wording does. Listing them individually would mean this file going stale every time somebody
