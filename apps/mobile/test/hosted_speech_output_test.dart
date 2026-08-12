@@ -378,9 +378,16 @@ void main() {
       );
       await speech.initialize();
 
+      // **PAST THE BOUND, NOT INSIDE IT.** This waited 50 ms, and at 50 ms the
+      // call has not returned whether the gate is bounded or not — so the
+      // assertion held with the fix deleted. Only a stall that OUTLIVES
+      // `stopBound` tells the two apart, and taking the figure from the class
+      // means it cannot drift apart from it.
       var returned = false;
       unawaited(speech.stop().then((_) => returned = true));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(
+        HostedSpeechOutput.stopBound + const Duration(milliseconds: 100),
+      );
 
       expect(
         returned,
@@ -391,6 +398,48 @@ void main() {
       stopping.complete();
       await Future<void>.delayed(Duration.zero);
       expect(returned, isTrue);
+    });
+
+    test('an EXTERNAL hush mid-playback is not undone by the fallback',
+        () async {
+      // The Cook taps the microphone while the assistant is mid-sentence. That
+      // is a different path from the internal timeout: the stop arrives from
+      // outside, after playback has genuinely begun.
+      //
+      // Restored rather than inferred. The round-five edit replaced this
+      // scenario with the internal-timeout one and left this covered only by
+      // hand-tracing the generation counter — and hand-tracing this file has
+      // been wrong three times.
+      final fallback = FakeSpeechOutput();
+      var playing = false;
+      final speech = HostedSpeechOutput(
+        fallback: fallback,
+        fetchAudio: (line, voice) async => Uint8List.fromList([1, 2, 3]),
+        playAudio: (bytes, volume) {
+          playing = true;
+          return Completer<void>().future;
+        },
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+
+      unawaited(speech.speak('تمام'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(playing, isTrue, reason: 'playback never started — test is moot');
+
+      // She taps. The assistant must not finish the abandoned sentence in the
+      // machine voice a moment later.
+      await speech.stop();
+      await Future<void>.delayed(
+        HostedSpeechOutput.worstCaseBeforeAnyVoice +
+            const Duration(milliseconds: 200),
+      );
+
+      expect(
+        fallback.spoken,
+        isEmpty,
+        reason: 'the hushed line came back in the machine voice',
+      );
     });
 
     test('the whole failure path stays inside the voice budget', () async {

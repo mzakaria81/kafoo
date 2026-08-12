@@ -104,6 +104,25 @@ class _LoggingSpeech extends FakeSpeechOutput {
   }
 }
 
+/// A stop that never finishes until the test lets it.
+///
+/// The unit tests prove the *engine* waits for a real stop before it returns.
+/// They call `stop()` directly, so nothing proved the SCREEN still awaits it —
+/// and "each piece worked alone, the step between them did not" is the exact
+/// defect shape this whole feature keeps citing. This double is what lets a tap
+/// on the microphone prove the wiring.
+class _StallingStopSpeech extends FakeSpeechOutput {
+  _StallingStopSpeech(this.release);
+
+  final Completer<void> release;
+
+  @override
+  Future<void> stop() async {
+    await super.stop();
+    await release.future;
+  }
+}
+
 /// Voice available with Egyptian Arabic locale.
 class _EgyptianVoiceInput extends VoiceInput {
   @override
@@ -1911,6 +1930,47 @@ void main() {
       lessThan(spokeNext),
       reason: 'the assistant spoke into a live microphone',
     );
+  });
+
+  testWidgets('the microphone does not open until the assistant HAS stopped',
+      (tester) async {
+    // The same guarantee as the engine's unbounded stop, asserted one layer up
+    // — through the call chain a tap actually takes: VoiceButton →
+    // _toggleListening → AssistantVoice.hush → SpeechOutput.stop.
+    //
+    // Nothing tested that chain. An edit that dropped the `await` before
+    // opening the microphone would leave every engine test green while the
+    // assistant talked over a Cook, which is the one failure this feature
+    // exists to prevent.
+    final release = Completer<void>();
+    final speech = _StallingStopSpeech(release);
+
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _ListeningVoiceInput(<String>[])),
+      repo: FakeMealRepository(),
+      speech: speech,
+    ));
+    await tester.pumpAndSettle();
+
+    bool listening() =>
+        tester.widget<VoiceButton>(find.byType(VoiceButton)).listening;
+
+    await tester.tap(find.byType(VoiceButton));
+    // Long past any bound inside the engine. A screen that gave up waiting
+    // would have opened the microphone by now.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(
+      listening(),
+      isFalse,
+      reason: 'the microphone opened while the assistant was still stopping',
+    );
+
+    release.complete();
+    await tester.pumpAndSettle();
+
+    expect(listening(), isTrue, reason: 'the microphone never opened at all');
   });
 
   testWidgets('the mute button silences the assistant on this screen',

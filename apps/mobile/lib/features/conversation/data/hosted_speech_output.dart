@@ -103,6 +103,16 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// round four.
   static const Duration _stopTimeout = Duration(milliseconds: 300);
 
+  /// The bound above, exposed so a test can stall *past* it.
+  ///
+  /// The regression test for the unbounded microphone gate stalled a stop for
+  /// 50 ms and asserted the call had not returned — which was true whether the
+  /// gate was bounded or not, so the test agreed with the fix instead of
+  /// proving it. A stall only distinguishes the two once it outlives this
+  /// figure, and a literal in the test would drift the day the figure changes.
+  /// Found by accessibility-reviewer on #461, round six.
+  static const Duration stopBound = _stopTimeout;
+
   /// How long to wait for the paid voice before falling back.
   ///
   /// A stalled connection with no timeout is an app that is silent AND still —
