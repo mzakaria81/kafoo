@@ -8,10 +8,12 @@
 // The provider bills per character generated. A sentence with no variable in it is a sentence that
 // should be bought exactly once in the life of the product.
 //
-// Measured on 2026-08-12: **36 texts, 1,248 characters, 72 clips across the two voices.** Against
-// the 40,000-character monthly allowance recorded in `docs/ops/measuring-spoken-arabic.md`, the
-// entire fixed vocabulary of the product is roughly 3% of one month — spent once, then never again,
-// no matter how many Cooks join.
+// Measured on 2026-08-12: **36 texts of 1,248 characters, bought in two voices — so 72 clips and
+// 2,496 characters billed.** The provider charges per voice, so the text length is not the bill;
+// an earlier version of this comment quoted 1,248 and understated the cost of the very feature
+// built to reduce it. Against the 40,000-character monthly allowance recorded in
+// `docs/ops/measuring-spoken-arabic.md` that is roughly 6% of one month — spent once, then never
+// again, no matter how many Cooks join. Found by release-engineer on #462.
 //
 // THE CLIPS ARE ALSO FASTER THAN ANYTHING THE NETWORK CAN DO. A bundled asset plays in
 // milliseconds, needs no signal, and cannot lose the race that `_fetchTimeout` bounds. The Cook on

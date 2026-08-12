@@ -119,7 +119,12 @@ class _FullState extends ConsumerState<_Full> {
     // `docs/ops/measuring-spoken-arabic.md`. Converting what is spoken would
     // trade a proven pronunciation for an unproven one to fix something nobody
     // hears. Raised by localization-reviewer on #462.
-    final writtenSummary = KafooNumerals.arabicIndic(summary);
+    // `separators: false` because this is a sentence, not a price. The default
+    // rewrites a full stop into the Arabic decimal mark — right for «35.00»,
+    // and it turned «على المنيو. عايزة تعملي إيه؟» into «على المنيو٫ عايزة» on
+    // every visit to this screen.
+    final writtenSummary =
+        KafooNumerals.arabicIndic(summary, separators: false);
 
     if (voice.canSpeak) {
       // After this frame, not during it: speaking from inside build would fire

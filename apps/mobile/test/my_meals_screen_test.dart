@@ -280,10 +280,25 @@ void main() {
       await tester.pumpWidget(_app(repo, speech: speech));
       await tester.pumpAndSettle();
 
+      // THE WHOLE SENTENCE, NOT JUST THAT A DIGIT TURNED UP. The first version
+      // of this test asked only whether «٥» appeared — which it did, in a
+      // sentence whose full stop had been silently rewritten into a decimal
+      // mark by the same call. A digit-only assertion agrees with any mangling
+      // that leaves the digit alone. Found by accessibility-reviewer on #462.
       expect(
-        find.textContaining('٥'),
-        findsWidgets,
-        reason: 'the written greeting is in digits a Cook does not type',
+        find.text(
+          KafooNumerals.arabicIndic(
+            l10n.myMealsSpokenSummary('other', 5, 5),
+            separators: false,
+          ),
+        ),
+        findsOneWidget,
+        reason: 'the written greeting is not the sentence, digit for digit',
+      );
+      expect(
+        find.textContaining('٫'),
+        findsNothing,
+        reason: 'a full stop became a decimal mark — this is a sentence',
       );
       expect(
         speech.spoken.single.line,
