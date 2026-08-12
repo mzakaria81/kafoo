@@ -57,8 +57,38 @@ void main() {
   }
 
   group('asking Kafoo to speak', () {
-    test('the female voice is the default — ADR-0010 addresses a Cook as her',
+    test('Ahmad is the voice a Cook hears until she chooses otherwise',
         () async {
+      // Founder's decision, 2026-08-12, made by ear on a handset. It is not a
+      // preference one person set for themselves: §10.11's chooser does not
+      // exist, so this is the voice EVERY Cook gets.
+      final t = build();
+      await t.speech.initialize();
+      expect(t.speech.role, AssistantVoiceRole.male);
+    });
+
+    test('a stored value that is neither name falls back to the default',
+        () async {
+      // Not hypothetical the day a default changes. Written as "is it male,
+      // else female", an unreadable value resolved to whichever voice sat on
+      // the else branch — so changing the default silently changed what a
+      // corrupted preference meant, on handsets nobody could see.
+      SharedPreferences.setMockInitialValues(
+        {HostedSpeechOutput.voicePreferenceKey: 'ghozlan'},
+      );
+      final t = build();
+      await t.speech.initialize();
+      expect(t.speech.role, AssistantVoiceRole.defaultRole);
+    });
+
+    test('a Cook who chose Ghozlan keeps Ghozlan across the default changing',
+        () async {
+      // The half that matters more than the default itself: §10.11 says the
+      // choice persists until changed and never switches on its own. Shipping a
+      // new default must not reach past somebody who already answered.
+      SharedPreferences.setMockInitialValues(
+        {HostedSpeechOutput.voicePreferenceKey: 'female'},
+      );
       final t = build();
       await t.speech.initialize();
       expect(t.speech.role, AssistantVoiceRole.female);
@@ -72,28 +102,48 @@ void main() {
 
       expect(t.asked, hasLength(1));
       expect(t.asked.single.line, 'تمام، الأكلة منشورة');
-      expect(t.asked.single.voice, 'female');
+      expect(t.asked.single.voice, 'male');
       // The ids live in the Edge Function. If one ever appears here, the app can
       // choose a voice and therefore choose what Kafoo is billed for.
       expect(t.asked.single.voice.length, lessThan(12));
     });
 
-    test('choosing the male voice changes what is asked for, and persists',
+    test('choosing the other voice changes what is asked for, and persists',
         () async {
       final t = build();
       await t.speech.initialize();
-      await t.speech.setRole(AssistantVoiceRole.male);
+      await t.speech.setRole(AssistantVoiceRole.female);
       await t.speech.speak('أيوة');
 
-      expect(t.asked.single.voice, 'male');
+      expect(t.asked.single.voice, 'female');
 
       final again = build();
       await again.speech.initialize();
       expect(
         again.speech.role,
-        AssistantVoiceRole.male,
+        AssistantVoiceRole.female,
         reason:
             'the voice reverted on the next launch — §10.11 says it persists',
+      );
+    });
+
+    test('choosing the voice that is ALREADY the default is still stored',
+        () async {
+      // §10.11: the choice persists until changed and never switches on its
+      // own. setRole used to return early when the role was unchanged, so a
+      // Cook who deliberately picked today's default stored nothing — and the
+      // next change of default would move her silently, which is exactly what
+      // "never switches on its own" forbids. Invisible until a default changes,
+      // and one just did.
+      final t = build();
+      await t.speech.initialize();
+      await t.speech.setRole(AssistantVoiceRole.defaultRole);
+
+      expect(
+        SharedPreferences.getInstance().then(
+          (p) => p.getString(HostedSpeechOutput.voicePreferenceKey),
+        ),
+        completion(AssistantVoiceRole.defaultRole.wireName),
       );
     });
 
@@ -115,10 +165,10 @@ void main() {
       final t = build();
       await t.speech.initialize();
       await t.speech.speak('تمام');
-      await t.speech.setRole(AssistantVoiceRole.male);
+      await t.speech.setRole(AssistantVoiceRole.female);
       await t.speech.speak('تمام');
 
-      expect(t.asked.map((a) => a.voice), ['female', 'male']);
+      expect(t.asked.map((a) => a.voice), ['male', 'female']);
     });
 
     test('a muted assistant sends nothing at all', () async {
@@ -453,13 +503,14 @@ void main() {
       addTearDown(() => temp.deleteSync(recursive: true));
       const line = 'تمام، شلتها من المنيو.';
       final name = VoiceClipStore.nameFor(line);
+      final voice = AssistantVoiceRole.defaultRole.wireName;
 
       final asked = <String>[];
       final played = <Uint8List>[];
       final speech = HostedSpeechOutput(
         fallback: FakeSpeechOutput(),
         clips: VoiceClipStore(
-          loadAsset: (key) async => key == 'assets/voice/female/$name.mp3'
+          loadAsset: (key) async => key == 'assets/voice/$voice/$name.mp3'
               ? ByteData.view(audio(7).buffer)
               : throw Exception('not bundled'),
           cacheDirectory: () async => temp,
@@ -486,6 +537,7 @@ void main() {
       final temp = Directory.systemTemp.createTempSync('kafoo_bought');
       addTearDown(() => temp.deleteSync(recursive: true));
       const greeting = 'عندك تلات أكلات، منهم واحدة على المنيو.';
+      final voice = AssistantVoiceRole.defaultRole.wireName;
       final clips = VoiceClipStore(
         loadAsset: (_) async => throw Exception('not bundled'),
         cacheDirectory: () async => temp,
@@ -509,7 +561,7 @@ void main() {
       // The write is deliberately not awaited inside speak, so that the Cook is
       // never made to wait on bookkeeping. Give it the turn it needs.
       await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(await clips.read(greeting, 'female'), equals(audio(3)));
+      expect(await clips.read(greeting, voice), equals(audio(3)));
     });
 
     test('the whole failure path stays inside the voice budget', () async {

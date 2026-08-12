@@ -12,13 +12,36 @@ import 'voice_clip_store.dart';
 ///
 /// §10.11: two voices, male and female, both Cairene, and **each account chooses
 /// its own.** Stored per device and never switched on its own.
+///
+/// **NOBODY CAN ACTUALLY CHOOSE YET, WHICH IS WHY [defaultRole] MATTERS MORE
+/// THAN IT SHOULD.** [setRole] works and persists, and nothing in the app calls
+/// it — §10.11's voice cards and the aloud question on first launch are designed
+/// and unbuilt. Until they exist, the default is not a starting point a Cook can
+/// move away from; it is the only voice anybody gets.
 enum AssistantVoiceRole {
-  /// Ghozlan — Soft Clear Conversational. The default, because ADR-0010 exists
-  /// to address a Cook as a woman and she is who hears this most.
+  /// Ghozlan — Soft Clear Conversational.
   female,
 
-  /// Ahmad — Conversational AI Voice.
+  /// Ahmad — Conversational AI Voice. **The default since 2026-08-12.**
+  ///
+  /// The founder chose it by ear, having heard both on a handset. It replaced
+  /// Ghozlan, whose only claim to the position was a comment in this file
+  /// reasoning from ADR-0010 — and ADR-0010 is about the grammar Kafoo uses to
+  /// *address* a Cook, not about who does the speaking. So this is a decision
+  /// being made rather than one being overturned.
+  ///
+  /// **It is a decision for every Cook, not a setting for one person**, and it
+  /// stays that way until §10.11's chooser is built.
   male;
+
+  /// What the assistant speaks with until somebody chooses otherwise.
+  ///
+  /// Named rather than repeated, because it was written out in three places and
+  /// changing the default means changing all three — including the `catch` that
+  /// runs when stored preferences cannot be read, which is the one a change
+  /// would silently miss and the one that would leave a handset on the old
+  /// voice with no way to tell.
+  static const AssistantVoiceRole defaultRole = AssistantVoiceRole.male;
 
   /// The word `speak` accepts. **A role, never an id** — the ids live in the
   /// Edge Function and nowhere else, so a voice cannot be chosen from here.
@@ -76,7 +99,7 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   final Future<void> Function()? _stopAudio;
   AudioPlayer? _player;
 
-  AssistantVoiceRole _role = AssistantVoiceRole.female;
+  AssistantVoiceRole _role = AssistantVoiceRole.defaultRole;
   bool _ready = false;
 
   /// Bumped every time the assistant is told to stop.
@@ -217,27 +240,49 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
     return canSpeak;
   }
 
+  /// Reads the stored choice, and falls back to [AssistantVoiceRole.defaultRole].
+  ///
+  /// **BOTH NAMES ARE MATCHED EXPLICITLY, so that an unreadable value is not
+  /// mistaken for a choice.** Written as "is it male, else female" this silently
+  /// changed meaning the day the default changed: a corrupted or unrecognised
+  /// stored value would have resolved to whichever voice happened to be on the
+  /// else branch, rather than to the default. Only the two words a Cook's own
+  /// choice can produce count as a choice; anything else is no answer at all.
   Future<void> _loadVoicePreference() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getString(voicePreferenceKey);
-      _role = stored == AssistantVoiceRole.male.wireName
-          ? AssistantVoiceRole.male
-          : AssistantVoiceRole.female;
+      _role = switch (stored) {
+        'male' => AssistantVoiceRole.male,
+        'female' => AssistantVoiceRole.female,
+        _ => AssistantVoiceRole.defaultRole,
+      };
     } on Object catch (_) {
-      // The documented default. Never a silent switch to the other voice.
-      _role = AssistantVoiceRole.female;
+      // Never a silent switch to the other voice.
+      _role = AssistantVoiceRole.defaultRole;
     }
   }
 
   /// Chooses a voice, and remembers it. §10.11: persists until changed.
+  /// **AN ANSWER IS STORED EVEN WHEN IT MATCHES TODAY'S DEFAULT**, and that is
+  /// the whole difference between a default and a choice.
+  ///
+  /// This returned early when the role was unchanged, which looked like an
+  /// obvious saving and quietly broke §10.11's promise that a voice never
+  /// switches on its own. A Cook who listened to both and deliberately picked
+  /// the one that happened to be the default stored nothing — so she was
+  /// indistinguishable from someone who had never been asked, and the next time
+  /// Kafoo changed its default she would have been moved without being told.
+  /// Exposed on 2026-08-12 by the default changing for the first time.
   Future<void> setRole(AssistantVoiceRole role) async {
-    if (role == _role) return;
+    final changed = role != _role;
     _role = role;
     // The cache is keyed by voice, so nothing has to be thrown away — but stop
     // talking, because finishing a sentence in the old voice after the Cook
-    // chose a new one is the app arguing with her.
-    await stop();
+    // chose a new one is the app arguing with her. Only when it really changed:
+    // cutting off a sentence to confirm a voice she is already hearing would be
+    // the app interrupting itself for no reason.
+    if (changed) await stop();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(voicePreferenceKey, role.wireName);
