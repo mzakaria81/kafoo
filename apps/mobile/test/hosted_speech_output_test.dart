@@ -139,7 +139,11 @@ void main() {
       await t.speech.initialize();
       await t.speech.setRole(AssistantVoiceRole.defaultRole);
 
-      expect(
+      // `await expectLater` rather than a bare `expect` on a Future: the bare
+      // form leans on flutter_test noticing an unawaited matcher, which is the
+      // easier idiom to get silently wrong — in a test whose whole job is to
+      // catch something silent. Raised by release-engineer on #462.
+      await expectLater(
         SharedPreferences.getInstance().then(
           (p) => p.getString(HostedSpeechOutput.voicePreferenceKey),
         ),
@@ -526,8 +530,8 @@ void main() {
 
     test('a sentence Kafoo already owns is never bought again', () async {
       // The 36 bundled sentences. If this ever regresses, nothing looks broken:
-      // the Cook still hears Ghozlan, and Kafoo silently pays for every fixed
-      // line on every launch — which is the bill this whole seam exists to end.
+      // the Cook still hears a Cairene voice, and Kafoo silently pays for every
+      // fixed line on every launch — the bill this whole seam exists to end.
       final temp = Directory.systemTemp.createTempSync('kafoo_owned');
       addTearDown(() => temp.deleteSync(recursive: true));
       const line = 'تمام، شلتها من المنيو.';

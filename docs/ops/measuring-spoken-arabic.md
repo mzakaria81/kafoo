@@ -229,11 +229,27 @@ Two rules for whoever does:
 
 | Role | Voice | Id |
 |---|---|---|
-| The assistant's female voice — the one most Cooks hear | Ghozlan — Soft Clear Conversational | `xPcC3nehhziQaOrIeAwv` |
+| The assistant's female voice | Ghozlan — Soft Clear Conversational | `xPcC3nehhziQaOrIeAwv` |
 | The assistant's male voice | Ahmad — Conversational AI Voice | `ihycSANIrpHfhWoaq1g3` |
 
 Chosen by ear from the fourteen samples, which is the only way this decision can be made. §10.11's
 two-voice setting now has both of its values.
+
+> **SUPERSEDED IN ONE RESPECT, 2026-08-12: Ahmad is the default, not Ghozlan.** This table
+> originally described Ghozlan as "the one most Cooks hear", which was true of the code and is no
+> longer. The founder heard both on a handset the day the paid voice first worked and chose Ahmad.
+> The voices themselves are unchanged, and so are their ids — only which one speaks first.
+>
+> **Ghozlan's claim to being the default was never a recorded decision.** It rested on a code
+> comment reasoning from ADR-0010, which is about the grammar Kafoo uses to *address* a Cook rather
+> than about who does the speaking. So this is a decision being made rather than one overturned.
+>
+> **It is the only voice anybody gets, and that is the part to fix.** §10.11 says each account
+> chooses its own and is asked aloud on first launch; `setRole` works and nothing in the app calls
+> it. Until that chooser is built, changing the default changes the voice for every Cook — including
+> Cooks who would have preferred the other one, and including a Cook who has been hearing Ghozlan
+> for weeks and is told nothing. Both reviewers on #462 raised the missing announcement; the
+> chooser's first-run line is where it belongs.
 
 **The pronunciation finding is separate from the voice choice, and it is the more surprising one.**
 «مية وعشرين جنيه» was judged *perfect Egyptian* — hard **g** in «جنيه», Egyptian numeral — and that

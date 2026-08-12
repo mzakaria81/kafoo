@@ -12,8 +12,9 @@ import 'package:kafoo_mobile/l10n/app_localizations_ar.dart';
 /// A bundled clip is found by hashing the sentence the app is about to say. If
 /// the Arabic that reaches [VoiceClipStore] differs from the Arabic the
 /// generator hashed by so much as one trailing space, every lookup misses —
-/// and nothing breaks. The Cook still hears Ghozlan, because the app quietly
-/// buys all 36 sentences from the provider instead, on every launch, forever.
+/// and nothing breaks. The Cook still hears a Cairene voice, because the app
+/// quietly buys all 36 sentences from the provider instead, every launch,
+/// forever.
 /// The 3.5 MB of clips ride along in the app doing nothing. No error, no
 /// failing assertion, no symptom on any screen: just the bill this whole
 /// change exists to remove, back again.
