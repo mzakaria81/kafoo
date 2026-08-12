@@ -257,6 +257,28 @@ void main() {
       expect(fallback.spoken, hasLength(1));
     });
 
+    test('a stalled PLAYBACK falls back too, not just a stalled fetch',
+        () async {
+      // The fetch timeout was half a fix: the bytes are local by then, and a
+      // platform audio call that never returns is the same silent-and-still
+      // failure one step later.
+      final fallback = FakeSpeechOutput();
+      final speech = HostedSpeechOutput(
+        fallback: fallback,
+        fetchAudio: (line, voice) async => Uint8List.fromList([1, 2, 3]),
+        playAudio: (bytes, volume) => Completer<void>().future,
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+
+      await speech.speak('تمام').timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => fail('speak never returned — the app hung'),
+          );
+
+      expect(fallback.spoken, hasLength(1));
+    });
+
     test('speaking stops whatever is already being said, both voices',
         () async {
       final t = build();

@@ -85,6 +85,16 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// three independent reviewers on #461 converging on the same timing.
   int _generation = 0;
 
+  /// How long to wait for playback to start before falling back.
+  ///
+  /// **The fetch timeout alone was half a fix.** The bytes are already local by
+  /// this point, so starting playback should be near-instant — but a platform
+  /// audio call that stalls leaves `speak` never returning and nothing falling
+  /// back, which is the same silent-and-still state one step later. Found by
+  /// release-engineer on #461, after the fetch timeout had been added and
+  /// reported as done.
+  static const Duration _playTimeout = Duration(milliseconds: 700);
+
   /// How long to wait for the paid voice before falling back.
   ///
   /// The voice round-trip budget is 2 seconds, and a stalled connection with no
@@ -199,7 +209,8 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
 
     try {
       final play = _playAudio ?? _playThroughDevice;
-      await play(audio, quiet ? _quietVolume : _normalVolume);
+      await play(audio, quiet ? _quietVolume : _normalVolume)
+          .timeout(_playTimeout);
     } on Object catch (_) {
       // Playback failed after the audio arrived — a missing plugin, an audio
       // focus refusal. Try the device voice rather than losing the sentence.

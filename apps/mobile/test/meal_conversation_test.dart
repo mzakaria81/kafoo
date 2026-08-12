@@ -11,7 +11,10 @@ import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
 import 'package:kafoo_mobile/features/conversation/application/photo_picker.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
+import 'package:kafoo_mobile/features/conversation/presentation/voice_button.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
@@ -20,6 +23,7 @@ import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_fallback_question.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_meal_repository.dart';
 
@@ -41,6 +45,63 @@ class _UnavailableVoiceInput extends VoiceInput {
 
   @override
   Future<void> cancel() async {}
+}
+
+/// Voice available, listening, and recording WHEN it was stopped.
+///
+/// Exists for one test: that the microphone closes before the next question is
+/// spoken. The ordering is the whole assertion, so both this and the speech fake
+/// append to the same log.
+class _ListeningVoiceInput extends VoiceInput {
+  _ListeningVoiceInput(this.log);
+
+  final List<String> log;
+  bool _listening = false;
+
+  @override
+  Future<bool> initialize() async => true;
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  String? get resolvedLocaleId => 'ar-EG';
+
+  @override
+  bool get isListening => _listening;
+
+  @override
+  Future<void> listen({
+    required void Function(String transcript, bool isFinal) onTranscript,
+    Duration? pauseFor,
+  }) async {
+    _listening = true;
+    // A partial transcript, the way a real recogniser delivers one: she is
+    // mid-sentence and the words are already in the box.
+    onTranscript('كشري', false);
+  }
+
+  @override
+  Future<void> stop() async {
+    _listening = false;
+    log.add('microphone stopped');
+  }
+
+  @override
+  Future<void> cancel() async {}
+}
+
+/// Records what was said, into a shared ordering log.
+class _LoggingSpeech extends FakeSpeechOutput {
+  _LoggingSpeech(this.log);
+
+  final List<String> log;
+
+  @override
+  Future<void> speak(String line, {bool quiet = false}) async {
+    await super.speak(line, quiet: quiet);
+    log.add('said: $line');
+  }
 }
 
 /// Voice available with Egyptian Arabic locale.
@@ -115,11 +176,16 @@ Widget _testApp(
   Widget child, {
   FakeMealRepository? repo,
   AiProvider? ai,
+  SpeechOutput? speech,
 }) {
   return ProviderScope(
     overrides: [
       if (repo != null) mealRepositoryProvider.overrideWithValue(repo),
       aiProviderProvider.overrideWithValue(ai ?? _stubAi()),
+      // Recorded rather than spoken. Without this every test here leans on the
+      // real engine's error handling to avoid reaching a paid provider, which
+      // is isolation by accident rather than by design.
+      speechOutputProvider.overrideWithValue(speech ?? FakeSpeechOutput()),
     ],
     child: MaterialApp(
       locale: const Locale('ar'),
@@ -1804,5 +1870,79 @@ void main() {
     expect(state.analysis, isNull);
     expect(state.approvals, isEmpty);
     expect(state.draft.mealId, 'draft-with-no-description');
+  });
+
+  testWidgets('the microphone closes BEFORE the next question is spoken',
+      (tester) async {
+    // The mic-close guard had no test at the level the bug lives, which is the
+    // same "each piece worked alone" shape that caused the original defect.
+    // Both reviewers said so and both were right.
+    //
+    // The assertion is ORDER, not presence: a mic that closes after the
+    // assistant starts talking is the failure, and a test that only checked
+    // both happened would pass on it.
+    final log = <String>[];
+    final repo = FakeMealRepository();
+
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _ListeningVoiceInput(log)),
+      repo: repo,
+      speech: _LoggingSpeech(log),
+    ));
+    await tester.pumpAndSettle();
+
+    // She taps the microphone and starts talking.
+    await tester.tap(find.byType(VoiceButton));
+    await tester.pumpAndSettle();
+
+    // Then taps «كمّل» while still mid-sentence.
+    await tester.tap(find.text(l10n.convContinue('other')));
+    await tester.pumpAndSettle();
+
+    final stopped = log.indexOf('microphone stopped');
+    final spokeNext = log.indexWhere(
+        (e) => e == 'said: ${l10n.mealConvPromptDescription('other')}');
+
+    expect(stopped, isNonNegative, reason: 'the microphone was never closed');
+    expect(spokeNext, isNonNegative,
+        reason: 'the next question was not spoken');
+    expect(
+      stopped,
+      lessThan(spokeNext),
+      reason: 'the assistant spoke into a live microphone',
+    );
+  });
+
+  testWidgets('the mute button silences the assistant on this screen',
+      (tester) async {
+    // The screen started speaking without a mute control, so a Cook beside a
+    // sleeping baby could only silence it by leaving and losing her answer.
+    final speech = FakeSpeechOutput();
+
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+      repo: FakeMealRepository(),
+      speech: speech,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(speech.spoken, isNotEmpty, reason: 'nothing was said to silence');
+    final saidBefore = speech.spoken.length;
+
+    await tester.tap(find.byType(KafooMuteButton));
+    await tester.pumpAndSettle();
+
+    expect(speech.isMuted, isTrue);
+    expect(speech.stopped, isTrue, reason: 'a sentence in progress kept going');
+
+    await tester.enterText(find.byType(TextField).first, 'كشري');
+    await tester.tap(find.text(l10n.convContinue('other')));
+    await tester.pumpAndSettle();
+
+    expect(
+      speech.spoken.length,
+      saidBefore,
+      reason: 'it went on talking after she muted it',
+    );
   });
 }
