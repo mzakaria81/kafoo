@@ -267,9 +267,24 @@ class _MealConversationScreenState
     // message and no way back except leaving the screen. A state that can only
     // be cleared on the happy path is a trap waiting for a future edit. Raised
     // by accessibility-reviewer on #461, round eight.
+    //
+    // **AND THE MICROPHONE STAYS SHUT WHEN IT FAILS.** A hush that threw is not
+    // a promise of silence, so opening the microphone anyway would be the
+    // overlap defect arriving through the error path instead of the happy one.
+    // Reported rather than swallowed — an error nobody records is a defect
+    // nobody can find — but not raised to the Cook: she can tap again, and the
+    // rest of the screen still works.
     setState(() => _preparing = true);
     try {
       await ref.read(assistantVoiceProvider.notifier).hush();
+    } on Object catch (error, stack) {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'kafoo',
+        context: ErrorDescription('silencing the assistant before listening'),
+      ));
+      return;
     } finally {
       if (mounted) setState(() => _preparing = false);
     }

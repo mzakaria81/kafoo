@@ -123,6 +123,16 @@ class _StallingStopSpeech extends FakeSpeechOutput {
   }
 }
 
+/// A stop that throws.
+///
+/// Every engine behind `hush()` swallows its own errors today, so the guard
+/// against one that does not was correct by inspection and proven by nothing —
+/// reverting it passed every test. Accessibility-reviewer, round nine.
+class _ThrowingStopSpeech extends FakeSpeechOutput {
+  @override
+  Future<void> stop() async => throw StateError('the platform channel is gone');
+}
+
 /// Voice available with Egyptian Arabic locale.
 class _EgyptianVoiceInput extends VoiceInput {
   @override
@@ -2002,6 +2012,46 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(listening(), isTrue, reason: 'the microphone never opened at all');
+  });
+
+  testWidgets('a stop that THROWS leaves the microphone button usable',
+      (tester) async {
+    // The acknowledgement disables the button, so a state cleared only on the
+    // happy path is a dead microphone with no message and no way back except
+    // leaving the screen. Nothing throws today, which is exactly why this needed
+    // a test rather than an inspection.
+    await tester.pumpWidget(_testApp(
+      MealConversationScreen(voiceInput: _ListeningVoiceInput(<String>[])),
+      repo: FakeMealRepository(),
+      speech: _ThrowingStopSpeech(),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(VoiceButton));
+    await tester.pumpAndSettle();
+    // Reported rather than swallowed, so it is here to be taken. An error the
+    // screen hid would leave nobody able to find it.
+    expect(tester.takeException(), isStateError);
+
+    expect(
+      tester.widget<VoiceButton>(find.byType(VoiceButton)).listening,
+      isFalse,
+      reason: 'a hush that failed is not a promise of silence',
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(find.descendant(
+            of: find.byType(VoiceButton),
+            matching: find.byType(OutlinedButton),
+          ))
+          .onPressed,
+      isNotNull,
+      reason: 'her microphone is dead until she leaves the screen',
+    );
+    expect(
+      tester.widget<VoiceButton>(find.byType(VoiceButton)).preparing,
+      isFalse,
+    );
   });
 
   testWidgets('the mute button silences the assistant on this screen',
