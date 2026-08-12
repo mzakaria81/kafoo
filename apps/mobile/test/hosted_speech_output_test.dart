@@ -279,6 +279,67 @@ void main() {
       expect(fallback.spoken, hasLength(1));
     });
 
+    test('a playback that resolves AFTER its timeout never doubles up',
+        () async {
+      // A timeout stops waiting, not the call. If the abandoned play starts a
+      // moment later it lands on top of the machine voice already talking.
+      final played = <Uint8List>[];
+      var stops = 0;
+      final release = Completer<void>();
+      final fallback = FakeSpeechOutput();
+      final speech = HostedSpeechOutput(
+        fallback: fallback,
+        fetchAudio: (line, voice) async => Uint8List.fromList([1, 2, 3]),
+        playAudio: (bytes, volume) async {
+          await release.future;
+          played.add(bytes);
+        },
+        stopAudio: () async => stops++,
+      );
+      await speech.initialize();
+
+      await speech.speak('تمام');
+      expect(fallback.spoken, hasLength(1), reason: 'no fallback after stall');
+      expect(stops, greaterThan(0),
+          reason: 'the abandoned playback was never silenced');
+
+      release.complete();
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test('a hush during a stalled playback stops the fallback speaking too',
+        () async {
+      final fallback = FakeSpeechOutput();
+      late HostedSpeechOutput speech;
+      speech = HostedSpeechOutput(
+        fallback: fallback,
+        fetchAudio: (line, voice) async => Uint8List.fromList([1, 2, 3]),
+        playAudio: (bytes, volume) async {
+          // She taps the microphone while playback is stalling.
+          await speech.stop();
+          await Completer<void>().future;
+        },
+        stopAudio: () async {},
+      );
+      await speech.initialize();
+
+      await speech.speak('تمام');
+
+      expect(
+        fallback.spoken,
+        isEmpty,
+        reason: 'the machine voice spoke after she opened the microphone',
+      );
+    });
+
+    test('the whole failure path stays inside the voice budget', () async {
+      expect(
+        HostedSpeechOutput.worstCaseBeforeAnyVoice,
+        lessThan(const Duration(seconds: 2)),
+        reason: 'only the founder may raise a budget',
+      );
+    });
+
     test('speaking stops whatever is already being said, both voices',
         () async {
       final t = build();

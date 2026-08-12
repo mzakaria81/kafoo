@@ -90,18 +90,27 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// **The fetch timeout alone was half a fix.** The bytes are already local by
   /// this point, so starting playback should be near-instant — but a platform
   /// audio call that stalls leaves `speak` never returning and nothing falling
-  /// back, which is the same silent-and-still state one step later. Found by
-  /// release-engineer on #461, after the fetch timeout had been added and
-  /// reported as done.
-  static const Duration _playTimeout = Duration(milliseconds: 700);
+  /// back, which is the same silent-and-still state one step later.
+  static const Duration _playTimeout = Duration(milliseconds: 400);
 
   /// How long to wait for the paid voice before falling back.
   ///
-  /// The voice round-trip budget is 2 seconds, and a stalled connection with no
-  /// timeout is an app that is silent AND still — the one thing a voice flow may
-  /// never be. Falling back to the machine voice inside the budget is a worse
-  /// voice; waiting forever is no voice at all.
-  static const Duration _fetchTimeout = Duration(seconds: 2);
+  /// A stalled connection with no timeout is an app that is silent AND still —
+  /// the one thing a voice flow may never be. Falling back to the machine voice
+  /// is a worse voice; waiting forever is no voice at all.
+  static const Duration _fetchTimeout = Duration(milliseconds: 1500);
+
+  /// **THE TWO TIMEOUTS ARE CHOSEN SO THEIR SUM FITS THE BUDGET, and that is the
+  /// point of stating them together.** The voice response budget is 2 seconds,
+  /// and the worst case here is a fetch that stalls AND a playback that stalls:
+  /// 1500 + 400 = 1900 ms before the machine voice starts. An earlier pair was
+  /// 2000 + 700, which put the failure path 700 ms over a budget only the
+  /// founder may raise — and shipped it without saying so. Found by
+  /// release-engineer on #461.
+  ///
+  /// Neither number is measured on a handset yet. What is guaranteed is the
+  /// ceiling, not the accuracy of either half.
+  static Duration get worstCaseBeforeAnyVoice => _fetchTimeout + _playTimeout;
 
   /// The stored answer to "which voice should the assistant use".
   static const String voicePreferenceKey = 'kafoo.voice.role';
@@ -212,8 +221,18 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
       await play(audio, quiet ? _quietVolume : _normalVolume)
           .timeout(_playTimeout);
     } on Object catch (_) {
-      // Playback failed after the audio arrived — a missing plugin, an audio
-      // focus refusal. Try the device voice rather than losing the sentence.
+      // **A TIMEOUT STOPS WAITING; IT DOES NOT CANCEL THE CALL.** The abandoned
+      // playback can still start a moment later, so it is silenced before the
+      // machine voice begins — otherwise the two talk over each other, or the
+      // late one arrives in a microphone that has since opened. That is the
+      // same bug this file already fixed twice, reopened through the timeout
+      // added to fix it. Found by three reviewers on #461, round three.
+      await _silence();
+
+      // And the same re-check the fetch path does. A hush or a mute during the
+      // stalled playback must not be undone by the fallback speaking anyway.
+      if (generation != _generation || isMuted) return;
+
       await _fallback.speak(line, quiet: quiet);
     }
   }
