@@ -1503,7 +1503,7 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}'**
   String voiceTalkButton(String addressForm);
 
-  /// Shown on the microphone button between the tap and the microphone opening, while the assistant is still being silenced. No address form: it is a statement about the app, not an instruction to the Cook. Never spoken — §10.2 'Interrupted' has no spoken line, because the point of the moment is that the assistant stops talking.
+  /// Shown on the microphone button between the tap and the microphone opening, while the assistant is still being silenced. No address form: it is a statement about the app, not an instruction to the Cook. Never spoken: the microphone opens the moment the assistant has stopped, so a line spoken while waiting could still be playing when it does.
   ///
   /// In ar, this message translates to:
   /// **'ثانية واحدة…'**

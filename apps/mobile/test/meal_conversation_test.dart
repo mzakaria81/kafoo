@@ -1977,6 +1977,26 @@ void main() {
       reason: 'the tap was not acknowledged while the assistant stopped',
     );
     expect(find.text(l10n.voicePreparing), findsOneWidget);
+    // The RENDERED button, not just the flag it was handed. A regression that
+    // kept the flag and dropped what it does — the changed glyph, the second
+    // tap it refuses — would otherwise pass.
+    expect(
+      tester
+          .widget<OutlinedButton>(find.descendant(
+            of: find.byType(VoiceButton),
+            matching: find.byType(OutlinedButton),
+          ))
+          .onPressed,
+      isNull,
+      reason: 'a second tap could land while the first was still waiting',
+    );
+    expect(
+      find.descendant(
+        of: find.byType(VoiceButton),
+        matching: find.byIcon(Icons.more_horiz),
+      ),
+      findsOneWidget,
+    );
 
     release.complete();
     await tester.pumpAndSettle();

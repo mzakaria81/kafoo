@@ -36,8 +36,25 @@ class VoiceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // §10.2 "Interrupted": one short pulse, and no spoken line — the assistant
-    // is being silenced, so speaking over the moment would be the bug.
+    // §10.2 "Interrupted": one short pulse. That state's silence covers the
+    // pulse, and the first version of this comment stretched it to cover the
+    // whole wait as well, which it does not — «Interrupted» assumes an instant,
+    // and this wait is unbounded by design. Raised by conversation-designer on
+    // #461, round eight, and the citation was wrong.
+    //
+    // **The wait is silent for a reason of its own, not by that citation.** The
+    // microphone opens the moment `hush()` returns, so a line spoken while
+    // waiting can still be playing when it does — the assistant talking into a
+    // live microphone, which is the exact defect six rounds of this PR went to
+    // close. §10.2 "Thinking" speaks after two seconds because nothing is about
+    // to listen; here something is.
+    //
+    // **What that leaves unanswered is a Cook who does not read**, on the rare
+    // tap where the wait runs long: she feels one pulse and then nothing.
+    // Silence is the safe answer, not a complete one, and the honest fix is a
+    // second pulse rather than a sentence. Not built — it is the founder's call
+    // whether an unmeasured, normally-imperceptible wait is worth a new
+    // behaviour in a voice flow.
     void tapped() {
       unawaited(HapticFeedback.selectionClick());
       onPressed();

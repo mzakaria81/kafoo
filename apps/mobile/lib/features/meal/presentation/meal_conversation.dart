@@ -260,13 +260,21 @@ class _MealConversationScreenState
     // purpose, so on a slow handset it is long enough to read as a button that
     // did nothing — §10.3, the failure where she taps again and cuts off her own
     // first words. The state is set before the await, never after it.
+    //
+    // **`finally`, because the acknowledgement disables the button.** Every
+    // engine behind `hush()` swallows its own errors today, so nothing here
+    // throws — but the day one does, a Cook's microphone goes dead with no
+    // message and no way back except leaving the screen. A state that can only
+    // be cleared on the happy path is a trap waiting for a future edit. Raised
+    // by accessibility-reviewer on #461, round eight.
     setState(() => _preparing = true);
-    await ref.read(assistantVoiceProvider.notifier).hush();
+    try {
+      await ref.read(assistantVoiceProvider.notifier).hush();
+    } finally {
+      if (mounted) setState(() => _preparing = false);
+    }
     if (!mounted) return;
-    setState(() {
-      _preparing = false;
-      _listening = true;
-    });
+    setState(() => _listening = true);
     await _voice.listen(
       onTranscript: (transcript, isFinal) {
         if (!mounted) return;
