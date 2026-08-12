@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
@@ -84,9 +86,14 @@ Widget _app({
   required FakeAccountRepository account,
   required FakeKitchenProfileRepository kitchen,
   FakeMealRepository? meals,
+  FakeSpeechOutput? speech,
 }) =>
     ProviderScope(
       overrides: [
+        // The assistant's voice, recorded rather than spoken. Left real it
+        // reaches Kafoo's `speak` function — and therefore a paid provider —
+        // from a widget test.
+        speechOutputProvider.overrideWithValue(speech ?? FakeSpeechOutput()),
         discoveryRepositoryProvider.overrideWithValue(
           FakeDiscoveryRepository(onOffer: _onOffer),
         ),
@@ -352,6 +359,88 @@ void main() {
     // with her own words still in the box.
     expect(find.text(l10n.mealConvPromptDescription('other')), findsNothing);
     expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
+  });
+
+  testWidgets('the app SAYS each question, not only shows it', (tester) async {
+    // ADR-0013: the assistant speaks and the screen is the receipt. The Meal
+    // conversation has listened since E2 and never once talked back, so a Cook
+    // who does not read comfortably met a wall of text with a microphone beside
+    // it.
+    //
+    // A JOURNEY RATHER THAN A WIDGET TEST, because the defect was not inside any
+    // widget: `AssistantVoice`, `SpeechOutput` and the conversation screen each
+    // worked perfectly alone, and nothing in the assembled app ever called one
+    // from the other. That is the same shape as the four Cook screens with no
+    // route into them.
+    final speech = FakeSpeechOutput();
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+      speech: speech,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    expect(
+      speech.spoken.map((s) => s.line),
+      contains(l10n.mealConvPromptDish),
+      reason: 'the first question was shown and never said',
+    );
+
+    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      speech.spoken.map((s) => s.line),
+      contains(l10n.mealConvPromptDescription('other')),
+      reason: 'the second question was shown and never said',
+    );
+  });
+
+  testWidgets('a question is said once, not on every keystroke',
+      (tester) async {
+    // A Cook typing a description rebuilds this screen on each character. An
+    // assistant that re-asks the question over her while she is answering it is
+    // worse than one that never spoke.
+    final speech = FakeSpeechOutput();
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+      speech: speech,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    for (final text in ['ك', 'كش', 'كشر', 'كشري']) {
+      await tester.enterText(_fieldOn(MealConversationScreen), text);
+      await tester.pump();
+    }
+
+    expect(
+      speech.spoken.where((s) => s.line == l10n.mealConvPromptDish).length,
+      1,
+      reason: 'the question was repeated while she was answering it',
+    );
   });
 
   testWidgets('a Cook prices her Meal in the digits her keyboard produces',

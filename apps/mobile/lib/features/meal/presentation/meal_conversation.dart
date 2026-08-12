@@ -9,6 +9,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/application/assistant_voice.dart';
 import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
@@ -196,12 +197,46 @@ class _MealConversationScreenState
     }
   }
 
+  /// The step whose question has already been said out loud.
+  ///
+  /// Without it, every rebuild would re-ask. A Cook typing a long description
+  /// rebuilds this screen on each keystroke, and an assistant that repeats the
+  /// question over her while she answers is worse than one that never spoke.
+  MealStepId? _spokenStep;
+
+  /// Says the question the screen is showing — the same sentence, not a summary.
+  ///
+  /// **This is the half that was missing.** The conversation has listened since
+  /// E2 and has never once talked back, so a Cook who cannot read comfortably
+  /// met a screen of text with a microphone attached. ADR-0013 is the other
+  /// direction: the assistant speaks, she speaks back, and the screen is the
+  /// receipt.
+  ///
+  /// Deferred by a microtask because `build` must stay pure — speaking is a side
+  /// effect, and calling it during a build is how a rebuild loop starts.
+  /// `_spokenStep` is set BEFORE the microtask, so two builds in the same frame
+  /// cannot both queue the same sentence.
+  void _speakQuestion(MealStepId id, String prompt) {
+    if (_spokenStep == id || prompt.isEmpty) return;
+    _spokenStep = id;
+    Future.microtask(() {
+      if (!mounted) return;
+      unawaited(ref.read(assistantVoiceProvider.notifier).say(prompt));
+    });
+  }
+
   Future<void> _toggleListening() async {
     if (_listening) {
       await _voice.stop();
       if (mounted) setState(() => _listening = false);
       return;
     }
+    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS, and this is an
+    // invariant rather than a courtesy: `voice.dart` asserts that no state has
+    // both the speaker and the microphone live, because otherwise the recogniser
+    // transcribes the assistant and the Cook hears herself talked over.
+    await ref.read(assistantVoiceProvider.notifier).hush();
+    if (!mounted) return;
     setState(() => _listening = true);
     await _voice.listen(
       onTranscript: (transcript, isFinal) {
@@ -302,6 +337,12 @@ class _MealConversationScreenState
                 prompt: _promptFor(l10n, step.id),
                 hint: _hintFor(l10n, step.id),
               ),
+              // Said aloud as well as shown. The screen is the receipt of what
+              // was spoken, not the place it first appears.
+              Builder(builder: (_) {
+                _speakQuestion(step.id, _promptFor(l10n, step.id));
+                return const SizedBox.shrink();
+              }),
               const SizedBox(height: KafooSpacing.lg),
               if (!isPhoto) ...[
                 TextField(
