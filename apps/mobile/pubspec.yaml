@@ -9,11 +9,21 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
+  # PLAYS THE PAID VOICE'S AUDIO, AND flutter_tts CANNOT.
+  #
+  # `flutter_tts` speaks text through the platform engine and owns its own
+  # playback; it has no way to play mp3 bytes that arrived from somewhere else.
+  # The Cairene voices come back from Kafoo's `speak` function as bytes, so
+  # something has to play them. Chosen over `just_audio` because it accepts a
+  # byte buffer directly (`BytesSource`) — `just_audio` wants a URI or a stream,
+  # which would mean writing every sentence to a temporary file first.
+  audioplayers: ^6.1.0
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^3.3.2
+  flutter_tts: ^4.2.5
   image_picker: ^1.1.0
   kafoo_ai:
     path: ../../packages/ai

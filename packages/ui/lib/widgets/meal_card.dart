@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
+import '../theme/typography.dart';
+import 'photo_placeholder.dart';
 
-/// A Meal as a Customer meets it in a list.
+/// A Meal as a Customer meets it.
 ///
 /// Takes plain values rather than a domain type on purpose: this package is the
 /// design system and must not depend on `packages/domain`, so the caller does
 /// the mapping and this stays a widget.
+///
+/// **The Cook's identity sits on the photo, not under the price.** Trust in
+/// Kafoo comes from the person; below the price, her name becomes a footnote to
+/// a transaction. That placement is the reason [kitchenLabel] is required
+/// rather than optional.
 ///
 /// **The photo is a named widget rather than an [Image] built inline**, and
 /// that is not a style choice. `Image.network` cannot resolve under the test
@@ -19,7 +26,13 @@ class MealCard extends StatelessWidget {
     required this.price,
     required this.kitchenLabel,
     required this.semanticsLabel,
+    required this.placeholderLabel,
+    this.priceUnit,
+    this.meta,
+    this.reviewScore,
     this.photoUrl,
+    this.action,
+    this.soldOutLabel,
     this.onTap,
     super.key,
   });
@@ -29,7 +42,16 @@ class MealCard extends StatelessWidget {
 
   /// Already formatted for the active locale. Never concatenated here — a price
   /// is money and formatting it is the caller's job with `intl`.
+  ///
+  /// Pass the numeral alone and put the currency in [priceUnit]: the number is
+  /// the decision the Customer is making, so it is set two steps larger than
+  /// the word beside it.
   final String price;
+
+  /// "جنيه", one step down from [price]. Optional, because a caller holding
+  /// only a combined string still renders correctly — just without the size
+  /// difference the design asks for.
+  final String? priceUnit;
 
   /// Who cooked it, already phrased ("from Fatma's Kitchen"). The first
   /// question a Customer asks, so it is required rather than optional.
@@ -44,13 +66,34 @@ class MealCard extends StatelessWidget {
   /// which is the thing placeholders exist to avoid.
   final String semanticsLabel;
 
+  /// How an empty photo slot reads aloud. Required: an image slot with no
+  /// photograph must announce itself as one, and a Meal without a photo is the
+  /// normal case until real photography is shot with the Cook.
+  final String placeholderLabel;
+
+  /// One line under the title — cuisine, distance, ready-by.
+  final String? meta;
+
+  /// The Review score, already formatted.
+  final String? reviewScore;
+
   final String? photoUrl;
+
+  /// The primary action. Wraps onto its own line rather than squeezing the
+  /// price when text is scaled up.
+  final Widget? action;
+
+  /// Set to mark the Meal sold out — the pill's text, already localized.
+  final String? soldOutLabel;
 
   final VoidCallback? onTap;
 
+  static const double _photoHeight = 180;
+
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final soldOut = soldOutLabel != null;
 
     // `excludeSemantics` on THIS node rather than an ExcludeSemantics child.
     //
@@ -65,85 +108,174 @@ class MealCard extends StatelessWidget {
       label: semanticsLabel,
       excludeSemantics: true,
       onTap: onTap,
-      child: Builder(
-        builder: (context) => Card(
+      child: Opacity(
+        opacity: soldOut ? 0.85 : 1,
+        child: Card(
           margin: const EdgeInsetsDirectional.only(bottom: KafooSpacing.md),
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsetsDirectional.all(KafooSpacing.md),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (photoUrl != null) ...[
-                    MealCardPhoto(url: photoUrl!),
-                    const SizedBox(width: KafooSpacing.md),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: textTheme.titleMedium),
-                        const SizedBox(height: KafooSpacing.xs),
-                        Text(kitchenLabel, style: textTheme.bodySmall),
-                        const SizedBox(height: KafooSpacing.sm),
-                        // THE LARGEST THING ON THE CARD, at 34/700.
-                        //
-                        // It was `titleSmall` — 14px, the smallest text here,
-                        // sitting under a 20px Meal name. Meanwhile a token test
-                        // asserted "a numeral is the largest thing in the system"
-                        // and passed, because it compared tokens to tokens and
-                        // never to a use. For a Cook who does not read
-                        // comfortably the price is the one reliably readable
-                        // element, and it was the hardest thing here to see.
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _photo(context, soldOut),
+                Padding(
+                  padding: const EdgeInsetsDirectional.all(KafooSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: KafooSpacing.xs,
+                    children: [
+                      // No truncation: a Customer must be able to read the
+                      // whole name, and a Cook her own Meal's.
+                      Text(title, style: theme.textTheme.titleLarge),
+                      if (meta != null)
                         Text(
-                          price,
-                          style: KafooType.numeralRow.copyWith(
-                            color: KafooColors.primaryDeep,
-                          ),
+                          meta!,
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: KafooColors.textMuted),
                         ),
-                      ],
-                    ),
+                      if (reviewScore != null)
+                        Text(
+                          reviewScore!,
+                          style: theme.textTheme.labelLarge
+                              ?.copyWith(color: KafooColors.primaryDeep),
+                        ),
+                      const SizedBox(height: KafooSpacing.xs),
+                      // Wraps rather than shrinking: at 200% text scale the
+                      // action drops below the price instead of squeezing it.
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: KafooSpacing.row,
+                        runSpacing: KafooSpacing.row,
+                        children: [
+                          _price(context),
+                          if (action != null) action!,
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
+  // A Wrap rather than a Row, and that is not interchangeable here. A price
+  // is never truncated and never shrunk — it is the decision the Customer is
+  // making — so when 24px doubles to 48px the number and its currency move
+  // onto separate lines instead of running off the card. A Row overflowed by
+  // 40 pixels at 200% on a 390px phone.
+  Widget _price(BuildContext context) => Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: KafooSpacing.xs,
+        children: [
+          Text(
+            price,
+            style: KafooType.numeralRow.copyWith(
+              fontSize: 24,
+              color: KafooColors.onSurface,
+            ),
+          ),
+          if (priceUnit != null)
+            Text(
+              priceUnit!,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(fontSize: 15, color: KafooColors.textMuted),
+            ),
+        ],
+      );
+
+  Widget _photo(BuildContext context, bool soldOut) => Stack(
+        children: [
+          SizedBox(
+            height: _photoHeight,
+            width: double.infinity,
+            child: photoUrl == null
+                ? KafooPhotoPlaceholder(
+                    semanticsLabel: placeholderLabel,
+                    label: placeholderLabel,
+                    borderRadius: 0,
+                  )
+                : MealCardPhoto(url: photoUrl!, height: _photoHeight),
+          ),
+          if (soldOut)
+            Positioned.fill(
+              child: ColoredBox(
+                color: KafooElevation.soldOutVeil,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: KafooSpacing.md,
+                      vertical: KafooSpacing.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: KafooColors.surface,
+                      borderRadius: BorderRadius.circular(KafooRadius.pill),
+                    ),
+                    child: Text(
+                      soldOutLabel!,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // The Cook, on the photo. See the class comment.
+          PositionedDirectional(
+            end: KafooSpacing.row,
+            bottom: KafooSpacing.row,
+            child: Container(
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: KafooSpacing.row,
+                vertical: KafooSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: KafooElevation.pillOnPhoto,
+                borderRadius: BorderRadius.circular(KafooRadius.pill),
+              ),
+              child: Text(
+                kitchenLabel,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(color: KafooColors.onSurface),
+              ),
+            ),
+          ),
+        ],
+      );
 }
 
 /// A Meal's photograph, named so a test can assert it is there without the
 /// network resolving. See the note on [MealCard].
 class MealCardPhoto extends StatelessWidget {
-  const MealCardPhoto({required this.url, super.key});
+  const MealCardPhoto({required this.url, this.height = 72, super.key});
 
   final String url;
-
-  static const double _size = 72;
+  final double height;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(KafooRadius.thumbnail),
-        child: Image.network(
-          url,
-          // A Meal photo beside the Meal's name is decorative in the semantics
-          // sense; announcing it is noise. Harmless while the card excluded its
-          // whole subtree — and no longer, now that it does not.
-          excludeFromSemantics: true,
-          width: _size,
-          height: _size,
-          fit: BoxFit.cover,
-          // A Meal whose photo will not load still has a name and a price, and
-          // those are what a Customer decides on. Losing the card over an image
-          // is the trade this refuses.
-          errorBuilder: (_, __, ___) => const SizedBox(
-            width: _size,
-            height: _size,
-            child: ColoredBox(color: KafooColors.surfaceSunken),
-          ),
+  Widget build(BuildContext context) => Image.network(
+        url,
+        // A Meal photo beside the Meal's name is decorative in the semantics
+        // sense; announcing it is noise. Harmless while the card excluded its
+        // whole subtree — and no longer, now that it does not.
+        excludeFromSemantics: true,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        // A Meal whose photo will not load still has a name and a price, and
+        // those are what a Customer decides on. Losing the card over an image
+        // is the trade this refuses.
+        errorBuilder: (_, __, ___) => SizedBox(
+          height: height,
+          child: const ColoredBox(color: KafooColors.surfaceSunken),
         ),
       );
 }

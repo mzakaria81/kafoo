@@ -1144,9 +1144,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myMealsStatusDraft => 'مسودة';
 
   @override
-  String get myMealsStatusPublished => 'على المنيو';
-
-  @override
   String get myMealsStatusUnavailable => 'مش متاحة دلوقتي';
 
   @override
@@ -1595,4 +1592,376 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get photoPlaceholder => 'مكان صورة مؤقت — مش هينزل في النسخة النهائية';
+
+  @override
+  String voiceIdle(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أنا معاكي. دوسي واتكلمي.',
+        'other': 'أنا معاك. دوس واتكلم.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceStillHere(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'لسه معاكي، ثانية.',
+        'other': 'لسه معاك، ثانية.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceNotHeard(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'معلش، مافهمتش. قوليها تاني؟',
+        'other': 'معلش، مافهمتش. قولها تاني؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTooNoisy(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الدوشة عالية — قرّبي الموبايل من بوقك وقولي تاني.',
+        'other': 'الدوشة عالية — قرّب الموبايل من بوقك وقول تاني.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceOfflineQueued =>
+      'مفيش نت. اللي اتكتب على الشاشة محفوظ، بس الكلام مش هيتسجل لحد ما النت يرجع.';
+
+  @override
+  String voiceTapFallback(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'خلاص، هوريكي الاختيارات وانتي دوسي على اللي عايزاه.',
+        'other': 'خلاص، هوريك الاختيارات وانت دوس على اللي عايزه.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceTalkButton(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'دوسي واتكلمي',
+        'other': 'دوس واتكلم',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voicePreparing => 'ثانية واحدة…';
+
+  @override
+  String voiceMuteSilence(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسكتي صوت المساعد',
+        'other': 'اسكت صوت المساعد',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceMuteRestore(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'رجّعي صوت المساعد',
+        'other': 'رجّع صوت المساعد',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceRecording => 'بيسجل دلوقتي';
+
+  @override
+  String get gateAnswerYes => 'أيوة';
+
+  @override
+  String get gateAnswerNo => 'لأ، استنى';
+
+  @override
+  String gateSilenceFootnote(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'لو مقولتيش حاجة، مفيش حاجة هتحصل.',
+        'other': 'لو مقولتش حاجة، مفيش حاجة هتحصل.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsLoading => 'بحمّل أكلاتك…';
+
+  @override
+  String get glancePublished => 'على المنيو';
+
+  @override
+  String get glanceDraft => 'مسودة';
+
+  @override
+  String get glanceUnavailable => 'مش متاحة';
+
+  @override
+  String get glanceArchived => 'أرشيف';
+
+  @override
+  String get glanceOffline => 'مفيش نت';
+
+  @override
+  String get glanceSaved => 'محفوظ';
+
+  @override
+  String myMealsSpokenSummary(String addressForm, int total, int published) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'عندك $total أكلة، منهم $published على المنيو. عايزة تعملي إيه؟',
+        'other': 'عندك $total أكلة، منهم $published على المنيو. عايز تعمل إيه؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsHearAgain(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسمعيها تاني',
+        'other': 'اسمعها تاني',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsHearRow(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسمعي الأكلة دي',
+        'other': 'اسمع الأكلة دي',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsRowActions => 'حاجات تانية للأكلة دي';
+
+  @override
+  String myMealsAddByHand(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أو ضيفي أكلة بإيدك',
+        'other': 'أو ضيف أكلة بإيدك',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String voiceNotReadyYet(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الكلام لسه مش شغال — ضيفي بإيدك دلوقتي',
+        'other': 'الكلام لسه مش شغال — ضيف بإيدك دلوقتي',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsEmptyInvitation => 'احكيلي عن أكلة';
+
+  @override
+  String myMealsEmptySpoken(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قوليلي اسم الأكلة وأنا هكمل معاكي.',
+        'other': 'قوللي اسم الأكلة وأنا هكمل معاك.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsEmptyByHand(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أو اكتبيها بإيدك',
+        'other': 'أو اكتبها بإيدك',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myMealsOfflineReassurance =>
+      'أكلاتك كلها في أمان. المشكلة في النت بس.';
+
+  @override
+  String myMealsCachedAt(String time) {
+    return 'آخر نسخة محفوظة · $time';
+  }
+
+  @override
+  String myMealsRetry(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي تاني',
+        'other': 'جرب تاني',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publishGateQuestion => 'تنشر؟';
+
+  @override
+  String publishGateReadback(String name, String price) {
+    return '$name بـ $price جنيه، هتتنشر وتبقى على المنيو دلوقتي.';
+  }
+
+  @override
+  String publishGateYes(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أيوة، انشريها',
+        'other': 'أيوة، انشرها',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recognitionNarrowQuestion(String addressForm, String guess) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'الأكلة اسمها $guess؟ قولي أيوة أو لأ.',
+        'other': 'الأكلة اسمها $guess؟ قول أيوة أو لأ.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recognitionNoneOfThese => 'مفيش حاجة من دول';
+
+  @override
+  String get publicMealPriceUnit => 'جنيه';
+
+  @override
+  String mealRowSemanticLabel(String name, String status, String price) {
+    return '$name، $status، $price';
+  }
+
+  @override
+  String mealRetireQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تشيليها خالص؟',
+        'other': 'تشيلها خالص؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealDeleteDraftQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تمسحي المسودة؟',
+        'other': 'تمسح المسودة؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealLastOnOfferQuestion(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'تقفلي المطبخ؟',
+        'other': 'تقفل المطبخ؟',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealOfflineError(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'جربي',
+        'other': 'جرب',
+      },
+    );
+    return 'مش لاقيين النت. $_temp0 تاني لما يرجع.';
+  }
+
+  @override
+  String get myMealsFailedTitle => 'في حاجة مش مظبوطة';
+
+  @override
+  String get myMealsFailedReassurance => 'أكلاتك كلها في أمان.';
+
+  @override
+  String get mealNoPhotoYet => 'مفيش صورة للأكلة دي لسه';
+
+  @override
+  String get mealSpokenTakenOffMenu => 'تمام، شلتها من المنيو.';
+
+  @override
+  String get mealSpokenBackOnMenu => 'تمام، رجّعتها على المنيو.';
+
+  @override
+  String get mealSpokenRetired => 'تمام، اتشالت خلاص.';
+
+  @override
+  String get mealSpokenDraftDeleted => 'تمام، مسحت المسودة.';
 }

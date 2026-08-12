@@ -114,6 +114,40 @@ depends on to know whether it passed.
 **Exclusivity solves file contention, not resource contention.** Two parallel packages still share
 the OpenCode spend caps, which is what the envelope is for.
 
+## Pull `main` before you plan, and say what you found there
+
+**This is the one rule in this file that has now failed twice, and the second time it cost the
+founder a decision rather than only some work.**
+
+On 2026-08-05 two sessions each built the Cook's Meal list; the note at the top of this file records
+it. On **2026-08-11** it happened again, in a worse shape. A session spent two hours designing the
+voice system, wrote a plan, and got the founder's approval to build it. While that was happening,
+another session merged the whole thing — the nine states, the confirmation gate, the glance words,
+a device voice behind a seam, the recognition failure ladder — in PRs #457 and #459. The branch had
+been cut before any of it existed and was never refreshed, so nothing in the working tree could have
+said so.
+
+**The founder approved work that was already merged.** That is the harm, and it is worse than
+duplicated effort: he spent his judgement on a decision that had already been made, and had no way
+to know.
+
+So, before proposing anything and before writing a plan:
+
+1. **`git fetch origin main` and read what landed.** Not `git status`, which is silent about the
+   remote. A branch cut an hour ago is already a different repository.
+2. **Say in the plan what you found.** One line naming the newest commit on `main` you read, so the
+   founder can see the plan was written against today's repository rather than yesterday's. A plan
+   with no such line has not established that it is not a duplicate.
+3. **Grep `main` for the thing you are about to build**, by concept and not only by filename. The
+   duplicate on 2026-08-11 shared a path — `packages/domain/lib/voice.dart` — and would have been
+   caught by the most cursory look at the remote.
+4. **Re-fetch before opening a PR.** The gap between planning and pushing is exactly where the
+   collision lands, and `verify.sh` cannot see it: the gate grades the working tree, and a working
+   tree that is five commits stale is internally consistent and confidently wrong.
+
+**Nothing mechanical enforces this**, which is why it is written as a rule the founder can point at.
+`validate-coordination.py` reads work packages; it cannot know what a session is about to design.
+
 ## The limit worth stating plainly
 
 **File-disjoint packages are not achievable in this repository, and pretending otherwise hides

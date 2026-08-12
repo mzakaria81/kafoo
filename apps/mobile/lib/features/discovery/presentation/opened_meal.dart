@@ -74,7 +74,7 @@ class _OpenedMealState extends ConsumerState<OpenedMeal> {
                   l10n.mealNoLongerOnOffer,
                   style: DefaultTextStyle.of(inner)
                       .style
-                      .copyWith(color: KafooColors.danger),
+                      .copyWith(color: KafooColors.error),
                 ),
               ),
             )

@@ -9,6 +9,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/application/assistant_voice.dart';
 import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
 import '../../conversation/presentation/conversation_question.dart';
@@ -69,6 +70,7 @@ class _MealConversationScreenState
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
   bool _voiceAvailable = false;
   bool _listening = false;
+  bool _preparing = false;
   bool _uploading = false;
 
   /// Set once the person speaks or types on the current step, so the funnel
@@ -136,6 +138,20 @@ class _MealConversationScreenState
     final step = _currentStep;
     if (step == null) return;
 
+    // CLOSE THE MICROPHONE BEFORE THE NEXT QUESTION IS SPOKEN.
+    //
+    // A Cook can tap «كمّل» while still mid-sentence, with a partial transcript
+    // already in the box — she has said enough and wants to move on. Without
+    // this the recogniser is still listening when the next question is said
+    // aloud, so the assistant talks into a live microphone and she hears herself
+    // being spoken over. Worse in a kitchen, which is the room this product is
+    // for.
+    if (_listening) {
+      await _voice.stop();
+      if (!mounted) return;
+      setState(() => _listening = false);
+    }
+
     final controller = ref.read(mealConversationControllerProvider.notifier);
     final success = await controller.answer(step.id, answer);
 
@@ -196,12 +212,83 @@ class _MealConversationScreenState
     }
   }
 
+  /// The step whose question has already been said out loud.
+  ///
+  /// Without it, every rebuild would re-ask. A Cook typing a long description
+  /// rebuilds this screen on each keystroke, and an assistant that repeats the
+  /// question over her while she answers is worse than one that never spoke.
+  MealStepId? _spokenStep;
+
+  /// Says the question the screen is showing — the same sentence, not a summary.
+  ///
+  /// **This is the half that was missing.** The conversation has listened since
+  /// E2 and has never once talked back, so a Cook who cannot read comfortably
+  /// met a screen of text with a microphone attached. ADR-0013 is the other
+  /// direction: the assistant speaks, she speaks back, and the screen is the
+  /// receipt.
+  ///
+  /// Deferred by a microtask because `build` must stay pure — speaking is a side
+  /// effect, and calling it during a build is how a rebuild loop starts.
+  /// `_spokenStep` is set BEFORE the microtask, so two builds in the same frame
+  /// cannot both queue the same sentence.
+  void _speakQuestion(MealStepId id, String prompt) {
+    if (_spokenStep == id || prompt.isEmpty) return;
+    _spokenStep = id;
+    Future.microtask(() {
+      if (!mounted) return;
+      unawaited(ref.read(assistantVoiceProvider.notifier).say(prompt));
+    });
+  }
+
   Future<void> _toggleListening() async {
     if (_listening) {
       await _voice.stop();
       if (mounted) setState(() => _listening = false);
       return;
     }
+    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS.
+    //
+    // `voice.dart` states this as a property of the nine states and
+    // `voice_test.dart` asserts it there — but that is a check over an enum, not
+    // a guard over a running speaker and a running microphone. **The runtime
+    // guard is this call and the generation counter behind it**, and an earlier
+    // version of this comment claimed the enum test enforced it. It does not.
+    // A false claim of safety is worse than no comment, because it stops the
+    // next person looking.
+    //
+    // **AND THE BUTTON SAYS SO WHILE IT WAITS.** That wait is unbounded on
+    // purpose, so on a slow handset it is long enough to read as a button that
+    // did nothing — §10.3, the failure where she taps again and cuts off her own
+    // first words. The state is set before the await, never after it.
+    //
+    // **`finally`, because the acknowledgement disables the button.** Every
+    // engine behind `hush()` swallows its own errors today, so nothing here
+    // throws — but the day one does, a Cook's microphone goes dead with no
+    // message and no way back except leaving the screen. A state that can only
+    // be cleared on the happy path is a trap waiting for a future edit. Raised
+    // by accessibility-reviewer on #461, round eight.
+    //
+    // **AND THE MICROPHONE STAYS SHUT WHEN IT FAILS.** A hush that threw is not
+    // a promise of silence, so opening the microphone anyway would be the
+    // overlap defect arriving through the error path instead of the happy one.
+    // Reported rather than swallowed — an error nobody records is a defect
+    // nobody can find — but not raised to the Cook: she can tap again, and the
+    // rest of the screen still works.
+    setState(() => _preparing = true);
+    try {
+      await ref.read(assistantVoiceProvider.notifier).hush();
+    } on Object catch (error, stack) {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'kafoo',
+        context: ErrorDescription('silencing the assistant before listening'),
+      ));
+      return;
+    } finally {
+      if (mounted) setState(() => _preparing = false);
+    }
+    if (!mounted) return;
     setState(() => _listening = true);
     await _voice.listen(
       onTranscript: (transcript, isFinal) {
@@ -277,8 +364,26 @@ class _MealConversationScreenState
 
     final isPhoto = step.id == MealStepId.photo;
 
+    final voice = ref.watch(assistantVoiceProvider);
+
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          // Every screen that speaks carries the mute control, top inline-end,
+          // and it persists until reversed. This screen started speaking and did
+          // not get one — so a Cook beside a sleeping baby could only silence it
+          // by leaving the screen, which loses the question she was answering.
+          KafooMuteButton(
+            muted: voice.muted,
+            label: voice.muted
+                ? l10n.voiceMuteRestore(context.addressForm)
+                : l10n.voiceMuteSilence(context.addressForm),
+            onChanged: (muted) => ref
+                .read(assistantVoiceProvider.notifier)
+                .setMuted(muted: muted),
+          ),
+        ],
+      ),
       // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
       // by 182 logical pixels, up from 4 before the theme once the design system's type scale landed, and an overflowing
       // Column resolves it by clipping its LAST child — the button that submits.
@@ -302,6 +407,12 @@ class _MealConversationScreenState
                 prompt: _promptFor(l10n, step.id),
                 hint: _hintFor(l10n, step.id),
               ),
+              // Said aloud as well as shown. The screen is the receipt of what
+              // was spoken, not the place it first appears.
+              Builder(builder: (_) {
+                _speakQuestion(step.id, _promptFor(l10n, step.id));
+                return const SizedBox.shrink();
+              }),
               const SizedBox(height: KafooSpacing.lg),
               if (!isPhoto) ...[
                 TextField(
@@ -322,7 +433,10 @@ class _MealConversationScreenState
                 if (_voiceAvailable)
                   VoiceButton(
                     listening: _listening,
-                    label: l10n.convVoiceHint(context.addressForm),
+                    preparing: _preparing,
+                    label: _preparing
+                        ? l10n.voicePreparing
+                        : l10n.convVoiceHint(context.addressForm),
                     onPressed: _toggleListening,
                   )
                 else

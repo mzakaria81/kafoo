@@ -15,6 +15,7 @@ Installed: 2026-07-26
 | `opencode-delegate`, `claude-delegate` | [amElnagdy/delegate-skills](https://github.com/amElnagdy/delegate-skills) | `b28d826` | MIT |
 | `caveman`, `caveman-commit`, `caveman-compress`, `caveman-help`, `caveman-review`, `caveman-stats`, `cavecrew` | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | `7066cc8` | MIT |
 | `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help`, `ponytail-review` | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) | `16f2980` | MIT |
+| `improve-codebase-architecture`, `codebase-design` (added 2026-08-11) | [mattpocock/skills](https://github.com/mattpocock/skills) | `84fdeff` | MIT |
 
 License texts are alongside this file. CC BY 4.0 requires attribution — keep
 `task-observer.LICENSE` and the credit above with any redistribution.
@@ -29,6 +30,7 @@ silently discards the change or stalls on a diff nobody can explain.
 | Skill | Patched | Change | Re-apply after upstream update? |
 |---|---|---|---|
 | `task-observer` | 2026-08-10 | "Name the destination before writing the fix" under *Acting on Observations*, plus its Quick Reference row. From observation #134: corrections gravitate to whichever file is open, which is how an always-loaded instruction file grows without anyone deciding it should. | Yes, unless upstream has adopted an equivalent rule. CC BY 4.0 permits the adaptation; the attribution above stays. |
+| `improve-codebase-architecture` | 2026-08-11 | Four path/tooling substitutions, no methodology change. `CONTEXT.md` → `docs/vision/glossary.md` + `CLAUDE.md`'s canonical-vocabulary table; `docs/adr/` → `decisions/`; temp-file-plus-`xdg-open` → publish as an Artifact with inlined CSS (Kafoo sessions are headless, and the Artifact host's content-security policy blocks the Tailwind and Mermaid CDNs the upstream scaffold loads); the two skills it calls that are not installed here (`/grilling`, `/domain-modeling`) replaced with the equivalent Kafoo procedure. | Yes — every one of them is Kafoo-specific and upstream will never adopt them. A future update must be re-patched, not taken clean. |
 
 Kafoo-specific configuration is deliberately kept **out** of vendored skill
 bodies and in a separate reference file the skill points at — see
@@ -44,6 +46,17 @@ body only for a change that is general enough to send upstream.
   not installed — add them from the source repo if wanted.
 - Upstream skill names are preserved because Superpowers skills cross-reference each other by
   name; renaming them breaks those references.
+- **mattpocock/skills**: two skills of ~30. `improve-codebase-architecture` is the one that was
+  asked for; `codebase-design` is its hard dependency — it supplies the vocabulary (module,
+  interface, depth, seam, adapter, leverage, locality) the review is written in, and without it
+  the review drifts into "component" and "service". Nothing else from that repository is
+  installed, and two of the skills the installed pair reference are deliberately absent:
+  `/domain-modeling`, because it would create a root `CONTEXT.md` duplicating
+  `docs/vision/glossary.md` and `CLAUDE.md` — one name per concept, in one file — and
+  `/grilling`, because **it is referenced by the upstream skill but not published in the
+  upstream repository**. Both are handled by the local patch above rather than by a stub.
+  The rest of the set overlaps heavily with `speckit-*` and the Superpowers skills already
+  here; add one with `npx skills add mattpocock/skills --skill <name>` if a gap appears.
 
 ### delegate-skills: 5 of 7 variants omitted
 

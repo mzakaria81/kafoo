@@ -49,7 +49,7 @@ Full spec in DESIGN.md §10. The shape of it:
 - **No transcript** — the assistant paraphrases what it understood. **One exception:** a message to another human is read back **verbatim** before sending, because those exact words are what the other person receives.
 - **Failure ladder:** ask again once → ask a narrower yes/no question → fall back to tapping photos and numerals. Never ask her to type as a consequence. Never blame the speaker.
 - **Always-on speech**, with a persistent 48dp mute control, money spoken quietly, and a **recording indicator that cannot be switched off**.
-- **Glance words** — a closed set of eleven Arabic words that may appear large (منشورة، مسودة، مش متاحة، أرشيف، طلب جديد، وصل، اتلغى، محفوظ، مفيش نت، اتبعت، اتقرت), each fixed in size, weight, colour and position so it is recognised by shape. Never introduce a twelfth without adding it to the set.
+- **Glance words** — a closed set of eleven Arabic words that may appear large (على المنيو، مسودة، مش متاحة، أرشيف، طلب جديد، وصل، اتلغى، محفوظ، مفيش نت، اتبعت، اتقرت), each fixed in size, weight, colour and position so it is recognised by shape. Never introduce a twelfth without adding it to the set.
 - **Numerals are the largest type in the system**: 34px in a row, 48–64px as a verdict, Arabic-Indic, never abbreviated.
 
 ### Messaging (DESIGN.md §10.12)
@@ -213,6 +213,12 @@ makes them exactly what somebody reaches for when a store listing needs pictures
 they become synthetic Cooks and Meals presented as real, which `business-rules.md` calls
 product-fatal.** Store and TestFlight screenshots come from a real build with real Meals. Never from
 here.
+
+## How this was implemented
+
+`implementation-notes.md` — where each layer of the handoff lives in code, and the places the
+code deliberately differs from `DESIGN.md`. `backend-gaps.md` — the controls that are drawn as
+designed and cannot work yet, and what each one needs.
 
 ## Files
 

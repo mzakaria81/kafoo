@@ -1,3 +1,4 @@
+import { arabicIndic } from '@/lib/numerals';
 import ar from '@/messages/ar.json';
 import en from '@/messages/en.json';
 
@@ -41,5 +42,10 @@ export function fill(template: string, values: Record<string, string>): string {
  * naked number.
  */
 export function priceLabel(price: string, locale: Locale = DEFAULT_LOCALE): string {
-  return fill(messages(locale).publicMealPriceValue, { price });
+  return fill(messages(locale).publicMealPriceValue, {
+    // Arabic reads ٣٥; English reads 35. Glyphs only — see lib/numerals.ts for
+    // why a transliteration is the only price formatting that cannot lose a
+    // piastre, and why phone numbers and codes are excluded from it.
+    price: locale === 'ar' ? arabicIndic(price) : price,
+  });
 }

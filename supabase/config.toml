@@ -130,3 +130,10 @@ verify_jwt = true
 [functions.embed-meal]
 enabled = true
 verify_jwt = true
+
+# Turns a Kafoo sentence into Cairene speech. Holds ELEVENLABS_API_KEY, no
+# database client and no write path — see the banner in its index.ts for why the
+# key cannot live in the app instead.
+[functions.speak]
+enabled = true
+verify_jwt = true

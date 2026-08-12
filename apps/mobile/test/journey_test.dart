@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
@@ -84,9 +86,14 @@ Widget _app({
   required FakeAccountRepository account,
   required FakeKitchenProfileRepository kitchen,
   FakeMealRepository? meals,
+  FakeSpeechOutput? speech,
 }) =>
     ProviderScope(
       overrides: [
+        // The assistant's voice, recorded rather than spoken. Left real it
+        // reaches Kafoo's `speak` function — and therefore a paid provider —
+        // from a widget test.
+        speechOutputProvider.overrideWithValue(speech ?? FakeSpeechOutput()),
         discoveryRepositoryProvider.overrideWithValue(
           FakeDiscoveryRepository(onOffer: _onOffer),
         ),
@@ -354,6 +361,88 @@ void main() {
     expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
   });
 
+  testWidgets('the app SAYS each question, not only shows it', (tester) async {
+    // ADR-0013: the assistant speaks and the screen is the receipt. The Meal
+    // conversation has listened since E2 and never once talked back, so a Cook
+    // who does not read comfortably met a wall of text with a microphone beside
+    // it.
+    //
+    // A JOURNEY RATHER THAN A WIDGET TEST, because the defect was not inside any
+    // widget: `AssistantVoice`, `SpeechOutput` and the conversation screen each
+    // worked perfectly alone, and nothing in the assembled app ever called one
+    // from the other. That is the same shape as the four Cook screens with no
+    // route into them.
+    final speech = FakeSpeechOutput();
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+      speech: speech,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    expect(
+      speech.spoken.map((s) => s.line),
+      contains(l10n.mealConvPromptDish),
+      reason: 'the first question was shown and never said',
+    );
+
+    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
+    await tester.tap(_buttonOn(
+      MealConversationScreen,
+      l10n.convContinue('other'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      speech.spoken.map((s) => s.line),
+      contains(l10n.mealConvPromptDescription('other')),
+      reason: 'the second question was shown and never said',
+    );
+  });
+
+  testWidgets('a question is said once, not on every keystroke',
+      (tester) async {
+    // A Cook typing a description rebuilds this screen on each character. An
+    // assistant that re-asks the question over her while she is answering it is
+    // worse than one that never spoke.
+    final speech = FakeSpeechOutput();
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+      speech: speech,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    for (final text in ['ك', 'كش', 'كشر', 'كشري']) {
+      await tester.enterText(_fieldOn(MealConversationScreen), text);
+      await tester.pump();
+    }
+
+    expect(
+      speech.spoken.where((s) => s.line == l10n.mealConvPromptDish).length,
+      1,
+      reason: 'the question was repeated while she was answering it',
+    );
+  });
+
   testWidgets('a Cook prices her Meal in the digits her keyboard produces',
       (tester) async {
     // THE SECOND JOURNEY BROKEN IN THE FOUNDER'S HAND ON 2026-08-11, on the very
@@ -444,6 +533,42 @@ void main() {
     expect(find.text(l10n.mealConvPromptPrice('other')), findsNothing);
   });
 
+  testWidgets('«أضيف بإيدي» reaches the Meal creation flow, not the way out',
+      (tester) async {
+    // 2026-08-11, found in review: the button promised the creation flow and
+    // called `maybePop`. It closed the Meal list and put a Cook back on Home
+    // with nothing started — and because Home is what sits underneath, the
+    // screen it left looked like a screen it had arrived at.
+    //
+    // THE DEPARTURE IS HALF THE ASSERTION. `findsOneWidget` on the destination
+    // passes for a route that was pushed on top of a list nobody popped; only
+    // `findsNothing` on the list proves the Cook actually went somewhere.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      // No Kitchen Profile: the creation flow's first screen then asks her to
+      // make one, which is a stable thing to assert on and is the branch a new
+      // Cook actually meets.
+      kitchen: FakeKitchenProfileRepository(),
+      meals: FakeMealRepository(),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The empty list's own version of the button.
+    await tester.tap(find.text(l10n.myMealsEmptyByHand('other')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealNeedsKitchenTitle), findsOneWidget);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
+  });
+
   testWidgets('a Cook comes back to a half-finished Meal and carries on',
       (tester) async {
     // 2026-08-11: he saved a Meal half-answered, came back, tapped «كمّل الأكلة
@@ -484,6 +609,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The row's actions moved into a bottom sheet when the Meal list became
+    // voice-first: a row led by a 34px price and a glance word cannot also
+    // carry four text buttons. The handover this test guards is unchanged —
+    // only the gesture that reaches it.
+    await tester.tap(find.byIcon(Icons.more_horiz).first);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l10n.mealResumeDraft('other')));
