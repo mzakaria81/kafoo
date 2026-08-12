@@ -147,6 +147,35 @@ void main() {
       );
     });
 
+    test('re-choosing the voice already speaking does not cut it off',
+        () async {
+      // The other half of the change above, and the half that could regress
+      // without anyone noticing: storing the answer must not come at the cost
+      // of interrupting a sentence the Cook is in the middle of hearing, to
+      // confirm a voice she is already listening to. Raised as untested by
+      // release-engineer on #462.
+      var stops = 0;
+      final speech = HostedSpeechOutput(
+        fallback: FakeSpeechOutput(),
+        fetchAudio: (line, voice) async => audio(1),
+        playAudio: (bytes, volume) async {},
+        stopAudio: () async => stops++,
+      );
+      await speech.initialize();
+      await speech.speak('تمام');
+      final before = stops;
+
+      await speech.setRole(AssistantVoiceRole.defaultRole);
+      expect(stops, before, reason: 'it interrupted itself for no change');
+
+      await speech.setRole(AssistantVoiceRole.female);
+      expect(
+        stops,
+        greaterThan(before),
+        reason: 'a real change must stop the old voice mid-sentence',
+      );
+    });
+
     test('a repeated line is bought once', () async {
       final t = build();
       await t.speech.initialize();

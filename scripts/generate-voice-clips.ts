@@ -203,7 +203,38 @@ if (import.meta.main) {
       );
       Deno.exit(1);
     }
-    console.log(`ok — all ${clips.length} bundled voice clips present`);
+
+    // AND THE OTHER DIRECTION, WHICH IS THE ONE NOBODY WOULD EVER SEE. Editing a spoken sentence
+    // changes its filename, because the name is a hash of the words. The new wording is bought and
+    // the OLD FILE STAYS — shipped in every APK from then on, saying words the product no longer
+    // uses, invisible to `git status` (a stale .mp3 looks like any other .mp3), invisible to a
+    // reviewer, and invisible to the check above, which only ever asks whether what should exist
+    // does. There are zero orphans today; the very next wording change starts making them.
+    // Raised by release-engineer on #462.
+    const expected = new Set(clips.map((clip) => `${clip.role}/${clip.name}.mp3`));
+    const orphans: string[] = [];
+    for (const role of Object.keys(VOICES) as VoiceRole[]) {
+      try {
+        for await (const entry of Deno.readDir(new URL(`${role}/`, OUT_DIR))) {
+          if (!entry.isFile) continue;
+          const relative = `${role}/${entry.name}`;
+          if (!expected.has(relative)) orphans.push(relative);
+        }
+      } catch {
+        // No directory for this voice. The missing-clip check above has already spoken.
+      }
+    }
+    if (orphans.length > 0) {
+      console.error(
+        `${orphans.length} bundled voice clip(s) belong to no sentence Kafoo says. They are dead ` +
+          `weight in every install and will be read aloud by nothing:`,
+      );
+      for (const orphan of orphans.sort()) console.error(`  apps/mobile/assets/voice/${orphan}`);
+      console.error('\nDelete them, or regenerate if a sentence was meant to keep its audio.');
+      Deno.exit(1);
+    }
+
+    console.log(`ok — all ${clips.length} bundled voice clips present, and none orphaned`);
     Deno.exit(0);
   }
 
