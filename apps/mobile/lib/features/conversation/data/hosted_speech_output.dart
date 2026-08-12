@@ -91,26 +91,43 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// this point, so starting playback should be near-instant — but a platform
   /// audio call that stalls leaves `speak` never returning and nothing falling
   /// back, which is the same silent-and-still state one step later.
-  static const Duration _playTimeout = Duration(milliseconds: 400);
+  static const Duration _playTimeout = Duration(milliseconds: 300);
+
+  /// How long to wait for a stop to take effect.
+  ///
+  /// **The fix for a stalled call must not itself be able to stall**, which is
+  /// the mistake the previous two rounds each made one layer down. `_silence()`
+  /// is a platform-channel call in exactly the same family as the one that
+  /// needed a timeout in the first place, and it was added inside the timeout
+  /// handler with no bound of its own. Found by release-engineer on #461,
+  /// round four.
+  static const Duration _stopTimeout = Duration(milliseconds: 300);
 
   /// How long to wait for the paid voice before falling back.
   ///
   /// A stalled connection with no timeout is an app that is silent AND still —
   /// the one thing a voice flow may never be. Falling back to the machine voice
   /// is a worse voice; waiting forever is no voice at all.
-  static const Duration _fetchTimeout = Duration(milliseconds: 1500);
+  static const Duration _fetchTimeout = Duration(milliseconds: 1000);
 
-  /// **THE TWO TIMEOUTS ARE CHOSEN SO THEIR SUM FITS THE BUDGET, and that is the
-  /// point of stating them together.** The voice response budget is 2 seconds,
-  /// and the worst case here is a fetch that stalls AND a playback that stalls:
-  /// 1500 + 400 = 1900 ms before the machine voice starts. An earlier pair was
-  /// 2000 + 700, which put the failure path 700 ms over a budget only the
-  /// founder may raise — and shipped it without saying so. Found by
-  /// release-engineer on #461.
+  /// **EVERY WAIT ON THE FAILURE PATH, ADDED UP, AND THAT IS THE POINT OF THE
+  /// GETTER.** The voice response budget is 2 seconds. The worst case is a fetch
+  /// that stalls, then a playback that stalls, then the stop that abandons it
+  /// stalling too — **and the silence at the START of `speak` stalling as well,
+  /// which the first version of this sum also missed.** 300 + 1000 + 300 + 300
+  /// = 1900 ms before the machine voice starts.
   ///
-  /// Neither number is measured on a handset yet. What is guaranteed is the
-  /// ceiling, not the accuracy of either half.
-  static Duration get worstCaseBeforeAnyVoice => _fetchTimeout + _playTimeout;
+  /// It has been wrong twice, in the same way both times — a new wait was added
+  /// inside the handler for the previous one and not counted. First 2000 + 700,
+  /// which shipped 700 ms over a budget only the founder may raise. Then the
+  /// stop call, which was unbounded and invisible to this sum. **Any new await
+  /// on this path belongs in this figure, and the test below is what refuses a
+  /// total over budget.**
+  ///
+  /// None of the three is measured on a handset. What is guaranteed is the
+  /// ceiling, not the accuracy of any part of it.
+  static Duration get worstCaseBeforeAnyVoice =>
+      _stopTimeout + _fetchTimeout + _playTimeout + _stopTimeout;
 
   /// The stored answer to "which voice should the assistant use".
   static const String voicePreferenceKey = 'kafoo.voice.role';
@@ -227,6 +244,15 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
       // late one arrives in a microphone that has since opened. That is the
       // same bug this file already fixed twice, reopened through the timeout
       // added to fix it. Found by three reviewers on #461, round three.
+      //
+      // **AND WHETHER THIS ACTUALLY PREEMPTS THE STALLED CALL IS UNVERIFIED.**
+      // `.timeout()` stops waiting; it does not cancel. Whether a platform
+      // `stop()` reliably interrupts an in-flight `play()` on Android and iOS is
+      // plugin behaviour that nothing in this repository can prove — the class
+      // cannot exercise real playback at all, which is why playback is injected.
+      // So this is an accepted, unverified risk rather than a closed fix, and it
+      // needs one check on a real handset before the overlap bug is called shut.
+      // Raised by conversation-designer on #461, round four.
       await _silence();
 
       // And the same re-check the fetch path does. A hush or a mute during the
@@ -300,7 +326,18 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   ///
   /// Separate from [stop] because `speak` needs to silence what is playing
   /// without discarding the line it is about to say.
-  Future<void> _silence() async {
+  ///
+  /// **BOUNDED HERE RATHER THAN AT THE CALL SITES, and that is the whole point
+  /// of putting it in one place.** The bound was first added at one call site —
+  /// the timeout handler — and a test with a stop that never resolves then hung
+  /// on the OTHER call, the silence at the start of `speak`, before a single
+  /// byte had been fetched. Bounding the funnel rather than the entrances is the
+  /// same lesson the search-consent gate already carries: entrances keep being
+  /// added, and the one that forgets is invisible.
+  Future<void> _silence() =>
+      _silenceUnbounded().timeout(_stopTimeout, onTimeout: () {});
+
+  Future<void> _silenceUnbounded() async {
     try {
       if (_stopAudio != null) {
         await _stopAudio();
