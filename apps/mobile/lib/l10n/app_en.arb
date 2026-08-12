@@ -1495,6 +1495,10 @@
       }
     }
   },
+  "voicePreparing": "One second…",
+  "@voicePreparing": {
+    "description": "Shown on the microphone button between the tap and the microphone opening, while the assistant is still being silenced. No address form: it is a statement about the app, not an instruction to the Cook. Never spoken — §10.2 'Interrupted' has no spoken line, because the point of the moment is that the assistant stops talking."
+  },
   "voiceMuteSilence": "{addressForm, select, feminine{Silence the assistant} other{Silence the assistant}}",
   "@voiceMuteSilence": {
     "description": "Press to silence the assistant. Describes the RESULT of pressing, because a speaker glyph does not say which way it is about to go. Takes an address form: it is an instruction aimed at the Cook, and a single-gender imperative addresses half of them in the wrong grammar.",

@@ -1673,6 +1673,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get voicePreparing => 'ثانية واحدة…';
+
+  @override
   String voiceMuteSilence(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,

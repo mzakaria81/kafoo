@@ -70,6 +70,7 @@ class _MealConversationScreenState
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
   bool _voiceAvailable = false;
   bool _listening = false;
+  bool _preparing = false;
   bool _uploading = false;
 
   /// Set once the person speaks or types on the current step, so the funnel
@@ -254,9 +255,18 @@ class _MealConversationScreenState
     // version of this comment claimed the enum test enforced it. It does not.
     // A false claim of safety is worse than no comment, because it stops the
     // next person looking.
+    //
+    // **AND THE BUTTON SAYS SO WHILE IT WAITS.** That wait is unbounded on
+    // purpose, so on a slow handset it is long enough to read as a button that
+    // did nothing — §10.3, the failure where she taps again and cuts off her own
+    // first words. The state is set before the await, never after it.
+    setState(() => _preparing = true);
     await ref.read(assistantVoiceProvider.notifier).hush();
     if (!mounted) return;
-    setState(() => _listening = true);
+    setState(() {
+      _preparing = false;
+      _listening = true;
+    });
     await _voice.listen(
       onTranscript: (transcript, isFinal) {
         if (!mounted) return;
@@ -400,7 +410,10 @@ class _MealConversationScreenState
                 if (_voiceAvailable)
                   VoiceButton(
                     listening: _listening,
-                    label: l10n.convVoiceHint(context.addressForm),
+                    preparing: _preparing,
+                    label: _preparing
+                        ? l10n.voicePreparing
+                        : l10n.convVoiceHint(context.addressForm),
                     onPressed: _toggleListening,
                   )
                 else

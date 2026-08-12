@@ -1967,6 +1967,17 @@ void main() {
       reason: 'the microphone opened while the assistant was still stopping',
     );
 
+    // AND THE WAIT IS NOT SILENT AND STILL. §10.3: a button that does not
+    // change for half a second reads as a button that did nothing, so she taps
+    // again and cuts off her own first words. Proving the wait was real is what
+    // made the silence during it visible — accessibility-reviewer, round seven.
+    expect(
+      tester.widget<VoiceButton>(find.byType(VoiceButton)).preparing,
+      isTrue,
+      reason: 'the tap was not acknowledged while the assistant stopped',
+    );
+    expect(find.text(l10n.voicePreparing), findsOneWidget);
+
     release.complete();
     await tester.pumpAndSettle();
 
