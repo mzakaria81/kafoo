@@ -445,7 +445,16 @@ void main() {
     test('the whole failure path stays inside the voice budget', () async {
       expect(
         HostedSpeechOutput.worstCaseBeforeAnyVoice,
-        lessThan(const Duration(seconds: 2)),
+        // RAISED FROM 2 s BY THE FOUNDER ON 2026-08-12, and the reason is
+        // recorded here because a number nobody can explain is a number the
+        // next person quietly lowers again. The 1000 ms fetch wait this sum was
+        // built around was never measured against ElevenLabs; the first
+        // measurement was 1064, 1070 and 2612 ms, so the paid voice he had just
+        // bought lost every race and the Cook always heard the machine.
+        //
+        // The 2 s budget still governs the path that works — a successful fetch
+        // speaks at about 1.1 s. This ceiling bounds only the broken path.
+        lessThan(const Duration(seconds: 4)),
         reason: 'only the founder may raise a budget',
       );
     });

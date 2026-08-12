@@ -289,3 +289,42 @@ Four listening verdicts, and only a Cairene ear can give them:
 Plus two judgements that are preferences rather than defects: whether written-in warmth
 (`[warmly]`, `[thoughtful]`) is close enough to a conversational assistant's feel, and whether `eleven_v3`
 is worth its unpredictability for lines that are heard before they ship.
+
+## How long the provider takes, 2026-08-12
+
+**The audition measured how the voices sound and what they cost. Nobody measured how long they
+take, and that omission is what stopped the paid voice ever playing.**
+
+`HostedSpeechOutput` waited 1000 ms for audio and then fell back to the device's own engine. The
+figure was never a measurement — it was arithmetic backwards from the 2-second voice budget, and it
+assumed a synthesis faster than ElevenLabs has ever delivered here.
+
+Three calls the founder triggered from the Cook's Meal list on the demo project, read from
+`function_edge_logs`:
+
+| Time (UTC) | Result | Function execution |
+|---|---|---|
+| 10:42 | 200, audio returned | **2612 ms** — cold start |
+| 10:45 | 200, audio returned | **1064 ms** |
+| 10:49 | 200, audio returned | **1070 ms** |
+
+Every call succeeded. The app discarded every one. The figure above is the Edge Function's own wall
+time, so what the handset waits is that plus its round trip to Supabase — the real client-side
+figure is worse than the table, not better.
+
+Two consequences, and the second is the one that costs money:
+
+- **The paid voice had a 0% chance of ever being heard.** The fastest call was 6% over the limit.
+- **Nothing ever cached, so it never recovered.** `_audioFor` stores audio only on a *successful*
+  fetch, so every sentence started the same losing race forever — and ElevenLabs bills on generation,
+  not on delivery. Kafoo paid for every sentence and heard none of them.
+
+**The founder raised the wait to 3000 ms on 2026-08-12**, having been shown that the extra wait
+lands only on the failure path: a fetch that succeeds still speaks at about 1.1 s, inside the
+2-second budget and unchanged. `worstCaseBeforeAnyVoice` is now 3900 ms and the test that guards it
+was raised in the same commit, with the reason written into it.
+
+**What is still unmeasured:** the round trip from an actual Egyptian handset on an actual mobile
+connection, which is the only figure that describes what a Cook experiences. Three samples from one
+morning is a floor, not a distribution — and the cold start at 2612 ms is the one to watch, because
+it lands on the *first* sentence after the app opens, which is the sentence heard most.

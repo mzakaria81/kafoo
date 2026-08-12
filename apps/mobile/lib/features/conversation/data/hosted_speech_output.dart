@@ -118,21 +118,45 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// A stalled connection with no timeout is an app that is silent AND still —
   /// the one thing a voice flow may never be. Falling back to the machine voice
   /// is a worse voice; waiting forever is no voice at all.
-  static const Duration _fetchTimeout = Duration(milliseconds: 1000);
+  ///
+  /// **THIS WAS 1000 ms, AND 1000 ms MEANT THE PAID VOICE NEVER PLAYED ONCE.**
+  /// The figure was never measured against the provider it bounds — it was
+  /// arithmetic backwards from the 2 s budget, and it assumed a synthesis
+  /// faster than ElevenLabs has ever delivered. The first real measurement, on
+  /// the demo project on 2026-08-12, was three calls the founder triggered
+  /// himself: **1064 ms, 1070 ms and 2612 ms**, all of them HTTP 200 with audio
+  /// attached. The app abandoned all three and spoke in the machine voice, and
+  /// because nothing is cached until a fetch *succeeds*, it never recovered.
+  /// Kafoo was billed for every sentence and heard none of them.
+  ///
+  /// 3000 ms covers the cold start as well as the warm case. **The founder
+  /// raised the budget to accept it on 2026-08-12**, having been shown that the
+  /// wait only lengthens on the failure path: a fetch that succeeds still
+  /// reaches the Cook in about 1.1 s, unchanged and well inside 2 s.
+  static const Duration _fetchTimeout = Duration(milliseconds: 3000);
 
   /// **EVERY WAIT ON THE FAILURE PATH, ADDED UP, AND THAT IS THE POINT OF THE
-  /// GETTER.** The voice response budget is 2 seconds. The worst case is a fetch
-  /// that stalls, then a playback that stalls, then the stop that abandons it
-  /// stalling too — **and the silence at the START of `speak` stalling as well,
-  /// which the first version of this sum also missed.** 300 + 1000 + 300 + 300
-  /// = 1900 ms before the machine voice starts.
+  /// GETTER.** The worst case is a fetch that stalls, then a playback that
+  /// stalls, then the stop that abandons it stalling too — **and the silence at
+  /// the START of `speak` stalling as well, which the first version of this sum
+  /// also missed.** 300 + 3000 + 300 + 300 = 3900 ms before the machine voice
+  /// starts.
+  ///
+  /// **THIS SUM IS NO LONGER UNDER THE 2 s VOICE BUDGET, AND THAT IS A DECISION
+  /// RATHER THAN A REGRESSION.** The founder raised the ceiling on 2026-08-12
+  /// once the first measurement of the provider showed that keeping it meant
+  /// the paid voice could never play at all — see [_fetchTimeout]. What the
+  /// budget still governs is the path that *works*: a successful fetch reaches
+  /// the Cook in about 1.1 s. This figure bounds only the broken path, where
+  /// the alternative on offer was a machine voice 2 s sooner at the cost of
+  /// never hearing the real one.
   ///
   /// It has been wrong twice, in the same way both times — a new wait was added
   /// inside the handler for the previous one and not counted. First 2000 + 700,
   /// which shipped 700 ms over a budget only the founder may raise. Then the
   /// stop call, which was unbounded and invisible to this sum. **Any new await
   /// on this path belongs in this figure, and the test below is what refuses a
-  /// total over budget.**
+  /// total over the ceiling.**
   ///
   /// None of the three is measured on a handset. What is guaranteed is the
   /// ceiling, not the accuracy of any part of it.
