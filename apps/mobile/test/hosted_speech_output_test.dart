@@ -284,18 +284,18 @@ void main() {
       // A timeout stops waiting, not the call. If the abandoned play starts a
       // moment later it lands on top of the machine voice already talking.
       //
-      // **THE FIRST VERSION OF THIS TEST COULD NOT FAIL FOR THE THING IT IS
-      // NAMED FOR**, and three reviewers said so independently. It asserted a
-      // stop was CALLED and never that the abandoned audio stayed silent, and
-      // its two fakes were unrelated closures — so it passed whether stopping
-      // suppressed anything or not. That is the same defect `embed-meal`'s first
-      // test had, and the repository's own comment about it says a test that
-      // cannot fail for its own claim is worse than no test.
+      // **THIS TEST HAS BEEN VACUOUS TWICE, and the second time is the more
+      // interesting one.** The first version asserted a stop was CALLED, never
+      // that the audio stayed silent. The second modelled suppression — but
+      // `speak` silences BEFORE it fetches, so the flag was already set before
+      // playback was ever attempted, and the test passed with the actual fix
+      // deleted. Found by tracing the counterfactual, which is the only way to
+      // catch a test that agrees with you.
       //
-      // So the fake now MODELS suppression: stopping sets a flag, and a play
-      // that resolves afterwards checks it. The test can only pass if the stop
-      // actually prevents the late audio.
-      var suppressed = false;
+      // So suppression is now gated on a stop that arrives AFTER a play has
+      // genuinely begun. The leading silence cannot satisfy it.
+      var playStarted = false;
+      var suppressedAfterPlayBegan = false;
       final played = <Uint8List>[];
       final release = Completer<void>();
       final fallback = FakeSpeechOutput();
@@ -303,11 +303,14 @@ void main() {
         fallback: fallback,
         fetchAudio: (line, voice) async => Uint8List.fromList([1, 2, 3]),
         playAudio: (bytes, volume) async {
+          playStarted = true;
           await release.future;
-          if (suppressed) return;
+          if (suppressedAfterPlayBegan) return;
           played.add(bytes);
         },
-        stopAudio: () async => suppressed = true,
+        stopAudio: () async {
+          if (playStarted) suppressedAfterPlayBegan = true;
+        },
       );
       await speech.initialize();
 
@@ -324,10 +327,11 @@ void main() {
       );
     });
 
-    test('a stop that stalls does not hang the whole path', () async {
-      // The fix for a stalled call must not itself be able to stall. Stopping is
-      // the same family of platform call as playing, and it was added inside the
-      // handler for playing with no bound of its own.
+    test('a stop that stalls neither hangs nor skips silencing the fallback',
+        () async {
+      // Sequenced, a native stop that never returned meant the fallback engine
+      // was never told to stop at all — so an old machine-voice sentence could
+      // keep talking under a new one. They run together now.
       final fallback = FakeSpeechOutput();
       final speech = HostedSpeechOutput(
         fallback: fallback,
@@ -337,37 +341,56 @@ void main() {
       );
       await speech.initialize();
 
+      final started = DateTime.now();
       await speech.speak('تمام').timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 5),
             onTimeout: () => fail('speak never returned — the app hung'),
           );
+      final elapsed = DateTime.now().difference(started);
 
       expect(fallback.spoken, hasLength(1));
+      expect(
+        fallback.stopped,
+        isTrue,
+        reason: 'a hung native stop skipped silencing the machine voice',
+      );
+      // Budget-relevant rather than a loose ceiling: a regression that made the
+      // bounds compound instead of staying independent would show up here.
+      expect(
+        elapsed,
+        lessThan(HostedSpeechOutput.worstCaseBeforeAnyVoice +
+            const Duration(milliseconds: 500)),
+      );
     });
 
-    test('a hush during a stalled playback stops the fallback speaking too',
+    test('the microphone gate is NOT bounded — it waits for a real stop',
         () async {
+      // `hush()` calls stop(), and the conversation awaits it before opening the
+      // microphone. Bounding it made the guarantee a hope: on a slow handset the
+      // microphone opened while a stop was still in progress. It waits now.
       final fallback = FakeSpeechOutput();
-      late HostedSpeechOutput speech;
-      speech = HostedSpeechOutput(
+      final stopping = Completer<void>();
+      final speech = HostedSpeechOutput(
         fallback: fallback,
-        fetchAudio: (line, voice) async => Uint8List.fromList([1, 2, 3]),
-        playAudio: (bytes, volume) async {
-          // She taps the microphone while playback is stalling.
-          await speech.stop();
-          await Completer<void>().future;
-        },
-        stopAudio: () async {},
+        fetchAudio: (line, voice) async => null,
+        playAudio: (bytes, volume) async {},
+        stopAudio: () => stopping.future,
       );
       await speech.initialize();
 
-      await speech.speak('تمام');
+      var returned = false;
+      unawaited(speech.stop().then((_) => returned = true));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       expect(
-        fallback.spoken,
-        isEmpty,
-        reason: 'the machine voice spoke after she opened the microphone',
+        returned,
+        isFalse,
+        reason: 'stop gave up early — the microphone could open mid-stop',
       );
+
+      stopping.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(returned, isTrue);
     });
 
     test('the whole failure path stays inside the voice budget', () async {

@@ -217,7 +217,7 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
     // interrupts whatever is being said, and this class has two things that can
     // be saying it — the player and the fallback engine. Stopping only one left
     // the fail-then-recover sequence with two voices talking over each other.
-    await _silence();
+    await _silenceBounded();
 
     final audio = await _audioFor(line);
 
@@ -253,7 +253,7 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
       // So this is an accepted, unverified risk rather than a closed fix, and it
       // needs one check on a real handset before the overlap bug is called shut.
       // Raised by conversation-designer on #461, round four.
-      await _silence();
+      await _silenceBounded();
 
       // And the same re-check the fetch path does. A hush or a mute during the
       // stalled playback must not be undone by the fallback speaking anyway.
@@ -334,10 +334,43 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   /// byte had been fetched. Bounding the funnel rather than the entrances is the
   /// same lesson the search-consent gate already carries: entrances keep being
   /// added, and the one that forgets is invisible.
-  Future<void> _silence() =>
-      _silenceUnbounded().timeout(_stopTimeout, onTimeout: () {});
+  /// Bounded, for the paths where the budget is what matters.
+  ///
+  /// Used by `speak` only. Giving up here means falling back to a worse voice a
+  /// fraction early, which is a cost worth paying to stay inside the budget.
+  Future<void> _silenceBounded() =>
+      _silence().timeout(_stopTimeout, onTimeout: () {});
 
-  Future<void> _silenceUnbounded() async {
+  /// **UNBOUNDED, AND [stop] USES THIS ONE ON PURPOSE.**
+  ///
+  /// `AssistantVoice.hush()` calls [stop], and the Meal conversation awaits it
+  /// before opening the microphone — that call IS the guarantee of silence
+  /// before listening starts. Bounding it made the guarantee a hope: on a slow
+  /// handset the microphone would open while a real stop was still in progress,
+  /// which is the very failure the whole class exists to prevent, reintroduced
+  /// through its own safety gate. Found by conversation-designer on #461,
+  /// round five, as a regression I had just added.
+  ///
+  /// So this waits as long as it takes. A slow stop delays the microphone; an
+  /// abandoned stop talks over a Cook. Only one of those is acceptable.
+  ///
+  /// **THE TWO STOPS RUN TOGETHER, NOT ONE AFTER THE OTHER.** Sequenced, a
+  /// native stop that never returns meant the fallback engine was never told to
+  /// stop at all — so an old machine-voice sentence could keep talking under a
+  /// new one. Found by release-engineer in the same round.
+  ///
+  /// **What none of this proves:** whether a platform `stop()` actually
+  /// preempts an in-flight `play()` on Android and iOS. Nothing here can test
+  /// real playback, which is why playback is injected. That assumption needs one
+  /// check on a handset before the overlap bug is called closed.
+  Future<void> _silence() async {
+    await Future.wait<void>([
+      _stopPlayer(),
+      _fallback.stop(),
+    ]);
+  }
+
+  Future<void> _stopPlayer() async {
     try {
       if (_stopAudio != null) {
         await _stopAudio();
@@ -347,7 +380,6 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
     } on Object catch (_) {
       // Already not playing, or the player is gone.
     }
-    await _fallback.stop();
   }
 
   @override
