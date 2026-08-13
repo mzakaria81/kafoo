@@ -5,9 +5,9 @@ in CLAUDE.md's definition of done and it is the only thing that makes "perfect i
 rather than a hope.
 
 **Why this file exists.** MVP mode suspended process rules on 2026-08-13 so Kafoo could get one
-voice journey in front of five real Cooks. Restoring the old rulebook takes one command
-(`git checkout pre-mvp-mode -- CLAUDE.md .claude/`). Bringing work built under the looser rules back
-up to the old standard does not — that cost is real, and this list is what keeps it visible.
+voice journey in front of five real Cooks. Restoring the old rulebook takes one command —
+`git checkout fab86d8 -- CLAUDE.md .claude/`. Bringing work built under the looser rules back up to
+the old standard does not — that cost is real, and this list is what keeps it visible.
 
 **How to write an entry.** What was skipped, where it lives, what breaks if it is never done, and
 what would trigger doing it. One entry per shortcut. Do not batch them at the end of a sprint; the

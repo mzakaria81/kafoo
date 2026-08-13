@@ -11,9 +11,17 @@ conversation with a real Cook, so the standards of a launched product were being
 unvalidated one. What is suspended is ceremony. What is kept is the work whose failure cannot be
 undone later.
 
-**Everything removed is recoverable.** The tag `pre-mvp-mode` marks the state before the cut, at
-commit `fab86d8`. `git checkout pre-mvp-mode -- CLAUDE.md .claude/` restores the old rulebook whole,
-at any time, including after this branch merges.
+**Everything removed is recoverable.** Commit `fab86d8` is the state before the cut — the tip of
+`main` on 2026-08-13, and permanently in its history. **To restore the old rulebook whole, at any
+time, including after this branch merges:**
+
+```bash
+git checkout fab86d8 -- CLAUDE.md .claude/
+```
+
+Nothing else is needed and nothing expires. (A local tag `pre-mvp-mode` points at the same commit;
+it could not be pushed — this repository's token declines tag writes — so quote the commit, not the
+tag, in anything another session has to read.)
 
 **The trial ends at a checkpoint, not at a feeling:** one voice journey built, five real Cooks
 tried it. Then the founder calls keep / extend / abandon.
