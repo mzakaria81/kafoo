@@ -101,6 +101,30 @@ header were all written for reasons the new path does not weaken. Nothing about 
   «كلامك محفوظ» over words nobody captured. Moving speech-to-text to a server makes offline strictly
   worse, and the honest state was already designed for it.
 
+## What was verified on the vendor's own pages, 2026-08-13
+
+The founder accepted vendor lock-in on ElevenLabs the same day. These are read from ElevenLabs'
+public documentation and pricing pages, and **read is not measured** — the spike still runs. What
+changes is that three of the four architectural assumptions above are now documented rather than
+hoped for.
+
+| Assumption | Verified | Where |
+|---|---|---|
+| The phone connects with a short-lived credential minted by Kafoo, never a key | **Yes.** A server requests a *signed URL* with the API key and hands it to the client, which opens the socket with it. "Never expose your ElevenLabs API key client-side." Valid **15 minutes to start** a conversation; the conversation itself may run longer | Agents → customization → authentication |
+| Kafoo's own model can be the agent's brain | **Yes, over a standard interface.** The agent calls a URL implementing OpenAI's `/v1/chat/completions` or `/v1/responses`, streaming Server-Sent Events with `Content-Type: text/event-stream`. That is an Edge Function Kafoo writes, in front of whatever provider `AI_PROVIDER` names — **ADR-0005 survives intact and the provider swap stays one environment variable** | Agents → customization → LLM → custom LLM |
+| Audio retention is controllable | **Yes** — retention policies for conversations and audio are a documented setting. The exact values Kafoo sets are a spike deliverable, not an assumption | Agents → overview |
+| It hears Egyptian Arabic well | **Not verified and not verifiable from a page.** Arabic is supported at the model level; **there is no dialect or locale selector — the setting is "Arabic", not "Egyptian Arabic"** | — |
+
+**The dialect gap is the real risk and it splits in two.** Speaking is the settled half: this
+repository measured on 2026-08-11 that Egyptian pronunciation comes from the model reading *Egyptian
+text*, not from a dialect setting, and that is why `speak` already sounds Cairene. **Hearing is the
+unmeasured half** — whether their speech-to-text transcribes «بانيه» and «برجر» from a Cook's mouth
+is exactly what spike question 2 exists to find out, and no documentation page can answer it.
+
+One useful find alongside the pricing: ElevenLabs runs a **startup grant — 12 months free and 33M
+characters** for building a real-time agent into a new product. Worth applying for in parallel;
+it does not change the architecture and may remove the bill for the whole trial.
+
 ## Latency — what a voice agent fixes, and what it does not
 
 Asked directly by the founder: does putting the agent inside the tool eliminate the delay?
@@ -123,6 +147,12 @@ model, reached over the public internet from an Edge Function, because provider 
 worth more than the difference. Realistically that adds several hundred milliseconds — **expect
 roughly one and a half to two and a half seconds, unmeasured, on an Egyptian mobile network.**
 
+**The vendor has anticipated this exact case.** Their custom-model documentation describes *buffer
+words*: the endpoint returns a short opener ending in an ellipsis and a space, which the agent starts
+speaking while the real answer is still being written. That is a real mitigation for a slower
+model behind a fast voice, and it is the difference between a pause and a person thinking aloud.
+Use it — and never let it say anything that could be false if the answer turns out differently.
+
 Three things matter more than the number:
 
 - **Streaming makes the wait feel shorter than it is.** A reply that begins in 600 ms and takes four
@@ -144,24 +174,44 @@ The founder has lifted the constraint for this phase, so the figure that matters
 affordable now" but **"what does it cost per Meal when there are Cooks"** — because that number is a
 business input and it is currently unknown.
 
-Order of magnitude, for the five-Cook test: a conversation is billed by the minute, five Cooks at
-twenty minutes each is on the order of **one to two hours of audio in total** — a small number of
-dollars, on any tier, plus the subscription itself.
+Read from ElevenLabs' public Agents pricing page on 2026-08-13. **Conversation minutes, not
+characters** — a different unit from the `speak` bill Kafoo pays today.
 
-**Do not take the tier or the per-minute rate from this file.** This repository has been wrong every
-single time it wrote a vendor number down from documentation instead of measuring — `.claude/rules/ai.md`
-lists four model defaults that were all wrong on the first real call. The spike reads the live pricing
-page, runs one real conversation, and reports the measured cost per minute and the projected cost per
-published Meal to the founder before a subscription is upgraded.
+| Tier | Monthly | Minutes included | Concurrent calls |
+|---|---|---|---|
+| Free | $0 | 15 | 4 |
+| Starter | $6 | 75 | 6 |
+| **Creator** | **$22** (first month $11) | **275** | 10 |
+| Pro | $99 | 1,238 | 20 |
+| Scale | $299 | 3,738 | 30 |
+| Business | $990 | 12,375 | 40 |
+
+Overage is **$0.08 per minute**, **$0.16 burst**, and a text message is $0.003.
+
+**Take Creator, $22.** 275 minutes is about four and a half hours of talking. Five Cooks at twenty
+minutes each is roughly a hundred minutes, so the trial fits inside the allowance with room to
+develop against it, and ten concurrent calls is far past anything this phase produces. Pro buys
+capacity for a product that does not have users yet.
+
+**The number that is still unknown is the one that matters later: cost per published Meal.** At
+$0.08 a minute, a Meal that takes four minutes to talk into being costs about 32 cents in voice
+alone, before the model. That is a fine number for five Cooks and a serious number for five hundred,
+and it is a business input the founder should have measured rather than estimated. The spike reports
+it.
+
+**The tier table above is read, not measured, and this repository has been wrong every time it
+trusted a page over a call** — `.claude/rules/ai.md` lists four model defaults that were all wrong on
+the first real request. Confirm the live figures at purchase.
 
 ## The spike, before any implementation
 
 Three questions, in order. **Any "no" stops it and the answer is B.**
 
 1. **Can a session be opened from the app with a short-lived credential minted by Kafoo, with no
-   vendor key on the handset?** A real call, not a documentation page. This is the same question that
-   killed Option C in ADR-0009 for a different vendor, and it is the only one that can disqualify the
-   whole approach.
+   vendor key on the handset?** **Documented as yes** — signed URLs, minted server-side, 15 minutes
+   to start. Still a real call and not a documentation page: ADR-0009 died on a mint endpoint that
+   returned a plausible token which no socket would accept. Mint one, open one, confirm nothing
+   long-lived reaches the client.
 2. **Does Kafoo's own model plug in as the agent's language model, and does the whole loop still
    speak Egyptian Arabic?** The `meal-analysis` golden cases — including `برجر` and `بانيه` — spoken
    aloud rather than typed, both directions. If the register degrades, the fluency is not worth it.
