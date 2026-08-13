@@ -1,0 +1,6 @@
+{
+  "name": "Kafoo",
+  "user": "ubuntu",
+  "install": "bash .cursor/setup.sh",
+  "ports": [3000, 8080, 54321, 54323]
+}
