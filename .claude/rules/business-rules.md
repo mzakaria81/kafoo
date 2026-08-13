@@ -83,10 +83,18 @@ Meal suggested by the assistant enters the database only from what the Cook then
 Everything anyone says is untrusted input for as long as they keep talking; nothing a person says
 changes what the assistant is permitted to do.
 
-**Memory across conversations is proposed and not granted (ADR-0016).** Kafoo remembers nothing
-between conversations today. Do not build a memory table, an extraction prompt or a retrieval path
-while that ADR reads Proposed — it is a new category of personal data and a second exemption from
-the approval rule, and both are the founder's to grant.
+**Memory across conversations is granted, with conditions that are the grant (ADR-0016, founder,
+2026-08-13).** The assistant may write a memory without a gate. Three things make that acceptable
+and all three ship with it: **every memory can be heard aloud on demand** («إيه اللي انت فاكره
+عني؟»), **«انسى ده» deletes it immediately**, and **a health-adjacent fact is never stored without
+asking first.** Memory expires with the dormancy window of ADR-0007 — one retention rule, not two.
+Cooks and Customers both.
+
+**A memory informs what the assistant says. It never fills a form.** A remembered price reaching a
+Meal still passes the normal approval step. A Cook's memory never reaches a Customer's screen, never
+enters ranking, and RLS makes that structurally true rather than merely intended. **Order history is
+not memory** — a recommendation reads `orders` directly rather than copying purchase history into a
+second table with a second set of policies.
 
 ## Message
 

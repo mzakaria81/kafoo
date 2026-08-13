@@ -1,15 +1,17 @@
 # ADR-0016 — What Kafoo remembers between conversations
 
-**Status:** Proposed — **four questions for the founder, listed at the foot. Nothing is built while
-this reads Proposed.**
+**Status:** Accepted — the founder answered all four questions on 2026-08-13. The answers are
+recorded in "The four questions, answered" at the foot, and **question 3 was answered against the
+recommendation**, which widens the scope. Read that section before building.
 **Date:** 2026-08-13
 **Decider:** Founder
 **Depends on:** ADR-0015 (one conversation, not a questionnaire)
 
-> This ADR exists in this state deliberately. Persistent memory is one of the three things CLAUDE.md
-> says to stop and ask about — *a change would collect a new category of personal data* — and the
-> right response to that trigger is a written proposal and a specific question, not an
-> implementation with a note attached.
+> This ADR was written as a proposal and held there deliberately. Persistent memory is one of the
+> three things CLAUDE.md says to stop and ask about — *a change would collect a new category of
+> personal data* — and the right response to that trigger is a written proposal and a specific
+> question, not an implementation with a note attached. The questions were asked and answered the
+> same day.
 
 ## Context
 
@@ -120,25 +122,57 @@ stating.
 | Facts, visible, deletable, consent-gated for health data | **Proposed.** |
 | Per-conversation memory only (never crosses sessions) | Solves the in-flow repetition ADR-0015 already covers, and none of what the founder asked for |
 
-## The four questions this needs answered before anything is built
+## The four questions, answered — founder, 2026-08-13
 
-1. **Is the no-gate exemption granted?** The assistant writes memories without asking, bounded as
-   above. Yes or no; a "yes with conditions" needs the conditions written into this file.
-2. **How long is a memory kept?** Options with real consequences: forever until deleted (most
-   useful, largest exposure); expire after ~12 months untouched (a stale kitchen fact stops being
-   quoted); expire with the dormancy window ADR-0007 already defines for a phone credential
-   (**the recommendation — Kafoo already has this concept and one retention rule is easier to keep
-   honest than two**).
-3. **Do Customers get memory in the MVP, or Cooks only?** Cooks only is smaller, safer, and matches
-   the one journey the trial is testing. Customer memory is where the food-preference and allergy
-   data lives, which is the sensitive half. **Recommendation: Cooks only for the five-Cook test.**
-4. **Does a Cook's memory ever inform what a *Customer* is shown?** Today: no, and the
-   recommendation is to keep it no. Memory serves the conversation of the person it belongs to, and
-   nothing else. Saying so now costs nothing; discovering later that it leaked into ranking costs
-   the product.
+**1. Is the no-gate exemption granted? — YES.** The assistant writes memories without asking each
+time, bounded by the three rules above. The conditions are not decoration: **rules 1 and 2 are what
+was granted, not what was recommended alongside it.** A build that stores memories a Cook cannot
+hear on demand, or cannot delete with one sentence, has not implemented this decision — it has
+implemented the exemption without the thing that made it acceptable.
 
-## Notes for Claude Code
+**2. Retention — expires with the dormancy window (ADR-0007).** One retention rule for the whole
+product. A memory belonging to a Person who has gone dormant expires with everything else that
+Person's inactivity expires. No second clock, no per-memory expiry, no "twelve months untouched".
 
-**Do not implement against this ADR while it reads Proposed.** No table, no migration, no
-extraction prompt, no retrieval. If asked to build memory, say that ADR-0016 is unresolved and that
-the four questions above are the blocking ones.
+**3. Cooks *and* Customers — answered against the recommendation, and the scope is wider than the
+question asked.** The founder's words:
+
+> Both, and also save the customer preferences in terms of previously ordered Meals and accordingly
+> recommend similar Meals.
+
+Three consequences follow and each one is load-bearing:
+
+- **The sensitive half is now in scope from day one.** Customer memory is where food preferences,
+  and eventually allergies and dietary restrictions, live. Rule 3 above is therefore not a
+  future refinement — **the consent question before storing a health-adjacent fact is required in
+  the first version that ships to a Customer.** `business-rules.md` binds here and is unchanged.
+- **Order history is not memory and must not be copied into it.** "Previously ordered Meals" is
+  already a fact the database holds, in `orders`, owned jointly and protected by its own RLS. A
+  recommendation reads it directly. **Duplicating it into a memory row would create a second copy
+  of purchase history with a second set of policies to keep correct, and the second copy is the one
+  that leaks.** Memory holds what a Customer *said* («مابحبش الحار»); the Orders table holds what he
+  bought.
+- **This part cannot be built yet, and that is a sequencing fact rather than an objection.** Orders
+  are E4 and do not exist — there is no `orders` table, so there is no purchase history to
+  recommend from. Customer memory of what a Customer *says* can be built now; recommendation from
+  order history arrives with Orders.
+
+**4. Does a Cook's memory inform what a Customer sees? — NO.** Memory serves the conversation of the
+person it belongs to and nothing else. It never enters ranking, discovery, or another person's
+screen. This is now a rule, not a default, and the RLS on the table must make it structurally true
+rather than merely intended.
+
+## What is now buildable, and what it must include
+
+In this order:
+
+1. One table, owner-scoped, **RLS enabled in the same migration**, with a test proving a non-owner
+   reads zero rows. Non-negotiable and unchanged.
+2. «إيه اللي انت فاكره عني؟» — spoken, on every screen, answering with the memories held.
+3. «انسى ده» and «انسى كل حاجة» — the second behind the confirmation gate.
+4. The consent question before any health-adjacent fact is stored, for Customers and Cooks alike.
+5. Retrieval into the conversation, treating every retrieved memory as **untrusted data quoted to
+   the model, never as instructions to it.**
+
+Recommendation from Order history is deferred to E4 and reads `orders` directly. It is not a memory
+feature and must not become one.

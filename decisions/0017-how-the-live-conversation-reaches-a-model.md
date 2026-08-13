@@ -101,6 +101,43 @@ header were all written for reasons the new path does not weaken. Nothing about 
   «كلامك محفوظ» over words nobody captured. Moving speech-to-text to a server makes offline strictly
   worse, and the honest state was already designed for it.
 
+## Latency — what a voice agent fixes, and what it does not
+
+Asked directly by the founder: does putting the agent inside the tool eliminate the delay?
+
+**No. It removes most of it, and the part that remains is the part Kafoo chose to keep.**
+
+Today the four steps run one after another and nothing overlaps: the phone recognises the speech,
+then the model is called (2177 ms measured, WP-010), then the whole audio file is synthesised, then
+it downloads, then it plays. Roughly **three to five seconds of silence** after a Cook stops talking,
+and no way to interrupt.
+
+A voice agent changes the shape rather than the speed of any one part. Hearing runs *while* she is
+still speaking. The reply is spoken *as it is generated*, first words out before the last words
+exist. And she can cut in. Published figures for these platforms cluster around **one to one and a
+half seconds** from end of speech to first sound.
+
+**Kafoo will not hit that figure as drawn, and the reason is a choice made two sections above.**
+Those numbers assume the vendor's own model inside their own network. This decision keeps Kafoo's
+model, reached over the public internet from an Edge Function, because provider independence is
+worth more than the difference. Realistically that adds several hundred milliseconds — **expect
+roughly one and a half to two and a half seconds, unmeasured, on an Egyptian mobile network.**
+
+Three things matter more than the number:
+
+- **Streaming makes the wait feel shorter than it is.** A reply that begins in 600 ms and takes four
+  seconds to finish feels faster than one that arrives whole after two seconds of silence. What
+  people experience is time-to-first-sound, not time-to-complete.
+- **ADR-0013's 150 ms rule still does the heavy lifting** — the haptic and the growing orb the
+  instant she stops. Silence is what reads as broken, not delay.
+- **Barge-in matters more than milliseconds.** Being able to interrupt is most of what separates a
+  conversation from a walkie-talkie, and no amount of speed substitutes for it.
+
+**So the honest answer is: much better, not solved, and the residual delay is the price of keeping
+the model swappable.** If the measured figure comes back bad enough to hurt, the option that buys it
+back is D — the vendor's model — and that is a trade to put to the founder with a number attached,
+not one to make quietly.
+
 ## Money
 
 The founder has lifted the constraint for this phase, so the figure that matters is not "is it
@@ -128,9 +165,11 @@ Three questions, in order. **Any "no" stops it and the answer is B.**
 2. **Does Kafoo's own model plug in as the agent's language model, and does the whole loop still
    speak Egyptian Arabic?** The `meal-analysis` golden cases — including `برجر` and `بانيه` — spoken
    aloud rather than typed, both directions. If the register degrades, the fluency is not worth it.
-3. **What does it retain, and what does it cost?** Vendor audio-retention settings, written down.
-   Then measured cost for one realistic conversation, and the projected per-Meal figure, to the
-   founder.
+3. **What does it retain, what does it cost, and how long does a turn actually take?** Vendor
+   audio-retention settings, written down. Measured cost for one realistic conversation and the
+   projected per-Meal figure. And **end of speech to first sound, measured on an Egyptian mobile
+   connection with Kafoo's own model in the loop** — the number the latency section above refuses to
+   guess. All three to the founder before a subscription is upgraded.
 
 Throw the spike code away. It exists to answer questions, not to become the implementation.
 

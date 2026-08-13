@@ -254,9 +254,16 @@ set of facts a journey requires; the Assistant owns what to say next. It may ans
 advice and be steered mid-journey. **Advice is not data:** a Meal the Assistant suggested enters the
 database only from what the person then says themselves.
 
-**The Assistant remembers nothing between Conversations.** ADR-0016 proposes that it should and is
-undecided. Until it is decided, there is no memory entity, no table and no retrieval — the same
-posture Message has held since ADR-0013.
+**The Assistant may remember across Conversations (ADR-0016), and nothing is built yet.** A memory
+is a short fact in the person's own words, owned by that person, written without a gate — on
+condition it can be heard aloud on demand, deleted with one sentence, and that a health-adjacent
+fact is never stored without asking. Cooks and Customers both. Expires with ADR-0007's dormancy
+window.
+
+**A memory informs what the Assistant says; it never fills a field.** A remembered value reaching a
+Meal, Order or Review passes the normal approval step. One person's memory never reaches another
+person's screen and never enters ranking. **Order history is not memory** — recommendations read
+`orders`, which does not exist until E4.
 
 ## Invariants
 
@@ -302,4 +309,4 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
 | 2026-08-05 | Kitchen Profile gained a form of address — grammatical, not demographic, readable wherever the kitchen is and writable only by its Cook. ADR-0010, T089. |
 | 2026-08-06 | The Kitchen Profile conversation asks the form of address as a fifth and final step, and a profile is not complete without an answer. Customers are addressed as men for now: Kafoo stores a form of address for Cooks only, so a Customer-directed verb stays ungendered. ADR-0010, T090–T093. |
 | 2026-08-13 | A journey is one open Conversation rather than an ordered sequence of questions. The required facts are unchanged and still enforced by the database; the fixed order is gone. Advice the Assistant gives is never stored as though the person said it. ADR-0015. |
-| 2026-08-13 | Memory between Conversations proposed and **not granted** — no entity, no table, no retrieval while ADR-0016 reads Proposed. |
+| 2026-08-13 | Memory between Conversations granted for Cooks and Customers, written without a gate, on three conditions that ship with it: hearable on demand, deletable in one sentence, consent before a health-adjacent fact. Expires with the ADR-0007 dormancy window. Order history stays in `orders` and is never copied into memory. ADR-0016. |

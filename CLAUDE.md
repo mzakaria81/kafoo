@@ -135,9 +135,12 @@ Four rules hold inside that journey and anywhere voice appears:
 Full specification: `docs/design/DESIGN.md` §10 (voice) and §11 (the conversation screen). Do not
 invent a twelfth glance word.
 
-**Two things this direction needs are decided separately and are not yet built.** Memory between
-conversations is ADR-0016 — **Proposed, four questions open with the founder, nothing built.** How
-the live conversation reaches a model is ADR-0017 — accepted in direction, blocked on one spike.
+**Two things this direction needs are decided separately and neither is built.** Memory between
+conversations is ADR-0016 — **accepted, and its conditions are the grant**: hearable on demand,
+deletable in one sentence, consent before a health-adjacent fact, expiring with ADR-0007's dormancy
+window. How the live conversation reaches a model is ADR-0017 — accepted in direction, **blocked on
+one spike**, whose first question is whether the app can connect without a permanent key on the
+handset.
 
 ## Canonical vocabulary
 

@@ -90,8 +90,15 @@ advice and change the subject inside it, and the Assistant collects what it need
 happens. **Never** step, wizard, or flow, for the thing a person is having — those describe machinery
 and Kafoo no longer has that machinery.
 
-Kafoo remembers nothing from one Conversation to the next. ADR-0016 proposes that it should and is
-undecided; there is no word for a stored memory yet, on purpose.
+### Memory
+
+الذاكرة. A short fact a person said, kept in their own words so the Assistant does not ask them the
+same thing twice. Owned by that person, heard aloud on demand, deleted with one sentence. **Never**
+profile, and **never** history — a Memory is something someone said, while *history* is something
+they did and lives in `orders`.
+
+Granted by ADR-0016 on 2026-08-13 and **not built** — no entity, no table, no policies. Listed here
+so the word is fixed before the code.
 
 ### Recommendation
 
