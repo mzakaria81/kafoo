@@ -1,6 +1,10 @@
 # ADR-0009 — Where the voice conversation talks to the model
 
-**Status:** Proposed — **not decided**, and the spike has now run without settling it. Nothing here
+**Status:** Superseded by ADR-0017 (2026-08-13), which asks the same question of a different vendor
+and answers it. Kept in full because the spike record below is the reason ADR-0017 makes the
+credential question its first blocking test rather than its last.
+
+**Original status:** Proposed — **not decided**, and the spike has now run without settling it. Nothing here
 binds an implementer. See "The spike ran, 2026-08-06" at the foot of this file: the ephemeral-token
 flow did not work from this account, so Option C is unavailable today and Option A stands — but the
 surface is in preview and visibly moving, so this stays Proposed rather than Rejected.

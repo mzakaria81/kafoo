@@ -482,5 +482,106 @@ Rules:
 - **Assistant voice casting** — age and register (see 10.11).
 - **Whether a Customer's Order placement is spoken-confirmed** like a Cook's publish action.
 
+---
+
+## 11. The conversation screen
+
+Added 2026-08-13 by ADR-0015. §10 describes how the app speaks; this section describes the one
+screen it speaks *on*.
+
+**The design bundle does not cover this and did not claim to.** Its Cook Meal List is a list — a
+receipt of Meals that already exist — and it is still correct for that job. What it has no drawing
+of is the surface where a Meal comes into being through talking, because when the bundle was made
+that surface was four screens of questions. This section is the addition, and it is built almost
+entirely from parts §6 and §10 already define. **One component is genuinely new: the receipt panel
+(11.3).**
+
+### 11.1 The rule the screen exists to express
+
+> **One journey, one screen, one conversation.** Publishing a Meal is one screen. Onboarding a Cook
+> is one screen. Nothing advances because a question was answered.
+
+What this deletes: the dish question, the description question, the photo question, the price
+question, the two fallback questions, the estimates list and the summary — seven surfaces replaced
+by one.
+
+### 11.2 Layout, top to bottom
+
+The screen has exactly three zones and never more.
+
+| Zone | Content | Treatment |
+|---|---|---|
+| **Top** | Screen title 24/600, mute control 48dp top inline-end (§10.8) | 1px `border` bottom, `surface` |
+| **Middle** | The exchange, newest at the bottom, scrolled | `surface`; assistant speech on `voice-tint` panels, radius 16, `voice-deep` text at 18/1.75 — never a bubble, never mixed with the message-bubble family from §10.12.4 |
+| **Bottom** | The receipt panel (11.3), then the talk button (§10.3) | Receipt on `surface-raised` + 1px `border`, radius 16; talk button 88dp, bottom centre, 24 from the edge, nothing else within its radius |
+
+The middle zone is not a transcript. It shows **what the assistant said**, in the assistant's own
+words, because §10.1.2 forbids showing recognised text back. What the person said appears only as
+the effect it had — a value arriving in the receipt panel.
+
+Bottom 96dp stays thumb territory (§7): receipt panel and talk button only. No destructive action
+is ever placed there.
+
+### 11.3 The receipt panel — new component
+
+**What is known so far, and nothing else.** It is the screen keeping its promise to be a receipt
+while the conversation is still happening.
+
+- One row per fact the journey needs. Rows appear filled; **a fact not yet given shows its row with
+  a dashed `border-strong` outline and nothing in it** — visible as an absence, at a glance, without
+  reading.
+- **Numerals carry the value** (§10.5): price at 34px/700 Arabic-Indic. Words are `text-muted` at
+  14/1.7 and are never the only difference between two rows.
+- Status uses the closed glance-word set (§10.4) and adds nothing to it. A draft in progress reads
+  «مسودة», `text-muted` on `surface-sunken`, dashed border.
+- **A value the assistant estimated is marked and stays marked** until the Cook confirms or corrects
+  it — this is the visual half of the approval step, and it must never look identical to a value she
+  spoke. Estimated rows carry the `primary-tint` fill and the `primary-border`; spoken values sit on
+  `surface-raised`.
+- **Every row is tappable and every row is correctable by voice.** Tapping a row is the tap
+  alternative to saying «لأ، السعر مية وخمسين» and reaches the same place.
+- When a value changes, **only that row animates and enlarges**, and the assistant repeats the new
+  value aloud — the *correcting* state from §10.2, unchanged.
+
+Panel height is capped and the panel scrolls internally. It never grows past a third of the screen:
+the conversation is the screen, and the receipt is the margin note.
+
+### 11.4 States
+
+Reuse, do not invent. The nine voice states of §10.2 all apply here and are the screen's primary
+state machine. Four screen-level states sit above them:
+
+| State | Treatment | Spoken |
+|---|---|---|
+| Arriving, nothing said yet | Empty receipt panel, all rows dashed; talk button idle | The invitation from §10.2, once |
+| In conversation | As 11.2 | Per turn, max three sentences (§10.2) |
+| Waiting on the network | Skeleton at the assistant-panel footprint (the gap §6 flags as undefined — **this is where it gets used**); talk button stays live | Silence, then «لسه معاك، ثانية.» after 2s |
+| Ready to publish | Receipt panel complete, no dashed rows; the confirmation gate of §10.6 takes the bottom zone | The whole thing read back, then waits |
+
+**The gate is not a screen and never becomes one.** It replaces the bottom zone in place, with the
+talk button still answering it. §10.6 is unchanged: «أيوة» 72dp solid `success`, «لأ» 56dp outline,
+silence never confirms, no timeout resolves it, undo visible for two minutes after.
+
+### 11.5 What must not happen on this screen
+
+- **No progress indicator, no step counter, no "3 of 5".** There are no steps. A progress bar would
+  reintroduce the wizard as decoration.
+- **No transcript of the person's speech**, ever, except the verbatim read-back a Message gets
+  (§10.12).
+- **No twelfth glance word.** If the conversation reaches a state the set cannot name, that is a
+  decision to take, not a word to coin.
+- **No new large Arabic text** outside the closed set and the numerals.
+- **The assistant never fills a row from its own suggestion.** Advice is spoken; only what the person
+  says lands in the receipt (ADR-0015 rule 5).
+
+### 11.6 The tap path is the same screen
+
+§10.1.5 requires tap to be complete rather than degraded, and this screen satisfies it without a
+second design: every receipt row is tappable, tapping opens the bottom sheet of §6.5 with that fact's
+options, and the confirmation gate answers to a finger exactly as it answers to a voice. **Typing
+stays available and is never a consequence of the assistant failing to understand** — the failure
+ladder of §10.7 still descends exactly three rungs and still ends at tapping, not typing.
+
+---
 
 **Reference files:** `Kafoo Foundations.dc.html` (palette, type scale, spacing), `Kafoo Components.dc.html` (six components, all states, tap-target and 200%-scale proofs), `Kafoo Cook Meal List.dc.html` (assembled screen, three states — **tap-first, superseded**), `Kafoo Voice Foundations.dc.html` (nine voice states, talk button, glance words, confirmation gate, failure ladder), `Kafoo Cook Meal List v2 Voice.dc.html` (the same screen rebuilt voice-first — **use this one**), `Kafoo Voice Messaging.dc.html` (voice settings, dictation, the verbatim send gate, and both sides of a Cook ↔ Customer thread). These are **design references in HTML**, not production code — recreate them in the target codebase's own patterns.

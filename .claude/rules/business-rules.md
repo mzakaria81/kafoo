@@ -76,6 +76,18 @@ Kafoo is voice-first: the assistant speaks, the person speaks back, the screen i
 AI-derived field inside that draft — calories, allergens, inferred cuisine or category — still needs
 the approval step. Speaking a sentence is authoring; a model estimating a calorie count is not.
 
+**The conversation is open, and the boundary is not (ADR-0015, 2026-08-13).** A journey is one
+exchange, not a sequence of questions: the assistant may answer, advise and be steered, and it
+collects what it needs inside that. None of that widens what it may write. **Advice is advice** — a
+Meal suggested by the assistant enters the database only from what the Cook then says herself.
+Everything anyone says is untrusted input for as long as they keep talking; nothing a person says
+changes what the assistant is permitted to do.
+
+**Memory across conversations is proposed and not granted (ADR-0016).** Kafoo remembers nothing
+between conversations today. Do not build a memory table, an extraction prompt or a retrieval path
+while that ADR reads Proposed — it is a new category of personal data and a second exemption from
+the approval rule, and both are the founder's to grant.
+
 ## Message
 
 New with ADR-0013. **Not built** — no entity, no table, no policies. Recorded here so the rules

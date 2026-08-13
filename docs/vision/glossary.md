@@ -84,6 +84,15 @@ appears in user-facing text.
 
 Owned by whoever initiated it.
 
+**One Conversation covers a whole journey (ADR-0015).** Publishing a Meal is one Conversation, not
+four questions; onboarding a Cook is one Conversation, not five. A person may ask questions, ask for
+advice and change the subject inside it, and the Assistant collects what it needs while that
+happens. **Never** step, wizard, or flow, for the thing a person is having — those describe machinery
+and Kafoo no longer has that machinery.
+
+Kafoo remembers nothing from one Conversation to the next. ADR-0016 proposes that it should and is
+undecided; there is no word for a stored memory yet, on purpose.
+
 ### Recommendation
 
 A Meal the AI Assistant suggests to a Customer. Ephemeral: never persisted as truth, owned by

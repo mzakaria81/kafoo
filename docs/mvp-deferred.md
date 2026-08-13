@@ -28,4 +28,10 @@ reason for a shortcut is only accurately remembered on the day it is taken.
 
 ## Entries taken during the trial
 
-_None yet. Add rows above this line as they happen, newest last, with the date and the commit._
+| # | Date | Deferred | Where | Cost if never done | Trigger to do it |
+|---|---|---|---|---|---|
+| 9 | 2026-08-13 | The Meal and Kitchen Profile wizards keep running while the conversation screen is designed but unbuilt | `apps/mobile/lib/features/meal/`, `.../kitchen_profile/` | Two shapes of the same journey exist at once — the documented one and the shipping one. Anyone reading the code first will build more wizard | The conversation screen lands, and the seven surfaces it replaces are **deleted**, not left routed |
+| 10 | 2026-08-13 | No assistant prompt for the open conversation | `prompts/` | ADR-0015's rules live only in prose. The register, the refusal to invent facts and the injection resistance are unwritten and untested | First conversation turn that reaches a model |
+| 11 | 2026-08-13 | The ordering in `meal_step.dart` and `conversation_step.dart` still describes a sequence | `packages/domain/` | The domain layer contradicts ADR-0015, and the domain layer is what a new session reads as truth | Same commit as the conversation screen — the requirements stay, the order goes |
+
+_Rows 1–8 were taken at the cut. Add new rows above this line, newest last, with the date and the commit._

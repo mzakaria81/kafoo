@@ -103,16 +103,25 @@ strings in Egyptian Arabic. iOS reads them before Flutter starts, so ARB cannot 
 stop-and-report. The quickest way to turn a red authorization test green is to weaken the policy,
 which is the one outcome the test exists to prevent.
 
-## Voice-first, one journey
+## One conversation, not a questionnaire
 
 Kafoo is voice-first (ADR-0013): the assistant speaks, the user speaks back, the screen is the
 receipt. The assumption underneath is that a Cook may not read comfortably.
 
-**In MVP mode this binds one journey, not every screen:** a Cook speaks a Meal, hears it read back,
-says «أيوة», and it is published. Build that to full voice fidelity. Other screens may ship tap-only
-and say so in `docs/mvp-deferred.md`.
+**And it is one open conversation, not a form read aloud (ADR-0015, 2026-08-13).** A journey is a
+single screen holding a single exchange. The Cook or Customer can ask questions, ask for advice and
+change the subject; the assistant answers, and collects what it needs inside that. **Kafoo owns the
+list of facts still missing. The model owns what to say next.** It never decides what a Meal
+requires, and Kafoo never dictates the order of the asking.
 
-Three rules hold inside that journey and anywhere voice appears:
+What this deletes: the four-question Meal wizard and the five-question onboarding wizard, and every
+screen that existed because a step ended.
+
+**In MVP mode this binds one journey, not every screen:** a Cook talks a Meal into being in one
+conversation, hears it read back, says «أيوة», and it is published. Build that to full fidelity.
+Other screens may ship tap-only and say so in `docs/mvp-deferred.md`.
+
+Four rules hold inside that journey and anywhere voice appears:
 
 - **Irreversible actions are read back aloud and wait for «أيوة». Silence never confirms**, and no
   timeout resolves a gate. Reversible ones execute and are announced.
@@ -120,8 +129,15 @@ Three rules hold inside that journey and anywhere voice appears:
   assistant failing to understand.
 - **The assistant paraphrases; it never shows a transcript** — except a message to another human,
   read back verbatim, because those exact words are what the other person receives.
+- **Advice never becomes a stored fact.** The assistant may suggest a Meal; only the Cook's own
+  words put one in the database.
 
-Full specification: `docs/design/DESIGN.md` §10. Do not invent a twelfth glance word.
+Full specification: `docs/design/DESIGN.md` §10 (voice) and §11 (the conversation screen). Do not
+invent a twelfth glance word.
+
+**Two things this direction needs are decided separately and are not yet built.** Memory between
+conversations is ADR-0016 — **Proposed, four questions open with the founder, nothing built.** How
+the live conversation reaches a model is ADR-0017 — accepted in direction, blocked on one spike.
 
 ## Canonical vocabulary
 
