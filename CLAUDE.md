@@ -3,6 +3,24 @@
 AI-first marketplace connecting Egyptian home cooks with customers.
 Voice-first, Egyptian Arabic default. Flutter (mobile) + Supabase (backend) + Cloudflare (deploy).
 
+## MVP mode — active, and a trial
+
+**The founder cut this file from 328 lines to this on 2026-08-13.** The reason is not that the
+removed rules were wrong. It is that Kafoo has 462 merged pull requests and no record of a
+conversation with a real Cook, so the standards of a launched product were being applied to an
+unvalidated one. What is suspended is ceremony. What is kept is the work whose failure cannot be
+undone later.
+
+**Everything removed is recoverable.** The tag `pre-mvp-mode` marks the state before the cut, at
+commit `fab86d8`. `git checkout pre-mvp-mode -- CLAUDE.md .claude/` restores the old rulebook whole,
+at any time, including after this branch merges.
+
+**The trial ends at a checkpoint, not at a feeling:** one voice journey built, five real Cooks
+tried it. Then the founder calls keep / extend / abandon.
+
+**Every shortcut taken in MVP mode goes in `docs/mvp-deferred.md`, in the same commit that takes
+it.** A shortcut that is not written down is not a shortcut, it is a defect nobody has met yet.
+
 ## Who you are talking to
 
 **The founder is a company director, not a developer.** He runs a software company and has never
@@ -10,15 +28,10 @@ written code professionally. He reads architecture, weighs trade-offs and makes 
 scope and risk — but he does not read Dart, SQL or shell, and should never have to in order to
 follow you. **Your job is to be the translator. If he has to translate you, you did the job wrong.**
 
-This changes how you write, not what you do. Engineering rigour is unchanged: the gate still runs,
-RLS still lands in the same migration, tests still come first.
-
 **The answer shape is enforced by hooks, not by this file.**
 `.claude/hooks/communication-contract.sh` re-states it before every reply and
-`check-reply-shape.py` refuses one that ignores it: bottom line first, labelled sections, exactly
-one closing line, the four claim labels, What → Why → Consequence → Recommendation. Do not restate
-those rules here — a rule kept in two places drifts in one of them, and the hook is the copy that
-runs.
+`check-reply-shape.py` refuses one that ignores it. Do not restate those rules here — a rule kept in
+two places drifts in one of them, and the hook is the copy that runs.
 
 What a hook cannot check, and you still owe him:
 
@@ -39,83 +52,73 @@ What a hook cannot check, and you still owe him:
 ## Commands
 
 ```bash
-./scripts/install-toolchain.sh   # Flutter, melos, Deno, Supabase CLI, opencode (idempotent, ~3s warm)
-melos bootstrap              # install deps across all packages
-melos run analyze            # dart analyze, all packages
+./scripts/install-toolchain.sh   # Flutter, melos, Deno, Supabase CLI, opencode (idempotent)
 melos run test               # unit + widget tests
-flutter test test/foo_test.dart   # single test — prefer this over full suite
-supabase start               # local stack (Docker required)
-supabase db reset            # rebuild local DB from migrations + seed (needs Docker)
-./scripts/local-db.sh test   # RLS suites against a real Postgres — no Docker. docs/ops/local-database.md
+flutter test test/foo_test.dart   # single test — prefer this while iterating
+./scripts/local-db.sh test   # RLS suites against a real Postgres — no Docker
 supabase migration new NAME  # NEVER hand-write migration filenames
-supabase functions serve     # local Edge Functions
-deno run -A scripts/generate-voice-clips.ts  # buy any fixed sentence Kafoo does not own yet
-deno check supabase/functions/**/*.ts   # type-check Edge Functions (also in verify.sh)
-./scripts/verify.sh          # full gate — must pass before any PR
+deno run -A scripts/generate-voice-clips.ts  # SPENDS MONEY — buys any fixed sentence not owned yet
+./scripts/verify.sh          # the gate, 49 checks, 3m12s measured — run it before declaring done
 ```
+
+**There is no fast gate and MVP mode did not create one.** It was tried on 2026-08-13 and measured:
+cutting to the eight checks behind the non-negotiables saved 29 seconds of 3m12s, because codegen,
+analyze, tests and the authorization suites are nearly all of the time and all of them are keepers.
+A second definition of "passing" for 29 seconds is the trade this repository has already lost once —
+three Deno checks reported ok for months without running. One gate.
 
 `.env` is git-ignored. Copy `.env.example` and fill it. Never read, print, or commit `.env`.
 
 ## Non-negotiables
 
-**YOU MUST** run `./scripts/verify.sh` before declaring any task done. Not "it should pass" — run it.
+Four. They survived the cut because each one fails in a way no later sprint can repair.
 
-**YOU MUST** enable RLS on every new table in the same migration that creates it. A table without
-RLS is a data breach, not a TODO.
+**YOU MUST** enable RLS in the same migration that creates a table, with a test proving a non-owner
+cannot read the row. A table without RLS is a data breach, not a TODO — and Kafoo's rows carry the
+home addresses of women cooking alone.
 
-**NEVER** call an AI provider SDK directly from Flutter or from feature code. All model calls go
-through the provider abstraction in `packages/ai/`. Swapping OpenAI → Anthropic → Gemini must be a
-config change, not a refactor. (ADR-0005)
+**NEVER** commit credentials, and never read or print `.env`. A key in git history is public
+forever.
 
-**NEVER** hardcode user-facing strings. Every string goes through ARB files with an Egyptian Arabic
-entry. `ar` is the default locale, not the fallback. **In `apps/web/` the same rule points at a
-different file** — `apps/web/messages/ar.json` and `en.json`, because a TypeScript surface cannot
-read Flutter's ARB. Two locale files, one rule: no string outside them, `ar` written first.
-
-**The iOS permission prompts are the one exception, and it is a platform limit rather than a
-choice.** `apps/mobile/ios/Runner/Info.plist` carries the `NS*UsageDescription` strings — the
-sentences iOS shows when Kafoo asks for the microphone, speech recognition or the photo library.
-iOS reads them before Flutter has started, so ARB does not exist yet at the moment they are
-displayed; there is no version of this rule that reaches them. They are written in Egyptian Arabic
-and not mirrored into English, because `main.dart` pins the locale to `ar` whatever language the
-phone is set to. **Do not "fix" them into ARB** — the app crashes without them, and the crash is
-silent to every check the gate runs. Raised by release-engineer on 2026-08-10, once the strings
-existed and looked like an oversight.
-
-**NEVER** build a form where a conversation would work. If you find yourself adding a fourth input
-field, stop and propose a conversational flow instead.
-
-**NEVER** ship a component without its spoken Egyptian Arabic line. **Kafoo is voice-first as of
-2026-08-10 (ADR-0013), and that is a different thing from what this file used to mean by it.** It
-used to mean a microphone button on a form. It now means the assistant speaks, the user speaks
-back, and **the screen is the receipt of that exchange rather than the place information first
-appears.** The assumption underneath is that a Cook may not read comfortably — so anything only the
-screen says is invisible to the person the product exists for.
-
-Four consequences bind every screen, and `docs/design/DESIGN.md` §10 has the rest:
-
-- **A component is unfinished until its spoken line is written.** Visual states alone are no longer
-  a component. This changes what "done" means for `packages/ui/` and every widget above it.
-- **The assistant paraphrases what it understood; it never shows a transcript.** The one exception
-  is a message to another human, which is read back verbatim before sending — those exact words are
-  what the other person receives.
-- **Reversible actions execute and are announced. Irreversible ones are read back and wait for a
-  spoken «أيوة». Silence never confirms**, and no timeout may resolve a gate.
-- **Every state reaches the user three ways — visual, spoken, haptic — any one sufficient alone.**
-
-**Tap is a complete alternative, never a degraded one**, and typing is never a *consequence* of the
-assistant failing to understand. Large Arabic text is a closed set of eleven glance words; numerals
-are the largest type in the system. Do not invent a twelfth glance word — add it to the set first.
+**NEVER** hardcode user-facing strings. Every string goes through the ARB files with an Egyptian
+Arabic entry, `ar` written first. `apps/web/` uses `messages/{ar,en}.json` instead. Free now, a
+rewrite of every screen later.
 
 **NEVER** let AI write to the database without explicit human approval in the flow. AI suggests,
-humans approve. This is a domain rule, not a UX preference.
+humans approve. A domain rule, not a UX preference.
 
-Prefer running single tests over the full suite while iterating.
+**The one platform exception:** `apps/mobile/ios/Runner/Info.plist` carries the `NS*UsageDescription`
+strings in Egyptian Arabic. iOS reads them before Flutter starts, so ARB cannot reach them. Do not
+"fix" them into ARB — the app crashes without them, silently to every check the gate runs.
+
+**On gate failure:** diagnose, fix, re-run. **Except** a failing RLS or credentials check, which is
+stop-and-report. The quickest way to turn a red authorization test green is to weaken the policy,
+which is the one outcome the test exists to prevent.
+
+## Voice-first, one journey
+
+Kafoo is voice-first (ADR-0013): the assistant speaks, the user speaks back, the screen is the
+receipt. The assumption underneath is that a Cook may not read comfortably.
+
+**In MVP mode this binds one journey, not every screen:** a Cook speaks a Meal, hears it read back,
+says «أيوة», and it is published. Build that to full voice fidelity. Other screens may ship tap-only
+and say so in `docs/mvp-deferred.md`.
+
+Three rules hold inside that journey and anywhere voice appears:
+
+- **Irreversible actions are read back aloud and wait for «أيوة». Silence never confirms**, and no
+  timeout resolves a gate. Reversible ones execute and are announced.
+- **Tap is a complete alternative, never a degraded one.** Typing is never a consequence of the
+  assistant failing to understand.
+- **The assistant paraphrases; it never shows a transcript** — except a message to another human,
+  read back verbatim, because those exact words are what the other person receives.
+
+Full specification: `docs/design/DESIGN.md` §10. Do not invent a twelfth glance word.
 
 ## Canonical vocabulary
 
-Kafoo uses one name per concept. Wrong terminology in a table name or API route is a bug, not a
-style nit — it propagates into schema, prompts, and UI. Full glossary: `docs/vision/glossary.md`.
+One name per concept. Wrong terminology in a table name or route is a bug, not a style nit — it
+propagates into schema, prompts and UI. Glossary: `docs/vision/glossary.md`.
 
 | Use | Never |
 |---|---|
@@ -131,199 +134,111 @@ style nit — it propagates into schema, prompts, and UI. Full glossary: `docs/v
 | Publish / Archive | upload / delete |
 | Accept Order / Reject Order | approve / decline |
 
-Analytics events are PascalCase, past-tense, and never renamed. The core list is constitutional
-(Principle VI); everything else — funnels, naming rules, attributes, statuses, measurement privacy
-— lives in `docs/product/event-model.md`. Check that file before adding or emitting any event; do
-not copy event lists into other documents.
+Analytics events are PascalCase, past-tense, never renamed. List and rules:
+`docs/product/event-model.md`.
 
 ## Repo map
 
-Read the directory tree from the disk. What it will not tell you:
+Read the tree from disk. What it will not tell you:
 
-- **`packages/domain/` must not import `supabase_flutter`.** Entities and business logic only. If
-  you need it there, the boundary is wrong.
-- **There is no `apps/admin/`.** E0's T045 defers an administrative surface until one is needed — a
-  decision, not a gap. Choosing a framework capable of carrying one was not approval to build it.
-- **`apps/web/` is the Customer web surface** — Next.js and TypeScript on Cloudflare Workers
-  (ADR-0008 Amendment 1). Three things bind it, none optional: Customer flows only, no Cook portal
-  or administrative surface without a new decision; the database is the arbiter and both front-ends
-  are presentation, so a rule restated in TypeScript with no RLS policy or constraint behind it is a
-  regression, not a shortcut; and its strings live in `apps/web/messages/{ar,en}.json`, not the ARB
-  files.
-- **`apps/mobile/web/` is not that, and never will be.** It is the Flutter web build: 42 MB to a
-  canvas with no link preview, no indexing and no text selection. Never point a Customer at it.
-- **`prompts/` compiles into `supabase/functions/_shared/prompts.ts`.** Edit the source, never the
-  generated file.
-- **Read `decisions/` before proposing any architecture change.** `specs/` holds per-epic spec, plan
-  and tasks; `coordination/` holds work packages, one JSON file each.
-- **`docs/design/` is the design system, and `DESIGN.md` §10 is the voice specification.** The
-  HTML files beside it are design references — never shipped, never ported.
-
-## Building a feature
-
-**Step 0 — check the stop-and-ask triggers first.** This sequence looks complete enough to follow to
-the end without noticing that the feature needed approval three steps in.
-
-**Do not reorder steps 5–7.** The constitution requires an authorization test to be written, and
-seen to fail, before the policy it tests exists.
-
-1. Understand the requirement. Ambiguity is a reason to ask one specific question, not to pick a
-   reading.
-2. Review the existing architecture against it — `decisions/`, `docs/product/domain-model.md`, and
-   the code that already does something similar.
-3. **Define the interfaces and data models first**, in `packages/domain/`. No Flutter imports, no
-   `supabase_flutter`. Entities before behaviour.
-4. **Isolate infrastructure behind a repository interface**, and inject a fake in tests. Follow the
-   existing pattern — `features/identity/data/account_repository.dart` and the `Fake*Repository`
-   classes in `apps/mobile/test/` — rather than inventing a second approach.
-5. **Write the authorization tests, run them, and confirm they FAIL.** A negative test that passes on
-   its first run is testing nothing and must be fixed before you continue.
-6. Write the migration — table, `ENABLE ROW LEVEL SECURITY`, and every policy in the **same file**.
-   Then re-run the tests from step 5 and watch them pass.
-7. Implement the business logic.
-8. Unit tests for the domain logic, widget tests for the screens — loading, data and error states.
-   Integration tests when a feature spans several screens or services.
-9. Strings into both locale files, Arabic written first. Analytics event if the change touches a
-   tracked business action. Golden-case test if it adds AI behaviour.
-10. Verify every `SC-###` acceptance criterion in the spec, by name. Then the checks below.
+- **`packages/domain/` must not import `supabase_flutter`.** Entities and business logic only.
+- **`apps/web/` is the Customer web surface** (Next.js on Cloudflare). **Paused in MVP mode** — no
+  new work without the founder. Its strings live in `apps/web/messages/`, not ARB.
+- **`apps/mobile/web/` is the Flutter web build, not a Customer surface.** 42 MB to a canvas.
+- **`prompts/` compiles into `supabase/functions/_shared/prompts.ts`.** Edit the source.
+- **There is no `apps/admin/`**, by decision.
+- `decisions/` holds ADRs, `specs/` per-epic specs, `coordination/` work packages,
+  `docs/design/DESIGN.md` the design system.
 
 ## Definition of done
 
-1. `./scripts/verify.sh` passes — this is the gate. Not `flutter test`, which misses the pure-Dart
-   packages; not `flutter analyze`, which misses RLS coverage, credentials, vocabulary, ARB parity
-   and the Edge Function type-check.
+1. `./scripts/verify.sh` passes. Run it — not "it should pass". It takes about three minutes.
 2. New tables have RLS policies and a test proving a non-owner cannot read the row.
-3. **A change that moves a person between screens has a journey test** in
-   `apps/mobile/test/journey_test.dart` — one that boots the whole app and walks the path, asserting
-   both the arrival and the departure. Five defects reached the founder's phone on 2026-08-10 with
-   the gate fully green, and every one lived in the step *between* screens rather than inside one.
-   Two passing widget tests either side of a broken transition is the exact shape to distrust.
-   `.claude/rules/dart.md` has what a journey test must do.
-4. New user-facing strings exist in both `ar` and `en`.
-5. New AI behaviour has at least one golden-case test in `packages/ai/test/`.
-6. Analytics event emitted if the change touches a tracked business action.
-7. `docs/product/domain-model.md` updated in the same commit if the domain changed. Not optional — a
-   feature without updated domain docs is half-shipped. Update whatever else the change made stale:
+3. New user-facing strings exist in both `ar` and `en`.
+4. **Docs updated in the same commit** if the change made them stale — `domain-model.md`,
    `event-model.md`, an ADR, this file. Documentation drift is part of the change.
-8. The feature's `quickstart.md` lets someone with none of your context verify it by hand.
-9. `/ship-check` run.
+5. Any shortcut taken is written into `docs/mvp-deferred.md` in the same commit.
 
-**On gate failure:** diagnose, fix, re-run until green — **except** a failing RLS or
-committed-credentials check, which is a stop-and-report, never something to iterate against. The
-quickest way to turn a red authorization test green is to weaken the policy, which is the one
-outcome the test exists to prevent.
+Tests are required for money, authorization and domain rules. Elsewhere in MVP mode they are a
+judgement call — write the one check that would catch the thing breaking, and skip the rest.
+
+**Journey tests are not required per screen in MVP mode, but the voice journey has one.** Five
+defects reached the founder's phone on 2026-08-10 with the gate fully green, and every one lived in
+the step *between* screens. Two passing widget tests either side of a broken transition is the exact
+shape to distrust.
 
 ## Git
 
-Branch: `feat/short-description`, `fix/short-description`.
-Commit message: imperative, one logical change per commit. Do not bundle unrelated files.
-Never `git push --force` to `main`.
+Branch: `feat/short-description`, `fix/short-description`. Commit message: imperative, one logical
+change per commit. Never `git push --force` to `main`.
 
-**Never `git add -A` while a review agent is running.** They run the code they review, writing probe
-files into the same working tree you are about to stage. Stage named paths, or `git add -u` plus the
-files you actually created. `zz_*` is git-ignored so the known case cannot recur silently, but a
-blanket add in a shared tree is still a commit nobody reviewed.
+**Never `git add -A` while a review agent is running.** They write probe files into the same working
+tree you are about to stage. Stage named paths, or `git add -u` plus what you created.
 
 ## When to stop and ask
 
-Stop and produce a short plan for approval instead of implementing when:
+Three triggers. Adding a screen is no longer one of them — an MVP is made of new screens.
 
-- The requirement is ambiguous and two reasonable implementations differ in user-visible behaviour
-- A change would add a screen, a form field, or a settings toggle
 - A change touches money, payouts, or pricing
 - A change would collect a new category of personal data
 - A change would let AI act without human approval
-- A feature appears in the roadmap under Phase 2 or later and was not explicitly requested
 
 Ambiguity is not a reason to invent behaviour. It is a reason to ask one specific question.
-
-**Flag anything irreversible or externally visible before doing it**: what it changes, who can see
-it, how hard it is to undo.
+**Flag anything irreversible or externally visible before doing it.**
 
 ## Priority order when options conflict
 
-1. User trust
-2. Simplicity
-3. AI assistance
-4. Voice interaction
-5. Performance
-6. Long-term maintainability
+User trust → evidence from real Cooks → simplicity → voice → performance → maintainability.
 
-Development speed is last. Do not trade trust or simplicity for it.
+Development speed sits above maintainability in MVP mode and nowhere else. It never outranks trust.
 
-## Performance budgets
+## Skills, modes and review
 
-App launch <2s · voice response <2s · meal publish <3s · search <1.5s.
-If a change pushes past a budget, say so in the PR rather than shipping it silently.
+**Ponytail is `full` and caveman is `full`** (founder's decision, 2026-08-13). Ponytail shapes
+generated code toward the shortest thing that works. Caveman compresses prose — including replies to
+the founder, which is the one place it fights the communication contract above; when the two
+disagree, **the contract wins and caveman yields.** Revert either with `/ponytail off`,
+`/caveman off`, or by editing `.claude/settings.json`.
 
-**Two more arrived with voice-first (ADR-0013), and they are tighter than anything above.** Input is
-acknowledged — haptic and orb growth — within **150 ms**, and the thinking state visible before
-**400 ms**. Half a second of silence reads as "the button didn't work", so the Cook taps again and
-cuts off her own speech. They govern the gap before the 2 s round-trip, not instead of it. **Nothing
-in a voice flow may be silent and still.**
+**Ponytail never outranks a non-negotiable.** RLS in the same migration, credentials, both locale
+files and the AI write boundary are all work a "write less" prior will argue against. If it suggests
+dropping one, ponytail is wrong.
 
-**Neither is measured and the path behind them is unproven** — `docs/ops/spike-gemini-live.md`
-records the ephemeral-token flow failing on 2026-08-06 and ADR-0009 is open. Targets a design
-committed to, not budgets a build has met.
+**Review agents are advisory in MVP mode, except one.** `rls-reviewer` stays mandatory on any
+migration or policy change. `ai-boundary-reviewer` and `trust-reviewer` run on money, personal data
+and AI write paths. The rest — accessibility, localization, conversation-design, release — run when
+asked, and their findings are input, not blockers. One round, then decide.
 
-**Only the founder raises a budget.** Search was <1s until 2026-08-08, when he raised it having seen
-the first end-to-end measurement — 1112 ms median, 1438 ms p95 over 1,013 Meals.
-`docs/ops/measuring-discovery.md` has the numbers, what they exclude, and the 415 ms of avoidable
-cost inside them. Raising a budget so a measurement passes is otherwise the move this repository
-refuses.
+Invoke `task-observer` at the start of any session producing deliverables. Its workspace is
+`.claude/skill-observations/` **in this repository** — containers are destroyed after each session,
+so commit the log in the session that writes it.
 
-`discover` must not cache on a Customer's phrase — a cache keyed on what somebody said is a
-recording of what they said (FR-029, SC-011).
+## Delegating implementation work
 
-## Skills and hooks
+**ACTIVE as of 2026-08-13 — the founder lifted the suspension.** OpenCode is back and installed
+(`opencode 1.18.16`).
 
-Invoke `task-observer` at the start of any session where you will use tools and produce
-deliverables. When loading any skill, check the observation log for OPEN observations tagged to it
-and apply them, even if the skill file has not been updated yet.
+Delegation exists because **the author of a change is the worst available reviewer of it.**
+Delegating implementation is the default; writing production code directly is the exception.
 
-**`task-observer`'s workspace is pinned to `.claude/skill-observations/` in this repository**, not
-`~/.claude/projects/<id>/`. Containers are destroyed after each session, so the repository is the
-only storage that outlives one — and only for work that is committed and pushed. Commit the log in
-the session that writes it; an uncommitted observation is lost at teardown.
+Load the `opencode-delegate` skill before dispatching: this account's model allowlist, billing caps
+and spend-ledger workflow live in its `references/kafoo-account.md`. **Nothing outside the
+`opencode-go/` prefix may ever be dispatched.**
 
-**Ponytail never outranks a non-negotiable.** It is set to `lite` and shapes generated code, which
-agrees with Simplicity at position 2 above — but RLS in the same migration, a negative test seen to
-fail, and both locale files are all work a "write less" prior will argue against. If it suggests
-dropping one, ponytail is wrong. Caveman is `off` because it compresses prose to the reader, which
-collides with the communication contract at the top of this file; do not switch it on without
-saying so. Reasoning for both: `.claude/skills/_vendor-licenses/VENDORED.md`.
+**The spend ledger's verdict is not authority.** It printed `OK to dispatch` on 2026-08-06 while the
+account was already over its weekly limit. Check the real account state before a large dispatch, and
+tell the founder when a limit is close.
 
 ## Working alongside another session
 
 Kafoo runs more than one session at a time. **Read `coordination/README.md` before picking up any
-work** — roles, work-package fields, lifecycle and what the gate enforces are all there. What it
-cannot enforce:
+work.** What it cannot enforce:
 
 - **The coordinator pulls `main` before proposing anything.** A stale plan is indistinguishable from
   a correct one until the merge.
 - **Never claim a task number from a local copy of `tasks.md`.** The coordinator allocates ids.
-  Nothing can retroactively fix a task number two sessions have already used.
-- **`./scripts/verify.sh` grades the working tree**, so a run started while an agent is mid-edit is
-  grading a mixture. If the tree is not yours alone, say what you measured.
-- **A worker still stops and asks.** Owning a package end to end is not authority to decide a new
-  screen, money, a new category of personal data, or an AI write path. Those route to the founder.
-
-## Delegating implementation work
-
-**SUSPENDED 2026-08-06 — do not delegate until the founder lifts this.** The OpenCode weekly limit
-is reached. Write the code directly; every other rule holds — the gate runs, RLS lands in the same
-migration, a negative test is still seen to fail first. What is suspended is the dispatch, not the
-discipline. **The founder lifts it, not the tooling:** the spend ledger printed `OK to dispatch`
-while the account was already over its limit, so its verdict is not authority to resume.
-
-Delegation exists because **the author of a change is the worst available reviewer of it.** With it
-suspended you lose that separation, so replace it deliberately: the review agents in
-`.claude/agents/` are not delegation and are not suspended. Use `rls-reviewer`,
-`ai-boundary-reviewer` and `trust-reviewer` on anything touching authorization, money, personal
-data, or an AI write path.
-
-**When the suspension is lifted, delegating implementation becomes mandatory again** — writing
-production code directly is the exception, not the default (founder's decision, 2026-08-02). Load
-the `opencode-delegate` skill at that point: this account's model allowlist, billing caps and
-spend-ledger workflow live in its `references/kafoo-account.md`, and nothing outside the
-`opencode-go/` prefix may ever be dispatched.
+  Nothing can retroactively fix a number two sessions have already used.
+- **`./scripts/verify.sh` grades the working tree**, so a run started while another agent is
+  mid-edit is grading a mixture. If the tree is not yours alone, say what you measured.
+- **A worker still stops and asks** on money, new personal data and AI write paths. Those route to
+  the founder.

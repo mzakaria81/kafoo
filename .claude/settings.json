@@ -151,7 +151,8 @@
   },
   "env": {
     "SUPABASE_LOCAL_URL": "http://127.0.0.1:54321",
-    "PONYTAIL_DEFAULT_MODE": "lite",
+    "PONYTAIL_DEFAULT_MODE": "full",
+    "CAVEMAN_DEFAULT_MODE": "full",
     "PONYTAIL_SUBAGENT_MATCHER": "general-purpose|^claude$|builder"
   }
 }
