@@ -18,10 +18,23 @@ that list is deliberately high: something that cost real time, is not preventabl
 carries a workaround. A lesson a check CAN prevent belongs in `scripts/verify.sh` instead, and one
 about a single piece of code belongs in a comment beside it — those are read, and a list is only
 read by somebody who already suspects they need it.
+**Updated**: 2026-08-10 — the iOS build path without a Mac.
+**Updated**: 2026-08-14 — **four days of silence, and this file caused it.** MVP mode landed on
+2026-08-13 and the whole product direction changed underneath a file that still described a
+question-and-answer wizard. Nothing had deleted this file; nothing pointed at it either. It was
+reachable only through `specs/*/tasks.md`, which named it in numbered task items (T069, T078,
+T194) — and MVP mode retired that per-epic workflow, so the last thread holding this file to the
+work was cut without anyone noticing. **`CLAUDE.md` now names it in the Repo map and in the
+Definition of done**, which is the repair: a file the next session is told to read, by the file
+every session already reads. State, decisions, build path and traps 16–20 are all new below.
 
 Read this first in a new session. It records what exists, what does not, and what is known to be
 wrong. `specs/001-e0-foundation/tasks.md` has the task-level detail; this file has the judgement
 that does not fit in a checkbox.
+
+**This container is destroyed when the session ends.** The repository is the only thing that
+survives it, and only what is committed and pushed. An observation written and not committed is
+worth exactly nothing to the next session, and neither is a lesson that stayed in the transcript.
 
 ---
 
@@ -84,6 +97,67 @@ what the code, the workflows and the runbooks already used. If a second environm
 give it its own Claude Code environment rather than a second set of variable names in this one.
 
 ## Where things stand
+
+### MVP mode, and the direction change under it (2026-08-13 / 08-14)
+
+**Everything below this sub-section was written before 2026-08-13 and describes a product that no
+longer exists in that shape.** Read this first; treat the rest as history that is still true about
+the database, the gate and the platform, and out of date about the flow.
+
+**MVP mode is active and it is a trial with an end condition.** `CLAUDE.md` was cut from 328 lines
+to about 230 on 2026-08-13 — ceremony suspended, the four non-negotiables kept. The pre-cut state is
+commit `fab86d8`; `git checkout fab86d8 -- CLAUDE.md .claude/` restores the old rulebook whole, at
+any time, and nothing expires. A local tag `pre-mvp-mode` points at the same commit and **could not
+be pushed — this repository's token returns HTTP 403 on tag writes** — so quote the commit, never
+the tag. The trial ends at a checkpoint, not a feeling: one voice journey built, five real Cooks
+tried it, then keep / extend / abandon.
+
+**The wizard is gone (ADR-0015).** A journey is now one screen holding one open conversation. Kafoo
+owns the list of facts still missing; the model owns what to say next. The four-question Meal wizard
+and the five-question onboarding wizard were deleted, not refactored. `mealSteps()` and
+`nextUnansweredMealStep()` no longer exist; `packages/domain/lib/meal_facts.dart` holds an unordered
+`Set<MealFact>` in their place. If anything grows a "next" or a "first", the wizard is growing back.
+
+**Memory between conversations is granted with conditions (ADR-0016).** Hearable on demand,
+deletable in one sentence, consent before a health-adjacent fact, expiring with ADR-0007's dormancy
+window. **Not built.** Order history is not memory and must never be copied into it — a
+recommendation reads `orders` directly, because a second copy of purchase history is a second set of
+policies to keep correct and the second copy is the one that leaks.
+
+**The live voice path is decided in direction and blocked on one spike (ADR-0017, supersedes
+ADR-0009).** Kafoo uses an **ElevenLabs hosted agent**, not the plain text-to-speech API. The phone
+never holds a vendor key: `supabase/functions/agent-session/` mints a signed URL valid 15 minutes.
+That mint is **the one part of the audio path proven by a real call** — everything after it is
+untested on a handset.
+
+**Two live items are the founder's, not a session's:**
+
+1. **`agent-session` is deployed on production and NOT on demo**, and the APK points at demo. A
+   Supabase branch inherits no secrets, so it needs `ELEVENLABS_AGENT_ID` and `ELEVENLABS_API_KEY`
+   set on the demo branch (`pzyngffppwfsvdsnslkb`) before the microphone can connect to anything.
+2. **The agent's brain is ElevenLabs' hosted `gemini-3.5-flash`, not Kafoo's own Gemini key.**
+   Pointing it at the founder's key returns `custom_llm_not_allowed_in_zrm` — a custom model
+   requires turning zero-retention mode off, which means a third party stores Cooks' words.
+   Privacy was chosen over the billing preference; the founder has the trade and has not ruled.
+
+**Demo is the default target. Production is asked for, never assumed** (founder, 2026-08-13). This
+binds Edge Function deploys, secrets, seeded rows and above all APK builds — an APK carries whatever
+`SUPABASE_URL` it was built with, so a build made "just to test" against production is a test
+against real Cooks' rows.
+
+**`.github/workflows/demo-apk.yml` is the build path for any APK a person installs**, and it has
+existed since 2026-08-07 with 20-odd runs. It refuses the production project by URL comparison,
+refuses an empty address, and signs with the committed key at
+`apps/mobile/android/demo/demo.keystore` so each build installs *over* the last one.
+`scripts/build-apk.sh` is local-only and signs with the machine's debug key, which means **an APK
+from the script will not install over one from the workflow** — Android refuses an update signed by
+a different key.
+
+**`docs/mvp-deferred.md` is the honest list of what was skipped** — 19 rows, including that Kitchen
+Profile onboarding is still five questions, the publish gate is still a button rather than the
+spoken read-back, and **the whole audio path has never run outside a container.**
+
+### Everything below here predates 2026-08-13
 
 E0 (foundation) is delivered except for the release story. **E1 (identity and Kitchen Profile) is
 written and passing the gate**, but has never run against a real handset — see "Known-wrong or
@@ -467,6 +541,38 @@ Stated plainly, because the expensive failures this session were all of this kin
     "Seen to fail" is a property of each assertion, not of the suite — record WHICH ones went red
     and compare that list against what the change was supposed to protect.
 
+Added 2026-08-14. Same bar as above: each of these cost real time, none is preventable by a check
+that exists, and each carries a workaround.
+
+16. **An empty result from a search is a claim about the search, not about the repository.** On
+    2026-08-14 a session told the founder this project had no CI and no automated build path, then
+    built an APK by hand. Six workflows existed, one of them `demo-apk.yml` with 20-odd runs and a
+    fixed signing key — every property the hand-built APK then got wrong. The cause was reading one
+    empty shell result and not re-checking. This is trap 11 aimed at the project rather than at a
+    test suite, and it is worse there, because the founder cannot tell "I looked and found nothing"
+    apart from "there is nothing". **Before building any pipeline, list `.github/workflows/` and
+    read what is there.** Say "I found none" only after naming where you looked.
+17. **`String.fromEnvironment` answers `""` for a name nobody defined**, so a Flutter build with a
+    missing `--dart-define` compiles cleanly, installs, and opens to a black unresponsive screen —
+    `main()` throws before the first frame and no check in the gate can see it. `demo-apk.yml`
+    already refuses an empty address for exactly this reason and says so in a comment.
+    `scripts/build-apk.sh` now refuses too. If you must build by hand, pass both defines.
+18. **Writing a whole config file deletes every entry you did not think to mention.** A `Write` to
+    `.mcp.json` removed both Supabase MCP servers mid-session; the symptom was tools quietly
+    vanishing, several turns later, with nothing linking the two. **Edit a config file you did not
+    just read in full — never overwrite it.** Same hazard for `settings.json` and `config.toml`.
+19. **A fixed defect comes back when the code around it moves.** The 2026-08-11 resume defect —
+    `ref.watch` below an early return in an `autoDispose` controller, so the provider disposes while
+    the screen is still alive — was reintroduced on 2026-08-13 by a refactor that had nothing to do
+    with it. It now carries a comment saying why the line is where it is. **A fix with no comment is
+    a fix with a shelf life**, and the person who undoes it will be you.
+20. **Semantics can be inherited from a parent you are about to delete.** The Meal receipt's photo
+    label was read aloud because the `ListView` above it merged the subtree. Turning the receipt
+    into a panel removed the parent and the label went silent — visually identical, and no widget
+    test noticed, because the tests asserted the text existed rather than that it was one node to a
+    screen reader. **When a container changes, re-check what the container was providing**, and for
+    a voice-first product assume that is more than layout.
+
 ## Starting a session
 
 **Claude Code on the web**: nothing to run. `.claude/hooks/session-start.sh` installs Flutter,
@@ -512,27 +618,24 @@ the Android SDK.
 
 ## Environment that does not live in the repo
 
-`.devcontainer/post-create.sh` restores the toolchain and two Claude Code plugins on rebuild.
-Both are behavioural preferences rather than project requirements — set `KAFOO_SKIP_PLUGINS=1` to
-opt out of both, or remove one line to drop just that one.
+**Corrected 2026-08-14: caveman and ponytail are no longer container plugins.** Both are vendored
+into `.claude/skills/` and switched on in `.claude/settings.json`, so they are committed, they
+survive a rebuild, and nothing needs reinstalling. **Both are set to `full`** (founder's decision,
+2026-08-13); the paragraph below described them as `lite` and `off`, which was true before that.
 
-| Plugin | Effect |
+| Skill | Effect |
 |---|---|
 | `caveman` | Compresses output; drops articles and filler |
 | `ponytail` | Biases toward the simplest solution that works: YAGNI, standard library first, no unrequested abstractions |
 
-`ponytail` aligns with Simplicity, which is second in the constitution's priority order. It does
-**not** outrank User trust, which is first. An argument that something is simpler never justifies
-weakening RLS, skipping a negative test, or dropping an Arabic string — if a suggestion trades
-trust for brevity, the constitution wins. Worth watching, since that is exactly the kind of
-pressure a simplicity bias creates.
+`ponytail` aligns with Simplicity, which sits mid-way in the priority order. It does **not** outrank
+User trust, which is first. An argument that something is simpler never justifies weakening RLS,
+skipping a negative test, or dropping an Arabic string. `caveman` compresses prose to the reader,
+which collides head-on with the communication contract — the founder is not a developer and terse
+fragments are the wrong register for him. **Where they disagree, the contract wins and caveman
+yields**, and that is written in `CLAUDE.md` rather than left to judgement.
 
-Reinstalling by hand:
-
-```
-/plugin marketplace add JuliusBrussee/caveman   && /plugin install caveman@caveman
-/plugin marketplace add DietrichGebert/ponytail && /plugin install ponytail@ponytail
-```
+Turn either off with `/ponytail off`, `/caveman off`, or by editing `.claude/settings.json`.
 
 The statusline badge is separate and is **not** restored: it lives in the container's own
 `~/.claude/settings.json`, which no repository file can reach. Re-add it with the `statusLine`

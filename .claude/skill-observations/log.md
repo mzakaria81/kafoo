@@ -2401,3 +2401,101 @@ advertises the first. The failure mode is not a skill that says nothing useful �
 says useful things in a form the project must reject, so following it produces work that the gate
 turns back. Judge a borrowed instruction set by what it would make you write, not by what it is
 about.
+
+---
+
+### Observation 147: A living document loses every reader when the workflow that cited it retires
+
+**Status:** OPEN
+**Date:** 2026-08-14
+**Session context:** The founder said he felt the project had lost its ephemeral-environment
+practice — handoff notes, lessons learned, tool state carried between sessions. Nothing had been
+deleted. `docs/HANDOFF.md` (550 lines) and this log were both intact on `main`; both were four days
+stale, across the largest direction change the product has had.
+**Skill:** task-observer (references/environments.md — what must survive a container teardown)
+**Type:** process
+**Phase/Area:** Session handoff in an ephemeral environment
+
+**Issue:** The handoff document was never referenced from `CLAUDE.md`. It was reached only through
+`specs/*/tasks.md`, where updating it appeared as numbered task items (T069, T078, T194) inside a
+per-epic workflow. When that workflow was retired, the citations went with it, and the file became
+unreachable without anyone deleting anything or seeing an error. The project-wide instructions still
+said the container is destroyed at teardown and the repository is the only storage that outlives it
+— that sentence survived, and it named this log while never naming the handoff. So the *reason* to
+write a handoff was documented and the *place to write it* was not, which reads as intact and is
+not. Four sessions then produced no entry in either file.
+
+**Suggested improvement:** When a document is the mechanism by which context survives a container,
+cite it from the file that loads unconditionally every session, not from a workflow document. Treat
+"which always-loaded file names this?" as a required question when creating any cross-session
+artefact, and re-ask it whenever a workflow is retired: enumerate what cited the retired workflow's
+outputs, because a retirement silently orphans every downstream reader. Add updating the artefact to
+the project's definition of done, in the same commit as the work rather than at session end — a
+session can be cut off without reaching an end.
+
+**Principle:** A file that survives teardown is not the same as a practice that survives it. Storage
+persists by itself; a habit persists only while something still points at it. The failure is silent
+in both directions — the file shows no error for going unread, and the reader sees a complete
+document with no signal that it is describing a product that changed underneath it.
+
+---
+
+### Observation 148: An empty search result was reported to the founder as a fact about the project
+
+**Status:** OPEN
+**Date:** 2026-08-14
+**Session context:** Asked to build an installable Android package, the session stated the project
+had no continuous-integration setup and no automated build path, then built one by hand. Six
+workflow files existed. One of them was purpose-built for exactly this artefact and had run about
+twenty times.
+**Skill:** verification-before-completion
+**Type:** process
+**Phase/Area:** Reporting the absence of something
+
+**Issue:** One shell command returned nothing and that emptiness was reported as a property of the
+repository rather than of the command. Everything downstream inherited the error: the hand-built
+artefact was unsigned by the project key, so it would not install over previous builds; it carried
+no guard against pointing at the production database; and it was not archived anywhere a person
+could download it. The existing workflow did all three and explained why in comments. The founder
+caught it, from a screen the session never looked at. Cost was a full rebuild and a correction to
+someone who had been told something false about his own project.
+
+**Suggested improvement:** Before reporting that a project lacks a capability, list the directory
+where it would live and say what was found there. State absence in the form "I listed X and Y and
+found none", never as a bare "there is none" — the second cannot be checked by the reader and cannot
+be distinguished from not having looked. When about to build infrastructure, treat "does this
+already exist here?" as a required step rather than an instinct, because the cost of the check is
+seconds and the cost of the miss is a duplicate that is worse than the original.
+
+**Principle:** An empty result is a claim about the search, not about the world. Reporting it as
+fact converts a gap in one's own looking into a false statement about the project — and it is
+strictly worse when reported to a non-developer, who has no way to tell "I looked and found nothing"
+apart from "there is nothing".
+
+---
+
+### Observation 149: Rewriting a configuration file to add one entry deleted the entries not mentioned
+
+**Status:** OPEN
+**Date:** 2026-08-14
+**Session context:** Adding a vendor's hosted tool server to `.mcp.json`. The file was rewritten
+whole rather than edited, from what the session remembered of it.
+**Skill:** verification-before-completion
+**Type:** process
+**Phase/Area:** Editing shared configuration
+
+**Issue:** Two database tool servers that were not mentioned in the replacement were removed. The
+write reported success, and the loss surfaced several turns later as tools quietly not being
+available — with nothing connecting the symptom to the cause. Recovering it meant reconstructing
+both entries, including a project identifier that had to be looked up again. The same shape applies
+to any additive configuration: editor settings, service configuration files, dependency manifests.
+
+**Suggested improvement:** Adding an entry to a configuration file is an edit, not a write. Use a
+targeted string replacement, or read the whole file immediately before overwriting it and diff the
+result. Never reconstruct a config file from memory of what it contained. Where a tool distinguishes
+edit from write, prefer edit by default on any file the session did not itself create.
+
+**Principle:** A whole-file write is a deletion of everything not restated, and it is silent because
+success is reported against what was written rather than against what was lost. The gap between the
+write and the symptom is what makes this expensive — by the time something is missing, the cause is
+many turns back and looks unrelated.
