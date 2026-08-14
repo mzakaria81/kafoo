@@ -47,11 +47,21 @@ assistant now talks; nothing on this screen hears an answer.
 designed and greyed out, its label reading «الكلام لسه مش شغال — ضيفي بإيدك
 دلوقتي».
 
-**What is missing.** Speech recognition is wired into the Meal *conversation*
-(`voice_input.dart`) but not into the Meal list, and the list is where the
-design expects «عايزة تعملي إيه؟» to be answered out loud. Connecting them needs
-an intent step — turning "شيلي المحشي من المنيو" into a status change — which
-is a model call through `packages/ai/`, not a wiring job.
+**What is missing.** Listening is wired into the Meal *conversation* — the orb
+there opens a hosted conversation (ADR-0017, `agent_conversation.dart`) that
+brings its own recognition — but not into the Meal list, and the list is where
+the design expects «عايزة تعملي إيه؟» to be answered out loud. Connecting them
+needs an intent step — turning "شيلي المحشي من المنيو" into a status change —
+which is a model call through `packages/ai/`, not a wiring job.
+
+**The on-device recogniser is no longer what decides this.** `voice_input.dart`
+(`speech_to_text`, needing an installed `ar-EG` language pack) still serves
+`kitchen_profile/conversation.dart` and `search_screen.dart`. It stopped serving
+the Meal conversation when ADR-0017 landed, and until 2026-08-14 it was still
+deciding whether that screen's orb was drawn at all — so on the many Egyptian
+handsets without the language pack, the voice journey arrived as a form. Whoever
+wires the list must not reintroduce that gate: the handset property has nothing
+to do with a hosted conversation.
 
 **Also missing:** the live microphone level. The amplitude bars take a real
 number and refuse a fake one, so they stay flat until something supplies it.

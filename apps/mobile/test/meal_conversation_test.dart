@@ -1297,6 +1297,29 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
     });
 
+    testWidgets(
+        'the orb is drawn on a handset with no Egyptian Arabic language '
+        'pack', (tester) async {
+      // THE DEFECT THE FOUNDER PHOTOGRAPHED ON 2026-08-14. The orb was hidden
+      // behind `VoiceInput.initialize()` — the ON-DEVICE recogniser — which
+      // returns false on the many Egyptian handsets that ship without an
+      // `ar-EG` language pack. Nothing on this screen has listened on-device
+      // since ADR-0017; the orb opens a hosted conversation that brings its own
+      // recognition. So the one handset property that has nothing to do with
+      // this control was deciding whether the control existed, and the voice
+      // journey arrived as a form.
+      final repo = FakeMealRepository();
+      await tester.pumpWidget(_testApp(
+        MealConversationScreen(voiceInput: _UnavailableVoiceInput()),
+        repo: repo,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(KafooTalkButton), findsOneWidget);
+      // And typing is still hers to ask for, not what the screen fell back to.
+      expect(find.byType(TextField), findsNothing);
+    });
+
     testWidgets('the assistant opens the conversation and the line is spoken',
         (tester) async {
       final repo = FakeMealRepository();

@@ -83,8 +83,13 @@ class _MealConversationScreenState
   PcmPlayer? _speaker;
   StreamSubscription<AgentEvent>? _agentEvents;
   bool _live = false;
+
+  /// Kept for ONE reason: the `speech_locale` attribute on
+  /// `ConversationStarted`, which is how `docs/ops/measuring-transcription.md`
+  /// counts handsets with no Egyptian Arabic language pack. Nothing on this
+  /// screen listens through it — the orb opens a hosted conversation instead —
+  /// so it must never again decide what gets drawn.
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
-  bool _voiceAvailable = false;
   bool _listening = false;
   bool _preparing = false;
   bool _uploading = false;
@@ -197,12 +202,24 @@ class _MealConversationScreenState
       _live = started;
       if (!started) _typing = true;
     });
+
+    // SAID, NOT MERELY DRAWN. The doc above this method has promised since it
+    // was written that the assistant says it cannot hear; the code only revealed
+    // the text box. A Cook who presses the orb and watches a keyboard appear
+    // with no explanation has been told nothing — and she is the person least
+    // able to read the explanation off the screen anyway.
+    if (!started && mounted) {
+      ref.read(mealConversationControllerProvider.notifier).announce(
+            AppLocalizations.of(context).convVoiceUnavailable(
+              context.addressForm,
+            ),
+          );
+    }
   }
 
   Future<void> _initVoice() async {
     final available = await _voice.initialize();
     if (!mounted) return;
-    setState(() => _voiceAvailable = available);
 
     unawaited(emitEvent(
       EventNames.conversationStarted,
@@ -455,25 +472,40 @@ class _MealConversationScreenState
               // RADIUS. §10.3, and drawn the way the design package draws it —
               // the orb is the screen's one unmissable control, found by thumb
               // without looking, sometimes with wet hands.
-              if (_voiceAvailable)
-                Center(
-                  child: KafooTalkButton(
-                    state: _orbState(state),
-                    amplitude: _amplitude,
-                    label: _preparing
-                        ? l10n.voicePreparing
-                        : l10n.mealTalkPress(context.addressForm),
-                    enabled: !state.turnInFlight,
-                    onPressStart: () => unawaited(_toggleLive()),
-                    onPressEnd: () {},
-                  ),
-                )
-              else
-                Text(
-                  l10n.convVoiceUnavailable(context.addressForm),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall,
+              //
+              // **DRAWN UNCONDITIONALLY, AND THE CONDITION IT USED TO CARRY WAS
+              // THE 2026-08-14 DEFECT.** It was `if (_voiceAvailable)` — the
+              // ON-DEVICE recogniser, `speech_to_text` with an `ar-EG` language
+              // pack installed, which `docs/ops/measuring-transcription.md`
+              // records as missing on many Egyptian handsets. The founder's is
+              // one of them, so the orb never rendered and the voice journey
+              // arrived as a form with a line of apology where its one
+              // unmissable control belongs.
+              //
+              // Nothing on this screen has listened on-device since ADR-0017:
+              // the orb opens a hosted conversation (`_toggleLive`), which does
+              // its own recognition and needs no language pack. The gate was a
+              // leftover from the turn-based flow that preceded it — the same
+              // check is still correct on `kitchen_profile/conversation.dart`
+              // and `search_screen.dart`, which do call `VoiceInput.listen`.
+              //
+              // Connecting can still fail — no microphone permission, no
+              // network, no signed URL — and `_toggleLive` handles that where it
+              // happens: it says so plainly and reveals typing. A control that
+              // explains its own failure when pressed beats one that was never
+              // drawn.
+              Center(
+                child: KafooTalkButton(
+                  state: _orbState(state),
+                  amplitude: _amplitude,
+                  label: _preparing
+                      ? l10n.voicePreparing
+                      : l10n.mealTalkPress(context.addressForm),
+                  enabled: !state.turnInFlight,
+                  onPressStart: () => unawaited(_toggleLive()),
+                  onPressEnd: () {},
                 ),
+              ),
 
               const SizedBox(height: KafooSpacing.lg),
 
