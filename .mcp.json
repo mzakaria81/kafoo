@@ -1,6 +1,29 @@
 {
-  "$schema": "https://json.schemastore.org/mcp.json",
   "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--read-only",
+        "--project-ref=${SUPABASE_PROJECT_REF}"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
+    "supabase-demo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--read-only",
+        "--project-ref=pzyngffppwfsvdsnslkb"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
     "elevenlabs": {
       "type": "http",
       "url": "https://api.elevenlabs.io/v1/mcp"

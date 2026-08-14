@@ -67,7 +67,18 @@ flutter test test/foo_test.dart   # single test — prefer this while iterating
 supabase migration new NAME  # NEVER hand-write migration filenames
 deno run -A scripts/generate-voice-clips.ts  # SPENDS MONEY — buys any fixed sentence not owned yet
 ./scripts/verify.sh          # the gate, 49 checks, 3m12s measured — run it before declaring done
+./scripts/build-apk.sh       # release APKs — refuses to run without the two --dart-define values
 ```
+
+**Demo is the default target. Production is asked for, never assumed (founder, 2026-08-13).**
+Anything that reaches a live project — an Edge Function deploy, a secret, a seeded row, an APK built
+to point somewhere — goes to the **demo** branch (`pzyngffppwfsvdsnslkb`) unless the founder names
+production in that request. `docs/ops/demo-environment.md` holds its URL and key.
+
+An APK is the easy one to get wrong: it carries whichever `SUPABASE_URL` it was built with, so a
+build made "just to test" against production is a test against real Cooks' rows. Build with
+`DEMO_SUPABASE_URL` and `DEMO_SUPABASE_PUBLISHABLE_KEY` and say which one it points at when handing
+it over.
 
 **There is no fast gate and MVP mode did not create one.** It was tried on 2026-08-13 and measured:
 cutting to the eight checks behind the non-negotiables saved 29 seconds of 3m12s, because codegen,
