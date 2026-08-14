@@ -8,8 +8,15 @@
 # an empty SUPABASE_URL before the first frame, which is the correct behaviour
 # and an invisible one on a handset.
 #
-# Split per ABI: one 44 MB APK becomes three of about 22 MB, and arm64-v8a is
-# the one nearly every current Android phone wants.
+# LOCAL BUILDS ONLY. `.github/workflows/demo-apk.yml` is the path for anything a person installs:
+# it refuses the production database outright, signs with the committed demo key so each build
+# installs OVER the last one, and archives the APK where anyone can download it. This script exists
+# for the case that workflow cannot serve — a build needed in the room, right now.
+#
+# Two differences from the workflow, both deliberate. It splits per ABI, because one 44 MB APK does
+# not fit through a chat window and 24 MB does. And it signs with the machine's debug key, which
+# means **an APK from here will not install over one from the workflow** — Android refuses an update
+# signed by a different key. Uninstall first, and expect to lose whatever the app remembered.
 #
 # DEMO BY DEFAULT, PRODUCTION ONLY WHEN ASKED FOR (founder, 2026-08-13). An APK carries whichever
 # database it was built against, so a build made "just to test" against production is a test against
