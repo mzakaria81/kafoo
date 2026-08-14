@@ -236,6 +236,42 @@ Note also that a custom endpoint pointed straight at Google would bypass `AiProv
 registry anyway. The only version of this that keeps ADR-0005 whole is the custom endpoint pointing
 at a **Kafoo** function, which is still unwritten.
 
+## Amendment 1 — 2026-08-14: zero retention off, transcripts kept 90 days
+
+**The founder ruled on the trade above and chose retention.** His words: retain the data of the Cook
+and the Customer to improve their experience as they use the product. Zero retention mode is off on
+the agent as of 2026-08-14, verified by reading the setting back after the change.
+
+Applied — and three of these are narrower than "off", deliberately:
+
+| Setting | Value | Why |
+|---|---|---|
+| `zero_retention_mode` | `false` | The founder's decision. It is also what unblocks a custom model endpoint. |
+| `retention_days` | `90` | ADR-0007's dormancy window. ADR-0016 already binds memory to it; a second number would be a second thing to keep correct, and the one that drifts is the one nobody is watching. |
+| `record_voice` | `false` | **Raw audio is still not kept.** `business-rules.md` requires an ADR to persist it and nobody asked for one. Transcripts were the subject; audio was not. |
+| `delete_audio` | `true` | Same rule, enforced at the vendor rather than trusted. |
+
+**What this buys.** Kafoo may now point the agent at its own Gemini key, which is what the founder
+asked for on 2026-08-13 and the platform refused. It is *permitted* now; it is **not done**, because
+a custom endpoint aimed straight at Google bypasses `AiProvider` and breaks ADR-0005. The version
+that keeps ADR-0005 whole is an endpoint pointing at a Kafoo Edge Function that speaks the
+OpenAI-compatible streaming shape and calls the registry behind it. That function is the remaining
+work and is not in this change.
+
+**What this costs, stated plainly because the previous version of this section refused it.** A third
+party now holds the words Cooks and Customers speak, for 90 days. Those words are not a form: a Cook
+describing a Meal says what is in it, and an allergy spoken aloud is health-adjacent data under the
+privacy rules — which require explicit consent. **No consent step exists.** No Cook has been told.
+That is defensible today only because no real Cook has used this, and it stops being defensible at
+the first one. `docs/mvp-deferred.md` carries it as an open row, and it is not a nice-to-have: it is
+the gate on the five-Cook trial that ends MVP mode.
+
+**Retention is not memory.** ADR-0016's memory lives in Kafoo's own database under Kafoo's own
+policies, and every condition there still binds — hearable on demand, deleted by «انسى ده», consent
+before a health-adjacent fact. A vendor-side transcript log is a processor's copy for operating the
+service, and «انسى ده» does not reach it. If the founder wants one sentence to erase everything, that
+is a deletion call against the vendor's API and it does not exist yet.
+
 ## The spike, before any implementation
 
 Three questions, in order. **Any "no" stops it and the answer is B.**

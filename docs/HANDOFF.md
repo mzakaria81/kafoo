@@ -135,10 +135,17 @@ untested on a handset.
 1. **`agent-session` is deployed on production and NOT on demo**, and the APK points at demo. A
    Supabase branch inherits no secrets, so it needs `ELEVENLABS_AGENT_ID` and `ELEVENLABS_API_KEY`
    set on the demo branch (`pzyngffppwfsvdsnslkb`) before the microphone can connect to anything.
-2. **The agent's brain is ElevenLabs' hosted `gemini-3.5-flash`, not Kafoo's own Gemini key.**
-   Pointing it at the founder's key returns `custom_llm_not_allowed_in_zrm` — a custom model
-   requires turning zero-retention mode off, which means a third party stores Cooks' words.
-   Privacy was chosen over the billing preference; the founder has the trade and has not ruled.
+2. **The agent's brain is ElevenLabs' hosted `gemini-3.5-flash`, not Kafoo's own Gemini key** —
+   still true, but no longer because the platform refuses it. **The founder ruled on 2026-08-14:
+   zero retention off, transcripts kept 90 days, to improve the Cook's and Customer's experience**
+   (ADR-0017 Amendment 1, applied and read back). Raw audio is still not kept — `record_voice` off,
+   `delete_audio` on — because persisting audio needs its own ADR and nobody asked for one. Kafoo's
+   own key is now *permitted*; it is **not done**, because a custom endpoint aimed straight at
+   Google bypasses `AiProvider` and breaks ADR-0005. The remaining work is a Kafoo Edge Function
+   speaking the OpenAI-compatible streaming shape with the registry behind it.
+   **The open risk that came with it: no Cook has been told her words are kept.** Deferred rows 18
+   and 19 — no consent step exists, and «انسى ده» does not reach the vendor's copy. Row 18 is a gate
+   on the five-Cook trial, not a nicety.
 
 **Demo is the default target. Production is asked for, never assumed** (founder, 2026-08-13). This
 binds Edge Function deploys, secrets, seeded rows and above all APK builds — an APK carries whatever
