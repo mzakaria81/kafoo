@@ -639,6 +639,18 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String aiConversationInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قوليها',
+        'other': 'قولها',
+      },
+    );
+    return 'معلش، مافهمتش. $_temp0 تاني؟';
+  }
+
+  @override
   String aiMealAnalysisInvalid(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
@@ -894,6 +906,66 @@ class AppLocalizationsAr extends AppLocalizations {
       {
         'feminine': 'اختاري اللي أقرب',
         'other': 'اختار اللي أقرب',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mealTalkTitle => 'أكلة جديدة';
+
+  @override
+  String mealTalkOpening(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قوليلي عملتي إيه',
+        'other': 'قوللي عملت إيه',
+      },
+    );
+    return 'أنا معاك. $_temp0 النهاردة؟';
+  }
+
+  @override
+  String mealTalkPress(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'دوسي واستمري وانتي بتتكلمي',
+        'other': 'دوس واستمر وانت بتتكلم',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealTalkType(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أو اكتبيها بإيدك',
+        'other': 'أو اكتبها بإيدك',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mealTalkTypeNote => 'الكتابة موجودة دايماً — بس مش أول اختيار';
+
+  @override
+  String get mealTalkThinking => 'لسه معاك، ثانية.';
+
+  @override
+  String get mealTalkHearAgain => 'اسمعيها تاني';
+
+  @override
+  String mealTalkHint(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قولي أي حاجة عن الأكلة، أو اسأليني',
+        'other': 'قول أي حاجة عن الأكلة، أو اسألني',
       },
     );
     return '$_temp0';

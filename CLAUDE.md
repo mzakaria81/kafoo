@@ -67,7 +67,18 @@ flutter test test/foo_test.dart   # single test — prefer this while iterating
 supabase migration new NAME  # NEVER hand-write migration filenames
 deno run -A scripts/generate-voice-clips.ts  # SPENDS MONEY — buys any fixed sentence not owned yet
 ./scripts/verify.sh          # the gate, 49 checks, 3m12s measured — run it before declaring done
+./scripts/build-apk.sh       # release APKs — refuses to run without the two --dart-define values
 ```
+
+**Demo is the default target. Production is asked for, never assumed (founder, 2026-08-13).**
+Anything that reaches a live project — an Edge Function deploy, a secret, a seeded row, an APK built
+to point somewhere — goes to the **demo** branch (`pzyngffppwfsvdsnslkb`) unless the founder names
+production in that request. `docs/ops/demo-environment.md` holds its URL and key.
+
+An APK is the easy one to get wrong: it carries whichever `SUPABASE_URL` it was built with, so a
+build made "just to test" against production is a test against real Cooks' rows. Build with
+`DEMO_SUPABASE_URL` and `DEMO_SUPABASE_PUBLISHABLE_KEY` and say which one it points at when handing
+it over.
 
 **There is no fast gate and MVP mode did not create one.** It was tried on 2026-08-13 and measured:
 cutting to the eight checks behind the non-negotiables saved 29 seconds of 3m12s, because codegen,
@@ -103,16 +114,25 @@ strings in Egyptian Arabic. iOS reads them before Flutter starts, so ARB cannot 
 stop-and-report. The quickest way to turn a red authorization test green is to weaken the policy,
 which is the one outcome the test exists to prevent.
 
-## Voice-first, one journey
+## One conversation, not a questionnaire
 
 Kafoo is voice-first (ADR-0013): the assistant speaks, the user speaks back, the screen is the
 receipt. The assumption underneath is that a Cook may not read comfortably.
 
-**In MVP mode this binds one journey, not every screen:** a Cook speaks a Meal, hears it read back,
-says «أيوة», and it is published. Build that to full voice fidelity. Other screens may ship tap-only
-and say so in `docs/mvp-deferred.md`.
+**And it is one open conversation, not a form read aloud (ADR-0015, 2026-08-13).** A journey is a
+single screen holding a single exchange. The Cook or Customer can ask questions, ask for advice and
+change the subject; the assistant answers, and collects what it needs inside that. **Kafoo owns the
+list of facts still missing. The model owns what to say next.** It never decides what a Meal
+requires, and Kafoo never dictates the order of the asking.
 
-Three rules hold inside that journey and anywhere voice appears:
+What this deletes: the four-question Meal wizard and the five-question onboarding wizard, and every
+screen that existed because a step ended.
+
+**In MVP mode this binds one journey, not every screen:** a Cook talks a Meal into being in one
+conversation, hears it read back, says «أيوة», and it is published. Build that to full fidelity.
+Other screens may ship tap-only and say so in `docs/mvp-deferred.md`.
+
+Four rules hold inside that journey and anywhere voice appears:
 
 - **Irreversible actions are read back aloud and wait for «أيوة». Silence never confirms**, and no
   timeout resolves a gate. Reversible ones execute and are announced.
@@ -120,8 +140,18 @@ Three rules hold inside that journey and anywhere voice appears:
   assistant failing to understand.
 - **The assistant paraphrases; it never shows a transcript** — except a message to another human,
   read back verbatim, because those exact words are what the other person receives.
+- **Advice never becomes a stored fact.** The assistant may suggest a Meal; only the Cook's own
+  words put one in the database.
 
-Full specification: `docs/design/DESIGN.md` §10. Do not invent a twelfth glance word.
+Full specification: `docs/design/DESIGN.md` §10 (voice) and §11 (the conversation screen). Do not
+invent a twelfth glance word.
+
+**Two things this direction needs are decided separately and neither is built.** Memory between
+conversations is ADR-0016 — **accepted, and its conditions are the grant**: hearable on demand,
+deletable in one sentence, consent before a health-adjacent fact, expiring with ADR-0007's dormancy
+window. How the live conversation reaches a model is ADR-0017 — accepted in direction, **blocked on
+one spike**, whose first question is whether the app can connect without a permanent key on the
+handset.
 
 ## Canonical vocabulary
 

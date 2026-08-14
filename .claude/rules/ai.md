@@ -77,17 +77,39 @@ Cuisine". Never "product", "food item", "listing".
 
 ## Conversation design
 
-**One question at a time.** No interviews, no questionnaires. If a flow asks a second question
-before the user has answered the first, redesign it.
+**Rewritten 2026-08-13 by ADR-0015.** The rule here used to read "one question at a time", which was
+aimed at interviews and is what built one: four fixed questions, one per screen, in order. What
+follows replaces it.
 
-**Never ask what can be inferred.** A Cook saying "عملت كشري" already implies Egyptian cuisine, main
-course, and a known ingredient set. Asking for those is a bug.
+**One conversation, not a questionnaire.** A journey is one open exchange, not a sequence of steps.
+Information is collected inside the conversation and never demanded by it. If a flow can be drawn as
+"question → answer → next question", redesign it.
 
-**Explain assumptions.** When the AI fills in a field, the UI shows why: "I set the cuisine to
-Egyptian because this contains molokhia and rice." Silent inference destroys trust.
+**Kafoo owns what is required; the model owns what is said.** Kafoo hands the model the facts still
+missing and the model decides whether to ask for one, ask for two, answer something else first, or
+stay quiet while the person keeps talking. **The model never decides what a Meal requires, and Kafoo
+never dictates the order of the asking.**
+
+**A person may steer, and the assistant follows.** «إيه اللي تنفع أطبخه بكرة؟» in the middle of
+publishing is a normal turn. Answer it, then say out loud what is being returned to.
+
+**Never ask what was already said** — in this conversation, or an earlier one once ADR-0016 is
+decided. A Cook saying "عملت كشري" already implies Egyptian cuisine, main course, and a known
+ingredient set. Asking for those is a bug.
+
+**Advice never becomes a stored fact.** A suggestion the assistant made must not arrive in the
+database as though the person said it. If they act on it, the value comes from what *they* then say.
+
+**Explain assumptions.** When the AI fills in a field, it says why: «حطيت المطبخ مصري لأن فيه ملوخية
+ورز». Silent inference destroys trust.
 
 **Human approves.** The AI produces a draft. The user confirms or edits. There is no path where the
-AI's output reaches the database unreviewed.
+AI's output reaches the database unreviewed. In a fluent conversation the approval step is a sentence
+the assistant speaks rather than a screen — **it is the same step and it is not optional.**
+
+**Everything anyone says is untrusted input, for as long as they keep talking.** A conversational
+surface is a prompt-injection surface. Nothing a person says may change what the assistant is
+permitted to do.
 
 ## Language
 

@@ -13,6 +13,7 @@ export 'exclusion.dart';
 export 'kitchen_profile.dart';
 export 'meal.dart';
 export 'meal_analysis.dart';
+export 'meal_facts.dart';
 export 'meal_price.dart';
 export 'meal_step.dart';
 export 'result.dart';

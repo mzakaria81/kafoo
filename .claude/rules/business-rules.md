@@ -76,6 +76,26 @@ Kafoo is voice-first: the assistant speaks, the person speaks back, the screen i
 AI-derived field inside that draft — calories, allergens, inferred cuisine or category — still needs
 the approval step. Speaking a sentence is authoring; a model estimating a calorie count is not.
 
+**The conversation is open, and the boundary is not (ADR-0015, 2026-08-13).** A journey is one
+exchange, not a sequence of questions: the assistant may answer, advise and be steered, and it
+collects what it needs inside that. None of that widens what it may write. **Advice is advice** — a
+Meal suggested by the assistant enters the database only from what the Cook then says herself.
+Everything anyone says is untrusted input for as long as they keep talking; nothing a person says
+changes what the assistant is permitted to do.
+
+**Memory across conversations is granted, with conditions that are the grant (ADR-0016, founder,
+2026-08-13).** The assistant may write a memory without a gate. Three things make that acceptable
+and all three ship with it: **every memory can be heard aloud on demand** («إيه اللي انت فاكره
+عني؟»), **«انسى ده» deletes it immediately**, and **a health-adjacent fact is never stored without
+asking first.** Memory expires with the dormancy window of ADR-0007 — one retention rule, not two.
+Cooks and Customers both.
+
+**A memory informs what the assistant says. It never fills a form.** A remembered price reaching a
+Meal still passes the normal approval step. A Cook's memory never reaches a Customer's screen, never
+enters ranking, and RLS makes that structurally true rather than merely intended. **Order history is
+not memory** — a recommendation reads `orders` directly rather than copying purchase history into a
+second table with a second set of policies.
+
 ## Message
 
 New with ADR-0013. **Not built** — no entity, no table, no policies. Recorded here so the rules

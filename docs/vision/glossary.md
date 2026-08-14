@@ -84,6 +84,22 @@ appears in user-facing text.
 
 Owned by whoever initiated it.
 
+**One Conversation covers a whole journey (ADR-0015).** Publishing a Meal is one Conversation, not
+four questions; onboarding a Cook is one Conversation, not five. A person may ask questions, ask for
+advice and change the subject inside it, and the Assistant collects what it needs while that
+happens. **Never** step, wizard, or flow, for the thing a person is having — those describe machinery
+and Kafoo no longer has that machinery.
+
+### Memory
+
+الذاكرة. A short fact a person said, kept in their own words so the Assistant does not ask them the
+same thing twice. Owned by that person, heard aloud on demand, deleted with one sentence. **Never**
+profile, and **never** history — a Memory is something someone said, while *history* is something
+they did and lives in `orders`.
+
+Granted by ADR-0016 on 2026-08-13 and **not built** — no entity, no table, no policies. Listed here
+so the word is fixed before the code.
+
 ### Recommendation
 
 A Meal the AI Assistant suggests to a Customer. Ephemeral: never persisted as truth, owned by

@@ -29,6 +29,8 @@ part 'meal_conversation_controller.g.dart';
 class MealConversationState {
   const MealConversationState({
     required this.draft,
+    this.lines = const [],
+    this.turnInFlight = false,
     this.analysis,
     this.analysisInFlight = false,
     this.analysisError,
@@ -40,6 +42,22 @@ class MealConversationState {
   static const _undefined = Object();
 
   final MealDraft draft;
+
+  /// What the assistant has said so far, oldest first.
+  ///
+  /// **Only the assistant's side is here, and that is ADR-0013 rule 2 rather
+  /// than an omission.** The screen shows what the assistant understood, never a
+  /// transcript of the Cook — a paraphrase exposes a misunderstanding, and small
+  /// verbatim text hides it from exactly the person who cannot read it.
+  final List<String> lines;
+
+  /// True while the assistant is working out what to say.
+  ///
+  /// Separate from [analysisInFlight]: one is the conversation, the other is the
+  /// estimates being made in the background. A Cook waiting for a reply and a
+  /// Cook waiting for a calorie count are in different situations and must not
+  /// be shown the same spinner.
+  final bool turnInFlight;
   final MealAnalysis? analysis;
   final bool analysisInFlight;
 
@@ -61,6 +79,8 @@ class MealConversationState {
 
   MealConversationState copyWith({
     MealDraft? draft,
+    List<String>? lines,
+    bool? turnInFlight,
     // Sentinel-guarded, like analysisError and error below, because clearing
     // this is a real operation: resume() must drop the previous Meal's
     // estimates. With `analysis ?? this.analysis` the clear silently did
@@ -76,6 +96,8 @@ class MealConversationState {
   }) =>
       MealConversationState(
         draft: draft ?? this.draft,
+        lines: lines ?? this.lines,
+        turnInFlight: turnInFlight ?? this.turnInFlight,
         analysis:
             analysis == _undefined ? this.analysis : analysis as MealAnalysis?,
         analysisInFlight: analysisInFlight ?? this.analysisInFlight,
@@ -109,6 +131,16 @@ class MealConversationController extends _$MealConversationController {
   /// good reply arrives; this governs how long a Cook stares at a spinner when
   /// no reply is coming.
   static const Duration _analysisTimeout = Duration(seconds: 30);
+
+  /// How long a conversational turn gets before the Cook is told nothing came
+  /// back.
+  ///
+  /// Shorter than [_analysisTimeout] because the situations are different: an
+  /// estimate arriving late is a background inconvenience, and a reply arriving
+  /// late is a person standing in a kitchen wondering whether the app heard her.
+  /// This is not the 2-second budget — it is the point at which waiting stops
+  /// being useful.
+  static const Duration _turnTimeout = Duration(seconds: 15);
 
   /// Guards against a double tap putting the Meal on offer twice.
   bool _publishInFlight = false;
@@ -149,38 +181,18 @@ class MealConversationController extends _$MealConversationController {
   bool get canPublish =>
       allEstimatesApproved && state.draft.isComplete && !_publishInFlight;
 
-  /// The next unanswered [MealStep], or null when all four are done.
-  MealStep? get currentStep {
-    final steps = mealSteps(
-      dish: state.draft.title,
-      description: state.draft.description,
-      photoResolved: state.draft.photoResolved,
-      price: state.draft.price,
-    );
-    return nextUnansweredMealStep(steps);
-  }
-
-  /// The next fallback question, or null when none is needed.
+  /// What the Meal still does not know about itself. Unordered, by design.
   ///
-  /// Asked only after the four real questions, never while an estimate might
-  /// still arrive, and only for fields the analysis did not supply. Trigger is
-  /// the missing value, not [MealConversationState.analysisError] — a successful
-  /// analysis with no cuisine leaves the Cook just as stuck.
-  MealFallbackStepId? get currentFallbackStep {
-    if (currentStep != null) return null;
-    if (state.analysisInFlight) return null;
-
-    final analysis = state.analysis;
-    final cuisineNeeded =
-        state.draft.cuisine == null && analysis?.cuisine == null;
-    final categoryNeeded =
-        state.draft.category == null && analysis?.category == null;
-
-    return nextUnansweredMealFallbackStep(
-      cuisineNeeded: cuisineNeeded,
-      categoryNeeded: categoryNeeded,
-    );
-  }
+  /// Handed to the model each turn so it can decide what to say. **Kafoo owns
+  /// this list and the model owns the sentence** — ADR-0015. Nothing here picks
+  /// a next question, and if something ever does, the wizard is growing back.
+  Set<MealFact> get missingFacts => mealFactsMissing(
+        dish: state.draft.title,
+        description: state.draft.description,
+        price: state.draft.price,
+        cuisine: state.draft.cuisine,
+        category: state.draft.category,
+      );
 
   /// Seeds the conversation from a stored draft so the Cook can carry on where
   /// they left off.
@@ -233,27 +245,225 @@ class MealConversationController extends _$MealConversationController {
     }
   }
 
-  /// Records a Cook answer to a fallback question (cuisine or category).
+  /// Seeds the assistant's opening line, once.
   ///
-  /// These are the Cook's own values, not AI estimates — so they are written
-  /// with [markApproved] false and never enter [MealConversationState.approvals].
-  Future<bool> answerFallback(MealFallbackStepId step, Object value) {
-    final field = switch (step) {
-      MealFallbackStepId.cuisine => MealEstimateFields.cuisine,
-      MealFallbackStepId.category => MealEstimateFields.category,
-    };
-    return _writeEstimate(field, value, markApproved: false);
+  /// The line is localized, so it comes from the screen rather than from here —
+  /// `packages/domain` and this controller have no `BuildContext` and must not
+  /// grow one. Idempotent, because a rebuild must not make the assistant greet
+  /// the same Cook twice.
+  void open(String line) {
+    if (state.lines.isNotEmpty) return;
+    state = state.copyWith(lines: [line]);
   }
 
-  /// Records an answer for the given step.
+  /// Records a line the assistant already spoke for itself.
   ///
-  /// First answer creates the draft and emits [EventNames.mealDrafted] once.
-  /// Later answers persist only the field that changed. Analysis starts after
-  /// description (and again if a photo arrives) without blocking the Cook.
+  /// The live conversation (ADR-0017) speaks through the provider's own voice, so
+  /// by the time the words reach Kafoo they have been said. This puts them on
+  /// the screen — the receipt of what was spoken — without saying them twice.
+  void announce(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) return;
+    state = state.copyWith(lines: [...state.lines, trimmed]);
+  }
+
+  /// One turn of the conversation: the Cook said something, the assistant
+  /// answers, and anything she stated is written to the draft.
+  ///
+  /// **This is the whole of ADR-0015 in one method.** There is no step, no
+  /// order, and no question the screen was waiting to have answered. What
+  /// Kafoo supplies is the state — what is known, what is missing — and the
+  /// model supplies the sentence.
+  ///
+  /// **Only what she said is written.** The prompt returns `captured` for
+  /// values she stated herself; an inferred cuisine is deliberately absent from
+  /// it and reaches the draft through the estimate approval path instead. That
+  /// is the AI write boundary, and it is the reason this method persists
+  /// `captured` without a gate and could not persist an estimate the same way.
+  ///
+  /// Returns false when the assistant could not answer or a write failed; the
+  /// caller keeps what the Cook typed so she does not have to say it twice.
+  Future<bool> hear(String said) async {
+    final heard = said.trim();
+    if (heard.isEmpty) return false;
+    if (state.turnInFlight) return false;
+
+    state = state.copyWith(turnInFlight: true, error: null);
+
+    final request = AiRequest(
+      promptId: 'conversation',
+      tier: ModelTier.fast,
+      variables: {
+        'said': heard,
+        // KAFOO'S STATE AND THE COOK'S WORDS ARRIVE AS SEPARATE VARIABLES, and
+        // the separation is the injection boundary rather than tidiness. What
+        // is missing is Kafoo talking; `said` is a person talking. A prompt that
+        // concatenated them would let a Cook write her own "still missing" list.
+        'missing': missingFacts.map((f) => f.wireName).join(','),
+        'known': _known(),
+      },
+    );
+
+    final Result<AiResponse, AppError> result;
+    try {
+      result = await _ai.complete(request).timeout(
+            _turnTimeout,
+            onTimeout: () =>
+                const Failure(AppError(messageKey: 'analyzeMealTimeout')),
+          );
+    } on Object catch (e) {
+      // `_ai.complete` is declared to return a Result and the transport under it
+      // throws on any non-2xx — the same trap that left `analysisInFlight` stuck
+      // true for the life of a screen on 2026-08-11. A conversation that stops
+      // answering with no message is the worst version of that bug, because
+      // silence is what a Cook reads as "it did not hear me".
+      if (!ref.mounted) return false;
+      state = state.copyWith(
+        turnInFlight: false,
+        error: AppError(messageKey: 'analyzeMealUnknownError', cause: e),
+      );
+      return false;
+    }
+
+    if (!ref.mounted) return false;
+
+    switch (result) {
+      case Failure(error: final err):
+        state = state.copyWith(turnInFlight: false, error: err);
+        return false;
+      case Success(value: final response):
+        final parsed = parseConversationReply(response.text);
+        switch (parsed) {
+          case Failure(error: final err):
+            state = state.copyWith(turnInFlight: false, error: err);
+            return false;
+          case Success(value: final reply):
+            final written = await _persistCaptured(reply.captured);
+            if (!ref.mounted) return false;
+            state = state.copyWith(
+              lines: [...state.lines, reply.say],
+              turnInFlight: false,
+            );
+            if (canBeginAnalysis(
+              dish: state.draft.title,
+              description: state.draft.description,
+            )) {
+              _startAnalysis(photoPath: state.draft.photoPath);
+            }
+            return written;
+        }
+    }
+  }
+
+  /// What is already known, as a short line the model can read.
+  ///
+  /// Deliberately values rather than a schema: the model is being told what not
+  /// to ask for, and «الأكلة: محشي ورق عنب» answers that better than a key list.
+  String _known() {
+    final draft = state.draft;
+    final parts = <String>[
+      if (draft.title != null) 'dish=${draft.title}',
+      if (draft.description != null) 'description=${draft.description}',
+      if (draft.price != null) 'price=${draft.price}',
+      if (draft.cuisine != null) 'cuisine=${draft.cuisine!.name}',
+      if (draft.category != null) 'category=${draft.category!.name}',
+    ];
+    return parts.join('\n');
+  }
+
+  /// Writes the facts the Cook stated this turn, creating the draft if this is
+  /// the first one.
+  ///
+  /// Returns false if any write failed. A partial failure leaves the successful
+  /// writes in place — losing a price because a description would not save is
+  /// worse than a draft that is half-written and can be finished.
+  Future<bool> _persistCaptured(Map<MealFact, Object> captured) async {
+    if (captured.isEmpty) return true;
+
+    var ok = true;
+
+    if (state.draft.mealId == null) {
+      final title = captured[MealFact.dish];
+      // A DRAFT NEEDS A TITLE AND THE COOK MAY NOT HAVE GIVEN ONE YET. She can
+      // open with a price, or a question. Nothing is written until she names the
+      // food, which is also the first thing the database requires.
+      if (title is! String) return true;
+      final created = await _repository.createDraft(title: title);
+      if (!ref.mounted) return false;
+      switch (created) {
+        case Success(value: final id):
+          state.draft.mealId = id;
+          state.draft.title = title;
+          state = state.copyWith();
+          unawaited(emitEvent(EventNames.mealDrafted));
+        case Failure(error: final err):
+          state = state.copyWith(error: err);
+          return false;
+      }
+    }
+
+    final mealId = state.draft.mealId!;
+    for (final entry in captured.entries) {
+      if (entry.key == MealFact.dish && state.draft.title == entry.value) {
+        continue;
+      }
+      final result = await _writeFact(mealId, entry.key, entry.value);
+      if (!ref.mounted) return false;
+      switch (result) {
+        case Success():
+          _applyFact(entry.key, entry.value);
+        case Failure(error: final err):
+          state = state.copyWith(error: err);
+          ok = false;
+      }
+    }
+    state = state.copyWith();
+    return ok;
+  }
+
+  Future<Result<Object?, AppError>> _writeFact(
+    String mealId,
+    MealFact fact,
+    Object value,
+  ) =>
+      switch (fact) {
+        MealFact.dish =>
+          _repository.updateDraft(mealId: mealId, title: value as String),
+        MealFact.description =>
+          _repository.updateDraft(mealId: mealId, description: value as String),
+        MealFact.price =>
+          _repository.updateDraft(mealId: mealId, price: value as String),
+        MealFact.cuisine =>
+          _repository.updateDraft(mealId: mealId, cuisine: value as Cuisine),
+        MealFact.category => _repository.updateDraft(
+            mealId: mealId,
+            category: value as MealCategory,
+          ),
+      };
+
+  void _applyFact(MealFact fact, Object value) {
+    switch (fact) {
+      case MealFact.dish:
+        state.draft.title = value as String;
+      case MealFact.description:
+        state.draft.description = value as String;
+      case MealFact.price:
+        state.draft.price = value as String;
+      case MealFact.cuisine:
+        state.draft.cuisine = value as Cuisine;
+      case MealFact.category:
+        state.draft.category = value as MealCategory;
+    }
+  }
+
+  /// Records a Cook's correction of a value she gave, from the receipt.
+  ///
+  /// **Correcting by tap is the complete alternative ADR-0013 requires**, not a
+  /// lesser path: it writes exactly what saying «لأ، السعر مية وخمسين» writes.
   ///
   /// Returns true when the answer was accepted, false when a write failed.
   /// The caller should clear the text field only on success.
-  Future<bool> answer(MealStepId step, String raw) async {
+  Future<bool> correct(MealStepId step, String raw) async {
     state = state.copyWith(error: null);
 
     // THE PRICE IS NORMALISED BEFORE ANYTHING ELSE SEES IT, and that is the fix
@@ -339,7 +549,7 @@ class MealConversationController extends _$MealConversationController {
 
     switch (result) {
       case Success(value: final path):
-        return answer(MealStepId.photo, path);
+        return correct(MealStepId.photo, path);
       case Failure(error: final err):
         state = state.copyWith(error: err);
         return false;

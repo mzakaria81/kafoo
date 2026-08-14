@@ -249,6 +249,22 @@ refund a payment, delete content, write a Review, or impersonate a Customer or C
 Every AI-derived field written to the database passes an explicit human approval step in the
 flow. If a proposed design has the AI writing directly, the design is wrong — not the rule.
 
+**The exchange is one open Conversation, not a sequence of questions (ADR-0015).** Kafoo owns the
+set of facts a journey requires; the Assistant owns what to say next. It may answer questions, give
+advice and be steered mid-journey. **Advice is not data:** a Meal the Assistant suggested enters the
+database only from what the person then says themselves.
+
+**The Assistant may remember across Conversations (ADR-0016), and nothing is built yet.** A memory
+is a short fact in the person's own words, owned by that person, written without a gate — on
+condition it can be heard aloud on demand, deleted with one sentence, and that a health-adjacent
+fact is never stored without asking. Cooks and Customers both. Expires with ADR-0007's dormancy
+window.
+
+**A memory informs what the Assistant says; it never fills a field.** A remembered value reaching a
+Meal, Order or Review passes the normal approval step. One person's memory never reaches another
+person's screen and never enters ranking. **Order history is not memory** — recommendations read
+`orders`, which does not exist until E4.
+
 ## Invariants
 
 Enforced in the database via `CHECK` constraints and foreign keys, never application validation
@@ -292,3 +308,5 @@ need it, how long do we keep it, who can read it, can we avoid collecting it?
 | 2026-07-31 | Settled E1's Open Question 2: a phone credential expires with dormancy while the Person does not. Invariant 13 added. ADR-0007. |
 | 2026-08-05 | Kitchen Profile gained a form of address — grammatical, not demographic, readable wherever the kitchen is and writable only by its Cook. ADR-0010, T089. |
 | 2026-08-06 | The Kitchen Profile conversation asks the form of address as a fifth and final step, and a profile is not complete without an answer. Customers are addressed as men for now: Kafoo stores a form of address for Cooks only, so a Customer-directed verb stays ungendered. ADR-0010, T090–T093. |
+| 2026-08-13 | A journey is one open Conversation rather than an ordered sequence of questions. The required facts are unchanged and still enforced by the database; the fixed order is gone. Advice the Assistant gives is never stored as though the person said it. ADR-0015. |
+| 2026-08-13 | Memory between Conversations granted for Cooks and Customers, written without a gate, on three conditions that ship with it: hearable on demand, deletable in one sentence, consent before a health-adjacent fact. Expires with the ADR-0007 dormancy window. Order history stays in `orders` and is never copied into memory. ADR-0016. |

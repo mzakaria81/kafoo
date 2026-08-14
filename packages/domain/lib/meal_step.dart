@@ -1,18 +1,23 @@
-/// The question sequence for the Meal conversation.
+/// The Cook-authored fields of a Meal, named.
 ///
-/// This is a domain rule — what a Meal must say about itself, in what order —
-/// not a property of any screen. Same shape as `conversation_step.dart`, which
-/// serves the Kitchen Profile conversation, because these are the same family
-/// of thing and a second idea here would be a second idea to keep in step.
+/// **THIS FILE USED TO HOLD A QUESTION SEQUENCE AND NO LONGER DOES (ADR-0015).**
+/// `mealSteps()`, `nextUnansweredMealStep()` and the two fallback questions were
+/// deleted on 2026-08-13 with the wizard they drove. What survives is the one
+/// thing that was never about ordering: an identity for each field the Cook
+/// speaks herself, used when she corrects one and when an analytics event names
+/// which one she just gave.
 ///
-/// **A Meal has seven values and this list has four steps.** That gap is the
-/// design. Cuisine, category, ingredients, calories and allergens are inferred
-/// by the AI Assistant from what the Cook already said, and the Cook approves
-/// them at the summary rather than being asked for them. If this list ever
-/// grows to cover all seven, the AI Assistant has failed and the feature needs
-/// revisiting rather than shipping.
+/// **What is still missing lives in `meal_facts.dart`, as a set with no first
+/// element.** If anything here grows a "next" or a "first", the wizard is
+/// growing back.
 library;
 
+/// A field of a Meal that the Cook supplies in her own words.
+///
+/// Cuisine, category, ingredients, calories and allergens are deliberately
+/// absent: they are inferred by the AI Assistant and approved by the Cook,
+/// rather than asked for. A member added here is one the assistant failed to
+/// save her.
 enum MealStepId {
   /// What did you cook? Becomes the Meal's title.
   dish,
@@ -49,48 +54,6 @@ enum MealStepId {
 /// Matches `docs/product/event-model.md`, which reserves `kind: meal`.
 const String mealConversationKind = 'meal';
 
-/// A single step in the Meal conversation, paired with whether it has been
-/// resolved. The answer itself is held in `MealDraft`.
-final class MealStep {
-  const MealStep({required this.id, required this.answered});
-
-  final MealStepId id;
-  final bool answered;
-}
-
-/// Returns the ordered sequence of steps, based on which answers are present.
-///
-/// [photoResolved] is separate from a photo path being present, because
-/// declining the photo resolves the step without producing an answer. Treating
-/// "no photo" as "not yet asked" would trap a Cook who said no in a loop back
-/// to the question they just answered.
-List<MealStep> mealSteps({
-  required String? dish,
-  required String? description,
-  required bool photoResolved,
-  required String? price,
-}) {
-  final answers = <({MealStepId id, bool answered})>[
-    (id: MealStepId.dish, answered: _isPresent(dish)),
-    (id: MealStepId.description, answered: _isPresent(description)),
-    (id: MealStepId.photo, answered: photoResolved),
-    (id: MealStepId.price, answered: _isPresent(price)),
-  ];
-
-  return [for (final a in answers) MealStep(id: a.id, answered: a.answered)];
-}
-
-/// Returns the next unanswered [MealStep], or null when all are done.
-///
-/// Exactly one step is unanswered at a time on any screen (SC-002): the first
-/// whose answer is absent.
-MealStep? nextUnansweredMealStep(List<MealStep> steps) {
-  for (final step in steps) {
-    if (!step.answered) return step;
-  }
-  return null;
-}
-
 /// Whether the AI Assistant has enough to start analysing.
 ///
 /// The analysis is started as soon as this is true and the Cook keeps
@@ -100,33 +63,5 @@ MealStep? nextUnansweredMealStep(List<MealStep> steps) {
 /// a second, better analysis when it arrives.
 bool canBeginAnalysis({required String? dish, required String? description}) =>
     _isPresent(dish) && _isPresent(description);
-
-/// The questions asked only when the AI Assistant could not supply the
-/// answer. Deliberately separate from [MealStepId]: the Meal conversation
-/// is four questions long, and these two exist because a fallback was
-/// needed, not because the sequence grew.
-enum MealFallbackStepId {
-  cuisine,
-  category;
-
-  /// Stable identifier for `ConversationStepCompleted.step`.
-  String get wireName => switch (this) {
-        MealFallbackStepId.cuisine => 'cuisine',
-        MealFallbackStepId.category => 'category',
-      };
-}
-
-/// Next fallback question, or null when neither is needed.
-///
-/// The caller decides what "needed" means — that depends on the analysis,
-/// which is not a domain-package concept. Cuisine before category.
-MealFallbackStepId? nextUnansweredMealFallbackStep({
-  required bool cuisineNeeded,
-  required bool categoryNeeded,
-}) {
-  if (cuisineNeeded) return MealFallbackStepId.cuisine;
-  if (categoryNeeded) return MealFallbackStepId.category;
-  return null;
-}
 
 bool _isPresent(String? value) => value != null && value.trim().isNotEmpty;

@@ -13,6 +13,8 @@ import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart'
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_receipt.dart';
+import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
 import 'package:kafoo_mobile/home.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_mobile/main.dart';
@@ -87,6 +89,7 @@ Widget _app({
   required FakeKitchenProfileRepository kitchen,
   FakeMealRepository? meals,
   FakeSpeechOutput? speech,
+  AiProvider? ai,
 }) =>
     ProviderScope(
       overrides: [
@@ -100,7 +103,7 @@ Widget _app({
         if (meals != null) mealRepositoryProvider.overrideWithValue(meals),
         // The Meal conversation starts an analysis as soon as a description
         // arrives. Left real it reaches a model provider from a test.
-        aiProviderProvider.overrideWithValue(StubAiProvider(const {})),
+        aiProviderProvider.overrideWithValue(ai ?? StubAiProvider(const {})),
       ],
       child: KafooApp(
         authState: auth,
@@ -291,248 +294,6 @@ void main() {
     expect(app.locale, const Locale('ar'));
   });
 
-  testWidgets('a Cook answers two questions about her food and moves on',
-      (tester) async {
-    // THE JOURNEY THAT WAS BROKEN IN THE FOUNDER'S HAND ON 2026-08-11. He made
-    // his Kitchen Profile, started his first Meal, named it, typed what was in
-    // it, and was told «مقدرناش نحفظ الأكلة». The Meal had saved. The app was
-    // wrong about its own success.
-    //
-    // BE HONEST ABOUT WHAT THIS TEST DOES AND DOES NOT CATCH. The crash was in
-    // the Supabase repository's row parsing, and this journey runs on a fake, so
-    // it would NOT have found that bug. `meal_draft_row_test.dart` is what does,
-    // by pinning the row a real Postgres returns. What this asserts is the thing
-    // a fake CAN prove: the conversation moves from one question to the next,
-    // and a Cook is never told a save failed while it succeeded.
-    final auth = _FakeAuth();
-    addTearDown(auth.dispose);
-    final meals = FakeMealRepository();
-
-    await tester.pumpWidget(_app(
-      auth: auth.stream,
-      account: FakeAccountRepository(),
-      kitchen: FakeKitchenProfileRepository(existing: _profile),
-      meals: meals,
-    ));
-    auth.signedIn();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text(l10n.newMealEntry));
-    await tester.pumpAndSettle();
-
-    // Question one: what is it called.
-    expect(find.text(l10n.mealConvPromptDish), findsOneWidget);
-    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.convContinue('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(meals.createdTitles, ['كشري']);
-
-    // Question two: what is in it. This is where it stopped.
-    expect(find.text(l10n.mealConvPromptDescription('other')), findsOneWidget);
-    await tester.enterText(
-      _fieldOn(MealConversationScreen),
-      'عدس ورز ومكرونة، وبنحمر البصل فوقها',
-    );
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.convContinue('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text(l10n.mealSaveError('other')),
-      findsNothing,
-      reason: 'THE BUG. The description reached the database and the Cook was '
-          'told it had not. Being wrong in this direction is the worst of the '
-          'two: she retypes work that is already saved, or gives up.',
-    );
-    expect(
-      meals.updateDraftArgs.last.description,
-      'عدس ورز ومكرونة، وبنحمر البصل فوقها',
-    );
-    // And she has moved on. The departure matters as much as the arrival: with
-    // the write reported as failed, the description question stayed on screen
-    // with her own words still in the box.
-    expect(find.text(l10n.mealConvPromptDescription('other')), findsNothing);
-    expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
-  });
-
-  testWidgets('the app SAYS each question, not only shows it', (tester) async {
-    // ADR-0013: the assistant speaks and the screen is the receipt. The Meal
-    // conversation has listened since E2 and never once talked back, so a Cook
-    // who does not read comfortably met a wall of text with a microphone beside
-    // it.
-    //
-    // A JOURNEY RATHER THAN A WIDGET TEST, because the defect was not inside any
-    // widget: `AssistantVoice`, `SpeechOutput` and the conversation screen each
-    // worked perfectly alone, and nothing in the assembled app ever called one
-    // from the other. That is the same shape as the four Cook screens with no
-    // route into them.
-    final speech = FakeSpeechOutput();
-    final auth = _FakeAuth();
-    addTearDown(auth.dispose);
-
-    await tester.pumpWidget(_app(
-      auth: auth.stream,
-      account: FakeAccountRepository(),
-      kitchen: FakeKitchenProfileRepository(existing: _profile),
-      meals: FakeMealRepository(),
-      speech: speech,
-    ));
-    auth.signedIn();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text(l10n.newMealEntry));
-    await tester.pumpAndSettle();
-
-    expect(
-      speech.spoken.map((s) => s.line),
-      contains(l10n.mealConvPromptDish),
-      reason: 'the first question was shown and never said',
-    );
-
-    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.convContinue('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(
-      speech.spoken.map((s) => s.line),
-      contains(l10n.mealConvPromptDescription('other')),
-      reason: 'the second question was shown and never said',
-    );
-  });
-
-  testWidgets('a question is said once, not on every keystroke',
-      (tester) async {
-    // A Cook typing a description rebuilds this screen on each character. An
-    // assistant that re-asks the question over her while she is answering it is
-    // worse than one that never spoke.
-    final speech = FakeSpeechOutput();
-    final auth = _FakeAuth();
-    addTearDown(auth.dispose);
-
-    await tester.pumpWidget(_app(
-      auth: auth.stream,
-      account: FakeAccountRepository(),
-      kitchen: FakeKitchenProfileRepository(existing: _profile),
-      meals: FakeMealRepository(),
-      speech: speech,
-    ));
-    auth.signedIn();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text(l10n.newMealEntry));
-    await tester.pumpAndSettle();
-
-    for (final text in ['ك', 'كش', 'كشر', 'كشري']) {
-      await tester.enterText(_fieldOn(MealConversationScreen), text);
-      await tester.pump();
-    }
-
-    expect(
-      speech.spoken.where((s) => s.line == l10n.mealConvPromptDish).length,
-      1,
-      reason: 'the question was repeated while she was answering it',
-    );
-  });
-
-  testWidgets('a Cook prices her Meal in the digits her keyboard produces',
-      (tester) async {
-    // THE SECOND JOURNEY BROKEN IN THE FOUNDER'S HAND ON 2026-08-11, on the very
-    // next question after the one above. He typed «١٢٠» and read «مقدرناش نحفظ
-    // الأكلة» — we could not save the Meal.
-    //
-    // «١٢٠» is one hundred and twenty in Arabic-Indic digits, which is what an
-    // Arabic keyboard produces. `price` is `numeric(10,2)` and the answer was
-    // sent as the text the Cook typed, so Postgres refused it: `invalid input
-    // syntax for type numeric`. Every Cook typing in Arabic, every price.
-    //
-    // **This journey WOULD have caught it**, unlike the one above, and the
-    // difference is worth naming: the bug was in what the app SENDS, not in how
-    // it reads the reply, and a fake records what it was sent. The reason no test
-    // saw it is that every existing test typed `'35'` — the price question, in
-    // the one product whose default locale is Egyptian Arabic, was only ever
-    // answered the way a developer answers it.
-    final auth = _FakeAuth();
-    addTearDown(auth.dispose);
-    final meals = FakeMealRepository();
-
-    await tester.pumpWidget(_app(
-      auth: auth.stream,
-      account: FakeAccountRepository(),
-      kitchen: FakeKitchenProfileRepository(existing: _profile),
-      meals: meals,
-    ));
-    auth.signedIn();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text(l10n.newMealEntry));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(_fieldOn(MealConversationScreen), 'كشري');
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.convContinue('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(_fieldOn(MealConversationScreen), 'عدس ورز ومكرونة');
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.convContinue('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    // The photo is the one question a Cook may decline, and declining must not
-    // cost her the conversation.
-    expect(find.text(l10n.mealConvPromptPhoto), findsOneWidget);
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.mealConvPhotoSkip('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    // The price, typed the way she types it.
-    expect(find.text(l10n.mealConvPromptPrice('other')), findsOneWidget);
-    await tester.enterText(_fieldOn(MealConversationScreen), '١٢٠');
-    await tester.tap(_buttonOn(
-      MealConversationScreen,
-      l10n.convContinue('other'),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text(l10n.mealSaveError('other')),
-      findsNothing,
-      reason: 'THE BUG. Arabic-Indic digits reached a numeric column as text.',
-    );
-    expect(
-      find.text(l10n.mealPriceInvalid('other')),
-      findsNothing,
-      reason:
-          '«١٢٠» IS a price. The new message exists for words and zero, and '
-          'showing it here would be the same refusal wearing better copy.',
-    );
-    expect(
-      meals.updateDraftArgs.last.price,
-      '120',
-      reason: 'What the database is sent, which is the whole defect. Latin '
-          'digits, no currency word, unrounded, and the same string the '
-          'conversation now holds in memory.',
-    );
-    // The departure. With the write reported as failed she stayed on the price
-    // question with «١٢٠» still in the box, tapping «كمّل» and getting the same
-    // sentence — which is exactly what the screenshot showed.
-    expect(find.text(l10n.mealConvPromptPrice('other')), findsNothing);
-  });
-
   testWidgets('«أضيف بإيدي» reaches the Meal creation flow, not the way out',
       (tester) async {
     // 2026-08-11, found in review: the button promised the creation flow and
@@ -569,76 +330,6 @@ void main() {
     expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
   });
 
-  testWidgets('a Cook comes back to a half-finished Meal and carries on',
-      (tester) async {
-    // 2026-08-11: he saved a Meal half-answered, came back, tapped «كمّل الأكلة
-    // دي» and was asked the FIRST question again. Every answer he had given was
-    // still in the database and none of it was on screen.
-    //
-    // `my_meals_screen.dart` seeded the conversation controller and then pushed
-    // the conversation route. The controller is autoDispose, so a `ref.read`
-    // with nothing watching it created the provider, took the seeding, and threw
-    // it away before the route existed — the pushed screen then WATCHED the
-    // provider and got a brand new empty one.
-    //
-    // NOTHING WAS WRONG INSIDE EITHER SCREEN. Both had passing widget tests. The
-    // defect lived entirely in the handover, which is why it needed this file.
-    final auth = _FakeAuth();
-    addTearDown(auth.dispose);
-    final meals = FakeMealRepository(
-      meals: const [
-        CookMeal(
-          id: 'draft-1',
-          cookId: 'c1',
-          title: 'كشري',
-          description: 'عدس ورز ومكرونة',
-          photoPath: 'c1/draft-1.jpg',
-          status: MealStatus.draft,
-          nutritionSource: NutritionSource.ai,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(_app(
-      auth: auth.stream,
-      account: FakeAccountRepository(),
-      kitchen: FakeKitchenProfileRepository(existing: _profile),
-      meals: meals,
-    ));
-    auth.signedIn();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text(l10n.myMealsTitle).last);
-    await tester.pumpAndSettle();
-
-    // The row's actions moved into a bottom sheet when the Meal list became
-    // voice-first: a row led by a 34px price and a glance word cannot also
-    // carry four text buttons. The handover this test guards is unchanged —
-    // only the gesture that reaches it.
-    await tester.tap(find.byIcon(Icons.more_horiz).first);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text(l10n.mealResumeDraft('other')));
-    await tester.pumpAndSettle();
-
-    // Dish, description and photo were answered. Price was not.
-    expect(
-      find.text(l10n.mealConvPromptPrice('other')),
-      findsOneWidget,
-      reason: 'THE BUG. She was asked the dish question again, and retyping an '
-          'answer the app already has is how a Cook concludes it lost her work.',
-    );
-    expect(
-      find.text(l10n.mealConvPromptDish),
-      findsNothing,
-      reason: 'the question she already answered must not come back',
-    );
-    expect(
-      find.text(l10n.mealConvPromptDescription('other')),
-      findsNothing,
-    );
-  });
-
   testWidgets('the signed-in journey survives 200% text on a small phone',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);
@@ -665,52 +356,192 @@ void main() {
     await tester.ensureVisible(leave);
   });
 
-  testWidgets('the Meal conversation survives 200% text on a small phone',
-      (tester) async {
-    // THE 200% JOURNEY STOPPED AT THE HOME SCREEN, which is the screen with the
-    // most headroom. The Meal conversation is the one with a RECORDED history of
-    // clipping: at 360x640 with text at 200% its Column overflowed by 182 logical
-    // pixels, and an overflowing Column resolves it by clipping its LAST child —
-    // «كمّل», the button that submits the answer. A Cook using large text on a
-    // cheap Android handset had no reachable control at all.
-    //
-    // A `SingleChildScrollView` fixed it and nothing walked into the screen to
-    // prove it, so the fix was correct by inspection only. Raised by
-    // accessibility-reviewer on PR #455.
-    tester.view.physicalSize = const Size(360, 640);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
+  // ───────────────────────────────────────────────────────────────────────────
+  // ADR-0015. The journeys these replaced walked four questions and asserted
+  // that question two followed question one. There is no sequence left to walk.
+  //
+  // What a journey test must still prove is the same thing it always proved:
+  // the step BETWEEN screens works. Here that is the step between the Meal list
+  // and the conversation, and between saying something and it being written.
+  // ───────────────────────────────────────────────────────────────────────────
 
+  testWidgets('a Cook talks a Meal into being on one screen', (tester) async {
     final auth = _FakeAuth();
     addTearDown(auth.dispose);
+    final meals = FakeMealRepository();
 
-    await tester.pumpWidget(MediaQuery(
-      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-      child: _app(
-        auth: auth.stream,
-        account: FakeAccountRepository(),
-        kitchen: FakeKitchenProfileRepository(existing: _profile),
-        meals: FakeMealRepository(),
-      ),
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+      ai: StubAiProvider(const {
+        'conversation': '{"say":"تمام، كشري بمية وعشرين.",'
+            '"captured":{"dish":"كشري",'
+            '"description":"عدس ورز ومكرونة، وبنحمر البصل فوقها",'
+            '"price":"١٢٠"}}',
+      }),
     ));
     auth.signedIn();
     await tester.pumpAndSettle();
 
-    final newMeal = find.text(l10n.newMealEntry);
-    await tester.ensureVisible(newMeal);
-    await tester.tap(newMeal);
+    await tester.tap(find.text(l10n.newMealEntry));
     await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    expect(find.text(l10n.mealConvPromptDish), findsOneWidget);
+    // ONE SCREEN. The Meal list is behind it and the conversation is on it.
+    expect(find.byType(MealConversationScreen), findsOneWidget);
+    expect(find.byType(MyMealsScreen), findsNothing);
 
-    // The control that submits her answer. `ensureVisible` is the assertion: it
-    // throws when the widget cannot be brought on screen, which is exactly what
-    // a clipped last child does.
-    final submit =
-        _buttonOn(MealConversationScreen, l10n.convContinue('other'));
-    expect(submit, findsOneWidget);
-    await tester.ensureVisible(submit);
-    expect(tester.takeException(), isNull);
+    // Typing, because no recogniser exists in a widget test — and typing is a
+    // complete alternative, so the journey has to work through it.
+    final typeButton = find.byKey(const ValueKey('meal-talk-type'));
+    await tester.ensureVisible(typeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(typeButton);
+    await tester.pumpAndSettle();
+
+    // WHAT AN EGYPTIAN COOK ACTUALLY TYPES, INCLUDING THE DIGITS. On
+    // 2026-08-11 «١٢٠» reached a numeric column as that exact text and every
+    // Cook was told her Meal could not be saved.
+    final box = find.byKey(const ValueKey('meal-talk-box'));
+    await tester.ensureVisible(box);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      box,
+      'عملت كشري، عدس ورز ومكرونة، وبنحمر البصل فوقها. بـ١٢٠ جنيه.',
+    );
+    final send = _buttonOn(MealConversationScreen, l10n.convContinue('other'));
+    await tester.ensureVisible(send);
+    await tester.pumpAndSettle();
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+
+    expect(meals.createdTitles, ['كشري']);
+    expect(
+      meals.updateDraftArgs.map((c) => c.price).whereType<String>(),
+      contains('120'),
+      reason: 'Arabic-Indic digits must reach the database as digits Postgres '
+          'reads, whichever side of the conversation produced them.',
+    );
+
+    // The assistant answered, and the answer is on the screen as the receipt of
+    // what was said — not as a transcript of what she typed.
+    expect(find.text('تمام، كشري بمية وعشرين.'), findsOneWidget);
+    expect(
+      find.text('عملت كشري، عدس ورز ومكرونة، وبنحمر البصل فوقها. بـ١٢٠ جنيه.'),
+      findsNothing,
+      reason:
+          'The assistant paraphrases. A transcript hides a misunderstanding '
+          'from exactly the person who cannot read it — ADR-0013 rule 2.',
+    );
+
+    // Nothing went on offer. Publishing is a gate, and nobody answered it.
+    expect(meals.publishCalls, 0);
+  });
+
+  testWidgets('the app SAYS what it understood, not only shows it',
+      (tester) async {
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final speech = FakeSpeechOutput();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+      speech: speech,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    // A Cook who does not read comfortably meets a screen that talks first.
+    expect(speech.spoken, isNotEmpty);
+    expect(speech.spoken.first.line, l10n.mealTalkOpening('other'));
+  });
+
+  testWidgets('the opening line is said once, not on every keystroke',
+      (tester) async {
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final speech = FakeSpeechOutput();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+      speech: speech,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.newMealEntry));
+    await tester.pumpAndSettle();
+
+    final typeButton = find.byKey(const ValueKey('meal-talk-type'));
+    await tester.ensureVisible(typeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(typeButton);
+    await tester.pumpAndSettle();
+
+    final box = find.byKey(const ValueKey('meal-talk-box'));
+    for (final partial in ['ك', 'كش', 'كشري']) {
+      await tester.enterText(box, partial);
+      await tester.pump();
+    }
+
+    // An assistant that repeats itself over her while she answers is worse
+    // than one that never spoke.
+    expect(
+      speech.spoken
+          .where((l) => l.line == l10n.mealTalkOpening('other'))
+          .length,
+      1,
+    );
+  });
+
+  testWidgets('a Cook comes back to a half-finished Meal and sees her answers',
+      (tester) async {
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    const half = CookMeal(
+      id: 'half',
+      cookId: 'c1',
+      title: 'محشي ورق عنب',
+      description: 'ورق عنب وأرز ولحمة مفرومة',
+      status: MealStatus.draft,
+      nutritionSource: NutritionSource.ai,
+    );
+    final meals = FakeMealRepository(meals: const [half]);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.myMealsTitle).last);
+    await tester.pumpAndSettle();
+
+    // The row's actions live in a bottom sheet since the Meal list became
+    // voice-first. The handover this test guards is unchanged; only the gesture
+    // that reaches it.
+    await tester.tap(find.byIcon(Icons.more_horiz).first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.mealResumeDraft('other')));
+    await tester.pumpAndSettle();
+
+    // THE DEFECT THIS PINS: he saved a half-finished Meal, came back, and was
+    // asked the first question again while every answer sat in the database.
+    // The receipt is where those answers are now, so this is where it shows.
+    expect(find.text('محشي ورق عنب'), findsWidgets);
+    expect(find.byType(MealReceipt), findsOneWidget);
   });
 }

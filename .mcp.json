@@ -23,6 +23,10 @@
       "env": {
         "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
       }
+    },
+    "elevenlabs": {
+      "type": "http",
+      "url": "https://api.elevenlabs.io/v1/mcp"
     }
   }
 }

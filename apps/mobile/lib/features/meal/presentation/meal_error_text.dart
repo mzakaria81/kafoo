@@ -57,6 +57,10 @@ String mealErrorText(
     'analyzeMealProviderError' => l10n.analyzeMealProviderError(form),
     'analyzeMealServerError' => l10n.analyzeMealServerError(form),
     'analyzeMealUnknownError' => l10n.analyzeMealUnknownError(form),
+    // The assistant answered in a shape this app cannot read. Phrased as
+    // «مافهمتش» rather than as a fault report, because the failure belongs to
+    // the app and never to the person who just spoke — DESIGN.md §10.7.
+    'aiConversationInvalid' => l10n.aiConversationInvalid(form),
     'mealOfflineError' => l10n.mealOfflineError(form),
     'mealPriceInvalid' => l10n.mealPriceInvalid(form),
     'mealPhotoError' => l10n.mealPhotoError(form),

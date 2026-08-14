@@ -28,4 +28,18 @@ reason for a shortcut is only accurately remembered on the day it is taken.
 
 ## Entries taken during the trial
 
-_None yet. Add rows above this line as they happen, newest last, with the date and the commit._
+| # | Date | Deferred | Where | Cost if never done | Trigger to do it |
+|---|---|---|---|---|---|
+| 9 | 2026-08-13 | ~~The Meal wizard keeps running~~ — **done for the Meal**. The Kitchen Profile onboarding is still five questions | `apps/mobile/lib/features/kitchen_profile/` | Two shapes of the same journey exist at once. A Cook meets a conversation for her Meal and a wizard for her kitchen, ten minutes apart | The Meal conversation survives the five-Cook test |
+| 10 | 2026-08-13 | The conversation prompt has **no golden cases and has never been replayed against a model** | `prompts/conversation.md`, `packages/ai/test/goldens/` | The register, the refusal to invent facts and the injection resistance are asserted in prose and tested nowhere. The first real Cook is the first test | Before the five-Cook test, or the first time a turn reaches a live model |
+| 11 | 2026-08-13 | ~~Ordering in `meal_step.dart`~~ — **removed**. `conversation_step.dart` still holds the Kitchen Profile sequence | `packages/domain/conversation_step.dart` | The domain layer half-contradicts ADR-0015, and the domain layer is what a new session reads as truth | With the Kitchen Profile conversation |
+| 12 | 2026-08-13 | The publish gate is still a button, not the read-back gate of DESIGN.md §10.6 | `apps/mobile/lib/features/meal/presentation/meal_receipt.dart` | The «أيوة» moment — the one place the design is most specific and the trust rule most load-bearing — is a plain confirm button. `KafooConfirmationGate` exists and is unused here | Before a real Cook publishes anything |
+| 13 | 2026-08-13 | The talk button's amplitude bars do not move | `apps/mobile/lib/features/meal/presentation/meal_conversation.dart` | The orb reports a constant zero because `VoiceInput` exposes no level. Honest, and it means the listening state is visually static | When the voice transport of ADR-0017 lands, which provides a real level |
+
+| 14 | 2026-08-13 | The assistant's spoken reply is played chunk-by-chunk as tiny WAV clips | `apps/mobile/lib/features/conversation/data/pcm_player.dart` | The agent streams raw samples with no container and nothing in Flutter's audio stack takes them. Each chunk becomes its own clip, so long replies can sound clipped at the seams. A real streaming sink is a platform channel per operating system | A Cook says the voice sounds broken |
+| 15 | 2026-08-13 | The live conversation's model runs on the provider's account, not Kafoo's key | ElevenLabs agent config | ADR-0017 chose to keep Kafoo's own model behind the agent so the provider swap stays one environment variable. The custom-model endpoint is not written, so the agent currently runs the provider's. **Provider independence for the conversation is suspended, not decided away** | The custom-model Edge Function lands, or the founder accepts the lock-in explicitly |
+| 16 | 2026-08-13 | **The whole voice path is untested on a real handset** | `agent_conversation.dart`, `agent-session` | The microphone stream, the socket, the ping/pong and the playback have never run outside a container. The signed-URL mint is the one part proven, by a real call | The first APK reaches a phone |
+
+| 17 | 2026-08-13 | The hosted agent-management MCP server is declared but not signed in | `.mcp.json` | It authenticates with a browser sign-in, which a container cannot complete. Until the founder approves it in his own client, agents are managed by API calls in a session rather than by asking | Founder opens the project locally and approves the connector |
+
+_Rows 1–8 were taken at the cut. Add new rows above this line, newest last, with the date and the commit._
