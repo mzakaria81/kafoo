@@ -556,6 +556,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get removeAccountQuestion => 'Delete your account?';
+
+  @override
   String get removeAccountCancel => 'Back';
 
   @override

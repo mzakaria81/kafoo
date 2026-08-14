@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:kafoo_mobile/features/discovery/presentation/browse_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/change_phone_screen.dart';
@@ -132,8 +134,14 @@ Map<String, Widget> _screens() => {
       'sign in': const SignInScreen(),
       'email sign in': EmailSignInScreen(repository: FakeAccountRepository()),
       'change phone': ChangePhoneScreen(repository: FakeAccountRepository()),
-      'remove account':
-          RemoveAccountScreen(repository: FakeAccountRepository()),
+      // Leaving is a read-back gate now, and the gate speaks — so it needs the
+      // voice seam replaced like every other speaking screen in this sweep.
+      'remove account': ProviderScope(
+        overrides: [
+          speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
+        ],
+        child: RemoveAccountScreen(repository: FakeAccountRepository()),
+      ),
       'kitchen profile': KitchenProfileScreen(
         profile: _profile,
         repository: FakeKitchenProfileRepository(existing: _profile),

@@ -36,6 +36,8 @@ class KafooConfirmationGate extends StatelessWidget {
     this.glanceWord,
     this.glanceText,
     this.subject,
+    this.error,
+    this.busy = false,
     super.key,
   });
 
@@ -70,6 +72,16 @@ class KafooConfirmationGate extends StatelessWidget {
 
   /// A card describing what is being acted on — the Meal, the Order.
   final Widget? subject;
+
+  /// Shown above the answers when the action failed.
+  ///
+  /// **The gate stays up.** A failure means nothing happened, so she is still
+  /// deciding — closing the gate on a failed action would look exactly like a
+  /// successful one.
+  final String? error;
+
+  /// Draws both answers inert while the action is running.
+  final bool busy;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -122,9 +134,17 @@ class KafooConfirmationGate extends StatelessWidget {
                     style: KafooType.glanceWordVerdict
                         .copyWith(color: KafooColors.success),
                   ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      textAlign: TextAlign.center,
+                      style: KafooType.body(arabic: true)
+                          .copyWith(color: KafooColors.errorBorder),
+                    ),
                   const SizedBox(height: KafooSpacing.sm),
                   _Answer(
                     label: confirmLabel,
+                    enabled: !busy,
                     onPressed: onConfirm,
                     height: KafooSpacing.confirmYes,
                     background: KafooColors.success,
@@ -132,6 +152,7 @@ class KafooConfirmationGate extends StatelessWidget {
                   ),
                   _Answer(
                     label: rejectLabel,
+                    enabled: !busy,
                     onPressed: onReject,
                     height: KafooSpacing.confirmNo,
                     background: Colors.transparent,
@@ -160,6 +181,7 @@ class _Answer extends StatelessWidget {
     required this.background,
     required this.foreground,
     this.border,
+    this.enabled = true,
   });
 
   final String label;
@@ -168,10 +190,11 @@ class _Answer extends StatelessWidget {
   final Color background;
   final Color foreground;
   final Color? border;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => ElevatedButton(
-        onPressed: onPressed,
+        onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: background,
           foregroundColor: foreground,

@@ -152,6 +152,16 @@ class ConfirmationGate {
   /// Answering twice does nothing: the first answer stands, so a repeated «أيوة»
   /// while the action is already running cannot publish a second Meal.
   void answer({required bool confirmed}) => _answer ??= confirmed;
+
+  /// Takes the answer back so the gate can be answered again.
+  ///
+  /// **For a gate whose action FAILED, and for nothing else.** A failed delete
+  /// or a failed publish means nothing happened, so she is still deciding — and
+  /// a gate spent by an answer that achieved nothing leaves her looking at a
+  /// screen that cannot be answered. It deliberately does NOT reset
+  /// [hasReprompted]: she has already heard the sentence twice, and starting
+  /// the repeat clock again is the nagging this class exists to prevent.
+  void reopen() => _answer = null;
 }
 
 /// How long an executed action stays undoable.

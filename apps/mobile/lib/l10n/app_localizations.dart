@@ -555,6 +555,12 @@ abstract class AppLocalizations {
   /// **'{addressForm, select, feminine{امسحي حسابي} other{امسح حسابي}}'**
   String removeAccountConfirm(String addressForm);
 
+  /// The verdict word on the leaving gate, 32px/700. A verdict, not a sentence: it is the largest word on the screen and is read at a glance.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمسح حسابك؟'**
+  String get removeAccountQuestion;
+
   /// Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035).
   ///
   /// In ar, this message translates to:

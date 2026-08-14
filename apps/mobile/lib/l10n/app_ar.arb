@@ -499,6 +499,10 @@
       }
     }
   },
+  "removeAccountQuestion": "تمسح حسابك؟",
+  "@removeAccountQuestion": {
+    "description": "The verdict word on the leaving gate, 32px/700. A verdict, not a sentence: it is the largest word on the screen and is read at a glance."
+  },
   "removeAccountCancel": "رجوع",
   "@removeAccountCancel": {
     "description": "Leaves the removal screen with nothing changed. Removal is abandonable part-way (FR-035)."

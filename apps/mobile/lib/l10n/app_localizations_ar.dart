@@ -542,6 +542,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get removeAccountQuestion => 'تمسح حسابك؟';
+
+  @override
   String get removeAccountCancel => 'رجوع';
 
   @override

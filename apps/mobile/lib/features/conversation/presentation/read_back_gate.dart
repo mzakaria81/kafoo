@@ -81,6 +81,9 @@ class ReadBackGateScreen extends ConsumerStatefulWidget {
     this.glanceWord,
     this.glanceText,
     this.subject,
+    this.onAnswered,
+    this.error,
+    this.busy = false,
     super.key,
   });
 
@@ -93,6 +96,23 @@ class ReadBackGateScreen extends ConsumerStatefulWidget {
   final GlanceWord? glanceWord;
   final String? glanceText;
   final Widget? subject;
+
+  /// Called with the answer INSTEAD of popping the route.
+  ///
+  /// **For a gate that IS a screen rather than one in front of a screen.**
+  /// Leaving Kafoo is the case: FR-034 allows exactly one confirmation and no
+  /// second «متأكد؟», so the read-back cannot be pushed on top of a screen that
+  /// already asked — it has to BE that screen. Null keeps the ordinary
+  /// behaviour, which is to pop with the answer.
+  final void Function({required bool confirmed})? onAnswered;
+
+  /// Shown above the answers when the action failed. The gate stays up, because
+  /// a failure means nothing happened and she is still deciding.
+  final String? error;
+
+  /// Draws the answers inert while the action is running, so a second tap
+  /// cannot start it twice.
+  final bool busy;
 
   @override
   ConsumerState<ReadBackGateScreen> createState() => _ReadBackGateScreenState();
@@ -129,6 +149,18 @@ class _ReadBackGateScreenState extends ConsumerState<ReadBackGateScreen> {
   void _answer({required bool confirmed}) {
     _gate.answer(confirmed: confirmed);
     _stopTalking();
+    final answered = widget.onAnswered;
+    if (answered != null) {
+      // READ THE ANSWER BEFORE REOPENING. `reopen()` clears it, so asking the
+      // gate afterwards returns false — which turned every «أيوة» on a
+      // screen-shaped gate into a «لأ» and left the action never running.
+      final said = _gate.isConfirmed;
+      // Re-armable: a failed action leaves her deciding, so the gate must be
+      // able to take another answer rather than being spent by the first.
+      _gate.reopen();
+      answered(confirmed: said);
+      return;
+    }
     Navigator.of(context).pop(_gate.isConfirmed);
   }
 
@@ -166,6 +198,8 @@ class _ReadBackGateScreenState extends ConsumerState<ReadBackGateScreen> {
         backgroundColor: KafooColors.darkSurface,
         body: SafeArea(
           child: KafooConfirmationGate(
+            error: widget.error,
+            busy: widget.busy,
             spokenReadback: widget.readback,
             question: widget.question,
             confirmLabel: widget.confirmLabel,
