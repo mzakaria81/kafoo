@@ -136,6 +136,23 @@ what a specific Order requires.
 
 Voice recordings are transcribed and discarded. Do not persist raw audio without an ADR.
 
+**Conversation transcripts are retained for 90 days, at the vendor, from 2026-08-14 (founder's
+decision, ADR-0017 Amendment 1).** Zero retention mode is off so that Kafoo's own model key can be
+used, and the founder's stated purpose is improving the Cook's and Customer's experience as they use
+the product. Four things bound it and they are the decision, not decoration:
+
+- **Transcripts, not audio.** `record_voice` stays off and `delete_audio` stays on. The rule above is
+  unchanged and no exception to it was asked for or granted.
+- **90 days, matching ADR-0007's dormancy window**, because ADR-0016 already says memory expires with
+  that window and a product with two retention numbers keeps neither correct.
+- **This is Kafoo's data held by a processor, not the vendor's to use.** It is never training data,
+  never another Cook's ranking signal, and never leaves the purpose above.
+- **There is no consent screen yet and that is a gap, not a decision.** A Cook has not been told her
+  words are kept for 90 days. Until she is, this is the founder's accepted risk on a product with no
+  real Cooks on it — see `docs/mvp-deferred.md`. It must be closed before the fifth Cook trial, and
+  the health-adjacent consent rule two paragraphs above applies to a retained transcript exactly as
+  it applies to a stored field: an allergy spoken aloud is an allergy stored.
+
 **That holds offline too, and the founder decided it explicitly on 2026-08-10.** The voice-first
 design's offline state draws a queued-*audio* card; Kafoo queues the **transcript** instead. Speech is
 transcribed on the device, the text is queued, the audio is discarded. No exception to the rule above

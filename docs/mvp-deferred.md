@@ -42,4 +42,7 @@ reason for a shortcut is only accurately remembered on the day it is taken.
 
 | 17 | 2026-08-13 | The hosted agent-management MCP server is declared but not signed in | `.mcp.json` | It authenticates with a browser sign-in, which a container cannot complete. Until the founder approves it in his own client, agents are managed by API calls in a session rather than by asking | Founder opens the project locally and approves the connector |
 
+| 18 | 2026-08-14 | **A Cook is never told her words are kept for 90 days** | The conversation screen, ADR-0017 Amendment 1 | Zero retention is off by the founder's decision, so transcripts now sit at the vendor for 90 days. A Cook describing a Meal says what is in it, and an allergy spoken aloud is health-adjacent data that the privacy rules say needs explicit consent. There is no consent step and nothing says this aloud. Defensible only while no real Cook has used it | **Before the five-Cook trial** — this is a gate on it, not a nicety |
+| 19 | 2026-08-14 | «انسى ده» does not reach the vendor's copy | ADR-0016 memory, ADR-0017 Amendment 1 | ADR-0016 promises a memory is deleted immediately when a Cook says so. That promise covers Kafoo's own database. The vendor's 90-day transcript log is a separate copy and there is no deletion call against it | Whenever the deletion promise is spoken to a real person |
+
 _Rows 1–8 were taken at the cut. Add new rows above this line, newest last, with the date and the commit._
