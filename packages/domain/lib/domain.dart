@@ -5,11 +5,11 @@
 /// rather than adding the import. See `.claude/rules/dart.md`.
 library;
 
-export 'conversation_step.dart';
 export 'discovery_request.dart';
 export 'discovery_result.dart';
 export 'egyptian_phone.dart';
 export 'exclusion.dart';
+export 'kitchen_facts.dart';
 export 'kitchen_profile.dart';
 export 'meal.dart';
 export 'meal_analysis.dart';

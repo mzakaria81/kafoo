@@ -34,7 +34,7 @@ abstract interface class KitchenProfileRepository {
   /// detail cannot silently overwrite another.
   Future<Result<KitchenProfile, AppError>> updateField({
     required String id,
-    required ConversationStepId field,
+    required KitchenFact field,
     required String value,
   });
 
@@ -112,7 +112,7 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
   @override
   Future<Result<KitchenProfile, AppError>> updateField({
     required String id,
-    required ConversationStepId field,
+    required KitchenFact field,
     required String value,
   }) async {
     try {
@@ -131,12 +131,18 @@ class SupabaseKitchenProfileRepository implements KitchenProfileRepository {
     }
   }
 
-  static String _columnFor(ConversationStepId field) => switch (field) {
-        ConversationStepId.displayName => 'display_name',
-        ConversationStepId.story => 'story',
-        ConversationStepId.area => 'area',
-        ConversationStepId.deliveryTerms => 'delivery_terms',
-        ConversationStepId.addressForm => 'address_form',
+  /// The column each fact is stored in.
+  ///
+  /// Identical to `KitchenFact.wireName` today and deliberately not delegated
+  /// to it: one is a database column and the other is an analytics identifier,
+  /// and tying them together would make renaming a column a silent analytics
+  /// break.
+  static String _columnFor(KitchenFact field) => switch (field) {
+        KitchenFact.displayName => 'display_name',
+        KitchenFact.story => 'story',
+        KitchenFact.area => 'area',
+        KitchenFact.deliveryTerms => 'delivery_terms',
+        KitchenFact.addressForm => 'address_form',
       };
 
   /// Uploads to `kitchen-photos/{uid}/kitchen.jpg`.

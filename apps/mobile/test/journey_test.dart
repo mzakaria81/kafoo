@@ -14,6 +14,8 @@ import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/email_sign_in_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/remove_account_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
+import 'package:kafoo_mobile/features/kitchen_profile/application/kitchen_conversation_controller.dart';
+import 'package:kafoo_mobile/features/kitchen_profile/presentation/conversation.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/public_kitchen_view.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
@@ -123,6 +125,12 @@ Widget _app({
           FakeDiscoveryRepository(onOffer: _onOffer),
         ),
         if (meals != null) mealRepositoryProvider.overrideWithValue(meals),
+        // OVERRIDDEN AS WELL AS PASSED TO `KafooApp`, and both are needed. The
+        // home reads its own copy to decide where the kitchen entry points; the
+        // Kitchen Profile CONVERSATION reads the provider, because a controller
+        // has no parent to be handed anything by. Overriding only one leaves the
+        // conversation writing to a real Supabase from a widget test.
+        kitchenProfileRepositoryProvider.overrideWithValue(kitchen),
         // The Meal conversation starts an analysis as soon as a description
         // arrives. Left real it reaches a model provider from a test.
         aiProviderProvider.overrideWithValue(ai ?? StubAiProvider(const {})),
@@ -622,6 +630,107 @@ void main() {
   // step, so each journey below taps its way from one screen to the next and
   // asserts BOTH the arrival and the departure.
   // ──────────────────────────────────────────────────────────────────────────
+
+  testWidgets('a new Cook talks her kitchen into being, in one conversation',
+      (tester) async {
+    // THE SECOND THING A NEW COOK EVER MEETS, AND IT WAS A FORM UNTIL
+    // 2026-08-14. Five questions, one per screen, in a fixed order, with a
+    // summary at the end. She signed in, was told the product talks to her, and
+    // was handed a wizard.
+    //
+    // This walks the whole thing: no kitchen, press the orb, be told a kitchen
+    // comes first, say everything in ONE sentence, hear it read back, and only
+    // then does anything reach the database.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final kitchen = FakeKitchenProfileRepository();
+    final speech = FakeSpeechOutput();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: kitchen,
+      meals: FakeMealRepository(),
+      speech: speech,
+      ai: StubAiProvider(const {
+        'kitchen-conversation': '{"say":"تمام يا أم علي، مطبخ أم علي في '
+            'المعادي.","captured":{'
+            '"display_name":"مطبخ أم علي",'
+            '"story":"بنطبخ أكل بيتي على الطريقة القديمة",'
+            '"area":"المعادي",'
+            '"delivery_terms":"بنوصّل في ساعة",'
+            '"address_form":"feminine"}}',
+      }),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(KafooTalkButton));
+    await tester.pumpAndSettle();
+
+    // FR-017: a kitchen comes before a Meal.
+    expect(find.text(l10n.mealNeedsKitchenTitle), findsOneWidget);
+    await tester.tap(find.text(l10n.mealNeedsKitchenAction('other')));
+    await tester.pumpAndSettle();
+
+    // And it opens SPEAKING, not asking question one of five.
+    expect(find.byType(KitchenConversationScreen), findsOneWidget);
+    expect(
+      speech.spoken.map((s) => s.line),
+      contains(l10n.kitchenTalkOpening('other')),
+    );
+
+    // Typing, because no recogniser exists in a widget test — and typing is a
+    // complete alternative, so the journey has to work through it.
+    final typeButton = find.byKey(const ValueKey('kitchen-talk-type'));
+    await tester.ensureVisible(typeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(typeButton);
+    await tester.pumpAndSettle();
+
+    final box = find.byKey(const ValueKey('kitchen-talk-box'));
+    await tester.ensureVisible(box);
+    await tester.pumpAndSettle();
+    // ONE SENTENCE. The wizard needed five screens for this.
+    await tester.enterText(
+      box,
+      'أنا أم علي من المعادي، بطبخ أكل بيتي وبوصّل في ساعة',
+    );
+    final send = find.descendant(
+      of: find.byType(KitchenConversationScreen),
+      matching: find.widgetWithText(FilledButton, l10n.kitchenTalkSend),
+    );
+    await tester.ensureVisible(send);
+    await tester.pumpAndSettle();
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+
+    // Everything landed on the receipt, and nothing landed in the database.
+    expect(find.text('مطبخ أم علي'), findsOneWidget);
+    expect(find.text('المعادي'), findsOneWidget);
+    expect(kitchen.createCalls, 0);
+
+    final create = find.byKey(const ValueKey('kitchen-create'));
+    await tester.ensureVisible(create);
+    await tester.pumpAndSettle();
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+
+    // THE STEP THAT DID NOT EXIST. What she said is read back before it becomes
+    // the page a Customer reads to decide whether to trust a stranger cooking
+    // at home — so she hears it before anybody else does.
+    expect(find.byType(KafooConfirmationGate), findsOneWidget);
+    expect(kitchen.createCalls, 0);
+
+    await tester.tap(find.text(l10n.kitchenGateYes('other')));
+    await tester.pumpAndSettle();
+
+    expect(kitchen.createCalls, 1);
+    expect(kitchen.createdAddressForm, AddressForm.feminine);
+    // And the conversation closed behind her, into the Meal she pressed the orb
+    // for in the first place.
+    expect(find.byType(KitchenConversationScreen), findsNothing);
+  });
 
   testWidgets('the account sheet reaches the Kitchen Profile and comes back',
       (tester) async {

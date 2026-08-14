@@ -77,9 +77,7 @@ class _MealPublishEntryState extends State<MealPublishEntry> {
   Future<void> _createKitchen() async {
     final saved = await Navigator.of(context).push<KitchenProfile>(
       MaterialPageRoute(
-        builder: (_) => KitchenConversationScreen(
-          repository: widget.kitchenProfileRepository,
-        ),
+        builder: (_) => const KitchenConversationScreen(),
       ),
     );
     if (!mounted) return;

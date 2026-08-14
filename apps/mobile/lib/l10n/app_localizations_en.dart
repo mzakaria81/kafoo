@@ -325,6 +325,89 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get kitchenTalkNotYet => 'Not yet';
+
+  @override
+  String get kitchenTalkSend => 'Send';
+
+  @override
+  String get kitchenTalkTitle => 'Your kitchen';
+
+  @override
+  String kitchenTalkOpening(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine':
+            'Welcome to Kafoo. Tell me about your kitchen — what do you cook, and where are you?',
+        'other':
+            'Welcome to Kafoo. Tell me about your kitchen — what do you cook, and where are you?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String kitchenTalkHint(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Say anything about your kitchen, or ask me something',
+        'other': 'Say anything about your kitchen, or ask me something',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String kitchenTalkPress(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Press and talk',
+        'other': 'Press and talk',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kitchenGateQuestion => 'Create the kitchen?';
+
+  @override
+  String kitchenGateReadback(
+      String name, String area, String story, String delivery) {
+    return '$name in $area. $story. $delivery. This is the kitchen people will see.';
+  }
+
+  @override
+  String kitchenGateYes(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Yes, create it',
+        'other': 'Yes, create it',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String kitchenTalkMissingNote(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'There are still things the assistant needs to know',
+        'other': 'There are still things the assistant needs to know',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kitchenTalkCreated => 'Done — your kitchen is set up.';
+
+  @override
   String get kitchenConvSummaryTitle => 'Here is what you told us';
 
   @override

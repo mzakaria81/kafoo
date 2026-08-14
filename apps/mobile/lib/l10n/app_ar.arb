@@ -280,6 +280,89 @@
       }
     }
   },
+  "kitchenTalkNotYet": "لسه",
+  "@kitchenTalkNotYet": {
+    "description": "Placeholder value on a receipt row the Cook has not answered yet. One word, because the row is a receipt and not a form field with a validation message."
+  },
+  "kitchenTalkSend": "ابعت",
+  "@kitchenTalkSend": {
+    "description": "Sends what the Cook typed in the Kitchen Profile conversation. NOT «كمّل», which the Meal conversation uses: on this screen «كمّل» is also the masculine verb ending offered on the form-of-address row, so the same word would appear twice meaning two different things."
+  },
+  "kitchenTalkTitle": "مطبخك",
+  "@kitchenTalkTitle": {
+    "description": "Title of the one screen where a Cook talks her Kitchen Profile into being. A noun, so it needs no address form."
+  },
+  "kitchenTalkOpening": "أهلاً بيك في كفو. {addressForm, select, feminine{احكيلي عن مطبخك — بتطبخي إيه وانتي فين؟} other{احكيلي عن مطبخك — بتطبخ إيه وانت فين؟}}",
+  "@kitchenTalkOpening": {
+    "description": "The assistant's first line in the Kitchen Profile conversation, spoken aloud on arrival. Open on purpose: it invites her to talk rather than asking the first of five questions.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "kitchenTalkHint": "{addressForm, select, feminine{قولي أي حاجة عن مطبخك، أو اسأليني} other{قول أي حاجة عن مطبخك، أو اسألني}}",
+  "@kitchenTalkHint": {
+    "description": "Placeholder in the typing box on the Kitchen Profile conversation. Names both things she can do, because the conversation is open rather than a question waiting for its answer.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "kitchenTalkPress": "{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}",
+  "@kitchenTalkPress": {
+    "description": "Label under the 88dp talk orb on the Kitchen Profile conversation.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "kitchenGateQuestion": "أعمل المطبخ؟",
+  "@kitchenGateQuestion": {
+    "description": "The verdict word on the Kitchen Profile read-back gate, 32px/700 in the success colour."
+  },
+  "kitchenGateReadback": "{name} في {area}. {story}. {delivery}. ده هيبقى مطبخك اللي الناس تشوفه.",
+  "@kitchenGateReadback": {
+    "description": "Read back in full before the Kitchen Profile is created. Everything she said, in her own words — this is what a Customer will read, so she hears it before anybody else does.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "area": {
+        "type": "String"
+      },
+      "story": {
+        "type": "String"
+      },
+      "delivery": {
+        "type": "String"
+      }
+    }
+  },
+  "kitchenGateYes": "{addressForm, select, feminine{أيوة، اعمليه} other{أيوة، اعمله}}",
+  "@kitchenGateYes": {
+    "description": "The confirming answer on the Kitchen Profile gate. 72dp, solid green.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "kitchenTalkMissingNote": "{addressForm, select, feminine{لسه في حاجات المساعد محتاج يعرفها} other{لسه في حاجات المساعد محتاج يعرفها}}",
+  "@kitchenTalkMissingNote": {
+    "description": "Quiet line under the receipt while the Kitchen Profile is incomplete, explaining why the create control is not available yet.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "kitchenTalkCreated": "تمام، المطبخ اتعمل.",
+  "@kitchenTalkCreated": {
+    "description": "Spoken and shown once the Kitchen Profile exists."
+  },
   "kitchenConvSummaryTitle": "ده اللي قلته",
   "@kitchenConvSummaryTitle": {
     "description": "Heading on the summary screen shown after all questions are answered."

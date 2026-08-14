@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
@@ -8,88 +9,118 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/application/assistant_voice.dart';
 import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
-import '../../conversation/presentation/conversation_question.dart';
-import '../../conversation/presentation/voice_button.dart';
-import '../../identity/presentation/recovery_email_prompt.dart';
-import '../data/kitchen_profile_repository.dart';
-import 'conversation_summary.dart';
+import '../../conversation/data/agent_conversation.dart';
+import '../../conversation/data/pcm_player.dart';
+import '../../conversation/presentation/read_back_gate.dart';
+import '../../meal/presentation/meal_error_text.dart';
+import '../application/kitchen_conversation_controller.dart';
+import 'kitchen_receipt.dart';
 
-/// The Kitchen Profile conversation.
+/// The Kitchen Profile conversation — one screen, one open exchange.
 ///
-/// Answers are held **in memory only** (FR-013, FR-015): the draft lives in
-/// this State object and nothing reaches the database until the Cook confirms
-/// the summary. An abandoned conversation therefore leaves nothing behind by
-/// construction, not by a cleanup step that could be forgotten.
-class KitchenConversationScreen extends StatefulWidget {
+/// ─────────────────────────────────────────────────────────────────────────────
+/// **THIS WAS FIVE QUESTIONS AND IS NOW ONE CONVERSATION (ADR-0015).** Name,
+/// then story, then area, then delivery terms, then how to address her — one per
+/// screen, in that order, with a summary at the end. It was the second thing a
+/// new Cook ever met: she signed in, was told the product talks to her, and was
+/// handed a form.
+///
+/// What replaces them: the assistant says something, the Cook says something
+/// back, and the receipt underneath fills in as she talks. She can ask it
+/// questions, ask what to call her kitchen, change her mind, and none of that is
+/// an error state — it is the conversation.
+///
+/// **Kafoo still owns what a kitchen requires.** `missingFacts` is handed to the
+/// model every turn and the model picks what to say; it never decides what a
+/// kitchen needs and Kafoo never decides the order of the asking.
+///
+/// **Nothing is written until she hears it back and says «أيوة».** Unlike a
+/// Meal, a Kitchen Profile has no draft state in the database — every text
+/// column is required in one insert — so the whole thing is created at the gate
+/// or not at all. A Cook who walks away has told a stranger about herself and
+/// Kafoo kept none of it.
+/// ─────────────────────────────────────────────────────────────────────────────
+class KitchenConversationScreen extends ConsumerStatefulWidget {
   const KitchenConversationScreen({
-    this.repository = const SupabaseKitchenProfileRepository(),
     this.pickPhoto = pickPhotoFromGallery,
     this.voiceInput,
     super.key,
   });
 
-  final KitchenProfileRepository repository;
-  final PickPhoto pickPhoto;
+  /// Kept for ONE reason: the `speech_locale` attribute on
+  /// `ConversationStarted`, which is how `docs/ops/measuring-transcription.md`
+  /// counts handsets with no Egyptian Arabic language pack. Nothing on this
+  /// screen listens through it — the orb opens a hosted conversation that brings
+  /// its own recognition — so it must never decide what gets drawn. That
+  /// mistake was made once already, on the Meal conversation, and it hid the orb
+  /// from every phone without the language pack.
   final VoiceInput? voiceInput;
 
+  /// **NO REPOSITORY PARAMETER, AND THAT IS THE CHANGE.** The wizard took one
+  /// from its parent and handed it down; a controller has no parent to be
+  /// handed anything by. Whatever needs to replace it — a test, a preview —
+  /// overrides `kitchenProfileRepositoryProvider` instead.
+  final PickPhoto pickPhoto;
+
   @override
-  State<KitchenConversationScreen> createState() =>
+  ConsumerState<KitchenConversationScreen> createState() =>
       _KitchenConversationScreenState();
 }
 
-class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
-  final _draft = KitchenProfileDraft();
-  final _answerController = TextEditingController();
+class _KitchenConversationScreenState
+    extends ConsumerState<KitchenConversationScreen> {
+  final _saidController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  /// The live conversation, when one is open (ADR-0017).
+  AgentConversation? _agent;
+  PcmPlayer? _speaker;
+  StreamSubscription<AgentEvent>? _agentEvents;
+  bool _live = false;
+  bool _preparing = false;
+  bool _uploading = false;
+  bool _creating = false;
+
+  /// Whether the Cook asked for the text box.
+  ///
+  /// Starts false and is never set by a failure to UNDERSTAND. §10.7 rung 3
+  /// falls back to tapping, never to typing — so it is hers to choose, and only
+  /// a failure to CONNECT may reveal it, which she is told about plainly.
+  bool _typing = false;
+
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
 
-  bool _checkingExisting = true;
-  bool _voiceAvailable = false;
-  bool _voiceNeedsArabic = false;
-  bool _listening = false;
+  /// The live microphone level, 0 to 1.
+  ///
+  /// Zero until the recogniser reports a real one, and the zero is honest: a
+  /// fake animation that moves while the microphone is broken destroys trust in
+  /// every other state.
+  double get _amplitude => 0;
 
-  /// Set once the person speaks or types on the current step, so the funnel
-  /// records how the answer arrived without recording what was said (FR-037).
-  String _inputMode = 'typed';
+  TalkOrbState _orbState(KitchenConversationState state) {
+    if (_live) return TalkOrbState.listening;
+    if (state.turnInFlight || _preparing) return TalkOrbState.thinking;
+    return TalkOrbState.idle;
+  }
 
   @override
   void initState() {
     super.initState();
-    unawaited(_start());
+    unawaited(_reportSpeechLocale());
   }
 
-  @override
-  void dispose() {
-    _answerController.dispose();
-    unawaited(_voice.cancel());
-    super.dispose();
-  }
-
-  Future<void> _start() async {
-    // FR-009: a person has at most one Kitchen Profile. Send an existing Cook
-    // to theirs rather than starting a second conversation. The unique
-    // constraint on cook_id is the real guard; this is the courtesy.
-    final existing = await widget.repository.findMine();
-    if (!mounted) return;
-    if (existing case Success(value: final profile?)) {
-      await _showAlreadyOwns(profile);
-      return;
-    }
-
+  /// Opens the funnel, and records which handset this Cook is holding.
+  ///
+  /// `ConversationStarted` is what `ConversationCompleted` closes, so a
+  /// conversation that never reports starting makes the completion rate look
+  /// like a divide by zero. The locale is measurement only — see
+  /// [KitchenConversationScreen.voiceInput].
+  Future<void> _reportSpeechLocale() async {
     final available = await _voice.initialize();
     if (!mounted) return;
-    setState(() {
-      _checkingExisting = false;
-      _voiceAvailable = available;
-      // THE FLOW THIS WAS REPORTED FROM. A recogniser that works with no Arabic
-      // installed is the one unavailable case a Cook can fix in their own
-      // settings, and saying it here as well as on search is the difference
-      // between a dead end and an instruction. Raised by conversation-designer,
-      // which pointed out the fix had landed only on the Customer's screen.
-      _voiceNeedsArabic = !available && _voice.engineAvailable;
-    });
-
     unawaited(emitEvent(
       EventNames.conversationStarted,
       attributes: {
@@ -101,278 +132,389 @@ class _KitchenConversationScreenState extends State<KitchenConversationScreen> {
     ));
   }
 
-  Future<void> _showAlreadyOwns(KitchenProfile profile) async {
-    setState(() => _checkingExisting = false);
-    final l10n = AppLocalizations.of(context);
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.kitchenExistsTitle),
-        content: Text(l10n.kitchenExistsBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.convContinue(context.addressForm)),
-          ),
-        ],
-      ),
-    );
-    if (mounted) Navigator.of(context).pop(profile);
+  @override
+  void dispose() {
+    unawaited(_voice.cancel());
+    _saidController.dispose();
+    _scrollController.dispose();
+    unawaited(_agentEvents?.cancel());
+    unawaited(_agent?.dispose());
+    unawaited(_speaker?.dispose());
+    super.dispose();
   }
 
-  ConversationStepId? get _currentStep {
-    final steps = kitchenProfileSteps(
-      displayName: _draft.displayName,
-      story: _draft.story,
-      area: _draft.area,
-      deliveryTerms: _draft.deliveryTerms,
-      addressForm: _draft.addressForm,
-    );
-    return nextUnansweredStep(steps)?.id;
-  }
+  KitchenConversationController get _controller =>
+      ref.read(kitchenConversationControllerProvider.notifier);
 
-  Future<void> _toggleListening() async {
-    if (_listening) {
-      await _voice.stop();
-      if (mounted) setState(() => _listening = false);
+  /// Opens or closes the live conversation.
+  ///
+  /// **The fallback is tap, never a dead button.** Every way this can fail — no
+  /// microphone permission, no signed URL, no network — ends the same way: the
+  /// assistant says it cannot hear right now and the typing control is
+  /// revealed. That is a failure to CONNECT, which she has to be told about
+  /// plainly, and it is a different thing from failing to understand her.
+  Future<void> _toggleLive() async {
+    if (_live) {
+      await _agent?.stop();
       return;
     }
-    setState(() => _listening = true);
-    // The transcript lands in the same field the Cook would type into, so it
-    // is shown back for confirmation before it is ever accepted (FR-012).
-    await _voice.listen(
-      onTranscript: (transcript, isFinal) {
-        if (!mounted) return;
-        setState(() {
-          _answerController.text = transcript;
-          _inputMode = 'voice';
-          if (isFinal) _listening = false;
-        });
-      },
-    );
-  }
 
-  void _acceptAnswer() {
-    final answer = _answerController.text.trim();
-    if (answer.isEmpty) return;
-    final step = _currentStep;
-    if (step == null) return;
+    await ref.read(assistantVoiceProvider.notifier).hush();
+    if (!mounted) return;
 
-    setState(() {
-      switch (step) {
-        case ConversationStepId.displayName:
-          _draft.displayName = answer;
-        case ConversationStepId.story:
-          _draft.story = answer;
-        case ConversationStepId.area:
-          _draft.area = answer;
-        case ConversationStepId.deliveryTerms:
-          _draft.deliveryTerms = answer;
-        case ConversationStepId.addressForm:
-          // Unreachable: this step has no free-text answer, and _build never
-          // shows the text field on it. Handled rather than defaulted so that
-          // adding a sixth step is a compile error here.
-          return;
+    final agent = _agent ??= AgentConversation();
+    final speaker = _speaker ??= PcmPlayer();
+
+    _agentEvents ??= agent.events.listen((event) {
+      if (!mounted) return;
+      switch (event) {
+        case AgentAudio(:final pcm):
+          speaker.add(pcm);
+        case AgentSaid(:final text):
+          _controller.announce(text);
+        case AgentHeard(:final text):
+          // HER WORDS NEVER REACH THE SCREEN. They are fed to the controller so
+          // the facts inside them can be kept — the same path typing takes.
+          unawaited(_controller.hear(text));
+        case AgentInterrupted():
+          unawaited(speaker.clear());
+        case AgentEnded():
+          if (mounted) setState(() => _live = false);
       }
-      _answerController.clear();
     });
 
-    _recordStepCompleted(step);
-  }
-
-  /// The one step that is answered by choosing rather than by speaking or
-  /// typing. Kept separate from [_acceptAnswer] because there is no text to
-  /// trim, no voice transcript to confirm, and nothing to clear.
-  void _acceptAddressForm(AddressForm form) {
-    setState(() => _draft.addressForm = form);
-    // 'chosen' rather than 'typed' or 'voice': the funnel measures how an
-    // answer arrived, and calling a tap a typed answer would misreport the one
-    // step where typing was never offered. The chosen form itself is not an
-    // attribute — that is the Cook's data, not a measurement (FR-037).
-    _inputMode = 'chosen';
-    _recordStepCompleted(ConversationStepId.addressForm);
-  }
-
-  void _recordStepCompleted(ConversationStepId step) {
-    // The drop-off signal the whole funnel exists for. Records which step was
-    // answered and how — never the answer itself (FR-037).
-    unawaited(emitEvent(
-      EventNames.conversationStepCompleted,
-      attributes: {
-        'kind': kitchenProfileConversationKind,
-        'step': step.wireName,
-        'input': _inputMode,
-      },
-    ));
-    _inputMode = 'typed';
-
-    if (_currentStep == null) unawaited(_openSummary());
-  }
-
-  Future<void> _openSummary() async {
-    await _voice.cancel();
+    setState(() => _preparing = true);
+    final started = await agent.start();
     if (!mounted) return;
-    final saved = await Navigator.of(context).push<KitchenProfile>(
-      MaterialPageRoute(
-        builder: (_) => KitchenConversationSummary(
-          draft: _draft,
-          repository: widget.repository,
-          pickPhoto: widget.pickPhoto,
-        ),
-      ),
-    );
-    if (!mounted) return;
-    if (saved != null) {
-      // FR-028: the invitation belongs here, after a Kitchen Profile exists,
-      // and never during registration.
-      await RecoveryEmailPrompt.maybeShow(context);
-      if (!mounted) return;
-      Navigator.of(context).pop(saved);
-    } else {
-      // They came back to change something — re-render the last question.
-      setState(() {});
+    setState(() {
+      _preparing = false;
+      _live = started;
+      if (!started) _typing = true;
+    });
+
+    if (!started && mounted) {
+      _controller.announce(
+        AppLocalizations.of(context).convVoiceUnavailable(context.addressForm),
+      );
     }
   }
 
-  // The Cook's own form is not known until the last step, so every question
-  // before it is asked in the unset form. That is the sequence's cost and it is
-  // the reason the question is asked at all rather than inferred later.
-  String _promptFor(
-    AppLocalizations l10n,
-    ConversationStepId step,
-    String form,
-  ) =>
-      switch (step) {
-        // Two of these four carry no gendered word, so they take no form. That
-        // asymmetry is the ARB's to decide, not this screen's.
-        ConversationStepId.displayName => l10n.kitchenConvPromptDisplayName,
-        ConversationStepId.story => l10n.kitchenConvPromptStory(form),
-        ConversationStepId.area => l10n.kitchenConvPromptArea(form),
-        ConversationStepId.deliveryTerms => l10n.kitchenConvPromptDeliveryTerms,
-        // No placeholder, on purpose: a question asked in order to learn the
-        // Cook's form cannot itself be gendered, so it is built from
-        // first-person verbs.
-        ConversationStepId.addressForm => l10n.kitchenConvPromptAddressForm,
-      };
+  Future<void> _send() async {
+    final said = _saidController.text.trim();
+    if (said.isEmpty) return;
 
-  String? _hintFor(AppLocalizations l10n, ConversationStepId step) =>
-      switch (step) {
-        ConversationStepId.displayName => l10n.kitchenConvHintDisplayName,
-        ConversationStepId.story => l10n.kitchenConvHintStory,
-        ConversationStepId.area => l10n.kitchenConvHintArea,
-        ConversationStepId.deliveryTerms => l10n.kitchenConvHintDeliveryTerms,
-        ConversationStepId.addressForm => null,
-      };
+    final ok = await _controller.hear(said);
+    if (!mounted) return;
+    if (ok) {
+      setState(_saidController.clear);
+      unawaited(emitEvent(
+        EventNames.conversationStepCompleted,
+        attributes: {
+          'kind': kitchenProfileConversationKind,
+          // A turn, not a step. The event keeps its name because analytics
+          // names are never renamed; the attribute records what is now true —
+          // there are no steps left to name.
+          'step': 'turn',
+          'input': 'typed',
+        },
+      ));
+    }
+    // On failure the words STAY IN THE BOX. Making her say it again because the
+    // network dropped is the cost this product can least afford.
+  }
+
+  Future<void> _addPhoto() async {
+    if (_uploading) return;
+    setState(() => _uploading = true);
+    final bytes = await widget.pickPhoto();
+    if (!mounted) return;
+    if (bytes == null) {
+      setState(() => _uploading = false);
+      return;
+    }
+    await _controller.attachPhoto(bytes);
+    if (!mounted) return;
+    setState(() => _uploading = false);
+  }
+
+  /// Creates the kitchen, through the read-back gate.
+  ///
+  /// Everything she said is spoken back in her own words first, because what is
+  /// on this screen becomes the page a Customer reads to decide whether to trust
+  /// a stranger cooking at home. She hears it before anybody else does.
+  Future<void> _create() async {
+    if (_creating) return;
+    final l10n = AppLocalizations.of(context);
+    final form = context.addressForm;
+    final draft = ref.read(kitchenConversationControllerProvider).draft;
+
+    final confirmed = await askReadBackGate(
+      context: context,
+      readback: l10n.kitchenGateReadback(
+        draft.displayName ?? '',
+        draft.area ?? '',
+        draft.story ?? '',
+        draft.deliveryTerms ?? '',
+      ),
+      question: l10n.kitchenGateQuestion,
+      confirmLabel: l10n.kitchenGateYes(form),
+      rejectLabel: l10n.gateAnswerNo,
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _creating = true);
+    final ok = await _controller.create();
+    if (!mounted) return;
+    setState(() => _creating = false);
+    if (!ok) return;
+
+    unawaited(emitEvent(
+      EventNames.conversationCompleted,
+      attributes: {
+        'kind': kitchenProfileConversationKind,
+        'input': 'mixed',
+      },
+    ));
+    await ref
+        .read(assistantVoiceProvider.notifier)
+        .say(l10n.kitchenTalkCreated);
+    if (!mounted) return;
+    Navigator.of(context).pop(
+      ref.read(kitchenConversationControllerProvider).saved,
+    );
+  }
+
+  /// How many assistant lines have already been said out loud.
+  ///
+  /// Without it every rebuild would re-speak. A Cook typing a long sentence
+  /// rebuilds this screen on each keystroke, and an assistant that repeats
+  /// itself over her while she answers is worse than one that never spoke.
+  int _spokenLines = 0;
+
+  void _speakNewLines(List<String> lines) {
+    if (lines.length <= _spokenLines) return;
+    final line = lines.last;
+    _spokenLines = lines.length;
+    Future.microtask(() {
+      if (!mounted) return;
+      unawaited(ref.read(assistantVoiceProvider.notifier).say(line));
+      if (_scrollController.hasClients) {
+        unawaited(_scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        ));
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final step = _currentStep;
+    final theme = Theme.of(context);
+    final form = context.addressForm;
+    final state = ref.watch(kitchenConversationControllerProvider);
+    final voice = ref.watch(assistantVoiceProvider);
 
-    if (_checkingExisting || step == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+    // The opening line, seeded once. Deferred because a provider must not be
+    // written during a build.
+    if (state.lines.isEmpty && !state.turnInFlight) {
+      final opening = l10n.kitchenTalkOpening(form);
+      Future.microtask(() {
+        if (!mounted) return;
+        _controller.open(opening);
+      });
     }
+    _speakNewLines(state.lines);
+
+    final canCreate =
+        ref.read(kitchenConversationControllerProvider.notifier).canCreate;
 
     return Scaffold(
-      appBar: AppBar(),
-      // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
-      // by 204 logical pixels, up from 36 before the theme once the design system's type scale landed, and an overflowing
-      // Column resolves it by clipping its LAST child — the button that submits.
-      // A Cook using large text on a cheap Android handset had no reachable
-      // control at all.
+      appBar: AppBar(
+        title: Text(l10n.kitchenTalkTitle),
+        actions: [
+          // Every screen that speaks carries the mute control, top inline-end,
+          // and it persists until reversed.
+          KafooMuteButton(
+            muted: voice.muted,
+            label: voice.muted
+                ? l10n.voiceMuteRestore(form)
+                : l10n.voiceMuteSilence(form),
+            onChanged: (muted) => ref
+                .read(assistantVoiceProvider.notifier)
+                .setMuted(muted: muted),
+          ),
+        ],
+      ),
+      // SCROLLS, AND HAS TO. At 200% text a Column here overflows and resolves
+      // it by clipping its LAST child — which is the control that sends what she
+      // just said.
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Exactly one question is built, ever. There is no list of
-              // questions to accidentally render two of.
-              ConversationQuestion(
-                prompt: _promptFor(l10n, step, context.addressForm),
-                hint: _hintFor(l10n, step),
-              ),
+              // WHAT THE ASSISTANT SAID, AND ONLY THAT. Her own words are
+              // deliberately absent: ADR-0013 rule 2 — the assistant paraphrases
+              // what it understood, and a transcript hides a misunderstanding
+              // from exactly the person who cannot read it.
+              for (final line in state.lines
+                  .take(state.lines.isEmpty ? 0 : state.lines.length - 1))
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    bottom: KafooSpacing.sm,
+                  ),
+                  child: Text(
+                    line,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: KafooColors.voiceDeep),
+                  ),
+                ),
+              if (state.lines.isNotEmpty)
+                KafooSpokenBanner(
+                  line: state.lines.last,
+                  hearAgainLabel: l10n.mealTalkHearAgain,
+                  onHearAgain: () => unawaited(ref
+                      .read(assistantVoiceProvider.notifier)
+                      .say(state.lines.last)),
+                ),
+              if (state.turnInFlight) ...[
+                const SizedBox(height: KafooSpacing.sm),
+                Text(
+                  l10n.mealTalkThinking,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: KafooColors.textMuted),
+                ),
+              ],
+              if (state.error != null) ...[
+                const SizedBox(height: KafooSpacing.sm),
+                Text(
+                  mealErrorText(context, state.error!),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.error),
+                ),
+              ],
               const SizedBox(height: KafooSpacing.lg),
-              if (step == ConversationStepId.addressForm)
-                ..._addressFormChoices(l10n)
+
+              // The receipt. Present from the first turn, filling in as she
+              // talks, and the tap path for every value she can also say.
+              const KitchenReceipt(),
+
+              const SizedBox(height: KafooSpacing.lg),
+              if (_uploading)
+                const SizedBox(
+                  height: KafooSpacing.minTapTarget,
+                  child: Center(child: CircularProgressIndicator()),
+                )
               else
-                ..._freeTextAnswer(l10n, step),
+                OutlinedButton(
+                  onPressed: _addPhoto,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize:
+                        const Size.fromHeight(KafooSpacing.minTapTarget),
+                  ),
+                  child: Text(l10n.kitchenConvPhotoAdd(form)),
+                ),
+
+              const SizedBox(height: KafooSpacing.lg),
+              if (!canCreate)
+                Text(
+                  l10n.kitchenTalkMissingNote(form),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: KafooColors.textMuted),
+                ),
+              const SizedBox(height: KafooSpacing.sm),
+              FilledButton(
+                key: const ValueKey('kitchen-create'),
+                onPressed: canCreate && !_creating ? _create : null,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+                ),
+                child: _creating
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.kitchenConvSummaryConfirm(form)),
+              ),
+
+              const SizedBox(height: KafooSpacing.xl),
+
+              // THE TALK BUTTON, 88dp, CENTRED, WITH NOTHING ELSE INSIDE ITS
+              // RADIUS. §10.3, and drawn unconditionally — it opens a hosted
+              // conversation that brings its own recognition, so no handset
+              // language pack decides whether it exists.
+              Center(
+                child: KafooTalkButton(
+                  state: _orbState(state),
+                  amplitude: _amplitude,
+                  label: _preparing
+                      ? l10n.voicePreparing
+                      : l10n.kitchenTalkPress(form),
+                  enabled: !state.turnInFlight,
+                  onPressStart: () => unawaited(_toggleLive()),
+                  onPressEnd: () {},
+                ),
+              ),
+
+              const SizedBox(height: KafooSpacing.lg),
+
+              // TYPING IS A CHOICE AND IS DRAWN AS ONE. Secondary, below the
+              // orb, with the rule written under it — the box only appears when
+              // she asks for it, so typing is never what the screen offers her
+              // after failing to understand (§10.7 rung 3).
+              if (!_typing)
+                Column(
+                  children: [
+                    OutlinedButton(
+                      key: const ValueKey('kitchen-talk-type'),
+                      onPressed: () => setState(() => _typing = true),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize:
+                            const Size.fromHeight(KafooSpacing.minTapTarget),
+                      ),
+                      child: Text(l10n.mealTalkType(form)),
+                    ),
+                    const SizedBox(height: KafooSpacing.xs),
+                    Text(
+                      l10n.mealTalkTypeNote,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: KafooColors.textMuted),
+                    ),
+                  ],
+                )
+              else ...[
+                TextField(
+                  key: const ValueKey('kitchen-talk-box'),
+                  controller: _saidController,
+                  maxLines: 3,
+                  minLines: 1,
+                  autofocus: true,
+                  textInputAction: TextInputAction.send,
+                  decoration: InputDecoration(
+                    hintText: l10n.kitchenTalkHint(form),
+                  ),
+                  onSubmitted: (_) => _send(),
+                ),
+                const SizedBox(height: KafooSpacing.md),
+                FilledButton(
+                  onPressed: state.turnInFlight ? null : _send,
+                  style: FilledButton.styleFrom(
+                    minimumSize:
+                        const Size.fromHeight(KafooSpacing.minTapTarget),
+                  ),
+                  child: Text(l10n.kitchenTalkSend),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
-
-  /// Two buttons, no text field and no microphone.
-  ///
-  /// The answer is one of exactly two values, so there is nothing for a Cook to
-  /// phrase and offering a text box would only invite an answer the app then
-  /// has to reject. Each button is labelled with the word it would produce —
-  /// كمّل or كمّلي — so the choice is shown rather than described.
-  List<Widget> _addressFormChoices(AppLocalizations l10n) => [
-        FilledButton(
-          onPressed: () => _acceptAddressForm(AddressForm.masculine),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-          ),
-          child: Text(l10n.kitchenConvAddressFormMasculine),
-        ),
-        const SizedBox(height: KafooSpacing.md),
-        FilledButton(
-          onPressed: () => _acceptAddressForm(AddressForm.feminine),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-          ),
-          child: Text(l10n.kitchenConvAddressFormFeminine),
-        ),
-      ];
-
-  List<Widget> _freeTextAnswer(
-    AppLocalizations l10n,
-    ConversationStepId step,
-  ) =>
-      [
-        TextField(
-          controller: _answerController,
-          maxLines: step == ConversationStepId.story ? 4 : 1,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _acceptAnswer(),
-        ),
-        const SizedBox(height: KafooSpacing.md),
-        if (_voiceAvailable)
-          VoiceButton(
-            listening: _listening,
-            label: l10n.convVoiceHint(context.addressForm),
-            onPressed: _toggleListening,
-          )
-        else
-          // research.md §3: recognition missing is the likeliest
-          // real-world outcome. Say so plainly and keep the flow whole.
-          //
-          // `liveRegion` because a Cook who cannot see the screen is told this
-          // by nothing else: the microphone button simply is not there, and an
-          // absence announces nothing.
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              _voiceNeedsArabic
-                  ? l10n.convVoiceNeedsArabic(context.addressForm)
-                  : l10n.convVoiceUnavailable(context.addressForm),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        // A fixed gap: a Spacer needs bounded height and a scroll
-        // view gives it none.
-        const SizedBox(height: KafooSpacing.xl),
-        FilledButton(
-          onPressed: _acceptAnswer,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-          ),
-          child: Text(l10n.convContinue(context.addressForm)),
-        ),
-      ];
 }

@@ -316,6 +316,87 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get kitchenTalkNotYet => 'لسه';
+
+  @override
+  String get kitchenTalkSend => 'ابعت';
+
+  @override
+  String get kitchenTalkTitle => 'مطبخك';
+
+  @override
+  String kitchenTalkOpening(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'احكيلي عن مطبخك — بتطبخي إيه وانتي فين؟',
+        'other': 'احكيلي عن مطبخك — بتطبخ إيه وانت فين؟',
+      },
+    );
+    return 'أهلاً بيك في كفو. $_temp0';
+  }
+
+  @override
+  String kitchenTalkHint(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'قولي أي حاجة عن مطبخك، أو اسأليني',
+        'other': 'قول أي حاجة عن مطبخك، أو اسألني',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String kitchenTalkPress(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'دوسي واتكلمي',
+        'other': 'دوس واتكلم',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kitchenGateQuestion => 'أعمل المطبخ؟';
+
+  @override
+  String kitchenGateReadback(
+      String name, String area, String story, String delivery) {
+    return '$name في $area. $story. $delivery. ده هيبقى مطبخك اللي الناس تشوفه.';
+  }
+
+  @override
+  String kitchenGateYes(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'أيوة، اعمليه',
+        'other': 'أيوة، اعمله',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String kitchenTalkMissingNote(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'لسه في حاجات المساعد محتاج يعرفها',
+        'other': 'لسه في حاجات المساعد محتاج يعرفها',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kitchenTalkCreated => 'تمام، المطبخ اتعمل.';
+
+  @override
   String get kitchenConvSummaryTitle => 'ده اللي قلته';
 
   @override

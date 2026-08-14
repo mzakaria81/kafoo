@@ -8,6 +8,7 @@
 library;
 
 export 'src/conversation_reply_parser.dart';
+export 'src/kitchen_reply_parser.dart';
 export 'src/meal_analysis_parser.dart';
 export 'src/provider/ai_provider.dart';
 export 'src/provider/edge_function_provider.dart';

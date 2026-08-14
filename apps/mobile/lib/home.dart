@@ -104,9 +104,7 @@ class _SignedInHomeState extends State<SignedInHome> {
     if (profile == null) {
       final saved = await Navigator.of(context).push<KitchenProfile>(
         MaterialPageRoute(
-          builder: (_) => KitchenConversationScreen(
-            repository: widget.kitchenProfileRepository,
-          ),
+          builder: (_) => const KitchenConversationScreen(),
         ),
       );
       if (!mounted || saved == null) return;

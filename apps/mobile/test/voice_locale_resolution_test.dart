@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/analytics/event_names.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
-import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
+import 'package:kafoo_mobile/features/kitchen_profile/application/kitchen_conversation_controller.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/conversation.dart';
+import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -110,17 +116,27 @@ class FakeSpeechToText implements SpeechToText {
   SpeechPhraseAggregator? unexpectedPhraseAggregator;
 }
 
-Widget _testApp(Widget child) {
-  return MaterialApp(
-    locale: const Locale('ar'),
-    supportedLocales: const [Locale('ar'), Locale('en')],
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
+Widget _testApp(Widget child, {FakeKitchenProfileRepository? repo}) {
+  return ProviderScope(
+    overrides: [
+      kitchenProfileRepositoryProvider
+          .overrideWithValue(repo ?? FakeKitchenProfileRepository()),
+      // Recorded rather than spoken. Left real the conversation reaches Kafoo's
+      // `speak` function — and a paid provider — from a widget test.
+      speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
+      aiProviderProvider.overrideWithValue(StubAiProvider(const {})),
     ],
-    home: child,
+    child: MaterialApp(
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: child,
+    ),
   );
 }
 
@@ -267,7 +283,6 @@ void main() {
 
     testWidgets('voice available with ar-EG records the locale id',
         (tester) async {
-      final repo = FakeKitchenProfileRepository();
       final fakeSpeech = FakeSpeechToText(
         availableLocales: [
           LocaleName('ar_EG', 'Arabic (Egypt)'),
@@ -277,7 +292,6 @@ void main() {
 
       await tester.pumpWidget(_testApp(
         KitchenConversationScreen(
-          repository: repo,
           pickPhoto: () async => null,
           voiceInput: voice,
         ),
@@ -286,7 +300,7 @@ void main() {
 
       expect(voice.localeMatch, equals(VoiceLocaleMatch.exact));
       expect(voice.resolvedLocaleId, equals('ar_EG'));
-      expect(find.byIcon(Icons.mic), findsOneWidget);
+      expect(find.byType(KafooTalkButton), findsOneWidget);
 
       final attributes = conversationStarted();
       expect(attributes['speech_locale'], equals('ar_EG'));
@@ -295,7 +309,6 @@ void main() {
 
     testWidgets('voice available with ar-SA only records the fallback locale',
         (tester) async {
-      final repo = FakeKitchenProfileRepository();
       final fakeSpeech = FakeSpeechToText(
         availableLocales: [
           LocaleName('ar_SA', 'Arabic (Saudi Arabia)'),
@@ -305,7 +318,6 @@ void main() {
 
       await tester.pumpWidget(_testApp(
         KitchenConversationScreen(
-          repository: repo,
           pickPhoto: () async => null,
           voiceInput: voice,
         ),
@@ -314,7 +326,7 @@ void main() {
 
       expect(voice.localeMatch, equals(VoiceLocaleMatch.fallback));
       expect(voice.resolvedLocaleId, equals('ar_SA'));
-      expect(find.byIcon(Icons.mic), findsOneWidget);
+      expect(find.byType(KafooTalkButton), findsOneWidget);
 
       // The whole point of the attribute: this conversation is an Egyptian Cook being transcribed
       // by a model trained on another dialect, and it must be distinguishable from the exact case
@@ -327,7 +339,6 @@ void main() {
 
     testWidgets('no Arabic locale records none and shows typing fallback',
         (tester) async {
-      final repo = FakeKitchenProfileRepository();
       final fakeSpeech = FakeSpeechToText(
         availableLocales: [
           LocaleName('en_US', 'English (US)'),
@@ -337,7 +348,6 @@ void main() {
 
       await tester.pumpWidget(_testApp(
         KitchenConversationScreen(
-          repository: repo,
           pickPhoto: () async => null,
           voiceInput: voice,
         ),
@@ -351,16 +361,18 @@ void main() {
       final attributes = conversationStarted();
       expect(attributes['speech_locale'], equals('none'));
       expect(attributes['input'], equals('typed'));
-      // No mic button — the conversation survives by offering typing.
-      expect(find.byIcon(Icons.mic), findsNothing);
-      // The text field is still present so the Cook can type.
-      expect(find.byType(TextField), findsOneWidget);
+      // THE ORB IS STILL DRAWN, and that is the 2026-08-14 fix rather than an
+      // oversight. A missing on-device language pack says nothing about whether
+      // a hosted conversation can hear her, and until that day it was the thing
+      // deciding whether the orb existed at all.
+      expect(find.byType(KafooTalkButton), findsOneWidget);
 
-      // Answering by typing still works — the conversation must not regress.
-      await tester.enterText(find.byType(TextField), 'مطبخ بيتي');
-      await tester.tap(find.byType(FilledButton));
+      // Typing is hers to ask for and is never a consequence of a handset
+      // lacking a language pack, so the box is not on screen until she says so.
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('kitchen-talk-type')));
       await tester.pumpAndSettle();
-      expect(find.byType(ConversationQuestion), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
     });
   });
 }

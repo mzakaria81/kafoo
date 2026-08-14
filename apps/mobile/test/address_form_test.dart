@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kafoo_ai/ai.dart';
 import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/analytics/emit_event.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
+import 'package:kafoo_mobile/features/kitchen_profile/application/kitchen_conversation_controller.dart';
 import 'package:kafoo_mobile/features/kitchen_profile/presentation/conversation.dart';
-import 'package:kafoo_mobile/features/kitchen_profile/presentation/conversation_summary.dart';
+import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/l10n/address_form.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 
@@ -19,8 +24,13 @@ import 'support/fake_kitchen_profile_repository.dart';
 ///
 /// The assertions look for the **verb ending**, which is the whole difference:
 /// بتشتغل addresses a man, بتشتغلي a woman. Undiacritized Egyptian spells the
-/// past tense and the possessive identically for both, so a test that picked
-/// one of those strings would pass in either form and measure nothing.
+/// past tense and the possessive identically for both, so a test that picked one
+/// of those strings would pass in either form and measure nothing.
+///
+/// **THE FIFTH QUESTION IS GONE AND THE FACT IS NOT.** It used to be a screen of
+/// its own at the end of a wizard. It is now a row on the receipt with both
+/// endings always offered, and she can also just say «أنا ست» — so the tests
+/// below assert the fact reaches the database, not that a question was asked.
 class _UnavailableVoiceInput extends VoiceInput {
   @override
   Future<bool> initialize() async => false;
@@ -38,41 +48,87 @@ class _UnavailableVoiceInput extends VoiceInput {
   Future<void> cancel() async {}
 }
 
-Widget _testApp(Widget child, {String? form}) {
-  final scoped =
-      form == null ? child : AddressFormScope(form: form, child: child);
-  return MaterialApp(
-    locale: const Locale('ar'),
-    supportedLocales: const [Locale('ar'), Locale('en')],
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
+const _everythingButTheForm = '{"say":"تمام، كله واضح.","captured":{'
+    '"display_name":"مطبخ أم علي",'
+    '"story":"بنطبخ أكل بيتي",'
+    '"area":"المعادي",'
+    '"delivery_terms":"بنوصّل في ساعة"}}';
+
+Widget _testApp(
+  FakeKitchenProfileRepository repo, {
+  String? form,
+  AiProvider? ai,
+}) {
+  final screen = KitchenConversationScreen(
+    pickPhoto: () async => null,
+    voiceInput: _UnavailableVoiceInput(),
+  );
+  return ProviderScope(
+    overrides: [
+      kitchenProfileRepositoryProvider.overrideWithValue(repo),
+      speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
+      aiProviderProvider.overrideWithValue(ai ?? StubAiProvider(const {})),
     ],
-    home: scoped,
+    child: MaterialApp(
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: form == null ? screen : AddressFormScope(form: form, child: screen),
+    ),
   );
 }
 
-Widget _conversation(FakeKitchenProfileRepository repo) =>
-    KitchenConversationScreen(
-      repository: repo,
-      pickPhoto: () async => null,
-      voiceInput: _UnavailableVoiceInput(),
-    );
+Future<void> _say(
+  WidgetTester tester,
+  String words,
+  AppLocalizations l10n,
+  String form,
+) async {
+  final typeButton = find.byKey(const ValueKey('kitchen-talk-type'));
+  if (typeButton.evaluate().isNotEmpty) {
+    await tester.ensureVisible(typeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(typeButton);
+    await tester.pumpAndSettle();
+  }
+  final box = find.byKey(const ValueKey('kitchen-talk-box'));
+  await tester.ensureVisible(box);
+  await tester.pumpAndSettle();
+  await tester.enterText(box, words);
+  final send = find.widgetWithText(FilledButton, l10n.kitchenTalkSend);
+  await tester.ensureVisible(send);
+  await tester.pumpAndSettle();
+  await tester.tap(send);
+  await tester.pumpAndSettle();
+}
 
-/// Scrolls the summary down to its confirm button and taps it.
-///
-/// The form-of-address row made the summary taller than one screen, and a
-/// ListView does not build what is below the fold — so a plain find.text on the
-/// confirm label reports zero widgets rather than a widget it cannot reach.
-Future<void> _confirmSummary(WidgetTester tester, String label) async {
-  await tester.scrollUntilVisible(find.text(label), 100);
-  await tester.tap(find.text(label));
+/// Answers the read-back gate with «أيوة».
+Future<void> _createAndConfirm(
+  WidgetTester tester,
+  AppLocalizations l10n,
+  String form,
+) async {
+  final create = find.byKey(const ValueKey('kitchen-create'));
+  await tester.ensureVisible(create);
+  await tester.pumpAndSettle();
+  await tester.tap(create);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(l10n.kitchenGateYes(form)));
   await tester.pumpAndSettle();
 }
 
 void main() {
+  late AppLocalizations l10n;
+
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('ar'));
+  });
+
   group('icuAddressForm', () {
     test('feminine is the only value that leaves the other branch', () {
       expect(icuAddressForm(AddressForm.feminine), 'feminine');
@@ -84,127 +140,115 @@ void main() {
 
   testWidgets('with no scope in the tree, a Cook is addressed as a man',
       (tester) async {
-    await tester.pumpWidget(_testApp(_conversation(
-      FakeKitchenProfileRepository(),
-    )));
+    await tester.pumpWidget(_testApp(FakeKitchenProfileRepository()));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'مطبخ أم علي');
-    await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
-
-    // Second question, masculine: "قولّي عن طبخك. بتعمل إيه وبتعمله إزاي؟"
-    expect(find.textContaining('بتعمل إيه'), findsOneWidget);
-    expect(find.textContaining('بتعملي إيه'), findsNothing);
+    // The opening line, masculine: «بتطبخ إيه وانت فين؟»
+    expect(find.textContaining('بتطبخ إيه'), findsOneWidget);
+    expect(find.textContaining('بتطبخي إيه'), findsNothing);
   });
 
   testWidgets('under a feminine scope, the same screen conjugates for a woman',
       (tester) async {
     await tester.pumpWidget(_testApp(
-      _conversation(FakeKitchenProfileRepository()),
+      FakeKitchenProfileRepository(),
       form: 'feminine',
     ));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'مطبخ أم علي');
-    await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
+    expect(find.textContaining('بتطبخي إيه'), findsOneWidget);
 
-    // "قوليلي عن طبخك. بتعملي إيه وبتعمليه إزاي؟"
-    expect(find.textContaining('بتعملي إيه'), findsOneWidget);
-
-    // The third question too, so this is the placeholder being supplied rather
+    // The orb's label too, so this is the placeholder being supplied rather
     // than one string that happened to be written in the feminine.
-    await tester.enterText(find.byType(TextField), 'بنطبخ أكل بيتي');
-    await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
-    expect(find.text('في أنهي منطقة بتشتغلي؟'), findsOneWidget);
+    expect(find.text(l10n.kitchenTalkPress('feminine')), findsOneWidget);
   });
 
-  testWidgets('the fifth question is asked, and offers both endings',
-      (tester) async {
-    await tester.pumpWidget(_testApp(_conversation(
-      FakeKitchenProfileRepository(),
-    )));
-    await tester.pumpAndSettle();
-
-    for (final answer in ['مطبخ أم علي', 'أكل بيتي', 'المعادي', 'توصيل']) {
-      await tester.enterText(find.byType(TextField), answer);
-      await tester.tap(find.byType(FilledButton));
-      await tester.pumpAndSettle();
-    }
-
-    // The question is built from first-person verbs, so it is the same
-    // sentence whoever is reading it. Nothing to switch on, by design.
-    expect(find.text('عشان أكلمك صح — أقولّك "كمّل" ولا "كمّلي"؟'),
-        findsOneWidget);
-    expect(find.text('كمّل'), findsOneWidget);
-    expect(find.text('كمّلي'), findsOneWidget);
-    // Chosen, not spoken or typed: there is nothing for a Cook to phrase.
-    expect(find.byType(TextField), findsNothing);
-  });
-
-  group('the summary', () {
-    // The summary writes, so it emits. Without this seam emitEvent reaches for
+  group('the form of address', () {
+    // Creating writes, so it emits. Without this seam emitEvent reaches for
     // Supabase.instance and the test dies on the assertion instead of on the
     // thing it is measuring.
     setUp(() => debugEventRecorder = (_, __) {});
     tearDown(() => debugEventRecorder = null);
 
-    KitchenProfileDraft draft(AddressForm form) => KitchenProfileDraft()
-      ..displayName = 'مطبخ أم علي'
-      ..story = 'بنطبخ أكل بيتي'
-      ..area = 'المعادي'
-      ..deliveryTerms = 'توصيل في نص ساعة'
-      ..addressForm = form;
-
-    testWidgets('carries the chosen form into the row it renders',
+    testWidgets('both endings are offered on the receipt, always',
         (tester) async {
-      await tester.pumpWidget(_testApp(KitchenConversationSummary(
-        draft: draft(AddressForm.feminine),
-        repository: FakeKitchenProfileRepository(),
-        pickPhoto: () async => null,
-      )));
+      await tester.pumpWidget(_testApp(FakeKitchenProfileRepository()));
       await tester.pumpAndSettle();
 
-      // Both endings are offered, always — there is no edit button to press
-      // first, because a mis-tap on the last question of the conversation is
-      // the likeliest way this value goes in wrong.
+      // No edit button to press first: a mis-tap on this value follows her for
+      // the life of her account, so changing it is always one tap.
       expect(find.text('كمّل'), findsOneWidget);
       expect(find.text('كمّلي'), findsOneWidget);
     });
 
-    testWidgets('the chosen form reaches the repository on confirm',
-        (tester) async {
+    testWidgets('tapping an ending reaches the repository', (tester) async {
       final repo = FakeKitchenProfileRepository();
-      await tester.pumpWidget(_testApp(KitchenConversationSummary(
-        draft: draft(AddressForm.feminine),
-        repository: repo,
-        pickPhoto: () async => null,
-      )));
+      await tester.pumpWidget(_testApp(
+        repo,
+        ai: StubAiProvider(
+          const {'kitchen-conversation': _everythingButTheForm},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      await _say(tester, 'أنا أم علي من المعادي', l10n, 'other');
+      await tester.tap(find.text('كمّلي'));
       await tester.pumpAndSettle();
 
       // Nothing written yet (FR-015).
       expect(repo.createCalls, 0);
 
-      await _confirmSummary(tester, 'تمام، احفظ');
+      await _createAndConfirm(tester, l10n, 'other');
 
       expect(repo.createCalls, 1);
       expect(repo.createdAddressForm, AddressForm.feminine);
     });
 
-    testWidgets('changing the answer here costs one tap', (tester) async {
+    testWidgets('saying it reaches the repository the same way tapping does',
+        (tester) async {
+      // ADR-0013: tap is a complete alternative to speaking, which means the
+      // two paths must write the identical thing. This is the half nobody could
+      // test while the answer was a screen with two buttons on it.
       final repo = FakeKitchenProfileRepository();
-      await tester.pumpWidget(_testApp(KitchenConversationSummary(
-        draft: draft(AddressForm.masculine),
-        repository: repo,
-        pickPhoto: () async => null,
-      )));
+      await tester.pumpWidget(_testApp(
+        repo,
+        ai: StubAiProvider(const {
+          'kitchen-conversation': '{"say":"تمام يا أم علي.","captured":{'
+              '"display_name":"مطبخ أم علي",'
+              '"story":"بنطبخ أكل بيتي",'
+              '"area":"المعادي",'
+              '"delivery_terms":"بنوصّل في ساعة",'
+              '"address_form":"feminine"}}',
+        }),
+      ));
       await tester.pumpAndSettle();
 
+      await _say(tester, 'أنا ست، أم علي من المعادي', l10n, 'other');
+      await _createAndConfirm(tester, l10n, 'other');
+
+      expect(repo.createdAddressForm, AddressForm.feminine);
+    });
+
+    testWidgets('changing the answer after saying it costs one tap',
+        (tester) async {
+      final repo = FakeKitchenProfileRepository();
+      await tester.pumpWidget(_testApp(
+        repo,
+        ai: StubAiProvider(const {
+          'kitchen-conversation': '{"say":"تمام.","captured":{'
+              '"display_name":"مطبخ أم علي",'
+              '"story":"بنطبخ أكل بيتي",'
+              '"area":"المعادي",'
+              '"delivery_terms":"بنوصّل في ساعة",'
+              '"address_form":"masculine"}}',
+        }),
+      ));
+      await tester.pumpAndSettle();
+
+      await _say(tester, 'أنا أم علي من المعادي', l10n, 'other');
       await tester.tap(find.text('كمّلي'));
       await tester.pumpAndSettle();
-      await _confirmSummary(tester, 'تمام، احفظ');
+      await _createAndConfirm(tester, l10n, 'other');
 
       expect(repo.createdAddressForm, AddressForm.feminine);
     });

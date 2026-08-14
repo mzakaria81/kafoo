@@ -9,9 +9,9 @@ import 'package:kafoo_mobile/features/analytics/event_names.dart';
 import 'package:kafoo_mobile/features/conversation/application/voice_input.dart';
 import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
 import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
-import 'package:kafoo_mobile/features/conversation/presentation/conversation_question.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_publish_entry.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
@@ -94,8 +94,8 @@ void main() {
     // The body text asking the Cook to create a kitchen is on screen.
     expect(find.text(l10n.mealNeedsKitchenBody('other')), findsOneWidget);
 
-    // No conversation question is rendered — the Meal has not started.
-    expect(find.byType(ConversationQuestion), findsNothing);
+    // The Meal conversation has not started — the gate is in front of it.
+    expect(find.byType(MealConversationScreen), findsNothing);
   });
 
   // 2. No Kitchen Profile — nothing is written and nothing is emitted.

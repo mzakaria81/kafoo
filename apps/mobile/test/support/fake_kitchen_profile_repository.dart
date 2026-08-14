@@ -71,7 +71,7 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
   @override
   Future<Result<KitchenProfile, AppError>> updateField({
     required String id,
-    required ConversationStepId field,
+    required KitchenFact field,
     required String value,
   }) async {
     updateCalls++;
@@ -82,13 +82,11 @@ class FakeKitchenProfileRepository implements KitchenProfileRepository {
     final updated = KitchenProfile(
       id: base.id,
       cookId: base.cookId,
-      displayName:
-          field == ConversationStepId.displayName ? value : base.displayName,
-      story: field == ConversationStepId.story ? value : base.story,
-      area: field == ConversationStepId.area ? value : base.area,
-      deliveryTerms: field == ConversationStepId.deliveryTerms
-          ? value
-          : base.deliveryTerms,
+      displayName: field == KitchenFact.displayName ? value : base.displayName,
+      story: field == KitchenFact.story ? value : base.story,
+      area: field == KitchenFact.area ? value : base.area,
+      deliveryTerms:
+          field == KitchenFact.deliveryTerms ? value : base.deliveryTerms,
       photoPath: base.photoPath,
     );
     existing = updated;

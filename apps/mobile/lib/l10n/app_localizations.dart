@@ -344,6 +344,73 @@ abstract class AppLocalizations {
   /// **'التعرف على الصوت مش متاح. ممكن {addressForm, select, feminine{تكتبي} other{تكتب}} إجابتك بدل كده.'**
   String convVoiceUnavailable(String addressForm);
 
+  /// Placeholder value on a receipt row the Cook has not answered yet. One word, because the row is a receipt and not a form field with a validation message.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه'**
+  String get kitchenTalkNotYet;
+
+  /// Sends what the Cook typed in the Kitchen Profile conversation. NOT «كمّل», which the Meal conversation uses: on this screen «كمّل» is also the masculine verb ending offered on the form-of-address row, so the same word would appear twice meaning two different things.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابعت'**
+  String get kitchenTalkSend;
+
+  /// Title of the one screen where a Cook talks her Kitchen Profile into being. A noun, so it needs no address form.
+  ///
+  /// In ar, this message translates to:
+  /// **'مطبخك'**
+  String get kitchenTalkTitle;
+
+  /// The assistant's first line in the Kitchen Profile conversation, spoken aloud on arrival. Open on purpose: it invites her to talk rather than asking the first of five questions.
+  ///
+  /// In ar, this message translates to:
+  /// **'أهلاً بيك في كفو. {addressForm, select, feminine{احكيلي عن مطبخك — بتطبخي إيه وانتي فين؟} other{احكيلي عن مطبخك — بتطبخ إيه وانت فين؟}}'**
+  String kitchenTalkOpening(String addressForm);
+
+  /// Placeholder in the typing box on the Kitchen Profile conversation. Names both things she can do, because the conversation is open rather than a question waiting for its answer.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{قولي أي حاجة عن مطبخك، أو اسأليني} other{قول أي حاجة عن مطبخك، أو اسألني}}'**
+  String kitchenTalkHint(String addressForm);
+
+  /// Label under the 88dp talk orb on the Kitchen Profile conversation.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}'**
+  String kitchenTalkPress(String addressForm);
+
+  /// The verdict word on the Kitchen Profile read-back gate, 32px/700 in the success colour.
+  ///
+  /// In ar, this message translates to:
+  /// **'أعمل المطبخ؟'**
+  String get kitchenGateQuestion;
+
+  /// Read back in full before the Kitchen Profile is created. Everything she said, in her own words — this is what a Customer will read, so she hears it before anybody else does.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name} في {area}. {story}. {delivery}. ده هيبقى مطبخك اللي الناس تشوفه.'**
+  String kitchenGateReadback(
+      String name, String area, String story, String delivery);
+
+  /// The confirming answer on the Kitchen Profile gate. 72dp, solid green.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أيوة، اعمليه} other{أيوة، اعمله}}'**
+  String kitchenGateYes(String addressForm);
+
+  /// Quiet line under the receipt while the Kitchen Profile is incomplete, explaining why the create control is not available yet.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{لسه في حاجات المساعد محتاج يعرفها} other{لسه في حاجات المساعد محتاج يعرفها}}'**
+  String kitchenTalkMissingNote(String addressForm);
+
+  /// Spoken and shown once the Kitchen Profile exists.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام، المطبخ اتعمل.'**
+  String get kitchenTalkCreated;
+
   /// Heading on the summary screen shown after all questions are answered.
   ///
   /// In ar, this message translates to:

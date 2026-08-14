@@ -29,27 +29,26 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   late KitchenProfile _profile = widget.profile;
   String? _error;
 
-  String _valueOf(ConversationStepId field) => switch (field) {
-        ConversationStepId.displayName => _profile.displayName,
-        ConversationStepId.story => _profile.story,
-        ConversationStepId.area => _profile.area,
-        ConversationStepId.deliveryTerms => _profile.deliveryTerms,
+  String _valueOf(KitchenFact field) => switch (field) {
+        KitchenFact.displayName => _profile.displayName,
+        KitchenFact.story => _profile.story,
+        KitchenFact.area => _profile.area,
+        KitchenFact.deliveryTerms => _profile.deliveryTerms,
         // Not editable here. It is chosen from two values on the Kitchen
         // Profile summary, so it has no free-text value to show in this
         // screen's text editor.
-        ConversationStepId.addressForm => '',
+        KitchenFact.addressForm => '',
       };
 
-  String _labelOf(AppLocalizations l10n, ConversationStepId field) =>
-      switch (field) {
-        ConversationStepId.displayName => l10n.kitchenConvLabelDisplayName,
-        ConversationStepId.story => l10n.kitchenConvLabelStory,
-        ConversationStepId.area => l10n.kitchenConvLabelArea,
-        ConversationStepId.deliveryTerms => l10n.kitchenConvLabelDeliveryTerms,
-        ConversationStepId.addressForm => l10n.kitchenConvLabelAddressForm,
+  String _labelOf(AppLocalizations l10n, KitchenFact field) => switch (field) {
+        KitchenFact.displayName => l10n.kitchenConvLabelDisplayName,
+        KitchenFact.story => l10n.kitchenConvLabelStory,
+        KitchenFact.area => l10n.kitchenConvLabelArea,
+        KitchenFact.deliveryTerms => l10n.kitchenConvLabelDeliveryTerms,
+        KitchenFact.addressForm => l10n.kitchenConvLabelAddressForm,
       };
 
-  Future<void> _edit(ConversationStepId field) async {
+  Future<void> _edit(KitchenFact field) async {
     final l10n = AppLocalizations.of(context);
     final replacement = await showModalBottomSheet<String>(
       context: context,
@@ -63,7 +62,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
         newLabel: l10n.kitchenEditNewValue,
         saveLabel: l10n.kitchenEditSave(context.addressForm),
         cancelLabel: l10n.kitchenEditCancel,
-        multiline: field == ConversationStepId.story,
+        multiline: field == KitchenFact.story,
       ),
     );
 
@@ -101,7 +100,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
         child: ListView(
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           children: [
-            for (final field in ConversationStepId.freeText)
+            for (final field in KitchenFact.freeText)
               _DetailRow(
                 label: _labelOf(l10n, field),
                 value: _valueOf(field),
