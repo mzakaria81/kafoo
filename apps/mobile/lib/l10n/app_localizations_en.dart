@@ -1664,6 +1664,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsVoiceSection => 'Voice';
+
+  @override
+  String get settingsVoiceQuestion => 'Who talks to you?';
+
+  @override
+  String get settingsVoiceFemale => 'A woman\'s voice';
+
+  @override
+  String get settingsVoiceFemaleNote => 'Cairene, calm, speaks slowly';
+
+  @override
+  String get settingsVoiceMale => 'A man\'s voice';
+
+  @override
+  String get settingsVoiceMaleNote => 'Cairene, a little lower, clear';
+
+  @override
+  String get settingsVoiceChosen => 'Chosen';
+
+  @override
+  String settingsVoiceHear(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Hear it',
+        'other': 'Hear it',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsVoicePreview =>
+      'Hello, I am here. Say something and I am listening.';
+
+  @override
+  String get settingsVoiceStorageNote =>
+      'The choice is kept on this phone, and never changes on its own.';
+
+  @override
+  String get settingsVoiceUnavailable =>
+      'This phone is speaking with its own voice, so there is no choice to make.';
+
+  @override
   String get settingsSearchTitle => 'Search with the AI Assistant';
 
   @override

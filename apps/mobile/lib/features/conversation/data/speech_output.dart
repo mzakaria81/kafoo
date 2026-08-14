@@ -1,6 +1,8 @@
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'hosted_speech_output.dart';
+
 /// How well the device's own voice matches Egyptian Arabic.
 ///
 /// The same three-way answer [VoiceLocaleMatch] gives for recognition, and for
@@ -67,6 +69,29 @@ abstract interface class SpeechOutput {
 
   /// Silences or unsilences the assistant, and remembers the answer.
   Future<void> setMuted({required bool muted});
+
+  /// Which of the two Cairene voices is talking.
+  ///
+  /// **§10.11: each account chooses for itself and the choice never switches on
+  /// its own.** The machinery for this shipped on 2026-08-11 — two voices bought,
+  /// a stored preference, a role passed to `speak` — and no screen ever offered
+  /// the choice, so every Cook heard whichever one was the default. The design
+  /// package draws the chooser (screenshot 06); this is the seam it needed.
+  ///
+  /// An engine with only one voice reports [AssistantVoiceRole.defaultRole] and
+  /// ignores [setVoice], rather than pretending to switch.
+  AssistantVoiceRole get voice;
+
+  /// Whether this engine actually has two voices to choose between.
+  ///
+  /// **Asked of the engine, not inferred from its type.** A screen that decided
+  /// by checking `is HostedSpeechOutput` would be a screen that knows which
+  /// engine it is talking to, which is the one thing this interface exists to
+  /// prevent — and it would go wrong silently the next time the seam is swapped.
+  bool get hasVoiceChoice;
+
+  /// Chooses a voice, and remembers the answer.
+  Future<void> setVoice(AssistantVoiceRole role);
 }
 
 /// Everything about being muted, which no engine should reimplement.
@@ -123,6 +148,19 @@ mixin StoredMutePreference {
 /// situations a Cook is actually in.
 class DeviceSpeechOutput with StoredMutePreference implements SpeechOutput {
   DeviceSpeechOutput({FlutterTts? tts}) : _tts = tts ?? FlutterTts();
+
+  /// **The device has whatever voice it has, and saying otherwise would be the
+  /// lie the seam exists to prevent.** A handset's Arabic voice is chosen by the
+  /// platform; there is no second one to swap to, so the choice is reported as
+  /// the default and setting it does nothing rather than appearing to work.
+  @override
+  AssistantVoiceRole get voice => AssistantVoiceRole.defaultRole;
+
+  @override
+  bool get hasVoiceChoice => false;
+
+  @override
+  Future<void> setVoice(AssistantVoiceRole role) async {}
 
   final FlutterTts _tts;
   SpeechVoiceMatch _match = SpeechVoiceMatch.none;
@@ -239,6 +277,17 @@ class DeviceSpeechOutput with StoredMutePreference implements SpeechOutput {
 /// the subject is not the voice. **Named for its emptiness** so a silent app is
 /// never mistaken for a working one.
 class UnvoicedSpeechOutput with StoredMutePreference implements SpeechOutput {
+  /// Reported, never chosen. Nothing here can say anything in either voice, so
+  /// offering a choice would be the pretence this class is named against.
+  @override
+  AssistantVoiceRole get voice => AssistantVoiceRole.defaultRole;
+
+  @override
+  bool get hasVoiceChoice => false;
+
+  @override
+  Future<void> setVoice(AssistantVoiceRole role) async {}
+
   @override
   SpeechVoiceMatch get voiceMatch => SpeechVoiceMatch.none;
 
@@ -268,6 +317,18 @@ class FakeSpeechOutput with StoredMutePreference implements SpeechOutput {
 
   final List<({String line, bool quiet})> spoken = [];
   bool stopped = false;
+
+  @override
+  AssistantVoiceRole voice = AssistantVoiceRole.defaultRole;
+
+  /// Off by default, so a test that wants the chooser has to say so — the
+  /// chooser must be ABSENT when there is one voice, and a fake that always
+  /// offered it could not prove that.
+  @override
+  bool hasVoiceChoice = false;
+
+  @override
+  Future<void> setVoice(AssistantVoiceRole role) async => voice = role;
 
   @override
   final SpeechVoiceMatch voiceMatch;

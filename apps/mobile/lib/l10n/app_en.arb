@@ -1434,6 +1434,55 @@
   "@settingsTitle": {
     "description": "Title of Kafoo's only Settings screen, and the tooltip on the way in. Customer-facing and ungendered per ADR-0010 — a bare noun."
   },
+  "settingsVoiceSection": "Voice",
+  "@settingsVoiceSection": {
+    "description": "Heading over the assistant-voice chooser in Settings."
+  },
+  "settingsVoiceQuestion": "Who talks to you?",
+  "@settingsVoiceQuestion": {
+    "description": "The question under the voice section heading, spoken aloud when Settings opens."
+  },
+  "settingsVoiceFemale": "A woman's voice",
+  "@settingsVoiceFemale": {
+    "description": "The female Cairene assistant voice, as a name rather than a description."
+  },
+  "settingsVoiceFemaleNote": "Cairene, calm, speaks slowly",
+  "@settingsVoiceFemaleNote": {
+    "description": "What the female voice sounds like, so the choice can be read as well as heard."
+  },
+  "settingsVoiceMale": "A man's voice",
+  "@settingsVoiceMale": {
+    "description": "The male Cairene assistant voice, as a name rather than a description."
+  },
+  "settingsVoiceMaleNote": "Cairene, a little lower, clear",
+  "@settingsVoiceMaleNote": {
+    "description": "What the male voice sounds like, so the choice can be read as well as heard."
+  },
+  "settingsVoiceChosen": "Chosen",
+  "@settingsVoiceChosen": {
+    "description": "The glance word on the selected voice card. From the closed set — recognised by shape, never restyled."
+  },
+  "settingsVoiceHear": "{addressForm, select, feminine{Hear it} other{Hear it}}",
+  "@settingsVoiceHear": {
+    "description": "The 48dp preview control on each voice card. Says one line in that voice without choosing it.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsVoicePreview": "Hello, I am here. Say something and I am listening.",
+  "@settingsVoicePreview": {
+    "description": "The sentence spoken when a voice is previewed or chosen. Short, and one of the fixed sentences so it costs nothing to say."
+  },
+  "settingsVoiceStorageNote": "The choice is kept on this phone, and never changes on its own.",
+  "@settingsVoiceStorageNote": {
+    "description": "Says where the voice choice is kept and that nothing changes it silently — DESIGN.md §10.11."
+  },
+  "settingsVoiceUnavailable": "This phone is speaking with its own voice, so there is no choice to make.",
+  "@settingsVoiceUnavailable": {
+    "description": "Shown instead of the chooser when the engine has only the handset's own voice. A control that does nothing is worse than a sentence saying why there is none."
+  },
   "settingsSearchTitle": "Search with the AI Assistant",
   "@settingsSearchTitle": {
     "description": "Label on the one switch Settings holds. Uses the SAME Arabic name for the AI Assistant as the five strings that already existed — a second name for one concept is what the glossary forbids, and introducing one in two new strings would have made it seven strings with two names. Ungendered per ADR-0010."

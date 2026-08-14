@@ -1425,6 +1425,72 @@ abstract class AppLocalizations {
   /// **'الإعدادات'**
   String get settingsTitle;
 
+  /// Heading over the assistant-voice chooser in Settings.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصوت'**
+  String get settingsVoiceSection;
+
+  /// The question under the voice section heading, spoken aloud when Settings opens.
+  ///
+  /// In ar, this message translates to:
+  /// **'مين اللي يتكلم معاك؟'**
+  String get settingsVoiceQuestion;
+
+  /// The female Cairene assistant voice, as a name rather than a description.
+  ///
+  /// In ar, this message translates to:
+  /// **'صوت ست'**
+  String get settingsVoiceFemale;
+
+  /// What the female voice sounds like, so the choice can be read as well as heard.
+  ///
+  /// In ar, this message translates to:
+  /// **'لهجة قاهرية، هادية، بتتكلم بالراحة'**
+  String get settingsVoiceFemaleNote;
+
+  /// The male Cairene assistant voice, as a name rather than a description.
+  ///
+  /// In ar, this message translates to:
+  /// **'صوت رجل'**
+  String get settingsVoiceMale;
+
+  /// What the male voice sounds like, so the choice can be read as well as heard.
+  ///
+  /// In ar, this message translates to:
+  /// **'لهجة قاهرية، واطية شوية وواضحة'**
+  String get settingsVoiceMaleNote;
+
+  /// The glance word on the selected voice card. From the closed set — recognised by shape, never restyled.
+  ///
+  /// In ar, this message translates to:
+  /// **'مختار'**
+  String get settingsVoiceChosen;
+
+  /// The 48dp preview control on each voice card. Says one line in that voice without choosing it.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{اسمعيه} other{اسمعه}}'**
+  String settingsVoiceHear(String addressForm);
+
+  /// The sentence spoken when a voice is previewed or chosen. Short, and one of the fixed sentences so it costs nothing to say.
+  ///
+  /// In ar, this message translates to:
+  /// **'أهلاً، أنا معاك. قولي وأنا بسمع.'**
+  String get settingsVoicePreview;
+
+  /// Says where the voice choice is kept and that nothing changes it silently — DESIGN.md §10.11.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاختيار بيتحفظ على الموبايل، ومابيتغيرش لوحده.'**
+  String get settingsVoiceStorageNote;
+
+  /// Shown instead of the chooser when the engine has only the handset's own voice. A control that does nothing is worse than a sentence saying why there is none.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموبايل بيتكلم بصوته هو دلوقتي، فمفيش اختيار.'**
+  String get settingsVoiceUnavailable;
+
   /// Label on the one switch Settings holds. Uses the SAME Arabic name for the AI Assistant as the five strings that already existed — a second name for one concept is what the glossary forbids, and introducing one in two new strings would have made it seven strings with two names. Ungendered per ADR-0010.
   ///
   /// In ar, this message translates to:

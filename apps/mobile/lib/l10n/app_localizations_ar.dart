@@ -1609,6 +1609,50 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsTitle => 'الإعدادات';
 
   @override
+  String get settingsVoiceSection => 'الصوت';
+
+  @override
+  String get settingsVoiceQuestion => 'مين اللي يتكلم معاك؟';
+
+  @override
+  String get settingsVoiceFemale => 'صوت ست';
+
+  @override
+  String get settingsVoiceFemaleNote => 'لهجة قاهرية، هادية، بتتكلم بالراحة';
+
+  @override
+  String get settingsVoiceMale => 'صوت رجل';
+
+  @override
+  String get settingsVoiceMaleNote => 'لهجة قاهرية، واطية شوية وواضحة';
+
+  @override
+  String get settingsVoiceChosen => 'مختار';
+
+  @override
+  String settingsVoiceHear(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اسمعيه',
+        'other': 'اسمعه',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsVoicePreview => 'أهلاً، أنا معاك. قولي وأنا بسمع.';
+
+  @override
+  String get settingsVoiceStorageNote =>
+      'الاختيار بيتحفظ على الموبايل، ومابيتغيرش لوحده.';
+
+  @override
+  String get settingsVoiceUnavailable =>
+      'الموبايل بيتكلم بصوته هو دلوقتي، فمفيش اختيار.';
+
+  @override
   String get settingsSearchTitle => 'البحث بالمساعد الذكي';
 
   @override

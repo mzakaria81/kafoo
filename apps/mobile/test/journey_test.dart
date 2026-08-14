@@ -30,6 +30,7 @@ import 'package:kafoo_mobile/home.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_mobile/main.dart';
 import 'package:kafoo_ui/ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'support/fake_account_repository.dart';
@@ -120,7 +121,12 @@ Widget _app({
         // The assistant's voice, recorded rather than spoken. Left real it
         // reaches Kafoo's `speak` function — and therefore a paid provider —
         // from a widget test.
-        speechOutputProvider.overrideWithValue(speech ?? FakeSpeechOutput()),
+        speechOutputProvider.overrideWithValue(
+          // Two voices, so Settings renders the chooser the design draws. A
+          // one-voice fake would make that screen's main section vanish and the
+          // journey would pass over an empty page.
+          speech ?? (FakeSpeechOutput()..hasVoiceChoice = true),
+        ),
         discoveryRepositoryProvider.overrideWithValue(
           FakeDiscoveryRepository(onOffer: _onOffer),
         ),
@@ -191,6 +197,14 @@ void main() {
   setUpAll(() async {
     l10n = await AppLocalizations.delegate.load(const Locale('ar'));
   });
+
+  // WITHOUT THIS THE VOICE NEVER FINISHES STARTING UP, AND SILENTLY. The
+  // assistant reads a stored mute preference on its first frame; with no mock
+  // the platform channel throws, `AssistantVoice._start` never completes, and
+  // every journey ran against a voice that reported itself not ready, could not
+  // choose a voice, and drew its controls inert. Speaking still worked, which is
+  // why nothing failed and nothing was true.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('a Cook signs in with her phone and reaches her own screens',
       (tester) async {
@@ -916,6 +930,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SettingsScreen), findsOneWidget);
+    // AND THE VOICE CHOOSER IS ON IT. Kafoo bought two Cairene voices on
+    // 2026-08-11 and no screen ever offered the choice, so every Cook heard
+    // whichever one was the default — a feature finished in every layer except
+    // the one a person can reach.
+    expect(find.text(l10n.settingsVoiceFemale), findsWidgets);
+    expect(find.text(l10n.settingsVoiceMale), findsWidgets);
   });
 
   testWidgets('sign-in offers the email way in when the phone will not do',

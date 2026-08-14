@@ -218,6 +218,16 @@ class HostedSpeechOutput with StoredMutePreference implements SpeechOutput {
   AssistantVoiceRole get role => _role;
 
   @override
+  AssistantVoiceRole get voice => _role;
+
+  /// Two voices, bought and paid for. The whole reason the chooser exists.
+  @override
+  bool get hasVoiceChoice => true;
+
+  @override
+  Future<void> setVoice(AssistantVoiceRole role) => setRole(role);
+
+  @override
   SpeechVoiceMatch get voiceMatch =>
       // Ghozlan and Ahmad are both Cairene — chosen by ear from the twenty-five
       // Egyptian voices in the provider's library, 2026-08-11. There is no
