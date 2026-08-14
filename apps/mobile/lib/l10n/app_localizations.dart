@@ -1136,6 +1136,30 @@ abstract class AppLocalizations {
   /// **'أكلاتي'**
   String get myMealsTitle;
 
+  /// The 48dp control in the Meal list top bar that opens the account sheet — Kitchen Profile, changing the phone number, and leaving. A noun, so it needs no address form.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابي'**
+  String get accountEntry;
+
+  /// Title of the account sheet opened from the Meal list top bar.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابي'**
+  String get accountSheetTitle;
+
+  /// Plain-text retreat at the bottom of the account sheet. Never a coloured button — retreat must not compete with the actions above it.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{اقفلي} other{اقفل}}'**
+  String accountSheetClose(String addressForm);
+
+  /// Label under the 88dp talk orb at the bottom of the Meal list, and under the 120dp orb on the empty state. Pressing it opens the Meal conversation.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{دوسي واتكلمي} other{دوس واتكلم}}'**
+  String myMealsTalkInvitation(String addressForm);
+
   /// Home-screen entry to offering a Meal. A noun rather than an imperative on purpose: it needs no grammatical form for the Cook, so it reads the same to everybody and costs no placeholder.
   ///
   /// In ar, this message translates to:

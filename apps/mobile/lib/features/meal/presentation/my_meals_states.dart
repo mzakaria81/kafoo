@@ -31,12 +31,17 @@ String myMealsErrorMessage(
 /// the design's way of making the first Meal a conversation — the screen has
 /// one sentence, one big button, and one quiet way to do it by hand.
 class MyMealsEmpty extends StatelessWidget {
-  const MyMealsEmpty({this.onAddByHand, super.key});
+  const MyMealsEmpty({this.onAddByHand, this.onTalk, super.key});
 
-  /// Opens the Meal-creation flow. See [MyMealsScreen.onAddByHand] — on this
+  /// Opens the Meal-creation flow. See `MyMealsScreen.onAddByHand` — on this
   /// screen it matters more, because a Cook with no Meals has nothing else to
   /// do here.
   final VoidCallback? onAddByHand;
+
+  /// The orb's destination — the conversation where a Meal is talked into
+  /// being. Null draws the orb inert, which is what a test constructing this
+  /// widget bare gets.
+  final VoidCallback? onTalk;
 
   @override
   Widget build(BuildContext context) {
@@ -77,10 +82,17 @@ class MyMealsEmpty extends StatelessWidget {
               child: KafooTalkButton(
                 state: TalkOrbState.idle,
                 amplitude: 0,
-                enabled: false,
+                enabled: onTalk != null,
                 size: KafooSpacing.talkButtonInvitation,
-                label: l10n.voiceNotReadyYet(form),
-                onPressStart: () {},
+                // The invitation, not an apology. This orb was drawn disabled
+                // reading «الكلام لسه مش شغال» on the one screen whose entire
+                // purpose is to invite a Cook to speak — so the first thing a
+                // Cook with no Meals ever saw was the product telling her its
+                // main idea did not work.
+                label: onTalk == null
+                    ? l10n.voiceNotReadyYet(form)
+                    : l10n.myMealsTalkInvitation(form),
+                onPressStart: onTalk ?? () {},
                 onPressEnd: () {},
               ),
             ),

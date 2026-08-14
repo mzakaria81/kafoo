@@ -1198,6 +1198,36 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myMealsTitle => 'أكلاتي';
 
   @override
+  String get accountEntry => 'حسابي';
+
+  @override
+  String get accountSheetTitle => 'حسابي';
+
+  @override
+  String accountSheetClose(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'اقفلي',
+        'other': 'اقفل',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsTalkInvitation(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'دوسي واتكلمي',
+        'other': 'دوس واتكلم',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get newMealEntry => 'أكلة جديدة';
 
   @override

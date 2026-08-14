@@ -5,18 +5,30 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
+import 'package:kafoo_mobile/features/identity/presentation/remove_account_screen.dart';
+import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/home.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_kitchen_profile_repository.dart';
+import 'support/fake_meal_repository.dart';
 
-/// What a Cook must be able to REACH from the signed-in home.
+/// THE SIGNED-IN HOME, WHICH IS NOW THE MEAL LIST RATHER THAN A MENU.
 ///
-/// Every screen named here already had a passing widget test on 2026-08-09 and
-/// none of them could be opened from the running app: the home carried three
-/// buttons and a comment from E1 saying Meals arrived later. A test that builds
-/// a screen directly proves it renders and says nothing about whether anybody
-/// can get to it, so this file asserts the entries exist and lead somewhere.
+/// It was five stacked text buttons until 2026-08-14 — أكلاتي، أكلة جديدة،
+/// مطبخك، غيّر رقم الموبايل، امسح حسابي — and every test in this file asserted
+/// that they were all present, which is how a screen the design package never
+/// drew survived a green gate for months. The package draws no menu because a
+/// voice-first product has none: the canonical screen IS the home, and it opens
+/// speaking.
+///
+/// So these tests assert two different things from the ones they replaced:
+/// the Cook lands ON her Meals rather than on a list of places she could go,
+/// and everything the menu used to carry is still reachable — one tap into the
+/// account sheet, with leaving visible in it without scrolling.
 const _profile = KitchenProfile(
   id: 'test-id',
   cookId: 'test-cook',
@@ -26,7 +38,28 @@ const _profile = KitchenProfile(
   deliveryTerms: 'توصيل في ساعة',
 );
 
-Widget _testApp(Widget child) => ProviderScope(
+const _published = CookMeal(
+  id: 'm-pub',
+  cookId: 'test-cook',
+  title: 'كشري',
+  description: 'عدس ورز',
+  price: '35',
+  cuisine: Cuisine.egyptian,
+  category: MealCategory.main,
+  status: MealStatus.published,
+  nutritionSource: NutritionSource.ai,
+);
+
+Widget _testApp(Widget child, {FakeMealRepository? meals}) => ProviderScope(
+      overrides: [
+        mealRepositoryProvider.overrideWithValue(
+          meals ?? FakeMealRepository(meals: const [_published]),
+        ),
+        // Recorded rather than spoken. Left real, the Meal list reaches Kafoo's
+        // `speak` function — and a paid provider — from a widget test, and its
+        // timeouts leave pending timers the framework rejects.
+        speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
+      ],
       child: MaterialApp(
         locale: const Locale('ar'),
         supportedLocales: const [Locale('ar'), Locale('en')],
@@ -40,6 +73,12 @@ Widget _testApp(Widget child) => ProviderScope(
       ),
     );
 
+Future<void> _openAccountSheet(
+    WidgetTester tester, AppLocalizations l10n) async {
+  await tester.tap(find.byTooltip(l10n.accountEntry));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late AppLocalizations l10n;
 
@@ -47,7 +86,7 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('ar'));
   });
 
-  testWidgets('every Cook entry is on the home, in Arabic', (tester) async {
+  testWidgets('a Cook lands on her own Meals, not on a menu', (tester) async {
     await tester.pumpWidget(_testApp(SignedInHome(
       kitchenProfileRepository: FakeKitchenProfileRepository(
         existing: _profile,
@@ -55,28 +94,59 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.myMealsTitle), findsOneWidget);
-    expect(find.text(l10n.newMealEntry), findsOneWidget);
+    // Her Meal is on screen, which no menu could show her.
+    expect(find.text(_published.title!), findsOneWidget);
+    // And the orb owns the bottom of it.
+    expect(find.byType(KafooTalkButton), findsOneWidget);
+    // The menu entries are NOT on the home any more. This is the assertion the
+    // old file had inverted, and inverting it is the whole redesign.
+    expect(find.text(l10n.newMealEntry), findsNothing);
+    expect(find.text(l10n.kitchenViewTitle), findsNothing);
+    expect(find.text(l10n.removeAccountEntry('other')), findsNothing);
+  });
+
+  testWidgets('the account sheet carries everything the menu used to',
+      (tester) async {
+    await tester.pumpWidget(_testApp(SignedInHome(
+      kitchenProfileRepository: FakeKitchenProfileRepository(
+        existing: _profile,
+      ),
+    )));
+    await tester.pumpAndSettle();
+    await _openAccountSheet(tester, l10n);
+
     expect(find.text(l10n.kitchenViewTitle), findsOneWidget);
-    // SC-011: leaving stays one step from the first screen after signing in.
+    expect(find.text(l10n.changePhoneEntry('other')), findsOneWidget);
+    // SC-011: leaving takes no more steps than joining did — joining is a phone
+    // number and a code, this is one tap — and it is visible here without
+    // scrolling, which is the part that stops the sheet becoming a place to
+    // bury it.
     expect(find.text(l10n.removeAccountEntry('other')), findsOneWidget);
   });
 
-  testWidgets('My Meals opens the Cook\'s own list of Meals', (tester) async {
-    await tester.pumpWidget(_testApp(SignedInHome(
-      kitchenProfileRepository: FakeKitchenProfileRepository(
-        existing: _profile,
-      ),
-    )));
-    await tester.pumpAndSettle();
+  testWidgets('the mute control survives every state of the list',
+      (tester) async {
+    // It used to live inside the loaded state only, so a Cook stuck on an empty
+    // or failed list could not silence the assistant at all. A control the
+    // design calls persistent that disappears when something goes wrong is not
+    // persistent.
+    for (final repo in [
+      FakeMealRepository(meals: const []),
+      FakeMealRepository(failOperations: true),
+    ]) {
+      await tester.pumpWidget(_testApp(
+        SignedInHome(
+          kitchenProfileRepository: FakeKitchenProfileRepository(
+            existing: _profile,
+          ),
+        ),
+        meals: repo,
+      ));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.myMealsTitle));
-    await tester.pumpAndSettle();
-
-    // The list's own heading, which is a different string from the entry that
-    // opened it only because Kafoo reuses the key — what matters is that a
-    // route was pushed and MyMealsScreen is what arrived.
-    expect(find.byType(SignedInHome), findsNothing);
+      expect(find.byType(KafooMuteButton), findsOneWidget);
+      expect(find.byTooltip(l10n.accountEntry), findsOneWidget);
+    }
   });
 
   testWidgets(
@@ -93,24 +163,24 @@ void main() {
       SignedInHome(kitchenProfileRepository: repo),
     ));
     await tester.pump();
+    await _openAccountSheet(tester, l10n);
 
-    TextButton kitchenEntry() => tester.widget<TextButton>(
-          find.ancestor(
-            of: find.text(l10n.kitchenViewTitle),
-            matching: find.byType(TextButton),
-          ),
-        );
-
+    // Tapped WHILE THE READ IS STILL IN FLIGHT, which is the case that used to
+    // offer a second kitchen to a Cook who has one.
+    await tester.tap(find.text(l10n.kitchenViewTitle));
+    await tester.pump();
     expect(
-      kitchenEntry().onPressed,
-      isNull,
-      reason: 'A Cook who already has a kitchen must not be sent into the flow '
-          'that creates one just because the read has not landed yet.',
+      repo.createCalls,
+      0,
+      reason: 'Nothing may be created on a null the read has not confirmed.',
     );
 
     gate.complete();
     await tester.pumpAndSettle();
-    expect(kitchenEntry().onPressed, isNotNull);
+
+    // Once it lands she is on HER kitchen, not in the flow that makes one.
+    expect(find.text(_profile.displayName), findsWidgets);
+    expect(repo.createCalls, 0);
   });
 
   testWidgets('a Cook who has a kitchen opens it rather than making another',
@@ -120,6 +190,7 @@ void main() {
       SignedInHome(kitchenProfileRepository: repo),
     ));
     await tester.pumpAndSettle();
+    await _openAccountSheet(tester, l10n);
 
     await tester.tap(find.text(l10n.kitchenViewTitle));
     await tester.pumpAndSettle();
@@ -132,48 +203,45 @@ void main() {
       0,
       reason: 'Opening an existing Kitchen Profile must never create one.',
     );
+    // THE SHEET CLOSED BEHIND HER. Pushing a route from inside a modal sheet
+    // without popping it first leaves the sheet sitting above the screen it
+    // opened, so she comes back to something she has no memory of opening.
+    expect(find.byType(KafooSheet), findsNothing);
   });
 
-  testWidgets('a Cook with no kitchen can still reach My Meals and leaving',
+  testWidgets('a failed Meal read still leaves the account reachable',
       (tester) async {
-    await tester.pumpWidget(_testApp(SignedInHome(
-      kitchenProfileRepository: FakeKitchenProfileRepository(existing: null),
-    )));
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10n.myMealsTitle), findsOneWidget);
-    expect(find.text(l10n.removeAccountEntry('other')), findsOneWidget);
-  });
-
-  testWidgets('a failed profile read does not take the home down with it',
-      (tester) async {
-    await tester.pumpWidget(_testApp(SignedInHome(
-      kitchenProfileRepository: FakeKitchenProfileRepository(
-        failFindMine: true,
+    await tester.pumpWidget(_testApp(
+      SignedInHome(
+        kitchenProfileRepository: FakeKitchenProfileRepository(
+          failFindMine: true,
+        ),
       ),
-    )));
+      meals: FakeMealRepository(failOperations: true),
+    ));
     await tester.pumpAndSettle();
+    await _openAccountSheet(tester, l10n);
 
-    // The whole point of not blocking on the read: these do not need a Kitchen
-    // Profile and must not disappear because reading one failed.
-    expect(find.text(l10n.myMealsTitle), findsOneWidget);
-    expect(find.text(l10n.newMealEntry), findsOneWidget);
+    // Neither of these needs a Kitchen Profile or a Meal list, and neither may
+    // disappear because reading one failed.
+    expect(find.text(l10n.changePhoneEntry('other')), findsOneWidget);
     expect(find.text(l10n.removeAccountEntry('other')), findsOneWidget);
   });
 
-  testWidgets('every entry clears the 48dp floor', (tester) async {
+  testWidgets('every account entry clears the 48dp floor', (tester) async {
     await tester.pumpWidget(_testApp(SignedInHome(
       kitchenProfileRepository: FakeKitchenProfileRepository(
         existing: _profile,
       ),
     )));
     await tester.pumpAndSettle();
+    await _openAccountSheet(tester, l10n);
 
     for (final label in [
-      l10n.myMealsTitle,
-      l10n.newMealEntry,
       l10n.kitchenViewTitle,
+      l10n.changePhoneEntry('other'),
       l10n.removeAccountEntry('other'),
+      l10n.accountSheetClose('other'),
     ]) {
       // byWidgetPredicate, not byType: ButtonStyleButton is abstract and
       // byType matches an exact runtime type, so it finds nothing here.
@@ -192,41 +260,49 @@ void main() {
   });
 
   testWidgets('leaving survives 200% text on a small screen', (tester) async {
-    // SC-011 says leaving stays one step from the first screen after signing
-    // in. Five entries at double text size overflow a 320x480 phone, and a
-    // Column that cannot scroll resolves that by pushing its LAST child off the
-    // bottom — which is this one. The old three-entry home had the headroom to
-    // hide the problem.
+    // SC-011 says leaving takes no more steps than joining did. Double text
+    // size on a 320x480 phone is where a Column that cannot scroll resolves an
+    // overflow by pushing its LAST child off the bottom — which here is the way
+    // out. The sheet scrolls, so this checks the whole path rather than one
+    // frame: open it, reach the entry, and land on the screen it promises.
     //
-    // It walks into RemoveAccountScreen rather than stopping at the tap, which
-    // is how that screen's identical overflow was found. FOUR MORE SCREENS HAVE
-    // THE SAME SHAPE and are not fixed: change_phone_screen, code_screen,
-    // email_sign_in_screen and sign_in_screen are all Padding > Column >
-    // Spacer with no scroll view. They are the sign-in path rather than the
-    // leave path, so they are a separate change with the founder's call on
-    // scope, not something to sweep in here — but a 200% Cook cannot finish
-    // signing in either.
+    // It walks INTO RemoveAccountScreen rather than stopping at the tap, which
+    // is how that screen's identical overflow was found.
     tester.view.physicalSize = const Size(320, 480);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    // SET ON THE VIEW, NOT BY WRAPPING IN A `MediaQuery`. A bare
+    // `MediaQuery(data: MediaQueryData(textScaler: ...))` REPLACES the whole
+    // data object, so the screen size inside it becomes zero — and this sheet
+    // caps its own height at 90% of that, which is 90% of nothing. The sheet
+    // then laid out taller than the phone and put «امسح حسابي» 120 pixels below
+    // the bottom of the screen, which is exactly the failure this test is for
+    // and would have been reported as a false one.
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    await tester.pumpWidget(MediaQuery(
-      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-      child: _testApp(SignedInHome(
-        kitchenProfileRepository: FakeKitchenProfileRepository(
-          existing: _profile,
-        ),
-      )),
-    ));
+    await tester.pumpWidget(_testApp(SignedInHome(
+      kitchenProfileRepository: FakeKitchenProfileRepository(
+        existing: _profile,
+      ),
+    )));
     await tester.pumpAndSettle();
-
     expect(tester.takeException(), isNull);
+
+    await _openAccountSheet(tester, l10n);
 
     final leave = find.text(l10n.removeAccountEntry('other'));
     expect(leave, findsOneWidget);
     await tester.ensureVisible(leave);
     await tester.tap(leave);
     await tester.pumpAndSettle();
-    expect(find.byType(SignedInHome), findsNothing);
+
+    // ARRIVED, AND THE SHEET CLOSED BEHIND HER. The departure assertion is the
+    // sheet rather than the Meal list: a pushed route keeps the route beneath
+    // it alive, so `findsNothing` on the home would fail here while proving
+    // nothing about whether anybody popped anything.
+    expect(find.byType(RemoveAccountScreen), findsOneWidget);
+    expect(find.byType(KafooSheet), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

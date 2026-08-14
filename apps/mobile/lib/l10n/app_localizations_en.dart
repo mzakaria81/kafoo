@@ -1247,6 +1247,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myMealsTitle => 'My Meals';
 
   @override
+  String get accountEntry => 'My account';
+
+  @override
+  String get accountSheetTitle => 'My account';
+
+  @override
+  String accountSheetClose(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Close',
+        'other': 'Close',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myMealsTalkInvitation(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Press and talk',
+        'other': 'Press and talk',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get newMealEntry => 'New Meal';
 
   @override

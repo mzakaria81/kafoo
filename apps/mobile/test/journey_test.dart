@@ -82,6 +82,19 @@ const _onOffer = <DiscoveredMeal>[
   ),
 ];
 
+/// One Meal of her own, so the signed-in home renders its loaded state.
+const _hers = CookMeal(
+  id: 'm1',
+  cookId: 'c1',
+  title: 'كشري',
+  description: 'عدس ومكرونة وأرز',
+  price: '35',
+  cuisine: Cuisine.egyptian,
+  category: MealCategory.main,
+  status: MealStatus.published,
+  nutritionSource: NutritionSource.ai,
+);
+
 /// The app under test, with every seam replaced by a fake and nothing else.
 Widget _app({
   required Stream<AuthState> auth,
@@ -175,6 +188,9 @@ void main() {
       auth: auth.stream,
       account: account,
       kitchen: kitchen,
+      // She has a Meal, so the home she lands on is the loaded list rather than
+      // the invitation — the state the design package calls canonical.
+      meals: FakeMealRepository(meals: const [_hers]),
     ));
     auth.signedOut();
     await tester.pumpAndSettle();
@@ -215,13 +231,20 @@ void main() {
     );
     expect(find.byType(SignInScreen), findsNothing);
 
-    // 5. And she is on her own screens, with every one of them reachable —
-    //    which is the defect from earlier the same day.
+    // 5. And she lands ON HER OWN MEALS — the design package's canonical
+    //    screen — rather than on a menu of places she could go. The menu that
+    //    used to be here was the 2026-08-14 redesign's starting point.
     expect(find.byType(SignedInHome), findsOneWidget);
     expect(find.text(l10n.myMealsTitle), findsOneWidget);
-    expect(find.text(l10n.newMealEntry), findsOneWidget);
+    expect(find.byType(KafooTalkButton), findsOneWidget);
+
+    // 6. Everything the menu carried is one tap away, leaving included.
+    //    SC-011 asks for no more steps than joining took, and joining was the
+    //    five steps above.
+    await tester.tap(find.byTooltip(l10n.accountEntry));
+    await tester.pumpAndSettle();
     expect(find.text(l10n.kitchenViewTitle), findsOneWidget);
-    // SC-011: leaving is one step from the first screen after signing in.
+    expect(find.text(l10n.changePhoneEntry('other')), findsOneWidget);
     expect(find.text(l10n.removeAccountEntry('other')), findsOneWidget);
   });
 
@@ -319,14 +342,38 @@ void main() {
     auth.signedIn();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.myMealsTitle).last);
-    await tester.pumpAndSettle();
-
-    // The empty list's own version of the button.
+    // She is already ON the empty list — it is the home now, so there is no
+    // menu step between signing in and this button.
     await tester.tap(find.text(l10n.myMealsEmptyByHand('other')));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.mealNeedsKitchenTitle), findsOneWidget);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
+  });
+
+  testWidgets('the empty list\'s orb opens the conversation, not an apology',
+      (tester) async {
+    // THE 120dp ORB ON THE ONE SCREEN WHOSE PURPOSE IS TO INVITE SPEAKING was
+    // drawn disabled reading «الكلام لسه مش شغال». So the first thing a Cook
+    // with no Meals ever saw was the product saying its main idea did not work.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.voiceNotReadyYet('other')), findsNothing);
+    await tester.tap(find.byType(KafooTalkButton));
+    await tester.pumpAndSettle();
+
+    // Arrived at the conversation, and the invitation behind it is gone.
+    expect(find.byType(MealConversationScreen), findsOneWidget);
     expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
   });
 
@@ -335,25 +382,36 @@ void main() {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    // SET ON THE VIEW, NOT BY WRAPPING IN A `MediaQuery`. Replacing the whole
+    // `MediaQueryData` to change one field zeroes the screen size inside it,
+    // and anything sizing itself off that — the account sheet caps its height
+    // at 90% of the screen — then lays out against nothing.
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
     final auth = _FakeAuth();
     addTearDown(auth.dispose);
 
-    await tester.pumpWidget(MediaQuery(
-      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-      child: _app(
-        auth: auth.stream,
-        account: FakeAccountRepository(),
-        kitchen: FakeKitchenProfileRepository(existing: _profile),
-      ),
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(meals: const [_hers]),
     ));
     auth.signedIn();
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    // The orb is the control a Cook must never lose, and it is the last child
+    // of a Column — the position a layout that cannot fit drops first.
+    expect(find.byType(KafooTalkButton), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.accountEntry));
+    await tester.pumpAndSettle();
     final leave = find.text(l10n.removeAccountEntry('other'));
     expect(leave, findsOneWidget);
     await tester.ensureVisible(leave);
+    expect(tester.takeException(), isNull);
   });
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -385,7 +443,10 @@ void main() {
     auth.signedIn();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.newMealEntry));
+    // THE ORB, WHICH IS HOW A COOK STARTS A MEAL NOW. The «أكلة جديدة» menu
+    // entry it replaced no longer exists — the Meal list is the home and the
+    // orb owns the bottom of it.
+    await tester.tap(find.byType(KafooTalkButton));
     await tester.pumpAndSettle();
 
     // ONE SCREEN. The Meal list is behind it and the conversation is on it.
@@ -455,7 +516,10 @@ void main() {
     auth.signedIn();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.newMealEntry));
+    // THE ORB, WHICH IS HOW A COOK STARTS A MEAL NOW. The «أكلة جديدة» menu
+    // entry it replaced no longer exists — the Meal list is the home and the
+    // orb owns the bottom of it.
+    await tester.tap(find.byType(KafooTalkButton));
     await tester.pumpAndSettle();
 
     // A Cook who does not read comfortably meets a screen that talks first.
@@ -478,7 +542,10 @@ void main() {
     ));
     auth.signedIn();
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.newMealEntry));
+    // THE ORB, WHICH IS HOW A COOK STARTS A MEAL NOW. The «أكلة جديدة» menu
+    // entry it replaced no longer exists — the Meal list is the home and the
+    // orb owns the bottom of it.
+    await tester.tap(find.byType(KafooTalkButton));
     await tester.pumpAndSettle();
 
     final typeButton = find.byKey(const ValueKey('meal-talk-type'));

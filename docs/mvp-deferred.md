@@ -42,4 +42,7 @@ reason for a shortcut is only accurately remembered on the day it is taken.
 
 | 17 | 2026-08-13 | The hosted agent-management MCP server is declared but not signed in | `.mcp.json` | It authenticates with a browser sign-in, which a container cannot complete. Until the founder approves it in his own client, agents are managed by API calls in a session rather than by asking | Founder opens the project locally and approves the connector |
 
+| 18 | 2026-08-14 | The Meal list's orb starts a NEW Meal instead of answering «عايزة تعملي إيه؟» | `apps/mobile/lib/features/meal/presentation/my_meals_screen.dart` | The design package has this orb taking a spoken command against the list — "شيلي المحشي من المنيو" changing a status. That needs an intent step through `packages/ai/` which does not exist, so the orb narrows to the one journey MVP mode asks for. A Cook who speaks a command to her list gets a new Meal conversation instead of the change she asked for | List-level intent lands, or a Cook in the five-Cook test speaks a command to the list |
+| 19 | 2026-08-14 | The account sheet replaces a home menu, and only three entries were moved into it | `apps/mobile/lib/home.dart` | Everything the menu carried still exists. But the sheet is a tap-only surface with no spoken line, so it is deferral 6 in a new place — a Cook who does not read comfortably cannot be told what is in it | Any screen a Cook reaches in the five-Cook test |
+
 _Rows 1–8 were taken at the cut. Add new rows above this line, newest last, with the date and the commit._

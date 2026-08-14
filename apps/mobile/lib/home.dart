@@ -15,23 +15,33 @@ import 'features/meal/presentation/my_meals_screen.dart';
 import 'l10n/address_form.dart';
 import 'l10n/app_localizations.dart';
 
-/// What a Cook sees after signing in, and every Cook-facing screen reached from
-/// it.
+/// What a Cook sees after signing in.
 ///
-/// **Until 2026-08-09 it reached none of them.** This was three buttons in
-/// `main.dart` under a comment reading "Deliberately thin — browsing and Meals
-/// arrive in later epics", which was true when E1 wrote it. E2 shipped Meals
-/// and E3 shipped browse, and nobody came back: `my_meals_screen.dart`,
-/// `meal_publish_entry.dart`, `meal_edit_screen.dart` and
-/// `kitchen_profile_screen.dart` were referenced by no file in this app, so 920
-/// lines of merged, tested code could not be opened by anybody holding the
-/// phone.
+/// ─────────────────────────────────────────────────────────────────────────────
+/// **THIS WAS A MENU AND THE MENU WAS THE BUG.** Five stacked text buttons —
+/// أكلاتي، أكلة جديدة، مطبخك، غيّر رقم الموبايل، امسح حسابي — and the founder
+/// photographed it on 2026-08-14 asking why it looked nothing like the design
+/// package. The answer was that it looked like nothing in the design package:
+/// the package draws no home screen, because a voice-first product has no menu
+/// to draw. A list of destinations is a form with one field.
 ///
-/// Every gate passed throughout. A widget test builds a screen directly, which
-/// proves it renders and cannot prove that anything reaches it — so
-/// `scripts/verify.sh` now asserts reachability, because the identical failure
-/// had already happened once (see the `ProviderScope` note in `main.dart`) and
-/// the lesson was recorded as a comment rather than as a check.
+/// **The design package's canonical screen IS the home.** The Cook's Meal list
+/// opens speaking — «عندك خمس أكلات، اتنين منشورين. عايزة تعملي إيه؟» — with the
+/// spoken banner underneath as the receipt of that sentence, her Meals as rows,
+/// and the 88dp orb owning the bottom of the screen. Arriving on it, she is
+/// already in the conversation rather than choosing which conversation to have.
+///
+/// So this file no longer draws anything. It owns **where the routes go**, which
+/// is the one job a home has left, and hands them to `MyMealsScreen`.
+///
+/// **Everything the menu carried still exists and is one step away**, in the
+/// account sheet behind the 48dp control in the top bar: the Kitchen Profile,
+/// changing the phone number, and leaving. SC-011 asks that leaving take no more
+/// steps than joining took — joining is a phone number and a code, so one tap to
+/// a sheet that shows «امسح حسابي» without scrolling is well inside it. It is
+/// not buried under a settings tree, which is the dark pattern the requirement
+/// exists to prevent.
+/// ─────────────────────────────────────────────────────────────────────────────
 class SignedInHome extends StatefulWidget {
   const SignedInHome({
     this.kitchenProfileRepository = const SupabaseKitchenProfileRepository(),
@@ -47,29 +57,38 @@ class SignedInHome extends StatefulWidget {
 class _SignedInHomeState extends State<SignedInHome> {
   /// The Cook's kitchen, or null when they have none yet.
   ///
-  /// [_loading] is what tells those apart from "not read yet". They put
-  /// different destinations behind the same button — creating a kitchen is a
-  /// conversation, looking at the one you have is a screen — so acting on null
-  /// before the read lands would offer a second kitchen to a Cook who already
+  /// Null means two opposite things until [_loaded] completes — "no kitchen" and
+  /// "not read yet" — and they put different destinations behind the same entry:
+  /// creating a kitchen is a conversation, looking at the one you have is a
+  /// screen. Acting on null early offers a second kitchen to a Cook who already
   /// has one.
   KitchenProfile? _profile;
-  bool _loading = true;
+
+  /// **AWAITED RATHER THAN RENDERED, AND THAT REPLACED A DISABLED BUTTON.** The
+  /// entry used to grey out while the read was in flight. That worked while the
+  /// entry lived on a screen that rebuilt; it does not work inside a modal
+  /// sheet, which is built once and never hears that the read landed — so a Cook
+  /// who opened the sheet quickly got an entry that stayed dead forever.
+  ///
+  /// Waiting is also the better answer. A control that does nothing for a moment
+  /// and then works is invisible to her; a control that is visibly dead is
+  /// something she has to understand.
+  late final Future<void> _loaded = _load();
 
   @override
   void initState() {
     super.initState();
-    unawaited(_load());
+    unawaited(_loaded);
   }
 
   Future<void> _load() async {
     final result = await widget.kitchenProfileRepository.findMine();
     if (!mounted) return;
     setState(() {
-      _loading = false;
       // A failed read leaves the kitchen entry pointing at the conversation,
       // which loads the profile itself and surfaces the real failure there.
-      // Blocking this whole screen on it would also hide My Meals and leaving,
-      // neither of which needs a Kitchen Profile to work.
+      // Blocking the whole screen on it would also hide the Meal list and
+      // leaving, neither of which needs a Kitchen Profile to work.
       _profile = switch (result) {
         Success(value: final profile) => profile,
         Failure() => null,
@@ -78,6 +97,8 @@ class _SignedInHomeState extends State<SignedInHome> {
   }
 
   Future<void> _openKitchen() async {
+    await _loaded;
+    if (!mounted) return;
     final profile = _profile;
 
     if (profile == null) {
@@ -106,30 +127,18 @@ class _SignedInHomeState extends State<SignedInHome> {
     if (mounted) unawaited(_load());
   }
 
-  void _openMyMeals() {
+  void _resumeDraft(CookMeal draft) {
+    // THE DRAFT IS HANDED TO THE SCREEN, not seeded before it.
+    //
+    // This used to discard the argument on the stated grounds that the list had
+    // already seeded the controller. It had, into an autoDispose provider
+    // nothing was watching, which threw the seeding away before this route was
+    // built. A Cook returning to a half-finished Meal was asked the first
+    // question again with all her answers still in the database. See
+    // `MealConversationScreen.resumeFrom`.
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        // THE DRAFT IS HANDED TO THE SCREEN, not seeded before it.
-        //
-        // This used to discard the argument — `onResumeDraft: (_) =>` — on the
-        // stated grounds that `my_meals_screen.dart` had already seeded the
-        // controller. It had, into an autoDispose provider nothing was watching,
-        // which threw the seeding away before this route was built. A Cook
-        // returning to a half-finished Meal was asked the first question again
-        // with all her answers still in the database. See
-        // `MealConversationScreen.resumeFrom`.
-        builder: (_) => MyMealsScreen(
-          onResumeDraft: (draft) => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => MealConversationScreen(resumeFrom: draft),
-            ),
-          ),
-          // «أضيف بإيدي» — the tap alternative to speaking, and it has to
-          // actually reach the creation flow. It closed the list instead until
-          // 2026-08-11. Routed through the same entry the Home button uses, so
-          // the missing-Kitchen-Profile check happens once and in one place.
-          onAddByHand: _offerAMeal,
-        ),
+        builder: (_) => MealConversationScreen(resumeFrom: draft),
       ),
     );
   }
@@ -141,8 +150,7 @@ class _SignedInHomeState extends State<SignedInHome> {
     // It is handed the repository this screen already holds. Constructed
     // `const` it built its own `SupabaseAccountRepository` — which works on a
     // phone and makes the whole route untestable, because a test reaches an
-    // uninitialised Supabase before it can assert anything. Every other push
-    // from this screen already passes its dependency down; this one did not.
+    // uninitialised Supabase before it can assert anything.
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => MealPublishEntry(
@@ -152,103 +160,124 @@ class _SignedInHomeState extends State<SignedInHome> {
     );
   }
 
+  /// Pushes [screen] from THIS screen's Navigator, not the sheet's.
+  ///
+  /// **The sheet's own context is dead by the time it is needed.** The entry
+  /// pops the sheet and then navigates, and `Navigator.of(sheetContext)` after
+  /// that pop is looking up a defunct element — the push silently does nothing
+  /// and a Cook taps «امسح حسابي» and stays where she is. Every destination is
+  /// therefore built here, where the context outlives the sheet.
+  void _push(Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  }
+
+  Future<void> _openAccount() async {
+    await KafooSheet.show<void>(
+      context: context,
+      builder: (_) => _AccountSheet(
+        onKitchen: _openKitchen,
+        // FR-026: a lost or recycled number is recoverable rather than
+        // terminal, because a Person is not their phone number.
+        onChangePhone: () => _push(const ChangePhoneScreen()),
+        onLeave: () => _push(const RemoveAccountScreen()),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MyMealsScreen(
+      onResumeDraft: _resumeDraft,
+      onAddByHand: _offerAMeal,
+      onTalk: _offerAMeal,
+      onAccount: _openAccount,
+    );
+  }
+}
+
+/// The account sheet, opened from the Meal list top bar.
+///
+/// Everything the old home menu carried that is not a Meal. Three entries and a
+/// way out — the sheet's own retreat, which is plain text under them, because
+/// retreat must be easy and must never compete with the actions above it.
+class _AccountSheet extends StatelessWidget {
+  const _AccountSheet({
+    required this.onKitchen,
+    required this.onChangePhone,
+    required this.onLeave,
+  });
+
+  final VoidCallback onKitchen;
+  final VoidCallback onChangePhone;
+  final VoidCallback onLeave;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final form = context.addressForm;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.appTitle)),
-      // SCROLLS, AND MUST. Five entries at 200% text scale overflow a 320x480
-      // phone by 192 logical pixels, and a Column that cannot scroll resolves
-      // that by pushing its last child off the bottom — which is leaving, the
-      // one control SC-011 requires to stay one step away. The three-entry
-      // version this replaced had the headroom to hide it.
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Entry(
-                label: l10n.myMealsTitle,
-                onPressed: _openMyMeals,
-                filled: true,
-              ),
-              const SizedBox(height: KafooSpacing.sm),
-              _Entry(label: l10n.newMealEntry, onPressed: _offerAMeal),
-              const SizedBox(height: KafooSpacing.sm),
-              _Entry(
-                label: l10n.kitchenViewTitle,
-                // Disabled for the moment the read takes, rather than sending a
-                // Cook who has a kitchen into the flow that creates one.
-                onPressed: _loading ? null : _openKitchen,
-              ),
-              const SizedBox(height: KafooSpacing.sm),
-              // FR-026: a lost or recycled number is recoverable rather than
-              // terminal, because a Person is not their phone number.
-              _Entry(
-                label: l10n.changePhoneEntry(context.addressForm),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ChangePhoneScreen(),
-                  ),
-                ),
-              ),
-              // A fixed gap rather than a Spacer: a Spacer needs bounded height
-              // and there is none inside a scroll view. It still separates
-              // leaving from the things a Cook came here to do.
-              const SizedBox(height: KafooSpacing.xl),
-              // SC-011: leaving is reachable in one step from the first screen
-              // after signing in — no deeper than joining was. It is not buried
-              // under a settings tree, because burying it is the dark pattern
-              // this requirement exists to prevent.
-              _Entry(
-                label: l10n.removeAccountEntry(context.addressForm),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const RemoveAccountScreen(),
-                  ),
-                ),
-                danger: true,
-              ),
-            ],
-          ),
+    /// Closes the sheet FIRST, then navigates.
+    ///
+    /// The other order leaves a modal sheet sitting above the screen it pushed,
+    /// so the Cook comes back from the Kitchen Profile to a sheet she has no
+    /// memory of opening.
+    void go(VoidCallback destination) {
+      Navigator.of(context).pop();
+      destination();
+    }
+
+    return KafooSheet(
+      title: l10n.accountSheetTitle,
+      cancel: TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        style: TextButton.styleFrom(
+          minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
         ),
+        child: Text(l10n.accountSheetClose(form)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        // 8dp minimum between adjacent targets, and these are all 48dp.
+        spacing: KafooSpacing.targetGap,
+        children: [
+          _Entry(
+            label: l10n.kitchenViewTitle,
+            onPressed: () => go(onKitchen),
+          ),
+          _Entry(
+            label: l10n.changePhoneEntry(form),
+            onPressed: () => go(onChangePhone),
+          ),
+          // SC-011: leaving takes no more steps than joining did, and it is
+          // visible here without scrolling.
+          _Entry(
+            label: l10n.removeAccountEntry(form),
+            danger: true,
+            onPressed: () => go(onLeave),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// One entry on the home screen.
+/// One entry in the account sheet.
 ///
-/// One widget rather than five near-identical button declarations: the 48dp
-/// floor is a non-negotiable and five copies are five places to drop it.
+/// One widget rather than three near-identical declarations: the 48dp floor is
+/// a non-negotiable and three copies are three places to drop it.
 class _Entry extends StatelessWidget {
-  const _Entry({
-    required this.label,
-    required this.onPressed,
-    this.filled = false,
-    this.danger = false,
-  });
+  const _Entry(
+      {required this.label, required this.onPressed, this.danger = false});
 
   final String label;
   final VoidCallback? onPressed;
-  final bool filled;
   final bool danger;
 
   @override
   Widget build(BuildContext context) {
-    const size = Size.fromHeight(KafooSpacing.minTapTarget);
-    if (filled) {
-      return FilledButton(
-        style: FilledButton.styleFrom(minimumSize: size),
-        onPressed: onPressed,
-        child: Text(label),
-      );
-    }
     return TextButton(
       style: TextButton.styleFrom(
-        minimumSize: size,
+        minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
         foregroundColor: danger ? KafooColors.error : null,
       ),
       onPressed: onPressed,

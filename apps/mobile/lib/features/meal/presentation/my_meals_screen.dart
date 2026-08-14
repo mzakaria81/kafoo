@@ -22,13 +22,24 @@ import 'my_meals_states.dart';
 /// the price is the largest thing in every row, and the talk button owns the
 /// bottom of the screen.
 ///
-/// **The assistant speaks here; it does not listen here yet.** The device's own
-/// voice reads the summary and any row on request, and the mute control is
-/// live. The talk button is still drawn and inert, because *recognition* on
-/// this screen is separate work — speaking and listening are two gaps and only
-/// one is closed. `docs/design/backend-gaps.md` is the list.
+/// **It is also the home** — what a Cook sees the moment she signs in, rather
+/// than a menu she picks it off. See `home.dart` for why the menu is gone.
+///
+/// **The assistant speaks here, and the orb goes somewhere.** The device's own
+/// voice reads the summary and any row on request, the mute control is live,
+/// and pressing the orb opens the Meal conversation. What it does NOT do is
+/// take a spoken command against the list — «شيلي المحشي من المنيو» changing a
+/// status — which is the design package's intent for it and needs a model call
+/// that does not exist. `docs/design/backend-gaps.md` §2, and row 18 of
+/// `docs/mvp-deferred.md`.
 class MyMealsScreen extends ConsumerWidget {
-  const MyMealsScreen({this.onResumeDraft, this.onAddByHand, super.key});
+  const MyMealsScreen({
+    this.onResumeDraft,
+    this.onAddByHand,
+    this.onTalk,
+    this.onAccount,
+    super.key,
+  });
 
   /// Called after [MealConversationController.resume] seeds the conversation
   /// from a stored draft. Navigation is the caller's concern.
@@ -44,39 +55,140 @@ class MyMealsScreen extends ConsumerWidget {
   /// constructing this screen bare gets the fallback.
   final VoidCallback? onAddByHand;
 
+  /// Opens the conversation where a Meal is talked into being.
+  ///
+  /// **The orb's destination, and it is deliberately the same place
+  /// [onAddByHand] goes.** Not because they are the same act — one is speaking
+  /// and one is tapping — but because the conversation screen is where both
+  /// happen. It opens with the orb ready and the text box hidden until she asks
+  /// for it, so arriving by voice and arriving by tap are the same screen with
+  /// different first moves.
+  final VoidCallback? onTalk;
+
+  /// Opens the account sheet from the top bar.
+  ///
+  /// Everything the old home menu carried that is not a Meal. Null on a screen
+  /// pushed as a route rather than shown as the home, where the platform's own
+  /// back is the way out.
+  final VoidCallback? onAccount;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(myMealsControllerProvider);
 
     return Scaffold(
       body: SafeArea(
-        // Loading is checked FIRST and before emptiness. "No Meals yet" and
-        // "not answered yet" look identical in the data and mean opposite
-        // things to the Cook reading them.
-        child: switch (state) {
-          MyMealsState(loading: true) => KafooSkeletonList(
-              semanticsLabel: AppLocalizations.of(context).myMealsLoading,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ABOVE THE SWITCH, AND THAT IS THE POINT. The bar used to live
+            // inside the loaded state only, so muting the assistant and
+            // reaching the account were both impossible on the three states a
+            // Cook is most likely to be stuck in — loading, empty, and failed.
+            // The persistent mute control is a §10 requirement, and a control
+            // that persists except when something goes wrong does not persist.
+            _TopBar(onAccount: onAccount),
+            Expanded(
+              // Loading is checked FIRST and before emptiness. "No Meals yet"
+              // and "not answered yet" look identical in the data and mean
+              // opposite things to the Cook reading them.
+              child: switch (state) {
+                MyMealsState(loading: true) => KafooSkeletonList(
+                    semanticsLabel: AppLocalizations.of(context).myMealsLoading,
+                  ),
+                MyMealsState(error: final error?) when state.meals.isEmpty =>
+                  MyMealsFailed(error: error),
+                MyMealsState(meals: []) => MyMealsEmpty(
+                    onAddByHand: onAddByHand,
+                    onTalk: onTalk,
+                  ),
+                _ => _Full(
+                    state: state,
+                    onResumeDraft: onResumeDraft,
+                    onAddByHand: onAddByHand,
+                    onTalk: onTalk,
+                  ),
+              },
             ),
-          MyMealsState(error: final error?) when state.meals.isEmpty =>
-            MyMealsFailed(error: error),
-          MyMealsState(meals: []) => MyMealsEmpty(onAddByHand: onAddByHand),
-          _ => _Full(
-              state: state,
-              onResumeDraft: onResumeDraft,
-              onAddByHand: onAddByHand,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The Meal list's top bar: the title, and the two controls that must never
+/// disappear.
+///
+/// «أكلاتي» at 20/600 on the inline-start, then the 48dp account control and the
+/// 48dp mute control on the inline-end — the design package's bar, with the
+/// account entry added because the menu that used to hold it is gone.
+class _TopBar extends ConsumerWidget {
+  const _TopBar({this.onAccount});
+
+  final VoidCallback? onAccount;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final form = context.addressForm;
+    final voice = ref.watch(assistantVoiceProvider);
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KafooSpacing.lg,
+        KafooSpacing.md,
+        KafooSpacing.lg,
+        KafooSpacing.row,
+      ),
+      child: Row(
+        spacing: KafooSpacing.targetGap,
+        children: [
+          Expanded(
+            child: Text(
+              l10n.myMealsTitle,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-        },
+          ),
+          if (onAccount != null)
+            IconButton(
+              onPressed: onAccount,
+              tooltip: l10n.accountEntry,
+              icon: const Icon(Icons.person_outline),
+              iconSize: KafooSpacing.lg,
+              constraints: const BoxConstraints(
+                minWidth: KafooSpacing.minTapTarget,
+                minHeight: KafooSpacing.minTapTarget,
+              ),
+              color: KafooColors.primaryDeep,
+            ),
+          KafooMuteButton(
+            muted: voice.muted,
+            label: voice.muted
+                ? l10n.voiceMuteRestore(form)
+                : l10n.voiceMuteSilence(form),
+            onChanged: (muted) => ref
+                .read(assistantVoiceProvider.notifier)
+                .setMuted(muted: muted),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _Full extends ConsumerStatefulWidget {
-  const _Full({required this.state, this.onResumeDraft, this.onAddByHand});
+  const _Full({
+    required this.state,
+    this.onResumeDraft,
+    this.onAddByHand,
+    this.onTalk,
+  });
 
   final MyMealsState state;
   final void Function(CookMeal meal)? onResumeDraft;
   final VoidCallback? onAddByHand;
+  final VoidCallback? onTalk;
 
   @override
   ConsumerState<_Full> createState() => _FullState();
@@ -135,35 +247,6 @@ class _FullState extends ConsumerState<_Full> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            KafooSpacing.lg,
-            KafooSpacing.md,
-            KafooSpacing.lg,
-            KafooSpacing.row,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.myMealsTitle,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              // Every screen carries the mute control, top inline-end, and it
-              // persists until reversed.
-              KafooMuteButton(
-                muted: voice.muted,
-                label: voice.muted
-                    ? l10n.voiceMuteRestore(form)
-                    : l10n.voiceMuteSilence(form),
-                onChanged: (muted) => ref
-                    .read(assistantVoiceProvider.notifier)
-                    .setMuted(muted: muted),
-              ),
-            ],
-          ),
-        ),
         // THE BANNER AND THE ERROR SCROLL WITH THE LIST, they do not sit
         // above it. At 200% text scale the greeting runs to several lines, and
         // as fixed height above a fixed talk dock it squeezed the list to a
@@ -215,7 +298,7 @@ class _FullState extends ConsumerState<_Full> {
             },
           ),
         ),
-        _TalkDock(onAddByHand: widget.onAddByHand),
+        _TalkDock(onAddByHand: widget.onAddByHand, onTalk: widget.onTalk),
       ],
     );
   }
@@ -231,9 +314,10 @@ class _FullState extends ConsumerState<_Full> {
 /// the label is the only thing carrying the reason, and a disabled control with
 /// no explanation is a dead end.
 class _TalkDock extends StatelessWidget {
-  const _TalkDock({this.onAddByHand});
+  const _TalkDock({this.onAddByHand, this.onTalk});
 
   final VoidCallback? onAddByHand;
+  final VoidCallback? onTalk;
 
   /// Chosen so nothing changes at ordinary text sizes — the dock is about 180
   /// logical pixels on a normal phone, well under the cap — and the whole thing
@@ -265,14 +349,26 @@ class _TalkDock extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: KafooSpacing.sm,
         children: [
-          // Drawn as designed and inert: there is no speech engine. The label
-          // carries the reason, the way every disabled control in Kafoo does.
+          // LIVE, AND IT WAS DEAD UNTIL 2026-08-14. It was drawn disabled with
+          // «الكلام لسه مش شغال» because nothing could listen — true when it
+          // was written, and false since the hosted conversation landed
+          // (ADR-0017). The screen's one unmissable control read as broken to
+          // the founder, which is the worst thing an unmissable control can do.
+          //
+          // **What it opens is narrower than the design draws, and that is
+          // recorded.** The package has this orb answering «عايزة تعملي إيه؟»
+          // out loud — "شيلي المحشي من المنيو" changing a status. That needs an
+          // intent step through `packages/ai/` which does not exist. Until it
+          // does, the orb opens the Meal conversation: the one voice journey
+          // MVP mode asks for at full fidelity. `docs/mvp-deferred.md`.
           KafooTalkButton(
             state: TalkOrbState.idle,
             amplitude: 0,
-            enabled: false,
-            label: l10n.voiceNotReadyYet(context.addressForm),
-            onPressStart: () {},
+            enabled: onTalk != null,
+            label: onTalk == null
+                ? l10n.voiceNotReadyYet(context.addressForm)
+                : l10n.myMealsTalkInvitation(context.addressForm),
+            onPressStart: onTalk ?? () {},
             onPressEnd: () {},
           ),
           // Tap is a complete alternative, not a degraded one — and today it is
