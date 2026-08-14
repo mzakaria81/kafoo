@@ -15,12 +15,8 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 
-import {
-  handleSpeak,
-  MAX_CHARACTERS,
-  SpeakDeps,
-  VOICES,
-} from './index.ts';
+import { VOICES } from '../_shared/voices.ts';
+import { handleSpeak, MAX_CHARACTERS, SpeakDeps } from './index.ts';
 
 interface Recorder {
   deps: SpeakDeps;

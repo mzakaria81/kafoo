@@ -70,18 +70,63 @@ final class AgentEnded extends AgentEvent {
   final bool failed;
 }
 
-/// Fetches a signed URL from Kafoo. Injected so a test never needs a key.
-typedef SignedUrlSource = Future<String?> Function();
+/// Which conversation the orb is opening.
+///
+/// **Kafoo has two and had one agent, which is how the Kitchen Profile orb
+/// greeted a Cook with «قوليلي عملتي إيه النهاردة؟» and asked her about a
+/// dish.** The app names the KIND and never an agent id — the id lives in the
+/// Edge Function beside the key, the same way `speak` takes a role and never a
+/// voice id.
+enum AgentConversationKind {
+  meal,
+  kitchen;
+
+  /// The word the function checks against its closed set. Never renamed.
+  String get wireName =>
+      this == AgentConversationKind.kitchen ? 'kitchen' : 'meal';
+}
+
+/// What Kafoo hands back so a conversation can be opened.
+final class AgentSession {
+  const AgentSession({required this.url, required this.voiceId});
+
+  /// A bearer credential for fifteen minutes. Never logged.
+  final String url;
+
+  /// The voice the function chose from the role the app asked for.
+  ///
+  /// The app never names an id — it names «صوت ست» or «صوت رجل» and echoes back
+  /// whatever came home, because the provider reads a voice override only from
+  /// the opening frame of the socket and the socket belongs to the client.
+  final String voiceId;
+}
+
+/// Fetches a session from Kafoo. Injected so a test never needs a key.
+typedef SignedUrlSource = Future<AgentSession?> Function(
+  AgentConversationKind kind,
+  String? voice,
+);
 
 /// The default source: Kafoo's own Edge Function.
-Future<String?> fetchSignedUrl() async {
+Future<AgentSession?> fetchSignedUrl(
+  AgentConversationKind kind,
+  String? voice,
+) async {
   try {
     final response = await Supabase.instance.client.functions.invoke(
       'agent-session',
-      body: const <String, Object?>{},
+      body: <String, Object?>{
+        'kind': kind.wireName,
+        if (voice != null) 'voice': voice,
+      },
     );
     final data = response.data;
-    if (data is Map && data['url'] is String) return data['url'] as String;
+    if (data is Map && data['url'] is String && data['voiceId'] is String) {
+      return AgentSession(
+        url: data['url'] as String,
+        voiceId: data['voiceId'] as String,
+      );
+    }
     return null;
   } on Object {
     // Nothing is logged and nothing is rethrown. A signed URL is a bearer
@@ -94,12 +139,27 @@ Future<String?> fetchSignedUrl() async {
 
 class AgentConversation {
   AgentConversation({
+    required this.kind,
+    this.voice,
     SignedUrlSource? signedUrl,
     AudioRecorder? recorder,
     WebSocketChannel Function(Uri url)? connect,
   })  : _signedUrl = signedUrl ?? fetchSignedUrl,
         _recorder = recorder ?? AudioRecorder(),
         _connect = connect ?? WebSocketChannel.connect;
+
+  /// Which conversation this is. Required, so a new caller has to decide rather
+  /// than inheriting whichever agent happened to be the default.
+  final AgentConversationKind kind;
+
+  /// The ROLE she chose in Settings — «female» or «male», never an id.
+  ///
+  /// **Sent as an override on the way in, and the agent has to permit it.** A
+  /// Cook who picks «صوت ست» and then hears a man the moment she presses the orb
+  /// has been given a control that governs half of what it claims to. If the
+  /// agent's configuration forbids the override the provider ignores it and the
+  /// conversation still opens — worse than intended, never broken.
+  final String? voice;
 
   final SignedUrlSource _signedUrl;
   final AudioRecorder _recorder;
@@ -122,17 +182,26 @@ class AgentConversation {
 
     if (!await _recorder.hasPermission()) return false;
 
-    final url = await _signedUrl();
-    if (url == null) return false;
+    final session = await _signedUrl(kind, voice);
+    if (session == null) return false;
 
     final WebSocketChannel channel;
     try {
-      channel = _connect(Uri.parse(url));
+      channel = _connect(Uri.parse(session.url));
     } on Object {
       return false;
     }
     _channel = channel;
     _running = true;
+
+    // THE FIRST MESSAGE, BEFORE ANY AUDIO. The provider reads overrides only
+    // from the opening frame; sending it later is sending it never.
+    channel.sink.add(jsonEncode({
+      'type': 'conversation_initiation_client_data',
+      'conversation_config_override': {
+        'tts': {'voice_id': session.voiceId},
+      },
+    }));
 
     channel.stream.listen(
       _onMessage,

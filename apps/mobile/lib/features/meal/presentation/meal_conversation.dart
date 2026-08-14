@@ -171,7 +171,10 @@ class _MealConversationScreenState
     await ref.read(assistantVoiceProvider.notifier).hush();
     if (!mounted) return;
 
-    final agent = _agent ??= AgentConversation();
+    final agent = _agent ??= AgentConversation(
+      kind: AgentConversationKind.meal,
+      voice: ref.read(assistantVoiceProvider).voice.wireName,
+    );
     final speaker = _speaker ??= PcmPlayer();
 
     _agentEvents ??= agent.events.listen((event) {

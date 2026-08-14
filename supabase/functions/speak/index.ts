@@ -28,24 +28,13 @@
 // removed it on 2026-08-07.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 
+import { isVoiceRole, VOICES, type VoiceRole } from '../_shared/voices.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
-/// The two voices the founder chose, by ear, from the twenty-five Egyptian
-/// voices in the provider's library.
-///
-/// **Ids live here and nowhere else.** `specs/005-voice-system/plan.md` makes
-/// that a constraint rather than a habit: a voice id in application code is a
-/// defect, because it is what makes swapping a voice a refactor instead of a
-/// one-line change.
-export const VOICES = {
-  female: 'xPcC3nehhziQaOrIeAwv',
-  male: 'ihycSANIrpHfhWoaq1g3',
-} as const;
-
-export type VoiceRole = keyof typeof VOICES;
 
 /// The model. Multilingual v2 reads Egyptian Arabic correctly — measured
 /// 2026-08-11, and the finding was that the Egyptian pronunciation comes from
@@ -77,10 +66,6 @@ function json(body: unknown, status: number): Response {
     status,
     headers: { ...corsHeaders, 'content-type': 'application/json' },
   });
-}
-
-function isVoiceRole(value: unknown): value is VoiceRole {
-  return value === 'female' || value === 'male';
 }
 
 export async function handleSpeak(

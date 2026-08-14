@@ -44,12 +44,8 @@
 // gate runs.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 
-import {
-  createDefaultDeps,
-  MAX_CHARACTERS,
-  VOICES,
-  type VoiceRole,
-} from '../supabase/functions/speak/index.ts';
+import { VOICES, type VoiceRole } from '../supabase/functions/_shared/voices.ts';
+import { createDefaultDeps, MAX_CHARACTERS } from '../supabase/functions/speak/index.ts';
 
 const ARB = new URL('../apps/mobile/lib/l10n/app_ar.arb', import.meta.url);
 const OUT_DIR = new URL('../apps/mobile/assets/voice/', import.meta.url);

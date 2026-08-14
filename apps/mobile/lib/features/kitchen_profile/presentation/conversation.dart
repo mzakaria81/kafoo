@@ -162,7 +162,13 @@ class _KitchenConversationScreenState
     await ref.read(assistantVoiceProvider.notifier).hush();
     if (!mounted) return;
 
-    final agent = _agent ??= AgentConversation();
+    final agent = _agent ??= AgentConversation(
+      // THE KITCHEN AGENT, NOT THE MEAL ONE. Both opened the Meal agent until
+      // 2026-08-14, so a Cook setting up her kitchen was greeted with «قوليلي
+      // عملتي إيه النهاردة؟» and asked about a dish.
+      kind: AgentConversationKind.kitchen,
+      voice: ref.read(assistantVoiceProvider).voice.wireName,
+    );
     final speaker = _speaker ??= PcmPlayer();
 
     _agentEvents ??= agent.events.listen((event) {
