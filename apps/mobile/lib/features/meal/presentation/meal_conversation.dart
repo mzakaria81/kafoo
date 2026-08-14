@@ -12,21 +12,31 @@ import '../../analytics/event_names.dart';
 import '../../conversation/application/assistant_voice.dart';
 import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
-import '../../conversation/presentation/conversation_question.dart';
-import '../../conversation/presentation/voice_button.dart';
 import '../application/meal_conversation_controller.dart';
 import 'meal_error_text.dart';
-import 'meal_fallback_question.dart';
-import 'meal_summary.dart';
+import 'meal_receipt.dart';
 
-/// The Meal conversation screen.
+/// The Meal conversation — one screen, one open exchange.
 ///
-/// A Cook puts a Meal on offer by talking, not by filling in a form.
-/// Exactly one unanswered question is on screen at any moment (SC-002).
+/// ─────────────────────────────────────────────────────────────────────────────
+/// **THIS WAS SEVEN SURFACES AND IS NOW ONE (ADR-0015, DESIGN.md §11).** Four
+/// questions asked one per screen, two fallback questions, and a summary. Each
+/// existed because a step had ended.
 ///
-/// The photo step is the only skippable one — declining resolves it without
-/// producing an answer. Voice recognition is attempted on start; when
-/// unavailable the Cook types instead (research.md §3).
+/// What replaces them: the assistant says something, the Cook says something
+/// back, and the receipt underneath fills in as she talks. She can ask it
+/// questions, ask what to cook, change her mind about the price, and none of
+/// that is an error state — it is the conversation.
+///
+/// **Kafoo still owns what a Meal requires.** `missingFacts` is handed to the
+/// model every turn and the model picks what to say; it never decides what a
+/// Meal needs and Kafoo never decides the order of the asking.
+///
+/// **The write boundary did not move.** What the Cook says is written as she
+/// says it. Every AI estimate — calories, allergens, inferred cuisine and
+/// category — still waits for her approval in the receipt, and publishing is
+/// still a read-back that waits for «أيوة».
+/// ─────────────────────────────────────────────────────────────────────────────
 class MealConversationScreen extends ConsumerStatefulWidget {
   const MealConversationScreen({
     this.voiceInput,
@@ -40,7 +50,7 @@ class MealConversationScreen extends ConsumerStatefulWidget {
 
   /// The stored draft to carry on from, or null to start a new Meal.
   ///
-  /// **SEEDING HAPPENS HERE, AND MOVING IT HERE IS THE FIX FOR A DEFECT THE
+  /// **SEEDING HAPPENS HERE, AND MOVING IT HERE WAS THE FIX FOR A DEFECT THE
   /// FOUNDER HIT ON 2026-08-11.** He saved a half-finished Meal, came back, and
   /// «كمّل» asked him the first question again — every answer he had given was
   /// still in the database and none of it was on screen.
@@ -48,14 +58,8 @@ class MealConversationScreen extends ConsumerStatefulWidget {
   /// `my_meals_screen.dart` called `resume()` through `ref.read` and then pushed
   /// this route. The controller is `@riverpod` without `keepAlive`, so it is
   /// autoDispose: a `read` with nothing watching creates the provider, takes the
-  /// mutation, and disposes it before the next frame. The push then built this
-  /// screen, which WATCHES the provider, so Riverpod constructed a fresh one —
-  /// `build()` returns an empty draft, and the conversation starts over.
-  ///
-  /// Nothing was broken inside either screen. The seeding happened in a route
-  /// that was not listening, which is the same shape as every other defect that
-  /// has reached his phone: correct parts, wrong seam. Seeding from `initState`
-  /// of the screen that watches the provider is what makes the two the same
+  /// mutation, and disposes it before the next frame. Seeding from `initState`
+  /// of the screen that WATCHES the provider is what makes the two the same
   /// instance.
   final CookMeal? resumeFrom;
 
@@ -66,28 +70,46 @@ class MealConversationScreen extends ConsumerStatefulWidget {
 
 class _MealConversationScreenState
     extends ConsumerState<MealConversationScreen> {
-  final _answerController = TextEditingController();
+  final _saidController = TextEditingController();
+  final _scrollController = ScrollController();
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
   bool _voiceAvailable = false;
   bool _listening = false;
   bool _preparing = false;
   bool _uploading = false;
 
-  /// Set once the person speaks or types on the current step, so the funnel
-  /// records how the answer arrived without recording what was said (FR-037).
+  /// How the current turn arrived, so the funnel records the channel without
+  /// recording what was said (FR-037).
   String _inputMode = 'typed';
+
+  /// Whether the Cook asked for the text box.
+  ///
+  /// Starts false and is never set by a failure. §10.7 rung 3 falls back to
+  /// tapping, never to typing — "typing is the hardest thing this product could
+  /// ask of a Cook", so it is hers to choose and nothing else may choose it for
+  /// her.
+  bool _typing = false;
+
+  /// The live microphone level, 0 to 1.
+  ///
+  /// **Zero until the recogniser reports a real one, and the zero is honest.**
+  /// `VoiceInput` exposes no amplitude today, so the bars stay still while
+  /// listening rather than animating from a timer. §10.2: a fake animation that
+  /// moves while the microphone is muted or broken destroys trust in every other
+  /// state, and a still bar is a smaller lie than a moving one.
+  double get _amplitude => 0;
+
+  TalkOrbState _orbState(MealConversationState state) {
+    if (_listening) return TalkOrbState.listening;
+    if (state.turnInFlight || _preparing) return TalkOrbState.thinking;
+    return TalkOrbState.idle;
+  }
 
   /// True until the stored draft has been read into the controller.
   ///
-  /// **A LOADING FRAME RATHER THAN THE WRONG QUESTION.** Riverpod forbids
-  /// modifying a provider during a widget life-cycle, so the seeding cannot
-  /// happen in `initState` itself — it is deferred by one microtask. Without
-  /// this flag the first frame would render `currentStep`, which for an unseeded
-  /// controller is the dish question: the exact thing the Cook complained about,
-  /// on screen for one frame instead of forever.
-  ///
-  /// A test using `pumpAndSettle` would never see that frame, which is why the
-  /// flag is here rather than a comment saying it does not matter.
+  /// Riverpod forbids modifying a provider during a widget life-cycle, so
+  /// seeding is deferred by one microtask. Without this flag the first frame
+  /// would render an empty receipt for a Meal that is half written.
   late bool _seeding = widget.resumeFrom != null;
 
   @override
@@ -106,7 +128,8 @@ class _MealConversationScreenState
 
   @override
   void dispose() {
-    _answerController.dispose();
+    _saidController.dispose();
+    _scrollController.dispose();
     unawaited(_voice.cancel());
     super.dispose();
   }
@@ -127,60 +150,49 @@ class _MealConversationScreenState
     ));
   }
 
-  /// Asks the controller, which asks the domain. Deriving the sequence here as
-  /// well would be a second copy of a rule that already has one home.
-  MealStep? get _currentStep =>
-      ref.read(mealConversationControllerProvider.notifier).currentStep;
+  Future<void> _send() async {
+    final said = _saidController.text.trim();
+    if (said.isEmpty) return;
 
-  Future<void> _acceptAnswer() async {
-    final answer = _answerController.text.trim();
-    if (answer.isEmpty) return;
-    final step = _currentStep;
-    if (step == null) return;
-
-    // CLOSE THE MICROPHONE BEFORE THE NEXT QUESTION IS SPOKEN.
+    // CLOSE THE MICROPHONE BEFORE THE ASSISTANT ANSWERS.
     //
-    // A Cook can tap «كمّل» while still mid-sentence, with a partial transcript
-    // already in the box — she has said enough and wants to move on. Without
-    // this the recogniser is still listening when the next question is said
-    // aloud, so the assistant talks into a live microphone and she hears herself
-    // being spoken over. Worse in a kitchen, which is the room this product is
-    // for.
+    // She can tap send while still mid-sentence, with a partial transcript in
+    // the box. Without this the recogniser is still listening when the reply is
+    // spoken aloud, so the assistant talks into a live microphone and she hears
+    // herself being spoken over. Worse in a kitchen, which is the room this
+    // product is for.
     if (_listening) {
       await _voice.stop();
       if (!mounted) return;
       setState(() => _listening = false);
     }
 
+    final mode = _inputMode;
     final controller = ref.read(mealConversationControllerProvider.notifier);
-    final success = await controller.answer(step.id, answer);
+    final ok = await controller.hear(said);
+    if (!mounted) return;
 
-    if (mounted && success) {
-      setState(_answerController.clear);
-
+    if (ok) {
+      setState(_saidController.clear);
+      _inputMode = 'typed';
       unawaited(emitEvent(
         EventNames.conversationStepCompleted,
         attributes: {
           'kind': mealConversationKind,
-          'step': step.id.wireName,
-          'input': _inputMode,
+          // A turn, not a step. The event keeps its name because analytics
+          // names are never renamed (`docs/product/event-model.md`), and the
+          // attribute records what is now true: there are no steps left to name.
+          'step': 'turn',
+          'input': mode,
         },
       ));
-      _inputMode = 'typed';
     }
+    // On failure the words STAY IN THE BOX. Making her say it again because the
+    // network dropped is the cost this product can least afford.
   }
 
   Future<void> _declinePhoto() async {
     ref.read(mealConversationControllerProvider.notifier).declinePhoto();
-
-    unawaited(emitEvent(
-      EventNames.conversationStepCompleted,
-      attributes: {
-        'kind': mealConversationKind,
-        'step': MealStepId.photo.wireName,
-        'input': 'typed',
-      },
-    ));
   }
 
   Future<void> _addPhoto() async {
@@ -194,49 +206,39 @@ class _MealConversationScreenState
       return;
     }
 
-    final controller = ref.read(mealConversationControllerProvider.notifier);
-    final ok = await controller.attachPhoto(bytes);
-
+    await ref
+        .read(mealConversationControllerProvider.notifier)
+        .attachPhoto(bytes);
     if (!mounted) return;
     setState(() => _uploading = false);
-
-    if (ok) {
-      unawaited(emitEvent(
-        EventNames.conversationStepCompleted,
-        attributes: {
-          'kind': mealConversationKind,
-          'step': MealStepId.photo.wireName,
-          'input': 'typed',
-        },
-      ));
-    }
   }
 
-  /// The step whose question has already been said out loud.
+  /// How many assistant lines have already been said out loud.
   ///
-  /// Without it, every rebuild would re-ask. A Cook typing a long description
-  /// rebuilds this screen on each keystroke, and an assistant that repeats the
-  /// question over her while she answers is worse than one that never spoke.
-  MealStepId? _spokenStep;
+  /// Without it every rebuild would re-speak. A Cook typing a long sentence
+  /// rebuilds this screen on each keystroke, and an assistant that repeats
+  /// itself over her while she answers is worse than one that never spoke.
+  int _spokenLines = 0;
 
-  /// Says the question the screen is showing — the same sentence, not a summary.
+  /// Says the assistant's newest line — the same sentence, not a summary.
   ///
-  /// **This is the half that was missing.** The conversation has listened since
-  /// E2 and has never once talked back, so a Cook who cannot read comfortably
-  /// met a screen of text with a microphone attached. ADR-0013 is the other
-  /// direction: the assistant speaks, she speaks back, and the screen is the
-  /// receipt.
-  ///
-  /// Deferred by a microtask because `build` must stay pure — speaking is a side
-  /// effect, and calling it during a build is how a rebuild loop starts.
-  /// `_spokenStep` is set BEFORE the microtask, so two builds in the same frame
-  /// cannot both queue the same sentence.
-  void _speakQuestion(MealStepId id, String prompt) {
-    if (_spokenStep == id || prompt.isEmpty) return;
-    _spokenStep = id;
+  /// Deferred by a microtask because `build` must stay pure. `_spokenLines` is
+  /// advanced BEFORE the microtask, so two builds in the same frame cannot both
+  /// queue the same sentence.
+  void _speakNewLines(List<String> lines) {
+    if (lines.length <= _spokenLines) return;
+    final line = lines.last;
+    _spokenLines = lines.length;
     Future.microtask(() {
       if (!mounted) return;
-      unawaited(ref.read(assistantVoiceProvider.notifier).say(prompt));
+      unawaited(ref.read(assistantVoiceProvider.notifier).say(line));
+      if (_scrollController.hasClients) {
+        unawaited(_scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        ));
+      }
     });
   }
 
@@ -246,34 +248,17 @@ class _MealConversationScreenState
       if (mounted) setState(() => _listening = false);
       return;
     }
-    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS.
+    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS, and the runtime
+    // guard is this call rather than any test over the state enum.
     //
-    // `voice.dart` states this as a property of the nine states and
-    // `voice_test.dart` asserts it there — but that is a check over an enum, not
-    // a guard over a running speaker and a running microphone. **The runtime
-    // guard is this call and the generation counter behind it**, and an earlier
-    // version of this comment claimed the enum test enforced it. It does not.
-    // A false claim of safety is worse than no comment, because it stops the
-    // next person looking.
+    // The button says so while it waits, because that wait is unbounded and on a
+    // slow handset it is long enough to read as a button that did nothing —
+    // §10.3, the failure where she taps again and cuts off her own first words.
     //
-    // **AND THE BUTTON SAYS SO WHILE IT WAITS.** That wait is unbounded on
-    // purpose, so on a slow handset it is long enough to read as a button that
-    // did nothing — §10.3, the failure where she taps again and cuts off her own
-    // first words. The state is set before the await, never after it.
-    //
-    // **`finally`, because the acknowledgement disables the button.** Every
-    // engine behind `hush()` swallows its own errors today, so nothing here
-    // throws — but the day one does, a Cook's microphone goes dead with no
-    // message and no way back except leaving the screen. A state that can only
-    // be cleared on the happy path is a trap waiting for a future edit. Raised
-    // by accessibility-reviewer on #461, round eight.
-    //
-    // **AND THE MICROPHONE STAYS SHUT WHEN IT FAILS.** A hush that threw is not
-    // a promise of silence, so opening the microphone anyway would be the
-    // overlap defect arriving through the error path instead of the happy one.
-    // Reported rather than swallowed — an error nobody records is a defect
-    // nobody can find — but not raised to the Cook: she can tap again, and the
-    // rest of the screen still works.
+    // `finally`, because the acknowledgement disables the button: a state that
+    // can only be cleared on the happy path is a trap waiting for a future edit.
+    // And the microphone stays shut when the hush fails — a hush that threw is
+    // not a promise of silence.
     setState(() => _preparing = true);
     try {
       await ref.read(assistantVoiceProvider.notifier).hush();
@@ -294,7 +279,7 @@ class _MealConversationScreenState
       onTranscript: (transcript, isFinal) {
         if (!mounted) return;
         setState(() {
-          _answerController.text = transcript;
+          _saidController.text = transcript;
           _inputMode = 'voice';
           if (isFinal) _listening = false;
         });
@@ -302,32 +287,25 @@ class _MealConversationScreenState
     );
   }
 
-  String _promptFor(AppLocalizations l10n, MealStepId step) => switch (step) {
-        MealStepId.dish => l10n.mealConvPromptDish,
-        MealStepId.description =>
-          l10n.mealConvPromptDescription(context.addressForm),
-        MealStepId.photo => l10n.mealConvPromptPhoto,
-        MealStepId.price => l10n.mealConvPromptPrice(context.addressForm),
-      };
-
-  String _hintFor(AppLocalizations l10n, MealStepId step) => switch (step) {
-        MealStepId.dish => l10n.mealConvHintDish,
-        MealStepId.description => l10n.mealConvHintDescription,
-        MealStepId.photo => l10n.mealConvHintPhoto(context.addressForm),
-        MealStepId.price => l10n.mealConvHintPrice,
-      };
-
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(mealConversationControllerProvider);
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    // WATCHED BEFORE THE EARLY RETURN, AND THE ORDER IS THE WHOLE POINT.
+    //
+    // The controller is autoDispose. While `_seeding` is true this method
+    // returns a spinner, and if the watch sat below that return then the
+    // seeding microtask's `ref.read` would create the provider, take the
+    // mutation, and dispose it again with nothing listening — so the resumed
+    // draft would vanish before the first real frame. That is the 2026-08-11
+    // defect, reintroduced by moving two lines.
+    final state = ref.watch(mealConversationControllerProvider);
+    final voice = ref.watch(assistantVoiceProvider);
 
     if (_seeding) {
       return Scaffold(
         body: Center(
-          // Announced, though it lasts one microtask. A state only the screen
-          // reports is invisible to the person this product exists for, and
-          // «كمّل الأكلة دي» is the path a returning Cook takes.
           child: CircularProgressIndicator(
             semanticsLabel: l10n.mealConvResuming(context.addressForm),
           ),
@@ -335,44 +313,23 @@ class _MealConversationScreenState
       );
     }
 
-    final step = _currentStep;
-
-    if (step == null) {
-      final fallback = ref
-          .read(mealConversationControllerProvider.notifier)
-          .currentFallbackStep;
-      if (fallback != null) {
-        return MealFallbackQuestion(
-          step: fallback,
-          error: state.error,
-          analysisError: state.analysisError,
-        );
-      }
-      // Rendered in place rather than pushed as a route.
-      //
-      // The first version pushed the summary from build() behind a one-shot
-      // flag, which trapped a Cook who came back: the flag stayed set, so the
-      // conversation rendered a spinner and never pushed again. Rendering in
-      // place removes the whole class of bug — there is no navigation to get
-      // out of step with, and correcting a value simply rebuilds this.
-      //
-      // Nothing is written by arriving here. The draft already exists (T034)
-      // and stays `draft` until the Cook approves estimates and publishes
-      // from the summary.
-      return const MealSummaryScreen();
+    // The opening line, seeded once. Deferred for the same reason resume() is:
+    // a provider must not be written during a build.
+    if (state.lines.isEmpty && !state.turnInFlight) {
+      final opening = l10n.mealTalkOpening(context.addressForm);
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(mealConversationControllerProvider.notifier).open(opening);
+      });
     }
-
-    final isPhoto = step.id == MealStepId.photo;
-
-    final voice = ref.watch(assistantVoiceProvider);
+    _speakNewLines(state.lines);
 
     return Scaffold(
       appBar: AppBar(
+        title: Text(l10n.mealTalkTitle),
         actions: [
           // Every screen that speaks carries the mute control, top inline-end,
-          // and it persists until reversed. This screen started speaking and did
-          // not get one — so a Cook beside a sleeping baby could only silence it
-          // by leaving the screen, which loses the question she was answering.
+          // and it persists until reversed.
           KafooMuteButton(
             muted: voice.muted,
             label: voice.muted
@@ -384,112 +341,170 @@ class _MealConversationScreenState
           ),
         ],
       ),
-      // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
-      // by 182 logical pixels, up from 4 before the theme once the design system's type scale landed, and an overflowing
-      // Column resolves it by clipping its LAST child — the button that submits.
-      // A Cook using large text on a cheap Android handset had no reachable
-      // control at all.
+      // SCROLLS, AND HAS TO. Measured at 360x640 with text at 200%, a Column
+      // here overflows and resolves it by clipping its LAST child — which is the
+      // control that sends what she just said.
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (isPhoto)
-                Text(
-                  l10n.mealConvPhotoDisclosure,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                ),
-              if (isPhoto) const SizedBox(height: KafooSpacing.sm),
-              ConversationQuestion(
-                prompt: _promptFor(l10n, step.id),
-                hint: _hintFor(l10n, step.id),
-              ),
-              // Said aloud as well as shown. The screen is the receipt of what
-              // was spoken, not the place it first appears.
-              Builder(builder: (_) {
-                _speakQuestion(step.id, _promptFor(l10n, step.id));
-                return const SizedBox.shrink();
-              }),
-              const SizedBox(height: KafooSpacing.lg),
-              if (!isPhoto) ...[
-                TextField(
-                  controller: _answerController,
-                  maxLines: step.id == MealStepId.description ? 4 : 1,
-                  // A number pad for the one question that is a number. It
-                  // reduces how often the price arrives as Arabic-Indic digits;
-                  // it does not remove the need to handle them, because on many
-                  // Egyptian handsets the number pad IS Arabic-Indic. The
-                  // parsing in `parseMealPrice` is the fix — this is a courtesy.
-                  keyboardType: step.id == MealStepId.price
-                      ? const TextInputType.numberWithOptions(decimal: true)
-                      : null,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _acceptAnswer(),
-                ),
-                const SizedBox(height: KafooSpacing.md),
-                if (_voiceAvailable)
-                  VoiceButton(
-                    listening: _listening,
-                    preparing: _preparing,
-                    label: _preparing
-                        ? l10n.voicePreparing
-                        : l10n.convVoiceHint(context.addressForm),
-                    onPressed: _toggleListening,
-                  )
-                else
-                  Text(
-                    l10n.convVoiceUnavailable(context.addressForm),
-                    style: Theme.of(context).textTheme.bodySmall,
+              // WHAT THE ASSISTANT SAID, AND ONLY THAT. The Cook's own words are
+              // deliberately absent: ADR-0013 rule 2 — the assistant paraphrases
+              // what it understood, and a transcript hides a misunderstanding
+              // from exactly the person who cannot read it.
+              // `take` on an empty list with a negative count throws, and an
+              // empty list is the first frame of every conversation.
+              for (final line in state.lines
+                  .take(state.lines.isEmpty ? 0 : state.lines.length - 1))
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    bottom: KafooSpacing.sm,
                   ),
+                  child: Text(
+                    line,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: KafooColors.voiceDeep),
+                  ),
+                ),
+              if (state.lines.isNotEmpty)
+                KafooSpokenBanner(
+                  line: state.lines.last,
+                  hearAgainLabel: l10n.mealTalkHearAgain,
+                  onHearAgain: () => unawaited(ref
+                      .read(assistantVoiceProvider.notifier)
+                      .say(state.lines.last)),
+                ),
+              if (state.turnInFlight) ...[
+                const SizedBox(height: KafooSpacing.sm),
+                Text(
+                  l10n.mealTalkThinking,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: KafooColors.textMuted),
+                ),
               ],
               if (state.error != null) ...[
                 const SizedBox(height: KafooSpacing.sm),
                 Text(
                   mealErrorText(context, state.error!),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.error),
                 ),
               ],
-              // A fixed gap: a Spacer needs bounded height and a scroll view
-              // gives it none.
-              const SizedBox(height: KafooSpacing.xl),
-              if (isPhoto) ...[
-                if (_uploading)
-                  const SizedBox(
-                    height: KafooSpacing.minTapTarget,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else
-                  FilledButton(
-                    onPressed: _addPhoto,
-                    style: FilledButton.styleFrom(
-                      minimumSize:
-                          const Size.fromHeight(KafooSpacing.minTapTarget),
-                    ),
-                    child: Text(l10n.mealConvPhotoAdd(context.addressForm)),
-                  ),
-                const SizedBox(height: KafooSpacing.sm),
+              const SizedBox(height: KafooSpacing.lg),
+
+              // The receipt. Present from the first turn, filling in as she
+              // talks, and the tap path for every value she can also say.
+              const MealReceipt(),
+
+              const SizedBox(height: KafooSpacing.lg),
+              Text(
+                l10n.mealConvPhotoDisclosure,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.outline),
+              ),
+              const SizedBox(height: KafooSpacing.sm),
+              if (_uploading)
+                const SizedBox(
+                  height: KafooSpacing.minTapTarget,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else ...[
                 OutlinedButton(
-                  onPressed: _uploading ? null : _declinePhoto,
+                  onPressed: _addPhoto,
                   style: OutlinedButton.styleFrom(
                     minimumSize:
                         const Size.fromHeight(KafooSpacing.minTapTarget),
                   ),
-                  child: Text(l10n.mealConvPhotoSkip(context.addressForm)),
+                  child: Text(l10n.mealConvPhotoAdd(context.addressForm)),
                 ),
-              ] else
+                if (!state.draft.photoResolved) ...[
+                  const SizedBox(height: KafooSpacing.sm),
+                  TextButton(
+                    onPressed: _declinePhoto,
+                    child: Text(l10n.mealConvPhotoSkip(context.addressForm)),
+                  ),
+                ],
+              ],
+
+              const SizedBox(height: KafooSpacing.xl),
+
+              // THE TALK BUTTON, 88dp, CENTRED, WITH NOTHING ELSE INSIDE ITS
+              // RADIUS. §10.3, and drawn the way the design package draws it —
+              // the orb is the screen's one unmissable control, found by thumb
+              // without looking, sometimes with wet hands.
+              if (_voiceAvailable)
+                Center(
+                  child: KafooTalkButton(
+                    state: _orbState(state),
+                    amplitude: _amplitude,
+                    label: _preparing
+                        ? l10n.voicePreparing
+                        : l10n.mealTalkPress(context.addressForm),
+                    enabled: !state.turnInFlight,
+                    onPressStart: () => unawaited(_toggleListening()),
+                    onPressEnd: () {},
+                  ),
+                )
+              else
+                Text(
+                  l10n.convVoiceUnavailable(context.addressForm),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall,
+                ),
+
+              const SizedBox(height: KafooSpacing.lg),
+
+              // TYPING IS A CHOICE AND IS DRAWN AS ONE. Secondary, below the
+              // orb, with the rule written under it — the box only appears when
+              // she asks for it, so typing is never what the screen offers her
+              // after failing to understand (§10.7 rung 3).
+              if (!_typing)
+                Column(
+                  children: [
+                    OutlinedButton(
+                      key: const ValueKey('meal-talk-type'),
+                      onPressed: () => setState(() => _typing = true),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize:
+                            const Size.fromHeight(KafooSpacing.minTapTarget),
+                      ),
+                      child: Text(l10n.mealTalkType(context.addressForm)),
+                    ),
+                    const SizedBox(height: KafooSpacing.xs),
+                    Text(
+                      l10n.mealTalkTypeNote,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: KafooColors.textMuted),
+                    ),
+                  ],
+                )
+              else ...[
+                TextField(
+                  key: const ValueKey('meal-talk-box'),
+                  controller: _saidController,
+                  maxLines: 3,
+                  minLines: 1,
+                  autofocus: true,
+                  textInputAction: TextInputAction.send,
+                  decoration: InputDecoration(
+                    hintText: l10n.mealTalkHint(context.addressForm),
+                  ),
+                  onSubmitted: (_) => _send(),
+                ),
+                const SizedBox(height: KafooSpacing.md),
                 FilledButton(
-                  onPressed: _acceptAnswer,
+                  onPressed: state.turnInFlight ? null : _send,
                   style: FilledButton.styleFrom(
                     minimumSize:
                         const Size.fromHeight(KafooSpacing.minTapTarget),
                   ),
                   child: Text(l10n.convContinue(context.addressForm)),
                 ),
+              ],
             ],
           ),
         ),

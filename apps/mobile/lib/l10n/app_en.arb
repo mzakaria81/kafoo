@@ -561,6 +561,15 @@
       }
     }
   },
+  "aiConversationInvalid": "{addressForm, select, feminine{Sorry, I did not catch that. Say it again?} other{Sorry, I did not catch that. Say it again?}}",
+  "@aiConversationInvalid": {
+    "description": "Spoken and shown when the assistant's reply cannot be read at all. Never blames the speaker — DESIGN.md 10.7 rung 1.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
   "aiMealAnalysisInvalid": "{addressForm, select, feminine{We could not read the AI Assistant's reply. Try again, or fill the details in yourself.} other{We could not read the AI Assistant's reply. Try again, or fill the details in yourself.}}",
   "@aiMealAnalysisInvalid": {
     "description": "Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.",
@@ -766,6 +775,58 @@
   "mealConvHintCategory": "{addressForm, select, feminine{Pick the closest one} other{Pick the closest one}}",
   "@mealConvHintCategory": {
     "description": "Hint below the fallback category question.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "mealTalkTitle": "A new Meal",
+  "@mealTalkTitle": {
+    "description": "Title of the one conversation screen where a Cook talks a Meal into being (ADR-0015)."
+  },
+  "mealTalkOpening": "{addressForm, select, feminine{I am here. Tell me what you cooked today.} other{I am here. Tell me what you cooked today.}}",
+  "@mealTalkOpening": {
+    "description": "The assistant's first line, spoken on arrival. An invitation, not a question with one right answer.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "mealTalkPress": "{addressForm, select, feminine{Hold it down and keep talking} other{Hold it down and keep talking}}",
+  "@mealTalkPress": {
+    "description": "Spoken invitation under the talk button. Hold-to-talk, said the way a person would say it.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "mealTalkType": "{addressForm, select, feminine{Or type it yourself} other{Or type it yourself}}",
+  "@mealTalkType": {
+    "description": "Reveals the text box. A secondary control on purpose — typing is a choice, never a consequence of the assistant failing to understand.",
+    "placeholders": {
+      "addressForm": {
+        "type": "String"
+      }
+    }
+  },
+  "mealTalkTypeNote": "Typing is always there — just not the first choice",
+  "@mealTalkTypeNote": {
+    "description": "Footnote under the typing control, stating the rule out loud so nobody reads the small button as a demotion."
+  },
+  "mealTalkThinking": "Still with you, one second.",
+  "@mealTalkThinking": {
+    "description": "Shown while the assistant works out its reply. DESIGN.md 10.2 thinking state — never a silent, still moment."
+  },
+  "mealTalkHearAgain": "Hear it again",
+  "@mealTalkHearAgain": {
+    "description": "Replays the assistant's last line. 48dp, on every spoken line."
+  },
+  "mealTalkHint": "{addressForm, select, feminine{Say anything about the Meal, or ask me something} other{Say anything about the Meal, or ask me something}}",
+  "@mealTalkHint": {
+    "description": "Hint in the text box. Says the exchange is open — she may state a fact OR ask a question.",
     "placeholders": {
       "addressForm": {
         "type": "String"

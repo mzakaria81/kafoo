@@ -7,6 +7,7 @@
 /// `decisions/0005-route-all-model-calls-through-a-provider-abstraction.md`.
 library;
 
+export 'src/conversation_reply_parser.dart';
 export 'src/meal_analysis_parser.dart';
 export 'src/provider/ai_provider.dart';
 export 'src/provider/edge_function_provider.dart';

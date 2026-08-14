@@ -608,6 +608,12 @@ abstract class AppLocalizations {
   /// **'مقدرناش نغيّر الرقم. رقمك القديم زي ما هو، {addressForm, select, feminine{جربي} other{جرب}} تاني.'**
   String changePhoneError(String addressForm);
 
+  /// Spoken and shown when the assistant's reply cannot be read at all. Never blames the speaker — DESIGN.md 10.7 rung 1.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلش، مافهمتش. {addressForm, select, feminine{قوليها} other{قولها}} تاني؟'**
+  String aiConversationInvalid(String addressForm);
+
   /// Shown when the AI Assistant's reply fails schema validation. The Cook always has a working path without it.
   ///
   /// In ar, this message translates to:
@@ -781,6 +787,54 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{addressForm, select, feminine{اختاري اللي أقرب} other{اختار اللي أقرب}}'**
   String mealConvHintCategory(String addressForm);
+
+  /// Title of the one conversation screen where a Cook talks a Meal into being (ADR-0015).
+  ///
+  /// In ar, this message translates to:
+  /// **'أكلة جديدة'**
+  String get mealTalkTitle;
+
+  /// The assistant's first line, spoken on arrival. An invitation, not a question with one right answer.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنا معاك. {addressForm, select, feminine{قوليلي عملتي إيه} other{قوللي عملت إيه}} النهاردة؟'**
+  String mealTalkOpening(String addressForm);
+
+  /// Spoken invitation under the talk button. Hold-to-talk, said the way a person would say it.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{دوسي واستمري وانتي بتتكلمي} other{دوس واستمر وانت بتتكلم}}'**
+  String mealTalkPress(String addressForm);
+
+  /// Reveals the text box. A secondary control on purpose — typing is a choice, never a consequence of the assistant failing to understand.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{أو اكتبيها بإيدك} other{أو اكتبها بإيدك}}'**
+  String mealTalkType(String addressForm);
+
+  /// Footnote under the typing control, stating the rule out loud so nobody reads the small button as a demotion.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكتابة موجودة دايماً — بس مش أول اختيار'**
+  String get mealTalkTypeNote;
+
+  /// Shown while the assistant works out its reply. DESIGN.md 10.2 thinking state — never a silent, still moment.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه معاك، ثانية.'**
+  String get mealTalkThinking;
+
+  /// Replays the assistant's last line. 48dp, on every spoken line.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمعيها تاني'**
+  String get mealTalkHearAgain;
+
+  /// Hint in the text box. Says the exchange is open — she may state a fact OR ask a question.
+  ///
+  /// In ar, this message translates to:
+  /// **'{addressForm, select, feminine{قولي أي حاجة عن الأكلة، أو اسأليني} other{قول أي حاجة عن الأكلة، أو اسألني}}'**
+  String mealTalkHint(String addressForm);
 
   /// Heading of the Meal summary, shown before anything is on offer.
   ///

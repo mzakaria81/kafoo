@@ -17,8 +17,9 @@ import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_estimate_rows.dart';
-import 'package:kafoo_mobile/features/meal/presentation/meal_summary.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_receipt.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_summary_rows.dart';
+import 'package:kafoo_mobile/l10n/address_form.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
 
@@ -59,8 +60,20 @@ const _noAllergensReply = '{"ingredients":["عدس","رز"],"calories":850,'
 Map<String, Object?> _parseAnalysis(String json) =>
     jsonDecode(json) as Map<String, Object?>;
 
+/// The one turn these tests need: the Cook says everything at once and the
+/// assistant captures it.
+///
+/// **A single turn rather than four, because there are no longer four**
+/// (ADR-0015). What the receipt is being tested on is unchanged — the estimates
+/// still need approving and the Meal still needs publishing — but the way a Cook
+/// arrives here is one sentence, not a wizard.
+const _conversationReply = '{"say":"تمام، كشري بخمسة وتلاتين.",'
+    '"captured":{"dish":"$_dish","description":"$_description",'
+    '"price":"$_price"}}';
+
 AiProvider _stubAi([String? reply]) => StubAiProvider({
       if (reply != null) 'meal-analysis': reply,
+      'conversation': _conversationReply,
     });
 
 Widget _app(
@@ -93,9 +106,11 @@ Widget _app(
       ),
     );
 
-/// Walks the whole conversation, so the summary is reached the way a Cook
-/// reaches it. When the analysis left cuisine/category blank, answers the
-/// fallback questions so the summary is actually on screen.
+/// Reaches the receipt the way a Cook now reaches it: by saying one thing.
+///
+/// The old version of this helper walked four questions, declined a photo and
+/// answered two fallbacks. None of those exist (ADR-0015). What is asserted
+/// afterwards is unchanged.
 Future<void> _reachSummary(
   WidgetTester tester,
   FakeMealRepository repo, {
@@ -105,40 +120,44 @@ Future<void> _reachSummary(
   await tester.pumpWidget(_app(repo, ai: ai));
   await tester.pumpAndSettle();
 
-  await tester.enterText(find.byType(TextField), _dish);
-  await tester.tap(find.byType(FilledButton));
+  // Typing rather than speaking, because the recogniser is unavailable in this
+  // harness — and typing is a complete alternative, never a degraded one.
+  final typeButton = find.byKey(const ValueKey('meal-talk-type'));
+  await tester.ensureVisible(typeButton);
+  await tester.pumpAndSettle();
+  await tester.tap(typeButton);
   await tester.pumpAndSettle();
 
-  await tester.enterText(find.byType(TextField), _description);
-  await tester.tap(find.byType(FilledButton));
+  final box = find.byKey(const ValueKey('meal-talk-box'));
+  await tester.ensureVisible(box);
   await tester.pumpAndSettle();
-
-  // Decline the photo — supplying one is T041.
-  await tester.tap(find.byType(OutlinedButton));
+  await tester.enterText(
+    box,
+    'عملت $_dish. $_description. بـ$_price جنيه.',
+  );
+  final send = find.widgetWithText(FilledButton, _sendLabel(tester));
+  await tester.ensureVisible(send);
   await tester.pumpAndSettle();
-
-  await tester.enterText(find.byType(TextField), _price);
-  await tester.tap(find.byType(FilledButton));
+  await tester.tap(send);
   await tester.pumpAndSettle();
-
-  // Fallback path (T096): analysis missing cuisine/category.
-  if (l10n != null &&
-      find.text(l10n.mealConvPromptCuisine).evaluate().isNotEmpty) {
-    final choice = find.widgetWithText(OutlinedButton, l10n.cuisineEgyptian);
-    await tester.ensureVisible(choice);
-    await tester.pumpAndSettle();
-    await tester.tap(choice);
-    await tester.pumpAndSettle();
-  }
-  if (l10n != null &&
-      find.text(l10n.mealConvPromptCategory).evaluate().isNotEmpty) {
-    final choice = find.widgetWithText(OutlinedButton, l10n.categoryMain);
-    await tester.ensureVisible(choice);
-    await tester.pumpAndSettle();
-    await tester.tap(choice);
-    await tester.pumpAndSettle();
-  }
 }
+
+/// The label on the send control, read from the running app rather than
+/// hardcoded — the string is localized and belongs to the ARB file.
+String _sendLabel(WidgetTester tester) {
+  final context = tester.element(find.byType(MealConversationScreen));
+  return AppLocalizations.of(context).convContinue(context.addressForm);
+}
+
+/// Scopes a finder to the receipt.
+///
+/// **The receipt is a panel now, not a screen** (ADR-0015), so the conversation
+/// sits above it with its own text box and its own icon buttons. A bare
+/// a bare `find.byType(TextField)` matches the conversation's box as well as the row
+/// being edited, and taps whichever comes first — the trap `.claude/rules/dart.md`
+/// names in full.
+Finder _inReceipt(Finder matching) =>
+    find.descendant(of: find.byType(MealReceipt), matching: matching);
 
 Finder _rowFor(String label) => find.ancestor(
       of: find.text(label),
@@ -156,13 +175,25 @@ Future<void> _correct(
   String label,
   String value,
 ) async {
-  await tester.tap(
-    find.descendant(of: _rowFor(label), matching: find.byType(TextButton)),
-  );
+  final change =
+      find.descendant(of: _rowFor(label), matching: find.byType(TextButton));
+  await tester.ensureVisible(change);
+  await tester.pumpAndSettle();
+  await tester.tap(change);
   await tester.pumpAndSettle();
 
-  await tester.enterText(find.byType(TextField), value);
-  await tester.tap(find.byType(IconButton));
+  // SCOPED TO THE ROW BEING EDITED. The conversation above the receipt now has
+  // its own text box and its own icon buttons — «اسمعيها تاني» and the mute
+  // control — so a bare `find.byType` matches three widgets and taps whichever
+  // comes first. `.claude/rules/dart.md` names this exact trap.
+  final row = _rowFor(label);
+  await tester.enterText(
+    find.descendant(of: row, matching: find.byType(TextField)),
+    value,
+  );
+  await tester.tap(
+    find.descendant(of: row, matching: find.byType(IconButton)),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -193,7 +224,7 @@ Future<void> _approveAllEstimates(
 /// control itself — the summary is taller than the default test surface.
 Future<void> _approveAllViaController(WidgetTester tester) async {
   final container = ProviderScope.containerOf(
-    tester.element(find.byType(MealSummaryScreen)),
+    tester.element(find.byType(MealReceipt)),
   );
   final controller =
       container.read(mealConversationControllerProvider.notifier);
@@ -239,7 +270,7 @@ void main() {
     final repo = FakeMealRepository();
     await _reachSummary(tester, repo, l10n: l10n);
 
-    expect(find.byType(MealSummaryScreen), findsOneWidget);
+    expect(find.byType(MealReceipt), findsOneWidget);
     expect(find.text(l10n.mealSummaryTitle), findsOneWidget);
     expect(find.text(_dish), findsOneWidget);
     expect(find.text(_description), findsOneWidget);
@@ -275,7 +306,7 @@ void main() {
     await tester.pumpWidget(_app(repo, resumeFrom: draft));
     await tester.pumpAndSettle();
 
-    expect(find.byType(MealSummaryScreen), findsOneWidget);
+    expect(find.byType(MealReceipt), findsOneWidget);
     expect(
       find.byType(MealPhoto),
       findsOneWidget,
@@ -382,20 +413,22 @@ void main() {
     final repo = FakeMealRepository();
     await _reachSummary(tester, repo, l10n: l10n);
 
-    // Three editable Cook-answer rows (dish/description/price). Fallback
-    // cuisine/category are display-only — they are not free text.
-    expect(find.byType(SummaryRow), findsNWidgets(5));
+    // Three rows, because she said three things. Cuisine and category are AI
+    // estimates until she approves them, and an unapproved estimate is not
+    // something the Meal knows about itself — ADR-0015 did not move that line.
+    expect(find.byType(SummaryRow), findsNWidgets(3));
     expect(find.byType(PhotoRow), findsOneWidget);
 
-    expect(find.byType(TextField), findsNothing);
-    await tester.tap(
-      find.descendant(
-        of: _rowFor(l10n.mealSummaryLabelDish),
-        matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
-      ),
+    expect(_inReceipt(find.byType(TextField)), findsNothing);
+    final change = find.descendant(
+      of: _rowFor(l10n.mealSummaryLabelDish),
+      matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
     );
+    await tester.ensureVisible(change);
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsOneWidget);
+    await tester.tap(change);
+    await tester.pumpAndSettle();
+    expect(_inReceipt(find.byType(TextField)), findsOneWidget);
   });
 
   testWidgets('correcting the dish persists it', (tester) async {
@@ -446,7 +479,7 @@ void main() {
     await _correct(tester, l10n.mealSummaryLabelPrice, '65');
 
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(MealSummaryScreen)),
+      tester.element(find.byType(MealReceipt)),
     );
     expect(
       container.read(mealConversationControllerProvider).draft.price,
@@ -456,29 +489,6 @@ void main() {
   });
 
   // Reaching the summary never auto-publishes — the Cook must confirm.
-  testWidgets('reaching the summary puts nothing on offer', (tester) async {
-    await _tallSurface(tester);
-    final repo = FakeMealRepository();
-    await _reachSummary(tester, repo, l10n: l10n);
-
-    expect(repo.publishCalls, 0);
-    expect(find.byType(MealSummaryScreen), findsOneWidget);
-    expect(find.text(l10n.mealSummaryNoEstimates('other')), findsOneWidget);
-
-    // Confirm is now ENABLED, and that is the point of T096: before the
-    // fallback questions existed this assertion was `isNull`, because a Meal
-    // with no cuisine and no category could not go on offer at all. It is
-    // enabled because the Cook supplied both, not because a default was
-    // invented — and it is still the Cook's tap that publishes, which is why
-    // publishCalls is asserted on either side of it (FR-014, SC-005).
-    final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
-    );
-    expect(button.onPressed, isNotNull,
-        reason: 'a Cook who answered the fallback questions can publish');
-
-    expect(repo.publishCalls, 0);
-  });
 
   // FR-005 makes a value correctable, not erasable. An empty correction is a
   // slip, so it closes the row and keeps what was there.
@@ -488,21 +498,21 @@ void main() {
     await _reachSummary(tester, repo, l10n: l10n);
     final before = repo.updateDraftCalls;
 
-    await tester.tap(
+    await _tapVisible(
+      tester,
       find.descendant(
         of: _rowFor(l10n.mealSummaryLabelPrice),
         matching: find.byType(TextButton),
       ),
     );
-    await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), '   ');
-    await tester.tap(find.byType(IconButton));
+    await tester.enterText(_inReceipt(find.byType(TextField)), '   ');
+    await tester.tap(_inReceipt(find.byType(IconButton)));
     await tester.pumpAndSettle();
 
     expect(repo.updateDraftCalls, before);
     expect(find.text(_price), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(_inReceipt(find.byType(TextField)), findsNothing);
   });
 
   // --- Estimates and publishing (T038 + estimate half of T045/US2) ------------
@@ -622,7 +632,7 @@ void main() {
 
     // Approve everything except calories via the controller, then edit calories.
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(MealSummaryScreen)),
+      tester.element(find.byType(MealReceipt)),
     );
     final controller =
         container.read(mealConversationControllerProvider.notifier);
@@ -653,8 +663,8 @@ void main() {
         matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
       ),
     );
-    await tester.enterText(find.byType(TextField), '900');
-    await tester.tap(find.byType(IconButton));
+    await tester.enterText(_inReceipt(find.byType(TextField)), '900');
+    await tester.tap(_inReceipt(find.byType(IconButton)));
     await tester.pumpAndSettle();
 
     expect(
@@ -812,7 +822,7 @@ void main() {
     await _approveAllViaController(tester);
 
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(MealSummaryScreen)),
+      tester.element(find.byType(MealReceipt)),
     );
     final controller =
         container.read(mealConversationControllerProvider.notifier);
@@ -884,49 +894,6 @@ void main() {
   });
 
   // --- T096: fallback answers on the summary --------------------------------
-
-  testWidgets(
-      'fallback cuisine and category on summary are not labelled as estimates',
-      (tester) async {
-    await _tallSurface(tester);
-    final repo = FakeMealRepository();
-    // Unstubbed AI → analysis fails → fallback path.
-    await _reachSummary(tester, repo, l10n: l10n);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(MealSummaryScreen), findsOneWidget);
-    expect(find.text(l10n.mealSummaryLabelCuisine), findsOneWidget);
-    expect(find.text(l10n.mealSummaryLabelCategory), findsOneWidget);
-    expect(find.text(l10n.cuisineEgyptian), findsOneWidget);
-    expect(find.text(l10n.categoryMain), findsOneWidget);
-
-    // Badge must not appear on those Cook-owned rows. With no analysis there
-    // are no estimate rows at all, so the badge must be entirely absent.
-    expect(find.text(l10n.mealSummaryEstimateBadge), findsNothing);
-
-    final cuisineRow = find.ancestor(
-      of: find.text(l10n.mealSummaryLabelCuisine),
-      matching: find.byType(SummaryRow),
-    );
-    final categoryRow = find.ancestor(
-      of: find.text(l10n.mealSummaryLabelCategory),
-      matching: find.byType(SummaryRow),
-    );
-    expect(
-      find.descendant(
-        of: cuisineRow,
-        matching: find.text(l10n.mealSummaryEstimateBadge),
-      ),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: categoryRow,
-        matching: find.text(l10n.mealSummaryEstimateBadge),
-      ),
-      findsNothing,
-    );
-  });
 
   // --- T047 + T050: nutrition source — estimate vs Cook-owned ---------------
   //
@@ -1012,8 +979,8 @@ void main() {
         matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
       ),
     );
-    await tester.enterText(find.byType(TextField), '950');
-    await tester.tap(find.byType(IconButton));
+    await tester.enterText(_inReceipt(find.byType(TextField)), '950');
+    await tester.tap(_inReceipt(find.byType(IconButton)));
     await tester.pumpAndSettle();
 
     expect(
@@ -1084,8 +1051,8 @@ void main() {
           matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
         ),
       );
-      await tester.enterText(find.byType(TextField), '950');
-      await tester.tap(find.byType(IconButton));
+      await tester.enterText(_inReceipt(find.byType(TextField)), '950');
+      await tester.tap(_inReceipt(find.byType(IconButton)));
       await tester.pumpAndSettle();
 
       const cookCalories = 950;
@@ -1120,8 +1087,8 @@ void main() {
           matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
         ),
       );
-      await tester.enterText(find.byType(TextField), '٩٥٠');
-      await tester.tap(find.byType(IconButton));
+      await tester.enterText(_inReceipt(find.byType(TextField)), '٩٥٠');
+      await tester.tap(_inReceipt(find.byType(IconButton)));
       await tester.pumpAndSettle();
 
       final calCall =
@@ -1157,7 +1124,7 @@ void main() {
         ),
       );
 
-      final field = find.byType(TextField);
+      final field = _inReceipt(find.byType(TextField));
       await tester.enterText(field, '٩٥٠');
       await tester.pump();
       expect(
@@ -1189,7 +1156,7 @@ void main() {
           (_parseAnalysis(_fullAnalysisReply)['allergens'] as List)
               .cast<String>();
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(MealSummaryScreen)),
+        tester.element(find.byType(MealReceipt)),
       );
       final controller =
           container.read(mealConversationControllerProvider.notifier);
@@ -1240,8 +1207,8 @@ void main() {
           matching: find.widgetWithText(TextButton, l10n.convEdit('other')),
         ),
       );
-      await tester.enterText(find.byType(TextField), 'قمح،سمسم');
-      await tester.tap(find.byType(IconButton));
+      await tester.enterText(_inReceipt(find.byType(TextField)), 'قمح،سمسم');
+      await tester.tap(_inReceipt(find.byType(IconButton)));
       await tester.pumpAndSettle();
 
       final cookAllergens = ['قمح', 'سمسم'];

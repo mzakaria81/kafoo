@@ -137,24 +137,32 @@ class PhotoRow extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsetsDirectional.only(bottom: KafooSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelMedium
-                ?.copyWith(color: KafooColors.textMuted),
-          ),
-          const SizedBox(height: KafooSpacing.xs),
-          if (photoUrl case final url?)
-            MealPhoto(url: url, semanticsLabel: photoSemanticsLabel)
-          else
+      // MERGED EXPLICITLY, RATHER THAN RELYING ON WHAT THE SCROLL VIEW HAPPENED
+      // TO DO. A screen reader must read «الصورة، اللي اخترتها، موجودة» as one
+      // thing — the field name and the confirmation belong together, and the
+      // confirmation alone does not say what it is confirming. This used to
+      // merge because the receipt was a `ListView`; the receipt became a panel
+      // (ADR-0015) and the label silently stopped being read.
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              noPhotoLabel,
-              style: theme.textTheme.bodyLarge
+              label,
+              style: theme.textTheme.labelMedium
                   ?.copyWith(color: KafooColors.textMuted),
             ),
-        ],
+            const SizedBox(height: KafooSpacing.xs),
+            if (photoUrl case final url?)
+              MealPhoto(url: url, semanticsLabel: photoSemanticsLabel)
+            else
+              Text(
+                noPhotoLabel,
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(color: KafooColors.textMuted),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -664,6 +664,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String aiConversationInvalid(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Sorry, I did not catch that. Say it again?',
+        'other': 'Sorry, I did not catch that. Say it again?',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String aiMealAnalysisInvalid(String addressForm) {
     String _temp0 = intl.Intl.selectLogic(
       addressForm,
@@ -936,6 +948,67 @@ class AppLocalizationsEn extends AppLocalizations {
       {
         'feminine': 'Pick the closest one',
         'other': 'Pick the closest one',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mealTalkTitle => 'A new Meal';
+
+  @override
+  String mealTalkOpening(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'I am here. Tell me what you cooked today.',
+        'other': 'I am here. Tell me what you cooked today.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealTalkPress(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Hold it down and keep talking',
+        'other': 'Hold it down and keep talking',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mealTalkType(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Or type it yourself',
+        'other': 'Or type it yourself',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mealTalkTypeNote =>
+      'Typing is always there — just not the first choice';
+
+  @override
+  String get mealTalkThinking => 'Still with you, one second.';
+
+  @override
+  String get mealTalkHearAgain => 'Hear it again';
+
+  @override
+  String mealTalkHint(String addressForm) {
+    String _temp0 = intl.Intl.selectLogic(
+      addressForm,
+      {
+        'feminine': 'Say anything about the Meal, or ask me something',
+        'other': 'Say anything about the Meal, or ask me something',
       },
     );
     return '$_temp0';

@@ -14,6 +14,7 @@ import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_publish_entry.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
+import 'package:kafoo_ui/ui.dart';
 
 import 'support/fake_kitchen_profile_repository.dart';
 import 'support/fake_meal_repository.dart';
@@ -128,7 +129,7 @@ void main() {
   });
 
   // 3. A Cook with a Kitchen Profile reaches the first question.
-  testWidgets('Cook with a kitchen profile reaches the first Meal question',
+  testWidgets('Cook with a kitchen profile reaches the conversation',
       (tester) async {
     final kitchenRepo = FakeKitchenProfileRepository(
       existing: const KitchenProfile(
@@ -151,8 +152,9 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // The first conversation question is on screen.
-    expect(find.byType(ConversationQuestion), findsOneWidget);
+    // The conversation is on screen — one open exchange, not a first question
+    // (ADR-0015). The assistant has already spoken its invitation.
+    expect(find.byType(KafooSpokenBanner), findsOneWidget);
 
     // The "make a kitchen" body is NOT on screen.
     expect(find.text(l10n.mealNeedsKitchenBody('other')), findsNothing);
