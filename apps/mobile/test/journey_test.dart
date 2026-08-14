@@ -8,15 +8,22 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
 import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
+import 'package:kafoo_mobile/features/discovery/presentation/opened_meal.dart';
+import 'package:kafoo_mobile/features/identity/presentation/change_phone_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
+import 'package:kafoo_mobile/features/identity/presentation/email_sign_in_screen.dart';
+import 'package:kafoo_mobile/features/identity/presentation/remove_account_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
+import 'package:kafoo_mobile/features/kitchen_profile/presentation/public_kitchen_view.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
 import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
+import 'package:kafoo_mobile/features/meal/presentation/meal_edit_screen.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_receipt.dart';
 import 'package:kafoo_mobile/features/meal/presentation/my_meals_screen.dart';
+import 'package:kafoo_mobile/features/settings/presentation/settings_screen.dart';
 import 'package:kafoo_mobile/home.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_mobile/main.dart';
@@ -603,6 +610,228 @@ void main() {
     expect(meals.publishCalls, 1);
     expect(find.byType(KafooConfirmationGate), findsNothing);
     expect(find.text(l10n.mealPublishedConfirmation), findsOneWidget);
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // EVERY STEP BETWEEN TWO SCREENS, WALKED. Founder's instruction, 2026-08-14.
+  //
+  // This is the class of defect the whole file exists for: on 2026-08-10 five
+  // reached his phone in a day and the last one is the shape to remember — the
+  // code screen worked, the Cook home worked, and the step between them did not
+  // exist. A widget test of each side proves both and proves nothing about the
+  // step, so each journey below taps its way from one screen to the next and
+  // asserts BOTH the arrival and the departure.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  testWidgets('the account sheet reaches the Kitchen Profile and comes back',
+      (tester) async {
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(meals: const [_hers]),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(l10n.accountEntry));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.kitchenViewTitle));
+    await tester.pumpAndSettle();
+
+    // Arrived on HER kitchen, and the sheet closed behind her — a sheet left
+    // open sits above the screen it pushed and greets her again on the way
+    // back.
+    expect(find.text(_profile.displayName), findsWidgets);
+    expect(find.byType(KafooSheet), findsNothing);
+
+    // The app bar's own back, tapped rather than popped in code: `pageBack()`
+    // hunts for a Cupertino chrome this app does not use.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    // And back on her Meals, with the orb where she left it.
+    expect(find.text(_hers.title!), findsOneWidget);
+    expect(find.byType(KafooTalkButton), findsOneWidget);
+  });
+
+  testWidgets('the account sheet reaches changing the phone number',
+      (tester) async {
+    // FR-026: a lost or recycled number is recoverable rather than terminal.
+    // It was one of the four Cook screens with no route into them on
+    // 2026-08-10, so the step into it is the part worth pinning.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(meals: const [_hers]),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(l10n.accountEntry));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.changePhoneEntry('other')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ChangePhoneScreen), findsOneWidget);
+    expect(find.byType(KafooSheet), findsNothing);
+  });
+
+  testWidgets('leaving is reachable in one step and actually opens',
+      (tester) async {
+    // SC-011. The old home put «امسح حسابي» on the first screen; the redesign
+    // put it in the account sheet, and the whole risk of that move is the sheet
+    // becoming a place to bury it. So this walks the step rather than asserting
+    // the label exists.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(meals: const [_hers]),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(l10n.accountEntry));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.removeAccountEntry('other')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RemoveAccountScreen), findsOneWidget);
+    expect(find.byType(KafooSheet), findsNothing);
+  });
+
+  testWidgets('a Cook with no kitchen is asked for one before a Meal',
+      (tester) async {
+    // FR-017. The orb is the first thing a brand-new Cook presses, and what it
+    // must not do is drop her into a Meal she cannot publish.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(),
+      meals: FakeMealRepository(),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(KafooTalkButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mealNeedsKitchenTitle), findsOneWidget);
+    expect(find.text(l10n.myMealsEmptyInvitation), findsNothing);
+  });
+
+  testWidgets('the row menu reaches editing a Meal', (tester) async {
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: FakeMealRepository(meals: const [_hers]),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+      of: find.byType(MyMealRow).first,
+      matching: find.byIcon(Icons.more_horiz),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.mealEditTitle('other')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MealEditScreen), findsOneWidget);
+    expect(find.byType(KafooSheet), findsNothing);
+  });
+
+  testWidgets('a Customer opens a Meal and then the Kitchen behind it',
+      (tester) async {
+    // Two steps on the Customer side, neither of which any journey walked. The
+    // second one matters most: the Kitchen is how a Customer decides whether to
+    // trust a stranger cooking at home, and it sits two routes deep.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(),
+    ));
+    auth.signedOut();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('كشري').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(OpenedMeal), findsOneWidget);
+
+    final openKitchen = find.text(l10n.publicMealOpenKitchen);
+    await tester.ensureVisible(openKitchen);
+    await tester.pumpAndSettle();
+    await tester.tap(openKitchen);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PublicKitchenView), findsOneWidget);
+    expect(find.text(_profile.displayName), findsWidgets);
+  });
+
+  testWidgets('browse reaches settings', (tester) async {
+    // The one screen carrying the search-consent switch, so a Customer who
+    // wants to turn search off has to be able to get there.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(),
+    ));
+    auth.signedOut();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(l10n.settingsTitle));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('sign-in offers the email way in when the phone will not do',
+      (tester) async {
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(),
+    ));
+    auth.signedOut();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.browseSignInEntry));
+    await tester.pumpAndSettle();
+
+    final emailEntry = _buttonOn(SignInScreen, l10n.signInLostNumber('other'));
+    await tester.ensureVisible(emailEntry);
+    await tester.pumpAndSettle();
+    await tester.tap(emailEntry);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EmailSignInScreen), findsOneWidget);
   });
 
   testWidgets('the app SAYS what it understood, not only shows it',
