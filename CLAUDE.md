@@ -179,6 +179,11 @@ Analytics events are PascalCase, past-tense, never renamed. List and rules:
 
 Read the tree from disk. What it will not tell you:
 
+- **Read `docs/HANDOFF.md` first.** It carries what the last session learned and this file does not:
+  what exists, what is known broken, and twenty traps that each cost somebody real time. **This
+  container is destroyed when the session ends and the repository is the only memory that outlives
+  it** — so the handoff is not a courtesy, it is the whole mechanism. It went four days stale in
+  August 2026 because nothing pointed at it; this bullet and item 6 below are the repair.
 - **`packages/domain/` must not import `supabase_flutter`.** Entities and business logic only.
 - **`apps/web/` is the Customer web surface** (Next.js on Cloudflare). **Paused in MVP mode** — no
   new work without the founder. Its strings live in `apps/web/messages/`, not ARB.
@@ -196,6 +201,11 @@ Read the tree from disk. What it will not tell you:
 4. **Docs updated in the same commit** if the change made them stale — `domain-model.md`,
    `event-model.md`, an ADR, this file. Documentation drift is part of the change.
 5. Any shortcut taken is written into `docs/mvp-deferred.md` in the same commit.
+6. **`docs/HANDOFF.md` updated in the same commit** if you learned something the next session needs —
+   state that changed, something found broken, or a trap that cost an hour. Same commit, not "at the
+   end of the session": a session can end without an end, and an uncommitted lesson dies with the
+   container. A lesson a check *can* prevent belongs in `scripts/verify.sh` instead, and one about a
+   single piece of code belongs in a comment beside it.
 
 Tests are required for money, authorization and domain rules. Elsewhere in MVP mode they are a
 judgement call — write the one check that would catch the thing breaking, and skip the rest.
