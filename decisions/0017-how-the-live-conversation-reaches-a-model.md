@@ -203,6 +203,39 @@ it.
 trusted a page over a call** — `.claude/rules/ai.md` lists four model defaults that were all wrong on
 the first real request. Confirm the live figures at purchase.
 
+## Built, 2026-08-13 — and one thing the founder asked for could not be done
+
+The agent exists on the account (`agent_2301kzz79w0efcgbjwqy6kdsmwtd`), and **spike question 1 is
+answered YES by a real call**: a signed URL minted server-side against the account key opens the
+socket, and no provider key goes near a handset. That is the question that killed ADR-0009.
+
+Configured to ElevenLabs' own prompting guide: named sections, a dedicated `# Guardrails`, three
+sentences per turn, and the two rules that matter most repeated with "This step is important". The
+persona lives in `prompts/agent-persona.md` and is **spoken, never parsed** — `prompts/conversation.md`
+keeps its strict JSON for the typed path, and mixing the two would have the agent reading braces
+aloud.
+
+`text_normalisation_type` is set to `elevenlabs` rather than the default. The guide offers both: the
+default tells the model to write numbers as words, which is right for the ear and **wrong for
+Kafoo**, because the price is read out of the transcript and «مية وعشرين» is not a number any column
+accepts. The `elevenlabs` normalizer speaks the words and keeps the digits in the transcript, for a
+little latency.
+
+**The brain is `gemini-3.5-flash`, hosted by ElevenLabs, and it is NOT running on Kafoo's own Gemini
+key. That is a conflict, not an oversight.** The founder asked for both — the model and the key —
+and the platform refuses the combination: `custom_llm_not_allowed_in_zrm`. Using Kafoo's key means
+declaring a custom model endpoint, and a custom endpoint is only allowed with **zero retention mode
+off**, which would have ElevenLabs storing the transcript of every conversation a Cook has.
+
+Between a billing preference and a Cook's words being stored by a third party, the words win. Zero
+retention stays on, the model is the one asked for, and the key question goes back to the founder
+with the trade written down. **If he wants his own key, the cost is transcript retention and that is
+a new category of personal data — a stop-and-ask, not an edit.**
+
+Note also that a custom endpoint pointed straight at Google would bypass `AiProvider` and the
+registry anyway. The only version of this that keeps ADR-0005 whole is the custom endpoint pointing
+at a **Kafoo** function, which is still unwritten.
+
 ## The spike, before any implementation
 
 Three questions, in order. **Any "no" stops it and the answer is B.**
