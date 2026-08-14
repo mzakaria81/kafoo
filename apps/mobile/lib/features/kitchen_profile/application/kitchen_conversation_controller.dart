@@ -146,9 +146,17 @@ class KitchenConversationController extends _$KitchenConversationController {
   /// One turn: the Cook said something, the assistant answers, and anything she
   /// stated is kept.
   ///
+  /// **[speaking] false means Kafoo listens and writes but does not talk**, and
+  /// that is the live-conversation case rather than an option. When the orb is
+  /// open the hosted agent (ADR-0017) is the one having the conversation: it
+  /// hears her, answers in its own voice, and hands Kafoo the words so the facts
+  /// inside them can be kept. Adding Kafoo's own reply on top of that puts two
+  /// assistants on the screen and two voices in the room, answering the same
+  /// sentence.
+  ///
   /// Returns false when the assistant could not answer; the caller keeps what
   /// the Cook typed so she does not have to say it twice.
-  Future<bool> hear(String said) async {
+  Future<bool> hear(String said, {bool speaking = true}) async {
     final heard = said.trim();
     if (heard.isEmpty) return false;
     if (state.turnInFlight) return false;
@@ -204,7 +212,7 @@ class KitchenConversationController extends _$KitchenConversationController {
           case Success(value: final reply):
             _apply(reply.captured);
             state = state.copyWith(
-              lines: [...state.lines, reply.say],
+              lines: speaking ? [...state.lines, reply.say] : state.lines,
               turnInFlight: false,
             );
             return true;

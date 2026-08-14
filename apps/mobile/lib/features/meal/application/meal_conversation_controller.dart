@@ -283,7 +283,13 @@ class MealConversationController extends _$MealConversationController {
   ///
   /// Returns false when the assistant could not answer or a write failed; the
   /// caller keeps what the Cook typed so she does not have to say it twice.
-  Future<bool> hear(String said) async {
+  ///
+  /// **[speaking] false means Kafoo listens and writes but does not talk**, and
+  /// that is the live-conversation case rather than an option. When the orb is
+  /// open the hosted agent (ADR-0017) is the one having the conversation, so
+  /// adding Kafoo's own reply on top of its answer puts two assistants on the
+  /// screen and two voices in the room.
+  Future<bool> hear(String said, {bool speaking = true}) async {
     final heard = said.trim();
     if (heard.isEmpty) return false;
     if (state.turnInFlight) return false;
@@ -341,7 +347,7 @@ class MealConversationController extends _$MealConversationController {
             final written = await _persistCaptured(reply.captured);
             if (!ref.mounted) return false;
             state = state.copyWith(
-              lines: [...state.lines, reply.say],
+              lines: speaking ? [...state.lines, reply.say] : state.lines,
               turnInFlight: false,
             );
             if (canBeginAnalysis(

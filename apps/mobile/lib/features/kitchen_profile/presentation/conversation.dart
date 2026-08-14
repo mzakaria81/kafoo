@@ -171,11 +171,18 @@ class _KitchenConversationScreenState
         case AgentAudio(:final pcm):
           speaker.add(pcm);
         case AgentSaid(:final text):
-          _controller.announce(text);
+          // SHOWN, NOT SAID AGAIN. The agent has already spoken these words in
+          // its own voice; `_spokenLines` is advanced past them so the screen
+          // is the receipt rather than a second voice repeating it.
+          _announceWithoutRepeating(text);
         case AgentHeard(:final text):
           // HER WORDS NEVER REACH THE SCREEN. They are fed to the controller so
           // the facts inside them can be kept — the same path typing takes.
-          unawaited(_controller.hear(text));
+          //
+          // `speaking: false` because the agent is the one talking. Without it
+          // Kafoo composes its own answer to the same sentence and says that
+          // too: two assistants on the screen and two voices in the room.
+          unawaited(_controller.hear(text, speaking: false));
         case AgentInterrupted():
           unawaited(speaker.clear());
         case AgentEnded():
@@ -290,6 +297,12 @@ class _KitchenConversationScreenState
   /// rebuilds this screen on each keystroke, and an assistant that repeats
   /// itself over her while she answers is worse than one that never spoke.
   int _spokenLines = 0;
+
+  /// Puts an agent line on the screen without queueing it to be spoken.
+  void _announceWithoutRepeating(String text) {
+    _controller.announce(text);
+    _spokenLines = ref.read(kitchenConversationControllerProvider).lines.length;
+  }
 
   void _speakNewLines(List<String> lines) {
     if (lines.length <= _spokenLines) return;
