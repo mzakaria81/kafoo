@@ -8,6 +8,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/money.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import '../application/meal_edit_controller.dart';
 import 'meal_error_text.dart';
 import 'meal_summary_rows.dart';
@@ -59,63 +60,68 @@ class _MealEditScreenState extends ConsumerState<MealEditScreen> {
     final currentMeal = editState.meal;
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.mealEditTitle(context.addressForm))),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          children: [
-            SummaryRow(
-              label: l10n.mealSummaryLabelDish,
-              value: currentMeal.title,
-              editing: _editingField == MealEditField.title,
-              controller: _editController,
-              editLabel: l10n.convEdit(context.addressForm),
-              onEdit: () => _beginEdit(MealEditField.title, currentMeal.title),
-              onCommit: () => _commitEdit(MealEditField.title),
-            ),
-            SummaryRow(
-              label: l10n.mealSummaryLabelDescription,
-              value: currentMeal.description,
-              multiline: true,
-              editing: _editingField == MealEditField.description,
-              controller: _editController,
-              editLabel: l10n.convEdit(context.addressForm),
-              onEdit: () => _beginEdit(
-                  MealEditField.description, currentMeal.description),
-              onCommit: () => _commitEdit(MealEditField.description),
-            ),
-            SummaryRow(
-              label: l10n.mealSummaryLabelPrice,
-              value: mealPriceLabel(l10n, currentMeal.price),
-              editing: _editingField == MealEditField.price,
-              controller: _editController,
-              editLabel: l10n.convEdit(context.addressForm),
-              onEdit: () => _beginEdit(MealEditField.price, currentMeal.price),
-              onCommit: () => _commitEdit(MealEditField.price),
-            ),
-            if (editState.feedback != null) ...[
-              const SizedBox(height: KafooSpacing.md),
-              Text(
-                editState.feedback == 'mealEditSaved'
-                    ? l10n.mealEditSaved
-                    : l10n.mealEditNoChange,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
+    return SpokenScreen(
+      title: l10n.mealEditTitle(context.addressForm),
+      // The Meal as it stands, so she knows which one she is changing without
+      // reading the rows. Quietly: it carries a price.
+      spoken: l10n.publicMealSpoken(
+        currentMeal.title,
+        KafooNumerals.arabicIndic(currentMeal.price),
+      ),
+      quiet: true,
+      body: ListView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        children: [
+          SummaryRow(
+            label: l10n.mealSummaryLabelDish,
+            value: currentMeal.title,
+            editing: _editingField == MealEditField.title,
+            controller: _editController,
+            editLabel: l10n.convEdit(context.addressForm),
+            onEdit: () => _beginEdit(MealEditField.title, currentMeal.title),
+            onCommit: () => _commitEdit(MealEditField.title),
+          ),
+          SummaryRow(
+            label: l10n.mealSummaryLabelDescription,
+            value: currentMeal.description,
+            multiline: true,
+            editing: _editingField == MealEditField.description,
+            controller: _editController,
+            editLabel: l10n.convEdit(context.addressForm),
+            onEdit: () =>
+                _beginEdit(MealEditField.description, currentMeal.description),
+            onCommit: () => _commitEdit(MealEditField.description),
+          ),
+          SummaryRow(
+            label: l10n.mealSummaryLabelPrice,
+            value: mealPriceLabel(l10n, currentMeal.price),
+            editing: _editingField == MealEditField.price,
+            controller: _editController,
+            editLabel: l10n.convEdit(context.addressForm),
+            onEdit: () => _beginEdit(MealEditField.price, currentMeal.price),
+            onCommit: () => _commitEdit(MealEditField.price),
+          ),
+          if (editState.feedback != null) ...[
+            const SizedBox(height: KafooSpacing.md),
+            Text(
+              editState.feedback == 'mealEditSaved'
+                  ? l10n.mealEditSaved
+                  : l10n.mealEditNoChange,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
               ),
-            ],
-            if (editState.error != null) ...[
-              const SizedBox(height: KafooSpacing.md),
-              Text(
-                mealErrorText(context, editState.error!),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ],
+            ),
           ],
-        ),
+          if (editState.error != null) ...[
+            const SizedBox(height: KafooSpacing.md),
+            Text(
+              mealErrorText(context, editState.error!),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

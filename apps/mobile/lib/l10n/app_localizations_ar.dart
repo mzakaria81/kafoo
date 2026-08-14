@@ -30,6 +30,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get browseSignInEntry => 'دخول';
 
   @override
+  String get browseSpoken =>
+      'أكل بيتي من ناس قريبة منك. دوس على أي أكلة تسمع تفاصيلها.';
+
+  @override
   String get browseTitle => 'أكل النهاردة';
 
   @override
@@ -2150,6 +2154,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get recognitionNoneOfThese => 'مفيش حاجة من دول';
+
+  @override
+  String publicMealSpoken(String name, String price) {
+    return '$name، بـ$price جنيه.';
+  }
+
+  @override
+  String publicKitchenSpoken(String name, String area, String story) {
+    return '$name، في $area. $story';
+  }
 
   @override
   String get publicMealPriceUnit => 'جنيه';

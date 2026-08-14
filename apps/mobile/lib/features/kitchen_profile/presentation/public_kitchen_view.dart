@@ -3,6 +3,7 @@ import 'package:kafoo_domain/domain.dart';
 import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 
 /// The deliberately public face of a Kitchen Profile.
 ///
@@ -36,41 +37,47 @@ class PublicKitchenView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(profile.displayName)),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Photo.
-              if (photoUrl != null) KitchenPhoto(url: photoUrl!),
-              const SizedBox(height: KafooSpacing.lg),
+    return SpokenScreen(
+      title: profile.displayName,
+      // The kitchen, in the Cook's own words. This is how a Customer decides
+      // whether to trust a stranger cooking at home, so it is the last thing
+      // that should only be readable.
+      spoken: l10n.publicKitchenSpoken(
+        profile.displayName,
+        profile.area,
+        profile.story,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Photo.
+            if (photoUrl != null) KitchenPhoto(url: photoUrl!),
+            const SizedBox(height: KafooSpacing.lg),
 
-              // 2. Display name.
-              Text(profile.displayName, style: theme.textTheme.headlineMedium),
-              const SizedBox(height: KafooSpacing.lg),
+            // 2. Display name.
+            Text(profile.displayName, style: theme.textTheme.headlineMedium),
+            const SizedBox(height: KafooSpacing.lg),
 
-              // 3. Story.
-              _PublicDetail(
-                label: l10n.kitchenConvLabelStory,
-                value: profile.story,
-              ),
+            // 3. Story.
+            _PublicDetail(
+              label: l10n.kitchenConvLabelStory,
+              value: profile.story,
+            ),
 
-              // 4. Area.
-              _PublicDetail(
-                label: l10n.kitchenConvLabelArea,
-                value: profile.area,
-              ),
+            // 4. Area.
+            _PublicDetail(
+              label: l10n.kitchenConvLabelArea,
+              value: profile.area,
+            ),
 
-              // 5. Delivery terms.
-              _PublicDetail(
-                label: l10n.kitchenConvLabelDeliveryTerms,
-                value: profile.deliveryTerms,
-              ),
-            ],
-          ),
+            // 5. Delivery terms.
+            _PublicDetail(
+              label: l10n.kitchenConvLabelDeliveryTerms,
+              value: profile.deliveryTerms,
+            ),
+          ],
         ),
       ),
     );

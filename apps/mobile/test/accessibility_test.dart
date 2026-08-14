@@ -72,22 +72,29 @@ const _cookMeal = CookMeal(
 /// actually looks at. The design system shipped with token-level tests only, and
 /// token tests pass while screens clip, because a colour cannot overflow.
 Widget _testApp(Widget child, {double textScale = 1.0}) {
-  return MaterialApp(
-    theme: kafooTheme(),
-    locale: const Locale('ar'),
-    supportedLocales: const [Locale('ar'), Locale('en')],
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-    builder: (context, child) => MediaQuery.withClampedTextScaling(
-      minScaleFactor: textScale,
-      maxScaleFactor: textScale,
-      child: child!,
+  return ProviderScope(
+    // EVERY SCREEN IN THIS SWEEP SPEAKS NOW, so every one of them needs the
+    // voice seam replaced. Left real they reach Kafoo's `speak` function — and
+    // a paid provider — from a widget test, and its timeouts leave pending
+    // timers the framework rejects.
+    overrides: [speechOutputProvider.overrideWithValue(FakeSpeechOutput())],
+    child: MaterialApp(
+      theme: kafooTheme(),
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: textScale,
+        maxScaleFactor: textScale,
+        child: child!,
+      ),
+      home: child,
     ),
-    home: child,
   );
 }
 
@@ -134,14 +141,8 @@ Map<String, Widget> _screens() => {
       'sign in': const SignInScreen(),
       'email sign in': EmailSignInScreen(repository: FakeAccountRepository()),
       'change phone': ChangePhoneScreen(repository: FakeAccountRepository()),
-      // Leaving is a read-back gate now, and the gate speaks — so it needs the
-      // voice seam replaced like every other speaking screen in this sweep.
-      'remove account': ProviderScope(
-        overrides: [
-          speechOutputProvider.overrideWithValue(FakeSpeechOutput()),
-        ],
-        child: RemoveAccountScreen(repository: FakeAccountRepository()),
-      ),
+      'remove account':
+          RemoveAccountScreen(repository: FakeAccountRepository()),
       'kitchen profile': KitchenProfileScreen(
         profile: _profile,
         repository: FakeKitchenProfileRepository(existing: _profile),
@@ -173,6 +174,35 @@ Map<String, Widget> _screens() => {
     };
 
 void main() {
+  // ──────────────────────────────────────────────────────────────────────────
+  // EVERY SCREEN SPEAKS, AND EVERY SCREEN CAN BE SILENCED. Founder's
+  // instruction, 2026-08-14: Kafoo is voice-first and most of it was mute.
+  //
+  // This sweep is here rather than in a file of its own for the same reason the
+  // right-to-left and tap-target sweeps are: `_screens()` is the one list of
+  // every screen anybody can reach, and a second copy of it would be a second
+  // place to forget the screen that was just added. §10.2 — the assistant
+  // speaks first and the screen is the receipt; for a Cook who does not read
+  // comfortably, a silent screen is a blank one.
+  //
+  // **The Meal list and the two conversations are absent from this map**, not
+  // exempt: they carry their own bar and their own greeting, and they are
+  // covered by their own suites.
+  // ──────────────────────────────────────────────────────────────────────────
+  for (final entry in _screens().entries) {
+    testWidgets('${entry.key} can be silenced', (tester) async {
+      await tester.pumpWidget(_testApp(entry.value));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(KafooMuteButton),
+        findsOneWidget,
+        reason: 'The mute control is persistent by design. A control the '
+            'design calls persistent that some screens lack does not persist.',
+      );
+    });
+  }
+
   // SC-005 / T066: Arabic is the default locale, not a fallback, so every
   // screen must lay out right-to-left. A screen that only looks right in
   // English is a screen no Cook will ever see working.

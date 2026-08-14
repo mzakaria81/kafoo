@@ -8,6 +8,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import '../data/account_repository.dart';
 
 class CodeScreen extends StatefulWidget {
@@ -121,59 +122,59 @@ class _CodeScreenState extends State<CodeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(),
+    return SpokenScreen(
+      title: l10n.codeTitle(context.addressForm),
+      // THE NUMBER IS READ ALOUD BECAUSE THE NUMBER IS THE WHOLE SCREEN. A
+      // person who mistypes their phone number one screen earlier finds out
+      // here, and finding out means reading it back off a page they may not
+      // read. Quietly: a phone number said out loud in a shared room is the
+      // kind of thing §10 spends its quiet volume on.
+      spoken: l10n.codeSubtitle(widget.phone),
+      quiet: true,
       // SCROLLS, like every other screen on this path. Caught by this screen's
-      // own new test at 360x640 with text at 200% — the four sign-in screens were
-      // knowingly left unfixed earlier on 2026-08-10 as a scope call, and writing
-      // the missing tests is what turned one of them red.
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n.codeTitle(context.addressForm),
-                style: Theme.of(context).textTheme.headlineMedium,
+      // own test at 360x640 with text at 200% — the four sign-in screens were
+      // knowingly left unfixed earlier on 2026-08-10 as a scope call, and
+      // writing the missing tests is what turned one of them red.
+      body: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.codeSubtitle(widget.phone)),
+            const SizedBox(height: KafooSpacing.lg),
+            TextField(
+              controller: _codeController,
+              keyboardType: TextInputType.number,
+              textDirection: TextDirection.ltr,
+              maxLength: 6,
+              decoration: InputDecoration(
+                errorText: _error,
               ),
-              const SizedBox(height: KafooSpacing.sm),
-              Text(l10n.codeSubtitle(widget.phone)),
-              const SizedBox(height: KafooSpacing.lg),
-              TextField(
-                controller: _codeController,
-                keyboardType: TextInputType.number,
-                textDirection: TextDirection.ltr,
-                maxLength: 6,
-                decoration: InputDecoration(
-                  errorText: _error,
-                ),
-                onSubmitted: (_) => _verify(),
+              onSubmitted: (_) => _verify(),
+            ),
+            const SizedBox(height: KafooSpacing.lg),
+            FilledButton(
+              onPressed: _loading ? null : _verify,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
               ),
-              const SizedBox(height: KafooSpacing.lg),
-              FilledButton(
-                onPressed: _loading ? null : _verify,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.signInContinue(context.addressForm)),
+              child: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.signInContinue(context.addressForm)),
+            ),
+            const SizedBox(height: KafooSpacing.sm),
+            TextButton(
+              onPressed: _resending ? null : _resend,
+              style: TextButton.styleFrom(
+                minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
               ),
-              const SizedBox(height: KafooSpacing.sm),
-              TextButton(
-                onPressed: _resending ? null : _resend,
-                style: TextButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                child: Text(l10n.codeResend(context.addressForm)),
-              ),
-            ],
-          ),
+              child: Text(l10n.codeResend(context.addressForm)),
+            ),
+          ],
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:kafoo_ui/ui.dart';
 
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import '../data/kitchen_profile_repository.dart';
 
 /// The Cook's own Kitchen Profile: what it says, and how to change it.
@@ -94,28 +95,31 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.kitchenViewTitle)),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          children: [
-            for (final field in KitchenFact.freeText)
-              _DetailRow(
-                label: _labelOf(l10n, field),
-                value: _valueOf(field),
-                editLabel: l10n.convEdit(context.addressForm),
-                onEdit: () => _edit(field),
-              ),
-            if (_error != null) ...[
-              const SizedBox(height: KafooSpacing.md),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
+    return SpokenScreen(
+      title: l10n.kitchenViewTitle,
+      spoken: l10n.publicKitchenSpoken(
+        _profile.displayName,
+        _profile.area,
+        _profile.story,
+      ),
+      body: ListView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        children: [
+          for (final field in KitchenFact.freeText)
+            _DetailRow(
+              label: _labelOf(l10n, field),
+              value: _valueOf(field),
+              editLabel: l10n.convEdit(context.addressForm),
+              onEdit: () => _edit(field),
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: KafooSpacing.md),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

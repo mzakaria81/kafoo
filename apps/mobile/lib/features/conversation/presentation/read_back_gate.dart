@@ -196,6 +196,28 @@ class _ReadBackGateScreenState extends ConsumerState<ReadBackGateScreen> {
       },
       child: Scaffold(
         backgroundColor: KafooColors.darkSurface,
+        // THE GATE SPEAKS THE MOST AND WAS THE ONE SCREEN THAT COULD NOT BE
+        // SILENCED. The design package's gate panel draws no mute control, and
+        // §10 says the control is persistent — a rule and a drawing that
+        // disagree. The rule wins: a Cook standing in a room with other people
+        // cannot be made to hear her own account being deleted out loud with no
+        // way to stop it. Transparent bar, so the panel is still full-bleed.
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          actions: [
+            KafooMuteButton(
+              muted: ref.watch(assistantVoiceProvider).muted,
+              label: ref.watch(assistantVoiceProvider).muted
+                  ? l10n.voiceMuteRestore(form)
+                  : l10n.voiceMuteSilence(form),
+              onChanged: (muted) => ref
+                  .read(assistantVoiceProvider.notifier)
+                  .setMuted(muted: muted),
+            ),
+          ],
+        ),
         body: SafeArea(
           child: KafooConfirmationGate(
             error: widget.error,

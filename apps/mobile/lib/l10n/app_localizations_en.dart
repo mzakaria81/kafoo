@@ -30,6 +30,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseSignInEntry => 'Sign in';
 
   @override
+  String get browseSpoken =>
+      'Home cooking from people near you. Tap any Meal to hear about it.';
+
+  @override
   String get browseTitle => 'What\'s cooking';
 
   @override
@@ -2202,6 +2206,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recognitionNoneOfThese => 'None of these';
+
+  @override
+  String publicMealSpoken(String name, String price) {
+    return '$name, $price pounds.';
+  }
+
+  @override
+  String publicKitchenSpoken(String name, String area, String story) {
+    return '$name, in $area. $story';
+  }
 
   @override
   String get publicMealPriceUnit => 'EGP';

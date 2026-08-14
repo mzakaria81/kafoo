@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/money.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import '../../meal/data/meal_repository.dart';
 import '../application/browse_controller.dart';
 
@@ -41,8 +42,13 @@ class BrowseScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.browseTitle)),
+    return SpokenScreen(
+      title: l10n.browseTitle,
+      // THE MOST-SEEN SCREEN IN THE APP, AND IT SAID NOTHING. This is the
+      // signed-out front door: what someone arriving from a shared link meets
+      // first. A voice-first product whose front door is mute is a product
+      // whose first impression contradicts it.
+      spoken: l10n.browseSpoken,
       body: BrowseBody(onOpen: onOpen, entry: entry),
     );
   }

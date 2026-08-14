@@ -8,6 +8,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import '../data/account_repository.dart';
 
 /// Moving an identity to a new phone number (FR-026).
@@ -107,64 +108,64 @@ class _ChangePhoneScreenState extends State<ChangePhoneScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.changePhoneTitle(context.addressForm))),
+    return SpokenScreen(
+      title: l10n.changePhoneTitle(context.addressForm),
+      // Said, not only drawn. This is the sentence that explains what the
+      // screen wants; a person who does not read comfortably needs to hear it.
+      spoken: l10n.changePhoneBody(context.addressForm),
       // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
       // by 334 logical pixels once the design system's type scale landed, and an overflowing
       // Column resolves it by clipping its LAST child — the button that submits.
       // A Cook using large text on a cheap Android handset had no reachable
       // control at all.
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.changePhoneBody(context.addressForm)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.changePhoneBody(context.addressForm)),
+            const SizedBox(height: KafooSpacing.lg),
+            TextField(
+              controller: _phoneController,
+              enabled: !_codeSent,
+              keyboardType: TextInputType.phone,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(
+                labelText: l10n.changePhoneLabel,
+                errorText: _codeSent ? null : _error,
+              ),
+              onSubmitted: (_) => _requestChange(),
+            ),
+            if (_codeSent) ...[
               const SizedBox(height: KafooSpacing.lg),
               TextField(
-                controller: _phoneController,
-                enabled: !_codeSent,
-                keyboardType: TextInputType.phone,
+                controller: _codeController,
+                keyboardType: TextInputType.number,
                 textDirection: TextDirection.ltr,
+                maxLength: 6,
                 decoration: InputDecoration(
-                  labelText: l10n.changePhoneLabel,
-                  errorText: _codeSent ? null : _error,
+                  labelText: l10n.codeTitle(context.addressForm),
+                  errorText: _error,
                 ),
-                onSubmitted: (_) => _requestChange(),
-              ),
-              if (_codeSent) ...[
-                const SizedBox(height: KafooSpacing.lg),
-                TextField(
-                  controller: _codeController,
-                  keyboardType: TextInputType.number,
-                  textDirection: TextDirection.ltr,
-                  maxLength: 6,
-                  decoration: InputDecoration(
-                    labelText: l10n.codeTitle(context.addressForm),
-                    errorText: _error,
-                  ),
-                  onSubmitted: (_) => _confirmChange(),
-                ),
-              ],
-              const SizedBox(height: KafooSpacing.lg),
-              FilledButton(
-                onPressed: _busy
-                    ? null
-                    : (_codeSent ? _confirmChange : _requestChange),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                child: _busy
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.signInContinue(context.addressForm)),
+                onSubmitted: (_) => _confirmChange(),
               ),
             ],
-          ),
+            const SizedBox(height: KafooSpacing.lg),
+            FilledButton(
+              onPressed:
+                  _busy ? null : (_codeSent ? _confirmChange : _requestChange),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.signInContinue(context.addressForm)),
+            ),
+          ],
         ),
       ),
     );

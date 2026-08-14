@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/meal/presentation/public_meal_view.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
@@ -37,16 +40,19 @@ const _mealCook = Meal(
 );
 
 Widget _testApp(Widget child) {
-  return MaterialApp(
-    locale: const Locale('ar'),
-    supportedLocales: const [Locale('ar'), Locale('en')],
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-    home: child,
+  return ProviderScope(
+    overrides: [speechOutputProvider.overrideWithValue(FakeSpeechOutput())],
+    child: MaterialApp(
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: child,
+    ),
   );
 }
 

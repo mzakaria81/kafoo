@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'دخول'**
   String get browseSignInEntry;
 
+  /// Said aloud when the browse screen opens — the signed-out front door and the most-seen screen in the app, which said nothing until 2026-08-14.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكل بيتي من ناس قريبة منك. دوس على أي أكلة تسمع تفاصيلها.'**
+  String get browseSpoken;
+
   /// Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010).
   ///
   /// In ar, this message translates to:
@@ -1905,6 +1911,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مفيش حاجة من دول'**
   String get recognitionNoneOfThese;
+
+  /// Said aloud when a Customer opens a Meal. Name then price, nothing else — three sentences is the cap and one is better. Spoken quietly, because money in a shared room is private.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name}، بـ{price} جنيه.'**
+  String publicMealSpoken(String name, String price);
+
+  /// Said aloud when a kitchen is opened. The Cook's own words about her cooking, never rewritten — this is how a Customer decides whether to trust a stranger cooking at home.
+  ///
+  /// In ar, this message translates to:
+  /// **'{name}، في {area}. {story}'**
+  String publicKitchenSpoken(String name, String area, String story);
 
   /// The currency word beside a price, set one step smaller than the numeral. Separate from publicMealPriceValue so the number can be the largest thing on the screen and the word can be quiet beside it.
   ///

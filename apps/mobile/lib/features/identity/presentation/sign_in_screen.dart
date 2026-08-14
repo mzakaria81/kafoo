@@ -9,6 +9,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import '../data/account_repository.dart';
 import 'code_screen.dart';
 import 'email_sign_in_screen.dart';
@@ -120,67 +121,64 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
+    return SpokenScreen(
+      title: l10n.signInTitle,
+      // THE FRONT DOOR SAYS WHAT IT WANTS. It rendered a heading and a labelled
+      // box and said nothing — and a person who does not read comfortably
+      // cannot get past the first screen of a product built for her.
+      spoken: l10n.signInPhoneLabel,
       // SCROLLS. Measured at 360x640 with text at 200%: this Column overflowed
-      // by the same shape as its siblings once the design system's type scale landed, and an overflowing
-      // Column resolves it by clipping its LAST child — the button that submits.
-      // A Cook using large text on a cheap Android handset had no reachable
-      // control at all.
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: KafooSpacing.xl),
-              Text(
-                l10n.signInTitle,
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.start,
+      // by the same shape as its siblings once the design system's type scale
+      // landed, and an overflowing Column resolves it by clipping its LAST
+      // child — the button that submits. A Cook using large text on a cheap
+      // Android handset had no reachable control at all.
+      body: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: KafooSpacing.md),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(
+                labelText: l10n.signInPhoneLabel,
+                errorText: _error,
               ),
-              const SizedBox(height: KafooSpacing.lg),
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                textDirection: TextDirection.ltr,
-                decoration: InputDecoration(
-                  labelText: l10n.signInPhoneLabel,
-                  errorText: _error,
-                ),
-                onSubmitted: (_) => _submit(),
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: KafooSpacing.lg),
+            FilledButton(
+              onPressed: _loading ? null : _submit,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
               ),
-              const SizedBox(height: KafooSpacing.lg),
-              FilledButton(
-                onPressed: _loading ? null : _submit,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.signInContinue(context.addressForm)),
+              child: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.signInContinue(context.addressForm)),
+            ),
+            const SizedBox(height: KafooSpacing.sm),
+            // The second way in, for someone who has lost their number. It
+            // names the problem rather than the mechanism: a person new to
+            // Kafoo is asked for an email address zero times (SC-009), and
+            // the word only appears once they have said they need it.
+            TextButton(
+              style: TextButton.styleFrom(
+                minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
               ),
-              const SizedBox(height: KafooSpacing.sm),
-              // The second way in, for someone who has lost their number. It
-              // names the problem rather than the mechanism: a person new to
-              // Kafoo is asked for an email address zero times (SC-009), and
-              // the word only appears once they have said they need it.
-              TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size.fromHeight(KafooSpacing.minTapTarget),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const EmailSignInScreen(),
                 ),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const EmailSignInScreen(),
-                  ),
-                ),
-                child: Text(l10n.signInLostNumber(context.addressForm)),
               ),
-            ],
-          ),
+              child: Text(l10n.signInLostNumber(context.addressForm)),
+            ),
+          ],
         ),
       ),
     );

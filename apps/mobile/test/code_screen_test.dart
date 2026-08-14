@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kafoo_domain/domain.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output.dart';
+import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.dart';
 import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
 import 'package:kafoo_mobile/l10n/app_localizations.dart';
 import 'package:kafoo_ui/ui.dart';
@@ -26,26 +29,29 @@ import 'support/fake_account_repository.dart';
 /// pop is removed.
 const _phone = '+201000000002';
 
-Widget _app(Widget child) => MaterialApp(
-      theme: kafooTheme(),
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar'), Locale('en')],
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      // A recognisable root, so "did it pop back to the start" is an assertion
-      // about the navigator rather than about a screen's contents.
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => child),
+Widget _app(Widget child) => ProviderScope(
+      overrides: [speechOutputProvider.overrideWithValue(FakeSpeechOutput())],
+      child: MaterialApp(
+        theme: kafooTheme(),
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        // A recognisable root, so "did it pop back to the start" is an assertion
+        // about the navigator rather than about a screen's contents.
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => child),
+                ),
+                child: const Text('ROOT'),
               ),
-              child: const Text('ROOT'),
             ),
           ),
         ),

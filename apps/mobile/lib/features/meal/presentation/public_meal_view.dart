@@ -5,6 +5,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/money.dart';
+import '../../conversation/presentation/spoken_screen.dart';
 import 'meal_enum_labels.dart';
 
 /// The public face of a Meal, as seen by a Customer.
@@ -75,90 +76,97 @@ class PublicMealView extends StatelessWidget {
     final theme = Theme.of(context);
     final isEstimate = meal.nutritionSource.mustBeLabelledAnEstimate;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(meal.title)),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 0. Anything that has changed since these results were ranked.
-              if (notice != null) ...[
-                notice!,
-                const SizedBox(height: KafooSpacing.lg),
-              ],
-
-              // 1. Photo.
-              if (photoUrl != null)
-                MealPhoto(
-                  url: photoUrl!,
-                  semanticsLabel: l10n.publicMealPhotoLabel,
-                ),
+    return SpokenScreen(
+      title: meal.title,
+      // THE MEAL, READ ALOUD, AND THE PRICE SAID QUIETLY. A Customer deciding
+      // what to eat tonight is the other half of the people this product is
+      // for, and this screen said nothing at all. Money is spoken quietly
+      // because homes are shared — §10 spends its quiet volume on exactly this.
+      spoken: l10n.publicMealSpoken(
+        meal.title,
+        KafooNumerals.arabicIndic(meal.price),
+      ),
+      quiet: true,
+      body: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.all(KafooSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 0. Anything that has changed since these results were ranked.
+            if (notice != null) ...[
+              notice!,
               const SizedBox(height: KafooSpacing.lg),
-
-              // 2. Title.
-              Text(meal.title, style: theme.textTheme.headlineMedium),
-              const SizedBox(height: KafooSpacing.lg),
-
-              // 3. Price.
-              _PublicMealDetail(
-                label: l10n.mealSummaryLabelPrice,
-                value: mealPriceLabel(l10n, meal.price),
-              ),
-
-              // 4. Description.
-              _PublicMealDetail(
-                label: l10n.mealSummaryLabelDescription,
-                value: meal.description,
-              ),
-
-              // 5. Cuisine.
-              _PublicMealDetail(
-                label: l10n.mealSummaryLabelCuisine,
-                value: cuisineLabel(l10n, meal.cuisine),
-              ),
-
-              // 6. Category.
-              _PublicMealDetail(
-                label: l10n.mealSummaryLabelCategory,
-                value: mealCategoryLabel(l10n, meal.category),
-              ),
-
-              // 7. Ingredients (omitted when empty).
-              if (meal.ingredients.isNotEmpty)
-                _PublicMealDetail(
-                  label: l10n.mealSummaryLabelIngredients,
-                  value: meal.ingredients.join('، '),
-                ),
-
-              // 8. Nutrition block.
-              _NutritionBlock(
-                meal: meal,
-                isEstimate: isEstimate,
-                cookForm: icuAddressForm(cookAddressForm),
-              ),
-
-              // 9. Kitchen Profile link.
-              if (onOpenKitchen != null) ...[
-                const SizedBox(height: KafooSpacing.lg),
-                Semantics(
-                  button: true,
-                  label: l10n.publicMealOpenKitchen,
-                  child: TextButton(
-                    onPressed: onOpenKitchen,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(
-                        KafooSpacing.minTapTarget,
-                        KafooSpacing.minTapTarget,
-                      ),
-                    ),
-                    child: Text(l10n.publicMealOpenKitchen),
-                  ),
-                ),
-              ],
             ],
-          ),
+
+            // 1. Photo.
+            if (photoUrl != null)
+              MealPhoto(
+                url: photoUrl!,
+                semanticsLabel: l10n.publicMealPhotoLabel,
+              ),
+            const SizedBox(height: KafooSpacing.lg),
+
+            // 2. Title.
+            Text(meal.title, style: theme.textTheme.headlineMedium),
+            const SizedBox(height: KafooSpacing.lg),
+
+            // 3. Price.
+            _PublicMealDetail(
+              label: l10n.mealSummaryLabelPrice,
+              value: mealPriceLabel(l10n, meal.price),
+            ),
+
+            // 4. Description.
+            _PublicMealDetail(
+              label: l10n.mealSummaryLabelDescription,
+              value: meal.description,
+            ),
+
+            // 5. Cuisine.
+            _PublicMealDetail(
+              label: l10n.mealSummaryLabelCuisine,
+              value: cuisineLabel(l10n, meal.cuisine),
+            ),
+
+            // 6. Category.
+            _PublicMealDetail(
+              label: l10n.mealSummaryLabelCategory,
+              value: mealCategoryLabel(l10n, meal.category),
+            ),
+
+            // 7. Ingredients (omitted when empty).
+            if (meal.ingredients.isNotEmpty)
+              _PublicMealDetail(
+                label: l10n.mealSummaryLabelIngredients,
+                value: meal.ingredients.join('، '),
+              ),
+
+            // 8. Nutrition block.
+            _NutritionBlock(
+              meal: meal,
+              isEstimate: isEstimate,
+              cookForm: icuAddressForm(cookAddressForm),
+            ),
+
+            // 9. Kitchen Profile link.
+            if (onOpenKitchen != null) ...[
+              const SizedBox(height: KafooSpacing.lg),
+              Semantics(
+                button: true,
+                label: l10n.publicMealOpenKitchen,
+                child: TextButton(
+                  onPressed: onOpenKitchen,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(
+                      KafooSpacing.minTapTarget,
+                      KafooSpacing.minTapTarget,
+                    ),
+                  ),
+                  child: Text(l10n.publicMealOpenKitchen),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

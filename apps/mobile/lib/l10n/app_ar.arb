@@ -29,6 +29,10 @@
   "@browseSignInEntry": {
     "description": "Entry to signing in, shown to someone with no account. A bare verbal noun: ungendered per ADR-0010, and in the app's own register — 'تسجيل الدخول' was the MSA calque of the English and rendered a 352dp button on a 320dp screen at 200% text scale, clipping the title to nothing."
   },
+  "browseSpoken": "أكل بيتي من ناس قريبة منك. دوس على أي أكلة تسمع تفاصيلها.",
+  "@browseSpoken": {
+    "description": "Said aloud when the browse screen opens — the signed-out front door and the most-seen screen in the app, which said nothing until 2026-08-14."
+  },
   "browseTitle": "أكل النهاردة",
   "@browseTitle": {
     "description": "Title of the browse screen: the Meals Cooks currently have on offer. Customer-facing, so no addressForm select (ADR-0010)."
@@ -1928,6 +1932,33 @@
   "recognitionNoneOfThese": "مفيش حاجة من دول",
   "@recognitionNoneOfThese": {
     "description": "Escape from the tapped options at the bottom of the failure ladder. Never leads to a keyboard as a consequence of failure."
+  },
+  "publicMealSpoken": "{name}، بـ{price} جنيه.",
+  "@publicMealSpoken": {
+    "description": "Said aloud when a Customer opens a Meal. Name then price, nothing else — three sentences is the cap and one is better. Spoken quietly, because money in a shared room is private.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "publicKitchenSpoken": "{name}، في {area}. {story}",
+  "@publicKitchenSpoken": {
+    "description": "Said aloud when a kitchen is opened. The Cook's own words about her cooking, never rewritten — this is how a Customer decides whether to trust a stranger cooking at home.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "area": {
+        "type": "String"
+      },
+      "story": {
+        "type": "String"
+      }
+    }
   },
   "publicMealPriceUnit": "جنيه",
   "@publicMealPriceUnit": {
