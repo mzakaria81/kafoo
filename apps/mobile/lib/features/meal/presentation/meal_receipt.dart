@@ -9,6 +9,7 @@ import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../analytics/emit_event.dart';
 import '../../analytics/event_names.dart';
+import '../../conversation/presentation/read_back_gate.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/meal_estimate_fields.dart';
 import '../data/meal_repository.dart';
@@ -135,8 +136,40 @@ class _MealReceiptState extends ConsumerState<MealReceipt> {
     setState(() => _saving = false);
   }
 
+  /// Publishing, through the read-back gate the design has always specified.
+  ///
+  /// **IT WAS A PLAIN BUTTON UNTIL 2026-08-14, AND IT IS THE MOST IRREVERSIBLE
+  /// THING A COOK DOES HERE.** DESIGN.md §10.6 and `business-rules.md` both say
+  /// an irreversible action is read back aloud in full and waits for «أيوة».
+  /// `KafooConfirmationGate` was built for exactly this screen, wired to
+  /// retiring a Meal, and never wired to publishing one — so the smaller
+  /// destructive case got the gate and the Meal going live to every Customer in
+  /// the area got a `FilledButton`.
   Future<void> _publish() async {
     if (_publishing || _published) return;
+
+    final l10n = AppLocalizations.of(context);
+    final form = context.addressForm;
+    final draft = ref.read(mealConversationControllerProvider).draft;
+    final price = draft.price;
+    final confirmed = await askReadBackGate(
+      context: context,
+      readback: l10n.publishGateReadback(
+        draft.title ?? l10n.myMealsUntitledDraft,
+        price == null ? '' : KafooNumerals.arabicIndic(price),
+      ),
+      question: l10n.publishGateQuestion,
+      confirmLabel: l10n.publishGateYes(form),
+      rejectLabel: l10n.gateAnswerNo,
+      // The numeral is the largest thing on the gate. She is agreeing to a
+      // price as much as to a Meal.
+      amount: price == null ? null : KafooNumerals.arabicIndic(price),
+      amountUnit: price == null ? null : l10n.publicMealPriceUnit,
+      glanceWord: GlanceWord.published,
+      glanceText: l10n.glancePublished,
+    );
+    if (!confirmed || !mounted) return;
+
     setState(() {
       _publishing = true;
       _publishFailed = false;

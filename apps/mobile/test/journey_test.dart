@@ -10,6 +10,8 @@ import 'package:kafoo_mobile/features/conversation/data/speech_output_provider.d
 import 'package:kafoo_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:kafoo_mobile/features/identity/presentation/code_screen.dart';
 import 'package:kafoo_mobile/features/identity/presentation/sign_in_screen.dart';
+import 'package:kafoo_mobile/features/meal/application/meal_conversation_controller.dart';
+import 'package:kafoo_mobile/features/meal/application/meal_estimate_fields.dart';
 import 'package:kafoo_mobile/features/meal/data/ai_provider.dart';
 import 'package:kafoo_mobile/features/meal/data/meal_repository.dart';
 import 'package:kafoo_mobile/features/meal/presentation/meal_conversation.dart';
@@ -498,6 +500,109 @@ void main() {
 
     // Nothing went on offer. Publishing is a gate, and nobody answered it.
     expect(meals.publishCalls, 0);
+  });
+
+  testWidgets('a Cook publishes only after hearing the Meal read back',
+      (tester) async {
+    // THE WHOLE JOURNEY, END TO END, THROUGH THE STEP THAT WAS MISSING. Every
+    // screen below had its own passing test and the transition between the
+    // receipt and the gate did not exist — publishing was a plain button, so
+    // the most irreversible act in the product had no read-back at all.
+    final auth = _FakeAuth();
+    addTearDown(auth.dispose);
+    final meals = FakeMealRepository();
+    final speech = FakeSpeechOutput();
+
+    await tester.pumpWidget(_app(
+      auth: auth.stream,
+      account: FakeAccountRepository(),
+      kitchen: FakeKitchenProfileRepository(existing: _profile),
+      meals: meals,
+      speech: speech,
+      ai: StubAiProvider(const {
+        'conversation': '{"say":"تمام، كشري بمية وعشرين.",'
+            '"captured":{"dish":"كشري",'
+            '"description":"عدس ورز ومكرونة، وبنحمر البصل فوقها",'
+            '"price":"١٢٠","cuisine":"egyptian","category":"main"}}',
+      }),
+    ));
+    auth.signedIn();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(KafooTalkButton));
+    await tester.pumpAndSettle();
+
+    final typeButton = find.byKey(const ValueKey('meal-talk-type'));
+    await tester.ensureVisible(typeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(typeButton);
+    await tester.pumpAndSettle();
+
+    final box = find.byKey(const ValueKey('meal-talk-box'));
+    await tester.ensureVisible(box);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      box,
+      'عملت كشري، عدس ورز ومكرونة، وبنحمر البصل فوقها. بـ١٢٠ جنيه.',
+    );
+    final send = _buttonOn(MealConversationScreen, l10n.convContinue('other'));
+    await tester.ensureVisible(send);
+    await tester.pumpAndSettle();
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+
+    // She skips the photo, which is a complete answer rather than a gap.
+    final skipPhoto = _buttonOn(
+      MealConversationScreen,
+      l10n.mealConvPhotoSkip('other'),
+    );
+    await tester.ensureVisible(skipPhoto);
+    await tester.pumpAndSettle();
+    await tester.tap(skipPhoto);
+    await tester.pumpAndSettle();
+
+    // Every AI estimate approved through the receipt, because none of them may
+    // reach the database without her.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MealReceipt)),
+    );
+    final controller =
+        container.read(mealConversationControllerProvider.notifier);
+    for (final field in MealEstimateFields.presentIn(
+      container.read(mealConversationControllerProvider).analysis ??
+          const MealAnalysis.empty(),
+    )) {
+      await controller.approveEstimate(field);
+    }
+    await tester.pumpAndSettle();
+
+    final publish = _buttonOn(
+      MealReceipt,
+      l10n.mealSummaryConfirm('other'),
+    );
+    await tester.ensureVisible(publish);
+    await tester.pumpAndSettle();
+    await tester.tap(publish);
+    await tester.pumpAndSettle();
+
+    // THE STEP THAT DID NOT EXIST. The gate is on screen, it has said the whole
+    // sentence out loud, and nothing is on offer yet.
+    expect(find.byType(KafooConfirmationGate), findsOneWidget);
+    expect(meals.publishCalls, 0);
+    expect(
+      speech.spoken.map((s) => s.line),
+      contains(contains('كشري')),
+      reason: 'The read-back is spoken, not merely drawn. A Cook who does not '
+          'read comfortably cannot be asked to agree to something silent.',
+    );
+
+    await tester.tap(find.text(l10n.publishGateYes('other')));
+    await tester.pumpAndSettle();
+
+    // Only now.
+    expect(meals.publishCalls, 1);
+    expect(find.byType(KafooConfirmationGate), findsNothing);
+    expect(find.text(l10n.mealPublishedConfirmation), findsOneWidget);
   });
 
   testWidgets('the app SAYS what it understood, not only shows it',

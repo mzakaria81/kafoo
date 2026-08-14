@@ -8,6 +8,7 @@ import 'package:kafoo_ui/ui.dart';
 import '../../../l10n/address_form.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../conversation/application/assistant_voice.dart';
+import '../../conversation/presentation/read_back_gate.dart';
 import '../application/meal_conversation_controller.dart';
 import '../application/my_meals_controller.dart';
 
@@ -164,15 +165,14 @@ Future<void> _run(
   final navigator = Navigator.of(context);
   final readback = action.warning;
   if (readback != null) {
-    final confirmed = await navigator.push<bool>(
-      MaterialPageRoute<bool>(
-        fullscreenDialog: true,
-        builder: (gateContext) => _Gate(action: action, readback: readback),
-      ),
+    final confirmed = await askReadBackGate(
+      context: context,
+      readback: readback,
+      question: action.question!,
+      confirmLabel: action.confirmLabel!,
+      rejectLabel: action.cancelLabel!,
     );
-    // Silence never confirms, and neither does dismissing the gate: only the
-    // yes answers it.
-    if (confirmed != true) return;
+    if (!confirmed) return;
   }
   navigator.pop();
   final succeeded = await action.onSelected();
@@ -189,115 +189,6 @@ Future<void> _run(
   final done = action.spokenDone;
   if (succeeded && done != null) {
     await ref.read(assistantVoiceProvider.notifier).say(done);
-  }
-}
-
-/// The read-back gate for one destructive action.
-///
-/// Stateful only so the line is spoken once, on arrival, rather than on every
-/// rebuild — the same reason the Meal list greets from a post-frame callback.
-class _Gate extends ConsumerStatefulWidget {
-  const _Gate({required this.action, required this.readback});
-
-  final _RowAction action;
-  final String readback;
-
-  @override
-  ConsumerState<_Gate> createState() => _GateState();
-}
-
-class _GateState extends ConsumerState<_Gate> {
-  /// The rule, not a copy of it. `ConfirmationGate` holds "silence never
-  /// confirms" and "ask once more, then wait" — and it lived in
-  /// `packages/domain/`, fully tested and called by nothing, while this screen
-  /// spoke the warning once and then waited forever. A tested class nobody
-  /// instantiates makes a rule look met.
-  late final ConfirmationGate _gate =
-      ConfirmationGate(spokenReadback: widget.readback);
-
-  Timer? _repromptTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // Read back in full. Not quietly: this is the sentence a Cook is being
-      // asked to agree to, and a decision she cannot undo is not the place to
-      // protect her from being overheard.
-      ref.read(assistantVoiceProvider.notifier).say(_gate.spokenReadback);
-      _armReprompt();
-    });
-  }
-
-  /// Asks once more, then waits indefinitely.
-  ///
-  /// A Cook steps away mid-sentence — flour on her hands, a pot going over —
-  /// and comes back to a screen that has said nothing since. One repeat is the
-  /// difference between waiting and abandoned. A third would be nagging, and
-  /// nagging is how people learn to say yes to make it stop, which is the one
-  /// outcome a gate exists to prevent.
-  void _armReprompt() {
-    _repromptTimer = Timer(_gate.repromptAfter, () {
-      if (!mounted || !_gate.reprompt()) return;
-      ref.read(assistantVoiceProvider.notifier).say(_gate.spokenReadback);
-    });
-  }
-
-  void _answer(bool confirmed) {
-    _gate.answer(confirmed: confirmed);
-    _stopTalking();
-    Navigator.of(context).pop(_gate.isConfirmed);
-  }
-
-  /// Stops mid-sentence. Continuing to read a warning she has already acted on
-  /// is the assistant talking over her — and on a back-gesture dismissal the
-  /// screen is gone while the voice carries on, which is worse.
-  void _stopTalking() {
-    _repromptTimer?.cancel();
-    _repromptTimer = null;
-    ref.read(assistantVoiceProvider.notifier).hush();
-  }
-
-  @override
-  void dispose() {
-    _repromptTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final form = context.addressForm;
-
-    return PopScope(
-      // The back gesture is an answer too, and it is «لأ». Left alone it
-      // skipped the answer path entirely, so the assistant kept reading a
-      // warning aloud over a screen that had already closed.
-      onPopInvokedWithResult: (didPop, _) {
-        // Guarded, because this fires on EVERY pop — including the one a tap on
-        // yes or no causes. Both calls happen to be idempotent today; the guard
-        // is here so that adding anything that is not, an analytics event or a
-        // haptic, does not silently fire twice on every ordinary answer.
-        if (!didPop || _gate.isAnswered) return;
-        _gate.answer(confirmed: false);
-        _stopTalking();
-      },
-      child: Scaffold(
-        backgroundColor: KafooColors.darkSurface,
-        body: SafeArea(
-          child: KafooConfirmationGate(
-            spokenReadback: widget.readback,
-            question: widget.action.question!,
-            confirmLabel: widget.action.confirmLabel!,
-            rejectLabel: widget.action.cancelLabel!,
-            footnote: l10n.gateSilenceFootnote(form),
-            onConfirm: () => _answer(true),
-            onReject: () => _answer(false),
-          ),
-        ),
-      ),
-    );
   }
 }
 

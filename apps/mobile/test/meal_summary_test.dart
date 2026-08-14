@@ -244,6 +244,27 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// Publishes the way a Cook does: press «تمام، انشرها», then answer the
+/// read-back gate with «أيوة».
+///
+/// **The gate is not a formality these tests route around.** Publishing is the
+/// most irreversible thing on this screen and it was a plain button until
+/// 2026-08-14 — `KafooConfirmationGate` existed, was wired to retiring a Meal,
+/// and was never wired here. Every test that publishes now walks the same two
+/// steps a Cook does, so a future change that drops the gate fails here rather
+/// than shipping.
+Future<void> _publishAndConfirm(
+  WidgetTester tester,
+  AppLocalizations l10n,
+) async {
+  await _tapVisible(
+    tester,
+    find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
+  );
+  await tester.tap(find.text(l10n.publishGateYes('other')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late AppLocalizations l10n;
 
@@ -606,10 +627,7 @@ void main() {
     );
     expect(button.onPressed, isNotNull);
 
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
-    );
+    await _publishAndConfirm(tester, l10n);
 
     expect(repo.publishCalls, 1);
     expect(repo.lastPublishedMealId, isNotNull);
@@ -720,10 +738,7 @@ void main() {
 
     repo.failOperations = true;
 
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
-    );
+    await _publishAndConfirm(tester, l10n);
 
     expect(find.text(l10n.mealPublishError('other')), findsOneWidget);
     expect(find.text(l10n.mealPublishedConfirmation), findsNothing);
@@ -785,18 +800,74 @@ void main() {
     );
     await _approveAllViaController(tester);
 
-    final publishButton =
-        find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other'));
-    await tester.ensureVisible(publishButton);
-    await tester.pumpAndSettle();
-    await tester.tap(publishButton);
-    await tester.tap(publishButton);
+    await _tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
+    );
+    // BOTH TAPS LAND ON «أيوة», which is where an impatient double tap goes now
+    // that the gate is in front of publishing. The second must do nothing.
+    final yes = find.text(l10n.publishGateYes('other'));
+    await tester.tap(yes);
+    await tester.tap(yes);
     await tester.pumpAndSettle();
 
     expect(repo.publishCalls, 1);
     expect(
       events.where((e) => e.name == EventNames.mealPublished),
       hasLength(1),
+    );
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // THE PUBLISH GATE. Publishing puts a Meal in front of every Customer in the
+  // area and there is no undo that un-shows it. `business-rules.md` and
+  // DESIGN.md §10.6 have both said since 2026-08-10 that an irreversible action
+  // is read back aloud in full and waits for «أيوة» — and this one was a plain
+  // `FilledButton` until 2026-08-14, on a screen that already imported the gate
+  // widget for the smaller case of retiring a Meal.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  testWidgets('publishing reads the Meal back and waits', (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    await _reachSummary(tester, repo, ai: _stubAi(_fullAnalysisReply));
+    await _approveAllViaController(tester);
+
+    await _tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
+    );
+
+    // The gate is on screen and NOTHING has been published by reaching it.
+    expect(find.byType(KafooConfirmationGate), findsOneWidget);
+    expect(find.text(l10n.publishGateQuestion), findsOneWidget);
+    expect(repo.publishCalls, 0);
+    // Silence never confirms: waiting is safe, and the screen says so.
+    expect(find.text(l10n.gateSilenceFootnote('other')), findsOneWidget);
+  });
+
+  testWidgets('«لأ» at the gate publishes nothing and keeps her work',
+      (tester) async {
+    await _tallSurface(tester);
+    final repo = FakeMealRepository();
+    await _reachSummary(tester, repo, ai: _stubAi(_fullAnalysisReply));
+    await _approveAllViaController(tester);
+
+    await _tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
+    );
+    await tester.tap(find.text(l10n.gateAnswerNo));
+    await tester.pumpAndSettle();
+
+    expect(repo.publishCalls, 0);
+    expect(find.byType(KafooConfirmationGate), findsNothing);
+    // Back on the receipt with everything still there — refusing to publish is
+    // not the same as losing the Meal.
+    expect(find.byType(MealReceipt), findsOneWidget);
+    expect(
+      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
+      findsOneWidget,
     );
   });
 
@@ -849,10 +920,7 @@ void main() {
     await _reachSummary(tester, repo, ai: _stubAi(_fullAnalysisReply));
     await _approveAllViaController(tester);
 
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
-    );
+    await _publishAndConfirm(tester, l10n);
 
     final completed = events
         .where((e) => e.name == EventNames.conversationCompleted)
@@ -881,10 +949,7 @@ void main() {
     // the working path — the failure under test is the publish, not the setup.
     repo.failOperations = true;
 
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
-    );
+    await _publishAndConfirm(tester, l10n);
 
     expect(
       events.where((e) => e.name == EventNames.conversationCompleted),
@@ -920,10 +985,7 @@ void main() {
       find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
     );
     expect(button.onPressed, isNotNull);
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, l10n.mealSummaryConfirm('other')),
-    );
+    await _publishAndConfirm(tester, l10n);
 
     expect(find.text(l10n.mealPublishedConfirmation), findsOneWidget);
 
