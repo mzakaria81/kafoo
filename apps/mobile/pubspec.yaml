@@ -42,7 +42,7 @@ dependencies:
   # reason as `crypto` above.
   path_provider: ^2.1.0
   permission_handler: ^11.3.1
-  record: ^5.2.1
+  record: ^6.2.1
   riverpod_annotation: ^4.0.3
   # A Customer's answer about their own words lives HERE and not in Kafoo — FR-029d. Declared
   # directly rather than leant on through supabase_flutter, which already pulls it in: a transitive
