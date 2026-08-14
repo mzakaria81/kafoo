@@ -137,3 +137,11 @@ verify_jwt = true
 [functions.speak]
 enabled = true
 verify_jwt = true
+
+# ADR-0017. Mints the short-lived signed URL the app opens one voice
+# conversation with. `verify_jwt` is on: only a signed-in person may spend the
+# account's conversation minutes, and the credential it returns is a bearer
+# token for fifteen minutes.
+[functions.agent-session]
+enabled = true
+verify_jwt = true

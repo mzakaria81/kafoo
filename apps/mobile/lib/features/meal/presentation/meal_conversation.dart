@@ -12,6 +12,8 @@ import '../../analytics/event_names.dart';
 import '../../conversation/application/assistant_voice.dart';
 import '../../conversation/application/photo_picker.dart';
 import '../../conversation/application/voice_input.dart';
+import '../../conversation/data/agent_conversation.dart';
+import '../../conversation/data/pcm_player.dart';
 import '../application/meal_conversation_controller.dart';
 import 'meal_error_text.dart';
 import 'meal_receipt.dart';
@@ -72,6 +74,15 @@ class _MealConversationScreenState
     extends ConsumerState<MealConversationScreen> {
   final _saidController = TextEditingController();
   final _scrollController = ScrollController();
+
+  /// The live conversation, when one is open (ADR-0017).
+  ///
+  /// Null until she presses the orb. Kafoo's own function mints the credential;
+  /// nothing about the provider is known to this screen.
+  AgentConversation? _agent;
+  PcmPlayer? _speaker;
+  StreamSubscription<AgentEvent>? _agentEvents;
+  bool _live = false;
   late final VoiceInput _voice = widget.voiceInput ?? VoiceInput();
   bool _voiceAvailable = false;
   bool _listening = false;
@@ -100,7 +111,7 @@ class _MealConversationScreenState
   double get _amplitude => 0;
 
   TalkOrbState _orbState(MealConversationState state) {
-    if (_listening) return TalkOrbState.listening;
+    if (_live || _listening) return TalkOrbState.listening;
     if (state.turnInFlight || _preparing) return TalkOrbState.thinking;
     return TalkOrbState.idle;
   }
@@ -130,8 +141,62 @@ class _MealConversationScreenState
   void dispose() {
     _saidController.dispose();
     _scrollController.dispose();
+    unawaited(_agentEvents?.cancel());
+    unawaited(_agent?.dispose());
+    unawaited(_speaker?.dispose());
     unawaited(_voice.cancel());
     super.dispose();
+  }
+
+  /// Opens or closes the live conversation.
+  ///
+  /// **THE FALLBACK IS TAP, NEVER A DEAD BUTTON.** Every way this can fail —
+  /// no microphone permission, no signed URL, no network — ends the same way:
+  /// the assistant says it cannot hear right now and the typing control is
+  /// revealed. §10.7 forbids typing as a consequence of failing to UNDERSTAND;
+  /// this is a failure to CONNECT, which she has to be told about plainly.
+  Future<void> _toggleLive() async {
+    if (_live) {
+      await _agent?.stop();
+      return;
+    }
+
+    // The assistant stops talking before the microphone opens — same guard the
+    // turn-based path uses, for the same reason.
+    await ref.read(assistantVoiceProvider.notifier).hush();
+    if (!mounted) return;
+
+    final agent = _agent ??= AgentConversation();
+    final speaker = _speaker ??= PcmPlayer();
+
+    _agentEvents ??= agent.events.listen((event) {
+      if (!mounted) return;
+      switch (event) {
+        case AgentAudio(:final pcm):
+          speaker.add(pcm);
+        case AgentSaid(:final text):
+          ref.read(mealConversationControllerProvider.notifier).announce(text);
+        case AgentHeard(:final text):
+          // HER WORDS NEVER REACH THE SCREEN. They are fed to the controller so
+          // the facts inside them can be written — the same path typing takes.
+          unawaited(
+            ref.read(mealConversationControllerProvider.notifier).hear(text),
+          );
+        case AgentInterrupted():
+          unawaited(speaker.clear());
+        case AgentEnded():
+          if (mounted) setState(() => _live = false);
+      }
+    });
+
+    setState(() => _preparing = true);
+    final started = await agent.start();
+    if (!mounted) return;
+    setState(() {
+      _preparing = false;
+      _live = started;
+      if (!started) _typing = true;
+    });
   }
 
   Future<void> _initVoice() async {
@@ -240,51 +305,6 @@ class _MealConversationScreenState
         ));
       }
     });
-  }
-
-  Future<void> _toggleListening() async {
-    if (_listening) {
-      await _voice.stop();
-      if (mounted) setState(() => _listening = false);
-      return;
-    }
-    // THE ASSISTANT STOPS TALKING BEFORE THE MICROPHONE OPENS, and the runtime
-    // guard is this call rather than any test over the state enum.
-    //
-    // The button says so while it waits, because that wait is unbounded and on a
-    // slow handset it is long enough to read as a button that did nothing —
-    // §10.3, the failure where she taps again and cuts off her own first words.
-    //
-    // `finally`, because the acknowledgement disables the button: a state that
-    // can only be cleared on the happy path is a trap waiting for a future edit.
-    // And the microphone stays shut when the hush fails — a hush that threw is
-    // not a promise of silence.
-    setState(() => _preparing = true);
-    try {
-      await ref.read(assistantVoiceProvider.notifier).hush();
-    } on Object catch (error, stack) {
-      FlutterError.reportError(FlutterErrorDetails(
-        exception: error,
-        stack: stack,
-        library: 'kafoo',
-        context: ErrorDescription('silencing the assistant before listening'),
-      ));
-      return;
-    } finally {
-      if (mounted) setState(() => _preparing = false);
-    }
-    if (!mounted) return;
-    setState(() => _listening = true);
-    await _voice.listen(
-      onTranscript: (transcript, isFinal) {
-        if (!mounted) return;
-        setState(() {
-          _saidController.text = transcript;
-          _inputMode = 'voice';
-          if (isFinal) _listening = false;
-        });
-      },
-    );
   }
 
   @override
@@ -444,7 +464,7 @@ class _MealConversationScreenState
                         ? l10n.voicePreparing
                         : l10n.mealTalkPress(context.addressForm),
                     enabled: !state.turnInFlight,
-                    onPressStart: () => unawaited(_toggleListening()),
+                    onPressStart: () => unawaited(_toggleLive()),
                     onPressEnd: () {},
                   ),
                 )

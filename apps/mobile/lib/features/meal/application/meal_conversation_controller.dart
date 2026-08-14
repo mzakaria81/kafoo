@@ -256,6 +256,17 @@ class MealConversationController extends _$MealConversationController {
     state = state.copyWith(lines: [line]);
   }
 
+  /// Records a line the assistant already spoke for itself.
+  ///
+  /// The live conversation (ADR-0017) speaks through the provider's own voice, so
+  /// by the time the words reach Kafoo they have been said. This puts them on
+  /// the screen — the receipt of what was spoken — without saying them twice.
+  void announce(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) return;
+    state = state.copyWith(lines: [...state.lines, trimmed]);
+  }
+
   /// One turn of the conversation: the Cook said something, the assistant
   /// answers, and anything she stated is written to the draft.
   ///

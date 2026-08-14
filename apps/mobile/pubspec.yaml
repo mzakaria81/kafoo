@@ -41,6 +41,8 @@ dependencies:
   # row's «اسمعيها», which reads back a Meal's own name and price. Declared directly for the same
   # reason as `crypto` above.
   path_provider: ^2.1.0
+  permission_handler: ^11.3.1
+  record: ^5.2.1
   riverpod_annotation: ^4.0.3
   # A Customer's answer about their own words lives HERE and not in Kafoo — FR-029d. Declared
   # directly rather than leant on through supabase_flutter, which already pulls it in: a transitive
@@ -49,6 +51,7 @@ dependencies:
   shared_preferences: ^2.3.0
   speech_to_text: ^7.0.0
   supabase_flutter: ^2.9.0
+  web_socket_channel: ^3.0.1
 
 flutter:
   generate: true
