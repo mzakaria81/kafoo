@@ -81,9 +81,17 @@ jobs:
       # Refuse a function name that is not a directory in this repository, before touching the
       # network. `supabase functions deploy` on a name it cannot find is a slower, less clear
       # version of the same failure.
+      #
+      # EVERY INPUT REACHES THE SHELL THROUGH `env:`, NEVER THROUGH `${{ }}` INSIDE A `run:`.
+      # GitHub pastes a template expression into the script as text before the shell sees it, so a
+      # crafted input becomes a command rather than a value — and it would run in the one job that
+      # holds a token reaching every project, production included. As a `${VAR}` it is data the
+      # shell can only ever compare.
       - name: Check the functions exist
+        env:
+          FUNCTIONS: ${{ inputs.functions }}
         run: |
-          for fn in ${{ inputs.functions }}; do
+          for fn in ${FUNCTIONS}; do
             if [ ! -d "supabase/functions/${fn}" ]; then
               echo "::error::supabase/functions/${fn} does not exist in this repository."
               exit 1
@@ -100,24 +108,30 @@ jobs:
       # the dispatch form and kept in the run's history.
       - name: Set the kitchen agent id
         if: inputs.kitchen_agent_id != ''
+        env:
+          KITCHEN_AGENT_ID: ${{ inputs.kitchen_agent_id }}
         run: |
-          case "${{ inputs.kitchen_agent_id }}" in
+          case "${KITCHEN_AGENT_ID}" in
             agent_*) ;;
             *) echo "::error::That does not look like an ElevenLabs agent id. Expected agent_...";
                exit 1 ;;
           esac
-          supabase secrets set "ELEVENLABS_KITCHEN_AGENT_ID=${{ inputs.kitchen_agent_id }}" \
+          supabase secrets set "ELEVENLABS_KITCHEN_AGENT_ID=${KITCHEN_AGENT_ID}" \
             --project-ref "${REF}"
 
       - name: Deploy
-        run: supabase functions deploy ${{ inputs.functions }} --project-ref "${REF}"
+        env:
+          FUNCTIONS: ${{ inputs.functions }}
+        run: supabase functions deploy ${FUNCTIONS} --project-ref "${REF}"
 
       - name: What was deployed
+        env:
+          FUNCTIONS: ${{ inputs.functions }}
         run: |
           {
             echo "### Deployed to \`${REF}\`"
             echo ""
-            echo "Functions: \`${{ inputs.functions }}\`"
+            echo "Functions: \`${FUNCTIONS}\`"
             echo ""
             echo "A deployed function is live on the next request — there is no build to install."
             echo "The demo APK already points here, so try the change on the phone you have."
