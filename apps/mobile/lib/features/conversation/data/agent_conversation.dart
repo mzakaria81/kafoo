@@ -88,17 +88,23 @@ enum AgentConversationKind {
 
 /// What Kafoo hands back so a conversation can be opened.
 final class AgentSession {
-  const AgentSession({required this.url, required this.voiceId});
+  const AgentSession({required this.url, this.voiceId});
 
   /// A bearer credential for fifteen minutes. Never logged.
   final String url;
 
-  /// The voice the function chose from the role the app asked for.
+  /// The voice the function chose from the role the app asked for, or null.
   ///
   /// The app never names an id — it names «صوت ست» or «صوت رجل» and echoes back
   /// whatever came home, because the provider reads a voice override only from
   /// the opening frame of the socket and the socket belongs to the client.
-  final String voiceId;
+  ///
+  /// **NULLABLE, AND THAT IS A DEPLOY-ORDER RULE RATHER THAN AN OVERSIGHT.** An
+  /// app is on a phone for as long as its owner leaves it there, so it will
+  /// meet a function older than itself. A version that answers with a URL and
+  /// no voice id is a working conversation in the agent's own voice — insisting
+  /// on the id would turn a cosmetic gap into no voice at all.
+  final String? voiceId;
 }
 
 /// Fetches a session from Kafoo. Injected so a test never needs a key.
@@ -121,10 +127,10 @@ Future<AgentSession?> fetchSignedUrl(
       },
     );
     final data = response.data;
-    if (data is Map && data['url'] is String && data['voiceId'] is String) {
+    if (data is Map && data['url'] is String) {
       return AgentSession(
         url: data['url'] as String,
-        voiceId: data['voiceId'] as String,
+        voiceId: data['voiceId'] is String ? data['voiceId'] as String : null,
       );
     }
     return null;
@@ -196,12 +202,15 @@ class AgentConversation {
 
     // THE FIRST MESSAGE, BEFORE ANY AUDIO. The provider reads overrides only
     // from the opening frame; sending it later is sending it never.
-    channel.sink.add(jsonEncode({
-      'type': 'conversation_initiation_client_data',
-      'conversation_config_override': {
-        'tts': {'voice_id': session.voiceId},
-      },
-    }));
+    final chosenVoice = session.voiceId;
+    if (chosenVoice != null) {
+      channel.sink.add(jsonEncode({
+        'type': 'conversation_initiation_client_data',
+        'conversation_config_override': {
+          'tts': {'voice_id': chosenVoice},
+        },
+      }));
+    }
 
     channel.stream.listen(
       _onMessage,
