@@ -127,10 +127,17 @@ wrong conversation is worse than opening none.
 voice in the opening frame, so Settings reaches the live conversation. Everything else — the prompt,
 the model, the language — is fixed on the agent and the handset cannot change it.
 
-**Both discard audio and hold the transcript for seven days.** `record_voice` off, `delete_audio`
-on, `retention_days` 7 with PII deletion on. Seven days is long enough to diagnose a bad
-conversation and short enough that a Cook's speech is not sitting on a third party's servers after
-the test that produced it.
+**Both discard audio and hold the transcript for ninety days.** `record_voice` off, `delete_audio`
+on, `retention_days` 90.
+
+**Ninety is the founder's number and it has now been decided twice** — on 2026-08-14 in PR #466, to
+learn from how real people use the product, and again on 2026-08-15 after a session cut it to seven
+without noticing the first decision. It matches ADR-0007's dormancy window, which ADR-0016 already
+binds memory to; a second retention number would be a second thing to keep correct.
+
+**What that costs is recorded rather than smoothed over.** No Cook has been told her words are kept
+for ninety days, and an allergy spoken aloud is health-adjacent data the privacy rules say needs
+explicit consent. Deferred rows 18 and 19; row 18 gates the five-Cook trial.
 
 ## What you will not see working
 
