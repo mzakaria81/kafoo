@@ -115,6 +115,10 @@ supabase secrets set ELEVENLABS_KITCHEN_AGENT_ID=agent_8401m01ntv5qf3a9b29ne2p2f
 supabase functions deploy agent-session --project-ref pzyngffppwfsvdsnslkb
 ```
 
+Or run **Actions → Demo Edge Functions** and paste the agent id into the form; it does both, against
+this project only. It needs a `SUPABASE_ACCESS_TOKEN` secret — see "Deploying without a laptop"
+below.
+
 **Without the secret the Kitchen orb says plainly that it cannot hear and reveals typing.** That is
 the deliberate failure — the function refuses to fall back to the Meal agent, because opening the
 wrong conversation is worse than opening none.
@@ -200,12 +204,36 @@ under Project Settings → Edge Functions → Secrets, or with
 `supabase secrets set GEMINI_API_KEY=<key> --project-ref pzyngffppwfsvdsnslkb` from a human's
 terminal.
 
-**Deploy.** Function code and migrations reach this branch when the `demo/environment` git branch is
-updated, and that is the only path. It is slower than a command and better: every change to the
-database the founder's phone talks to is a reviewed commit with a message, rather than something
-somebody ran once. Bring it forward the way `3b66492` did — merge `main` into `demo/environment` and
-push. **Say what it will change before pushing it**: the branch redeploys its functions and applies
-every migration it has not seen.
+**Deploy.** A session cannot deploy from its own shell, and that has not changed. Two paths exist,
+both going through something a person set up and can revoke.
+
+Function code and migrations reach this branch when the `demo/environment` git branch is updated.
+It is slower than a command and better: every change to the database the founder's phone talks to is
+a reviewed commit with a message, rather than something somebody ran once. Bring it forward the way
+`3b66492` did — merge `main` into `demo/environment` and push. **Say what it will change before
+pushing it**: the branch redeploys its functions and applies every migration it has not seen.
+
+## Deploying without a laptop
+
+**Actions → Demo Edge Functions** deploys named functions to this project and nothing else. Added
+2026-08-15, because the rewritten `agent-session` sat finished and unreachable for a day: the code
+was done and no path existed to put it where a phone could call it.
+
+It needs one secret, `SUPABASE_ACCESS_TOKEN`, created at
+https://supabase.com/dashboard/account/tokens and stored under **Settings → Secrets and variables →
+Actions → Secrets**.
+
+**That token can reach every project its owner can reach, production included.** Which is why the
+workflow refuses the production ref outright before doing anything, and why it reads the address
+from `DEMO_SUPABASE_URL` rather than accepting one typed into the form. Revoking the token on that
+page is instant and stops the workflow dead.
+
+**Use it for a function, never for a migration.** It deploys `supabase/functions/<name>` and does not
+touch the schema. A migration still goes through `demo/environment`, where it is a reviewed commit.
+
+The form also takes an ElevenLabs agent id and sets it as a secret before deploying. An agent id
+names a conversation and grants nothing on its own, which is why it can sit in a dispatch form. **An
+API key must never be typed there** — it would be recorded in the run's history.
 
 ## Turning it off
 
