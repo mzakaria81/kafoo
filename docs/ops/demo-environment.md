@@ -96,6 +96,38 @@ Add `--dry-run` first; it lists what would be embedded and spends nothing. Thirt
 4.5 seconds apart against the free tier is about a minute, and it selects on `embedding IS NULL`, so
 re-running only does the ones that are missing.
 
+## The voice agents — two of them, and one secret each
+
+The talk orb opens a hosted conversation. `agent-session` mints the signed URL, and it picks the
+agent from the `kind` the app asks for. Two agents exist in the ElevenLabs account:
+
+| Conversation | Agent | Secret the function reads |
+|---|---|---|
+| A Cook talks a Meal into being | `agent_2301kzz79w0efcgbjwqy6kdsmwtd` — "Kafoo — Cook conversation" | `ELEVENLABS_AGENT_ID` |
+| A Cook makes her Kitchen Profile | `agent_8401m01ntv5qf3a9b29ne2p2fcwd` — "Kafoo — Kitchen Profile conversation" | `ELEVENLABS_KITCHEN_AGENT_ID` |
+
+An agent id is an identifier, not a credential — it names which conversation to open and grants
+nothing on its own. `ELEVENLABS_API_KEY` is the credential, and it never leaves the function.
+
+```bash
+supabase secrets set ELEVENLABS_KITCHEN_AGENT_ID=agent_8401m01ntv5qf3a9b29ne2p2fcwd \
+  --project-ref pzyngffppwfsvdsnslkb
+supabase functions deploy agent-session --project-ref pzyngffppwfsvdsnslkb
+```
+
+**Without the secret the Kitchen orb says plainly that it cannot hear and reveals typing.** That is
+the deliberate failure — the function refuses to fall back to the Meal agent, because opening the
+wrong conversation is worse than opening none.
+
+**Both agents permit exactly one runtime override: the voice.** The app sends the Cook's chosen
+voice in the opening frame, so Settings reaches the live conversation. Everything else — the prompt,
+the model, the language — is fixed on the agent and the handset cannot change it.
+
+**Both discard audio and hold the transcript for seven days.** `record_voice` off, `delete_audio`
+on, `retention_days` 7 with PII deletion on. Seven days is long enough to diagnose a bad
+conversation and short enough that a Cook's speech is not sitting on a third party's servers after
+the test that produced it.
+
 ## What you will not see working
 
 **Photos are absent.** No Meal in the demo set carries one. `photo_path` is nullable and every
