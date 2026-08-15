@@ -92,6 +92,13 @@ jobs:
           FUNCTIONS: ${{ inputs.functions }}
         run: |
           for fn in ${FUNCTIONS}; do
+            case "${fn}" in
+              *[!a-z0-9-]*|-*|'')
+                echo "::error::'${fn}' is not a function name. Lower case, digits and hyphens" \
+                     "only — which also refuses a path like ../ that would point the deploy at" \
+                     "something outside supabase/functions."
+                exit 1 ;;
+            esac
             if [ ! -d "supabase/functions/${fn}" ]; then
               echo "::error::supabase/functions/${fn} does not exist in this repository."
               exit 1
