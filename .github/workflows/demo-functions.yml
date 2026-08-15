@@ -1,0 +1,126 @@
+name: Demo Edge Functions
+
+# DEPLOY AN EDGE FUNCTION TO THE DEMO DATABASE, WITHOUT ANYONE HOLDING A LAPTOP.
+#
+# Until 2026-08-15 nothing deployed Edge Functions anywhere. `deploy.yml` builds apps and points at
+# production; the demo project was only ever updated by a human running `supabase functions deploy`
+# by hand. That is why the rewritten `agent-session` sat finished and unreachable for a day — the
+# code was done and no path existed to put it where a phone could call it.
+#
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+# IT DEPLOYS TO THE DEMO PROJECT AND REFUSES PRODUCTION, the same refusal demo-apk.yml carries and
+# for a stronger reason: this one WRITES. A function deployed to production runs against real
+# Cooks' rows on the next request, with no build to install and no way to un-deploy the old one
+# except deploying it again.
+#
+# The address is not typed and not an input. It is read from the same `DEMO_SUPABASE_URL` repository
+# variable the APK build reads, so there is exactly one place recording which database is "demo" and
+# the two cannot disagree.
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+#
+# THE ACCESS TOKEN IS THE ONLY NEW SECRET, and it belongs to a person, not a project. A Supabase
+# access token can reach every project that person can reach — including production — so the refusal
+# above is doing real work rather than restating a permission. Create one at
+# https://supabase.com/dashboard/account/tokens and store it as SUPABASE_ACCESS_TOKEN under
+# Settings -> Secrets and variables -> Actions -> Secrets. Revoking it on that page is instant and
+# stops this workflow dead, which is the property worth having.
+#
+# With no token configured this workflow fails loudly on the first step rather than half-deploying.
+
+on:
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: 'Which functions to deploy, space separated.'
+        required: false
+        default: 'agent-session'
+      kitchen_agent_id:
+        description: 'Optional. Sets ELEVENLABS_KITCHEN_AGENT_ID before deploying. An agent id, never an API key.'
+        required: false
+
+jobs:
+  deploy:
+    name: deploy to demo
+    runs-on: ubuntu-latest
+    env:
+      URL: ${{ vars.DEMO_SUPABASE_URL }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # Resolve the project ref from the stored demo address, refuse production, and refuse to
+      # proceed without a token. Every later step reads REF from here, so the refusal cannot be
+      # checking a different project from the deploy.
+      - name: Refuse production, and refuse an empty address
+        run: |
+          if [ -z "${SUPABASE_ACCESS_TOKEN}" ]; then
+            echo "::error::No SUPABASE_ACCESS_TOKEN secret. Create a token at" \
+                 "https://supabase.com/dashboard/account/tokens and store it under" \
+                 "Settings -> Secrets and variables -> Actions -> Secrets."
+            exit 1
+          fi
+          if [ -z "${URL}" ]; then
+            echo "::error::No DEMO_SUPABASE_URL repository variable. demo-apk.yml reads the same" \
+                 "one; set it once and both agree."
+            exit 1
+          fi
+          if [ "${URL}" = "https://cshrkpvljknxsdzwhhle.supabase.co" ]; then
+            echo "::error::That is the production project. A deployed function runs against real" \
+                 "Cooks' rows on the next request. Production is asked for, never assumed."
+            exit 1
+          fi
+          case "${URL}" in
+            https://*.supabase.co) ;;
+            *) echo "::error::Expected a https://<ref>.supabase.co URL."; exit 1 ;;
+          esac
+          REF="${URL#https://}"
+          REF="${REF%%.supabase.co}"
+          echo "REF=${REF}" >> "$GITHUB_ENV"
+          echo "Deploying to ${REF}"
+
+      # Refuse a function name that is not a directory in this repository, before touching the
+      # network. `supabase functions deploy` on a name it cannot find is a slower, less clear
+      # version of the same failure.
+      - name: Check the functions exist
+        run: |
+          for fn in ${{ inputs.functions }}; do
+            if [ ! -d "supabase/functions/${fn}" ]; then
+              echo "::error::supabase/functions/${fn} does not exist in this repository."
+              exit 1
+            fi
+          done
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # An agent id names which conversation to open and grants nothing on its own, so it is an
+      # input rather than a secret. It is still SET as a secret, because that is where the function
+      # reads its configuration from. An API key must never be passed here — it would be printed in
+      # the dispatch form and kept in the run's history.
+      - name: Set the kitchen agent id
+        if: inputs.kitchen_agent_id != ''
+        run: |
+          case "${{ inputs.kitchen_agent_id }}" in
+            agent_*) ;;
+            *) echo "::error::That does not look like an ElevenLabs agent id. Expected agent_...";
+               exit 1 ;;
+          esac
+          supabase secrets set "ELEVENLABS_KITCHEN_AGENT_ID=${{ inputs.kitchen_agent_id }}" \
+            --project-ref "${REF}"
+
+      - name: Deploy
+        run: supabase functions deploy ${{ inputs.functions }} --project-ref "${REF}"
+
+      - name: What was deployed
+        run: |
+          {
+            echo "### Deployed to \`${REF}\`"
+            echo ""
+            echo "Functions: \`${{ inputs.functions }}\`"
+            echo ""
+            echo "A deployed function is live on the next request — there is no build to install."
+            echo "The demo APK already points here, so try the change on the phone you have."
+            echo ""
+            echo "Runbook: \`docs/ops/demo-environment.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"
